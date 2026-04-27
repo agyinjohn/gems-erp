@@ -54,7 +54,7 @@ export default function LoginPage() {
             </div>
             <div>
               <div className="text-3xl font-black">GEMS</div>
-              <div className="text-blue-200">Enterprise Resource Planning</div>
+              <div className="text-blue-200">GThink Enterprise Management System</div>
             </div>
           </div>
           <h2 className="text-4xl font-bold leading-tight mb-4">

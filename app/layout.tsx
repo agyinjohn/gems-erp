@@ -6,7 +6,7 @@ import { AuthProvider } from '@/lib/auth';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'GEMS',
+  title: 'GEMS — GThink Enterprise Management System',
   description: 'Enterprise Resource Planning System',
 };
 

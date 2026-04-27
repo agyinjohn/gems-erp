@@ -42,7 +42,7 @@ export default function Sidebar({ open, onClose }: Props) {
           </div>
           <div>
             <div className="text-white font-bold text-lg leading-tight">GEMS</div>
-            <div className="text-blue-200 text-xs">ERP System</div>
+            <div className="text-blue-200 text-xs">GThink Enterprise Management System</div>
           </div>
         </div>
         {/* Close button — mobile only */}
