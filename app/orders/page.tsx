@@ -1,0 +1,197 @@
+'use client';
+import { useEffect, useState } from 'react';
+import AppLayout from '@/components/layout/AppLayout';
+import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast } from '@/components/ui';
+import { Plus, Search, Eye, Edit2 } from 'lucide-react';
+import api from '@/lib/api';
+
+export default function OrdersPage() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [modal, setModal] = useState<'add'|'view'|'status'|null>(null);
+  const [selected, setSelected] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [newStatus, setNewStatus] = useState('');
+  const [form, setForm] = useState({ customer_name:'', customer_email:'', customer_phone:'', delivery_address:'', items:[{ product_id:'', quantity:1 }] });
+
+  const load = async () => {
+    setLoading(true);
+    const [o, p] = await Promise.all([api.get('/orders'), api.get('/products?is_active=true')]);
+    setOrders(o.data.data); setProducts(p.data.data); setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const filtered = orders.filter(o =>
+    (!search || o.order_number.toLowerCase().includes(search.toLowerCase()) || o.customer_name.toLowerCase().includes(search.toLowerCase())) &&
+    (!filterStatus || o.status === filterStatus)
+  );
+
+  const openView = async (o: any) => {
+    try {
+      const r = await api.get(`/orders/${o._id || o.id}`);
+      setSelected(r.data.data); setModal('view');
+    } catch(e:any) { toast.error('Could not load order details'); }
+  };
+
+  const openStatus = (o: any) => { setSelected(o); setNewStatus(o.status); setModal('status'); };
+
+  const addItem = () => setForm({ ...form, items: [...form.items, { product_id:'', quantity:1 }] });
+  const removeItem = (i: number) => setForm({ ...form, items: form.items.filter((_,idx) => idx !== i) });
+  const updateItem = (i: number, key: string, val: any) => {
+    const items = [...form.items];
+    items[i] = { ...items[i], [key]: val };
+    setForm({ ...form, items });
+  };
+
+  const getTotal = () => form.items.reduce((sum, item) => {
+    const p = products.find((pr:any) => pr.id == item.product_id);
+    return sum + (p ? p.price * item.quantity : 0);
+  }, 0);
+
+  const createOrder = async () => {
+    setSaving(true); setError('');
+    try {
+      await api.post('/orders', { ...form, items: form.items.filter(i => i.product_id) });
+      toast.success('Order created'); setModal(null); load();
+    } catch(e:any) { toast.error(e.response?.data?.message || 'Error creating order'); }
+    finally { setSaving(false); }
+  };
+
+  const updateStatus = async () => {
+    setSaving(true);
+    try { await api.patch(`/orders/${selected.id}/status`, { status: newStatus }); toast.success('Status updated'); setModal(null); load(); }
+    catch(e:any) { toast.error(e.response?.data?.message || 'Error'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <AppLayout title="Sales & Orders" subtitle="Manage customer orders and track payments" allowedRoles={['super_admin','sales_staff']}>
+      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input className="form-input pl-9" placeholder="Search by order number or customer…" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <select className="form-input w-auto" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+          <option value="">All Statuses</option>
+          {['pending','processing','shipped','delivered','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <button className="btn-primary" onClick={() => { setForm({ customer_name:'',customer_email:'',customer_phone:'',delivery_address:'',items:[{product_id:'',quantity:1}] }); setError(''); setModal('add'); }}>
+          <Plus className="w-4 h-4" />New Order
+        </button>
+      </div>
+
+      <div className="card p-0 overflow-hidden">
+        {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No orders found" icon="🛒" /> : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="table-header">
+                <tr>{['Order #','Customer','Total','Payment','Status','Date','Actions'].map(h => <th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map(o => (
+                  <tr key={o.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 font-mono text-xs font-medium text-blue-700">{o.order_number}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900">{o.customer_name}</div>
+                      <div className="text-xs text-gray-400">{o.customer_email}</div>
+                    </td>
+                    <td className="px-4 py-3 font-semibold">GHS {parseFloat(o.total).toFixed(2)}</td>
+                    <td className="px-4 py-3"><Badge status={o.payment_status} /></td>
+                    <td className="px-4 py-3"><Badge status={o.status} /></td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{new Date(o.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <button onClick={() => openView(o)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Eye className="w-4 h-4" /></button>
+                        <button onClick={() => openStatus(o)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* New Order Modal */}
+      <Modal open={modal === 'add'} onClose={() => setModal(null)} title="Create Internal Order" size="lg">
+        {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="col-span-2"><label className="form-label">Customer Name *</label><input className="form-input" value={form.customer_name} onChange={e => setForm({...form,customer_name:e.target.value})} /></div>
+          <div><label className="form-label">Email</label><input className="form-input" type="email" value={form.customer_email} onChange={e => setForm({...form,customer_email:e.target.value})} /></div>
+          <div><label className="form-label">Phone</label><input className="form-input" value={form.customer_phone} onChange={e => setForm({...form,customer_phone:e.target.value})} /></div>
+          <div className="col-span-2"><label className="form-label">Delivery Address</label><input className="form-input" value={form.delivery_address} onChange={e => setForm({...form,delivery_address:e.target.value})} /></div>
+        </div>
+        <div className="border-t pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-medium text-gray-800">Order Items</h4>
+            <button className="btn-secondary py-1 text-xs" onClick={addItem}><Plus className="w-3 h-3" />Add Item</button>
+          </div>
+          <div className="space-y-2">
+            {form.items.map((item, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <select className="form-input flex-1" value={item.product_id} onChange={e => updateItem(i,'product_id',e.target.value)}>
+                  <option value="">Select product</option>
+                  {products.map((p:any) => <option key={p.id} value={p.id}>{p.name} — GHS {p.price} (stock: {p.stock_qty})</option>)}
+                </select>
+                <input type="number" className="form-input w-20" min={1} value={item.quantity} onChange={e => updateItem(i,'quantity',parseInt(e.target.value))} />
+                {form.items.length > 1 && <button onClick={() => removeItem(i)} className="text-red-400 hover:text-red-600 px-1">✕</button>}
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 text-right font-semibold text-gray-900">Total: GHS {getTotal().toFixed(2)}</div>
+        </div>
+        <div className="flex gap-3 justify-end mt-6">
+          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+          <button className="btn-primary" onClick={createOrder} disabled={saving}>{saving ? 'Creating…' : 'Create Order'}</button>
+        </div>
+      </Modal>
+
+      {/* View Order Modal */}
+      <Modal open={modal === 'view'} onClose={() => setModal(null)} title={`Order — ${selected?.order_number}`} size="lg">
+        {selected && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><span className="text-gray-500">Customer:</span> <strong>{selected.customer_name}</strong></div>
+              <div><span className="text-gray-500">Email:</span> {selected.customer_email || '—'}</div>
+              <div><span className="text-gray-500">Phone:</span> {selected.customer_phone || '—'}</div>
+              <div><span className="text-gray-500">Payment:</span> <Badge status={selected.payment_status} /></div>
+              <div><span className="text-gray-500">Status:</span> <Badge status={selected.status} /></div>
+              <div><span className="text-gray-500">Date:</span> {new Date(selected.created_at).toLocaleString()}</div>
+              {selected.delivery_address && <div className="col-span-2"><span className="text-gray-500">Address:</span> {selected.delivery_address}</div>}
+            </div>
+            <div className="border-t pt-4">
+              <h4 className="font-medium text-gray-800 mb-3">Items</h4>
+              <table className="w-full text-sm">
+                <thead className="table-header"><tr><th className="px-3 py-2 text-left">Product</th><th className="px-3 py-2 text-right">Qty</th><th className="px-3 py-2 text-right">Price</th><th className="px-3 py-2 text-right">Total</th></tr></thead>
+                <tbody>{selected.items?.map((item:any) => (
+                  <tr key={item.id} className="border-t"><td className="px-3 py-2">{item.product_name}</td><td className="px-3 py-2 text-right">{item.quantity}</td><td className="px-3 py-2 text-right">GHS {parseFloat(item.unit_price).toFixed(2)}</td><td className="px-3 py-2 text-right font-semibold">GHS {parseFloat(item.total).toFixed(2)}</td></tr>
+                ))}</tbody>
+              </table>
+              <div className="text-right font-bold text-gray-900 mt-3 text-lg">Total: GHS {parseFloat(selected.total).toFixed(2)}</div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Update Status Modal */}
+      <Modal open={modal === 'status'} onClose={() => setModal(null)} title="Update Order Status" size="sm">
+        <div className="space-y-4">
+          <div><label className="form-label">New Status</label>
+            <select className="form-input" value={newStatus} onChange={e => setNewStatus(e.target.value)}>
+              {['pending','processing','shipped','delivered','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-3 justify-end mt-6">
+          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+          <button className="btn-primary" onClick={updateStatus} disabled={saving}>{saving ? 'Saving…':'Update Status'}</button>
+        </div>
+      </Modal>
+    </AppLayout>
+  );
+}
