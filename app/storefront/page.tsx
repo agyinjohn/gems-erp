@@ -68,6 +68,7 @@ export default function StorefrontPage() {
     try {
       const params: any = { page: pageNum, limit: ITEMS_PER_PAGE };
       if (search) params.search = search;
+      if (filterCat) params.category = filterCat;
       const r = await api.get('/storefront/products', { params });
       const newProds = r.data.data;
       setProducts(prev => replace ? newProds : [...prev, ...newProds]);
@@ -76,7 +77,7 @@ export default function StorefrontPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [search]);
+  }, [search, filterCat]);
 
   useEffect(() => {
     setPage(1);
@@ -89,7 +90,7 @@ export default function StorefrontPage() {
         setCart(r.data.data.items.map(toCartItem));
       }).catch(() => {});
     }
-  }, [search]);
+  }, [search, filterCat]);
 
   useEffect(() => {
     if (page === 1) return;
@@ -172,7 +173,7 @@ export default function StorefrontPage() {
     if (sortBy === 'name') return a.name.localeCompare(b.name);
     return 0;
   });
-  const resetPage = () => { setPage(1); setProducts([]); loadProducts(1, true); };
+  const resetPage = () => setPage(1);
   const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
   const deliveryFee = cartTotal >= 500 ? 0 : 30;
