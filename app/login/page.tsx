@@ -72,7 +72,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right login form ── */}
-      <div className="flex items-center justify-center w-full lg:w-[45%] bg-gray-50 px-12 py-12">
+      <div className="flex items-center justify-center w-full lg:w-[45%] bg-gray-50 px-4 sm:px-8 lg:px-12 py-8 lg:py-12">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="text-center mb-8 lg:hidden">
@@ -119,8 +119,10 @@ export default function LoginPage() {
               {demoAccounts.map(a => (
                 <button key={a.email} onClick={() => { setEmail(a.email); setPassword(a.password); }}
                   className="w-full text-left px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors">
-                  <span className="text-xs font-semibold text-blue-800">{a.role}</span>
-                  <span className="text-xs text-blue-500 ml-2">{a.email}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-blue-800 flex-shrink-0">{a.role}</span>
+                    <span className="text-xs text-blue-500 truncate">{a.email}</span>
+                  </div>
                 </button>
               ))}
             </div>

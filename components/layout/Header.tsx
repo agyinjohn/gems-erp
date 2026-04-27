@@ -1,17 +1,17 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Bell, Search, X, Package, ShoppingCart, Users, AlertTriangle, Info, LogOut, KeyRound, ChevronDown } from 'lucide-react';
+import { Bell, Search, X, Package, ShoppingCart, Users, AlertTriangle, Info, LogOut, KeyRound, ChevronDown, Menu } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { toast } from '@/components/ui';
 
-interface Props { title: string; subtitle?: string; }
+interface Props { title: string; subtitle?: string; onMenuClick: () => void; }
 
 interface SearchResult { type: string; label: string; sub: string; link: string; }
 interface Notification { id: string; type: 'warning' | 'info'; title: string; message: string; link: string; }
 
-export default function Header({ title, subtitle }: Props) {
+export default function Header({ title, subtitle, onMenuClick }: Props) {
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -117,10 +117,15 @@ export default function Header({ title, subtitle }: Props) {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-        {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
+    <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <button onClick={onMenuClick} className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0">
+          <Menu className="w-5 h-5 text-gray-600" />
+        </button>
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{title}</h1>
+          {subtitle && <p className="text-xs sm:text-sm text-gray-500 mt-0.5 truncate">{subtitle}</p>}
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

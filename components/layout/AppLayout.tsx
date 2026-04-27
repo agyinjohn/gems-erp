@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import Sidebar from './Sidebar';
@@ -16,6 +16,7 @@ interface Props {
 export default function AppLayout({ children, title, subtitle, allowedRoles }: Props) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
@@ -37,10 +38,10 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 ml-64">
-        <Header title={title} subtitle={subtitle} />
-        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
+        <Header title={title} subtitle={subtitle} onMenuClick={() => setSidebarOpen(true)} />
+        <main className="flex-1 p-4 sm:p-6 overflow-y-auto">{children}</main>
         <ToastContainer />
       </div>
     </div>

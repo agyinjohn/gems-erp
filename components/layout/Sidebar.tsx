@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
-  Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle
+  Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle, X
 } from 'lucide-react';
 
 const allNavItems = [
@@ -22,7 +22,9 @@ const allNavItems = [
   { href: '/users',       label: 'Users',       icon: Settings,        roles: ['super_admin'] },
 ];
 
-export default function Sidebar() {
+interface Props { open: boolean; onClose: () => void; }
+
+export default function Sidebar({ open, onClose }: Props) {
   const pathname = usePathname();
   const { user } = useAuth();
 
@@ -30,10 +32,10 @@ export default function Sidebar() {
     user && item.roles.includes(user.role)
   );
 
-  return (
-    <aside className="fixed left-0 top-0 h-screen w-64 flex flex-col z-30" style={{ background: 'linear-gradient(180deg, #0D3B6E 0%, #1A5294 100%)' }}>
+  const inner = (
+    <aside className="h-full w-64 flex flex-col" style={{ background: 'linear-gradient(180deg, #0D3B6E 0%, #1A5294 100%)' }}>
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-white/10">
+      <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center">
             <Building2 className="w-5 h-5 text-blue-900" />
@@ -43,6 +45,10 @@ export default function Sidebar() {
             <div className="text-blue-200 text-xs">ERP System</div>
           </div>
         </div>
+        {/* Close button — mobile only */}
+        <button onClick={onClose} className="lg:hidden text-white/60 hover:text-white p-1">
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Nav */}
@@ -54,6 +60,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`sidebar-link ${isActive ? 'active' : 'inactive'}`}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
@@ -71,5 +78,24 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop: fixed sidebar */}
+      <div className="hidden lg:block fixed left-0 top-0 h-screen w-64 z-30">
+        {inner}
+      </div>
+
+      {/* Mobile: overlay drawer */}
+      {open && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+          <div className="relative w-64 h-full shadow-2xl">
+            {inner}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
