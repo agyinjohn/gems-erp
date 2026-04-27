@@ -53,7 +53,7 @@ export default function LoginPage() {
               <Building2 className="w-8 h-8 text-blue-900" />
             </div>
             <div>
-              <div className="text-3xl font-black">GThink ERP</div>
+              <div className="text-3xl font-black">GEMS</div>
               <div className="text-blue-200">Enterprise Resource Planning</div>
             </div>
           </div>
@@ -79,7 +79,7 @@ export default function LoginPage() {
             <div className="w-12 h-12 bg-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Building2 className="w-7 h-7 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">GThink ERP</h1>
+            <h1 className="text-2xl font-bold text-gray-900">GEMS</h1>
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h2>

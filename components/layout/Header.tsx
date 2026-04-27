@@ -307,7 +307,7 @@ export default function Header({ title, subtitle }: Props) {
                 <LogOut className="w-5 h-5 text-red-600" />
               </div>
               <h3 className="font-semibold text-gray-900 text-lg mb-1">Sign Out</h3>
-              <p className="text-sm text-gray-500">Are you sure you want to sign out of GThink ERP?</p>
+              <p className="text-sm text-gray-500">Are you sure you want to sign out of GEMS?</p>
             </div>
             <div className="flex gap-3 px-6 pb-6">
               <button className="btn-secondary flex-1" onClick={() => setLogoutModal(false)}>Cancel</button>

@@ -50,7 +50,7 @@ export default function ReportsPage() {
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `gthink-${tab}-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.href = url; a.download = `gems-${tab}-report-${new Date().toISOString().split('T')[0]}.csv`;
     a.click(); URL.revokeObjectURL(url);
   };
 

@@ -27,8 +27,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const stored = localStorage.getItem('gthink_user');
-    const token = localStorage.getItem('gthink_token');
+    const stored = localStorage.getItem('gems_user');
+    const token = localStorage.getItem('gems_token');
     if (stored && token) {
       setUser(JSON.parse(stored));
     }
@@ -38,15 +38,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
     const { token, user } = res.data.data;
-    localStorage.setItem('gthink_token', token);
-    localStorage.setItem('gthink_user', JSON.stringify(user));
+    localStorage.setItem('gems_token', token);
+    localStorage.setItem('gems_user', JSON.stringify(user));
     setUser(user);
     router.push('/dashboard');
   };
 
   const logout = () => {
-    localStorage.removeItem('gthink_token');
-    localStorage.removeItem('gthink_user');
+    localStorage.removeItem('gems_token');
+    localStorage.removeItem('gems_user');
     setUser(null);
     router.push('/login');
   };

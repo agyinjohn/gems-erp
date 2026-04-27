@@ -629,7 +629,7 @@ export default function AccountingPage() {
 
                   {/* Report Header */}
                   <div className="text-center py-7 px-8 border-b border-gray-100">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">GThink ERP</p>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">GEMS</p>
                     <h2 className="text-2xl font-bold text-gray-900">Balance Sheet</h2>
                     <p className="text-sm text-gray-500 mt-1">As at {new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</p>
                     <p className="text-xs text-gray-400 mt-0.5">All amounts in Ghana Cedis (GHS)</p>
@@ -684,7 +684,7 @@ export default function AccountingPage() {
 
                   {/* Footer */}
                   <div className="px-8 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 text-center">
-                    Prepared by GThink ERP &middot; {new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })} &middot; Unaudited
+                    Prepared by GEMS &middot; {new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })} &middot; Unaudited
                   </div>
 
                 </div>

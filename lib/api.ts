@@ -8,7 +8,7 @@ const api = axios.create({
 // Attach token to every request
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('gthink_token');
+    const token = localStorage.getItem('gems_token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -19,8 +19,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('gthink_token');
-      localStorage.removeItem('gthink_user');
+      localStorage.removeItem('gems_token');
+      localStorage.removeItem('gems_user');
       window.location.href = '/login';
     }
     return Promise.reject(error);

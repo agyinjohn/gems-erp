@@ -39,7 +39,7 @@ export default function Sidebar() {
             <Building2 className="w-5 h-5 text-blue-900" />
           </div>
           <div>
-            <div className="text-white font-bold text-lg leading-tight">GThink</div>
+            <div className="text-white font-bold text-lg leading-tight">GEMS</div>
             <div className="text-blue-200 text-xs">ERP System</div>
           </div>
         </div>
