@@ -104,7 +104,7 @@ export default function ReportsPage() {
                   {data.top_products?.length ? (
                     <ResponsiveContainer width="100%" height={220}>
                       <PieChart>
-                        <Pie data={data.top_products} dataKey="revenue" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`}>
+                        <Pie data={data.top_products} dataKey="revenue" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,percent})=>`${name} ${((percent??0)*100).toFixed(0)}%`}>
                           {data.top_products.map((_:any,i:number) => <Cell key={i} fill={COLORS[i%COLORS.length]} />)}
                         </Pie>
                         <Tooltip formatter={(v:any)=>[`GHS ${Number(v).toFixed(2)}`]} />
