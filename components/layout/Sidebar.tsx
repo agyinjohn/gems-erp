@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
-  Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle, X
+  Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle, X, Monitor
 } from 'lucide-react';
 
 const allNavItems = [
@@ -19,6 +19,7 @@ const allNavItems = [
   { href: '/crm',         label: 'CRM',         icon: UserCheck,       roles: ['super_admin','sales_staff'] },
   { href: '/reports',     label: 'Reports',     icon: BarChart2,       roles: ['super_admin','accountant','hr_manager'] },
   { href: '/storefront',  label: 'Storefront',  icon: Store,           roles: ['super_admin','sales_staff'] },
+  { href: '/pos',         label: 'POS',         icon: Monitor,         roles: ['super_admin','sales_staff'] },
   { href: '/users',       label: 'Users',       icon: Settings,        roles: ['super_admin'] },
 ];
 
