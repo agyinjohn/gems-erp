@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast } from '@/components/ui';
-import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function InventoryPage() {
@@ -14,12 +14,31 @@ export default function InventoryPage() {
   const [modal, setModal] = useState<'add'|'edit'|'adjust'|null>(null);
   const [selected, setSelected] = useState<any>(null);
   const [confirm, setConfirm] = useState<any>(null);
-  const [form, setForm] = useState({ name:'', sku:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece' });
+  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', images:'' });
   const [adjustQty, setAdjustQty] = useState('');
   const [adjustType, setAdjustType] = useState<'add'|'remove'>('add');
   const [adjustNote, setAdjustNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [labelProduct, setLabelProduct] = useState<any>(null);
+  const [labelQty, setLabelQty] = useState(1);
+  const barcodeRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!labelProduct || !barcodeRef.current) return;
+    import('jsbarcode').then(({ default: JsBarcode }) => {
+      JsBarcode(barcodeRef.current, labelProduct.sku, {
+        format: 'CODE128',
+        width: 2,
+        height: 60,
+        displayValue: true,
+        fontSize: 14,
+        margin: 8,
+        background: '#ffffff',
+        lineColor: '#000000',
+      });
+    });
+  }, [labelProduct]);
 
   const load = async () => {
     setLoading(true);
@@ -35,15 +54,16 @@ export default function InventoryPage() {
     (!filterCat || (p.category_id?._id || p.category_id) == filterCat)
   );
 
-  const openAdd = () => { setForm({ name:'',sku:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece' }); setError(''); setModal('add'); };
-  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku,description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit }); setError(''); setModal('edit'); };
+  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',images:'' }); setError(''); setModal('add'); };
+  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku,barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,images:p.images?.[0]||'' }); setError(''); setModal('edit'); };
   const openAdjust = (p: any) => { setSelected(p); setAdjustQty(''); setAdjustType('add'); setAdjustNote(''); setModal('adjust'); };
 
   const save = async () => {
     setSaving(true); setError('');
+    const payload = { ...form, barcode: form.barcode.trim() || null, images: form.images.trim() ? [form.images.trim()] : [] };
     try {
-      if (modal === 'add') await api.post('/products', form);
-      else await api.put(`/products/${selected.id}`, form);
+      if (modal === 'add') await api.post('/products', payload);
+      else await api.put(`/products/${selected.id}`, payload);
       toast.success('Saved successfully'); setModal(null); load();
     } catch (e: any) { toast.error(e.response?.data?.message || 'Error saving product'); }
     finally { setSaving(false); }
@@ -157,6 +177,7 @@ export default function InventoryPage() {
                       {/* Actions */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => { setLabelProduct(p); setLabelQty(1); }} title="Print Label" className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500 transition-colors"><Tag className="w-4 h-4" /></button>
                           <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"><TrendingDown className="w-4 h-4" /></button>
                           <button onClick={() => openEdit(p)} title="Edit" className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"><Edit2 className="w-4 h-4" /></button>
                           <button onClick={() => setConfirm({ id: p.id, name: p.name })} title="Delete" className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
@@ -180,7 +201,8 @@ export default function InventoryPage() {
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2"><label className="form-label">Product Name *</label><input {...inputProps('name')} placeholder="e.g. Laptop Pro 15" /></div>
-          <div><label className="form-label">SKU *</label><input {...inputProps('sku')} placeholder="e.g. ELEC-001" /></div>
+          <div><label className="form-label">SKU <span className="text-gray-400 font-normal">(optional — auto-generated if blank)</span></label><input {...inputProps('sku')} placeholder="e.g. ELEC-001" /></div>
+          <div><label className="form-label">Barcode <span className="text-gray-400 font-normal">(optional — EAN, UPC etc.)</span></label><input {...inputProps('barcode')} placeholder="e.g. 6001234567890" /></div>
           <div>
             <label className="form-label">Category</label>
             <select {...inputProps('category_id')}><option value="">Select category</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
@@ -191,6 +213,16 @@ export default function InventoryPage() {
           <div><label className="form-label">Low Stock Alert</label><input type="number" {...inputProps('low_stock_threshold')} /></div>
           <div><label className="form-label">Unit</label><input {...inputProps('unit')} placeholder="piece, kg, box…" /></div>
           <div className="col-span-2"><label className="form-label">Description</label><textarea {...inputProps('description')} rows={3} placeholder="Product description…" /></div>
+          <div className="col-span-2">
+            <label className="form-label">Image URL</label>
+            <input {...inputProps('images')} placeholder="https://example.com/image.jpg" />
+            {form.images.trim() && (
+              <div className="mt-2 flex items-center gap-3">
+                <img src={form.images.trim()} alt="preview" className="w-16 h-16 object-cover rounded-lg border border-gray-200" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <span className="text-xs text-gray-400">Image preview</span>
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
@@ -244,6 +276,85 @@ export default function InventoryPage() {
       </Modal>
 
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} onConfirm={() => doDelete(confirm?.id)} title="Delete Product" message={`Are you sure you want to deactivate "${confirm?.name}"? It will be hidden from the storefront.`} danger />
+
+      {/* Print Label Modal */}
+      {labelProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setLabelProduct(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+
+            <div className="bg-[#0D3B6E] px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Tag className="w-5 h-5 text-yellow-400" />
+                <h2 className="font-bold text-white">Print Barcode Label</h2>
+              </div>
+              <button onClick={() => setLabelProduct(null)} className="text-white/60 hover:text-white">
+                <span className="text-xl leading-none">&times;</span>
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Label preview — always shows 1, quantity shown as badge */}
+              <div id="label-print-area">
+                <div className="border border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center bg-white relative">
+                  {labelQty > 1 && (
+                    <span className="absolute top-2 right-2 bg-[#0D3B6E] text-white text-xs font-bold px-2 py-0.5 rounded-full">&times;{labelQty}</span>
+                  )}
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">GEMS Store</p>
+                  <p className="text-sm font-bold text-gray-900 text-center mb-2 leading-tight">{labelProduct.name}</p>
+                  <svg ref={barcodeRef} className="w-full" />
+                  <p className="text-lg font-extrabold text-gray-900 mt-2">GHS {parseFloat(labelProduct.price).toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* Quantity selector */}
+              <div className="flex items-center justify-between mt-4 mb-5">
+                <span className="text-sm font-semibold text-gray-700">Number of labels</span>
+                <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5">
+                  <button onClick={() => setLabelQty(q => Math.max(1, q - 1))} className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">−</button>
+                  <span className="text-sm font-bold text-gray-900 w-6 text-center">{labelQty}</span>
+                  <button onClick={() => setLabelQty(q => Math.min(20, q + 1))} className="w-6 h-6 rounded-full bg-[#0D3B6E] flex items-center justify-center text-white hover:bg-[#1A5294] font-bold">+</button>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  const printArea = document.getElementById('label-print-area');
+                  if (!printArea) return;
+                  const win = window.open('', '_blank', 'width=400,height=600');
+                  if (!win) return;
+                  win.document.write(`
+                    <html><head><title>Barcode Labels — ${labelProduct.sku}</title>
+                    <style>
+                      body { margin: 0; padding: 16px; font-family: sans-serif; }
+                      .label { border: 1px dashed #ccc; border-radius: 8px; padding: 12px; margin-bottom: 12px; text-align: center; page-break-inside: avoid; }
+                      .store { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
+                      .name  { font-size: 13px; font-weight: bold; color: #111; margin-bottom: 8px; }
+                      .price { font-size: 18px; font-weight: 900; color: #111; margin-top: 8px; }
+                      svg    { width: 100%; }
+                      @media print { body { padding: 0; } }
+                    </style></head><body>
+                    ${Array.from({ length: labelQty }).map(() => `
+                      <div class="label">
+                        <div class="store">GEMS Store</div>
+                        <div class="name">${labelProduct.name}</div>
+                        ${printArea.querySelector('svg')?.outerHTML || ''}
+                        <div class="price">GHS ${parseFloat(labelProduct.price).toFixed(2)}</div>
+                      </div>`).join('')}
+                    </body></html>`);
+                  win.document.close();
+                  win.focus();
+                  setTimeout(() => { win.print(); win.close(); }, 400);
+                }}
+                className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                <Tag className="w-4 h-4" />
+                Print {labelQty} Label{labelQty > 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
