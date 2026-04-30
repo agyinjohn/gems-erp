@@ -228,11 +228,9 @@ export default function TenantStorefrontPage() {
       const orderNums = orders.map((o: any) => o.order_number);
       setOrderNumber(orderNums.join(', '));
 
-      const script = document.createElement('script');
-      script.src = 'https://js.paystack.co/v1/inline.js';
-      script.onload = () => {
+      const openPaystack = () => {
         const handler = (window as any).PaystackPop.setup({
-          key: paystack_public_key || 'pk_test_demo',
+          key: paystack_public_key,
           email,
           amount: Math.round(grand_total * 100),
           currency: 'GHS',
@@ -251,7 +249,15 @@ export default function TenantStorefrontPage() {
         });
         handler.openIframe();
       };
-      document.body.appendChild(script);
+      if ((window as any).PaystackPop) {
+        openPaystack();
+      } else {
+        const script = document.createElement('script');
+        script.src = 'https://js.paystack.co/v1/inline.js';
+        script.onload = openPaystack;
+        script.onerror = () => { setError('Failed to load Paystack. Check your connection.'); setPaying(false); };
+        document.body.appendChild(script);
+      }
     } catch(e:any) { setError(e.response?.data?.message||'Checkout error'); setPaying(false); }
   };
 
