@@ -170,6 +170,23 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* Demo accounts */}
+          <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Demo Accounts — click to fill</p>
+            <div className="grid grid-cols-2 gap-2">
+              {demoAccounts.map(a => (
+                <button
+                  key={a.email}
+                  type="button"
+                  onClick={() => { setEmail(a.email); setPassword(a.password); }}
+                  className={`text-left px-3 py-2 rounded-lg text-xs font-medium border border-transparent hover:border-gray-200 hover:bg-white transition-all ${a.badge}`}
+                >
+                  {a.role}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Trust badges */}
           <div className="flex items-center justify-center gap-6 mt-6">
             {[
