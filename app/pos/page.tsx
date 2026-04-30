@@ -162,7 +162,7 @@ export default function POSPage() {
   const printReceipt = () => window.print();
 
   return (
-    <AppLayout title="Point of Sale" subtitle="Walk-in sales terminal" allowedRoles={['super_admin', 'sales_staff']}>
+    <AppLayout title="Point of Sale" subtitle="Walk-in sales terminal" allowedRoles={['business_owner','branch_manager','sales_staff']}>
       <div className="-m-4 sm:-m-6 flex flex-col lg:flex-row" style={{ height: 'calc(100vh - 72px)' }}>
 
         {/* ══ LEFT: Product Panel ══ */}

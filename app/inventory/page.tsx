@@ -2,19 +2,23 @@
 import { useEffect, useState, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast } from '@/components/ui';
-import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function InventoryPage() {
+  const [tab, setTab] = useState<'products'|'categories'>('products');
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
-  const [modal, setModal] = useState<'add'|'edit'|'adjust'|null>(null);
+  const [modal, setModal] = useState<'add'|'edit'|'adjust'|'cat-add'|'cat-edit'|null>(null);
   const [selected, setSelected] = useState<any>(null);
+  const [selectedCat, setSelectedCat] = useState<any>(null);
   const [confirm, setConfirm] = useState<any>(null);
+  const [catConfirm, setCatConfirm] = useState<any>(null);
   const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', images:'' });
+  const [catForm, setCatForm] = useState({ name:'', description:'' });
   const [adjustQty, setAdjustQty] = useState('');
   const [adjustType, setAdjustType] = useState<'add'|'remove'>('add');
   const [adjustNote, setAdjustNote] = useState('');
@@ -84,11 +88,43 @@ export default function InventoryPage() {
     load();
   };
 
+  const saveCat = async () => {
+    if (!catForm.name.trim()) { toast.error('Category name is required'); return; }
+    setSaving(true);
+    try {
+      if (selectedCat) await api.put(`/categories/${selectedCat.id}`, catForm);
+      else await api.post('/categories', catForm);
+      toast.success('Category saved'); setModal(null); load();
+    } catch(e: any) { toast.error(e.response?.data?.message || 'Error saving category'); }
+    finally { setSaving(false); }
+  };
+
+  const deleteCat = async (id: string) => {
+    try {
+      await api.delete(`/categories/${id}`);
+      toast.success('Category deleted'); load();
+    } catch(e: any) { toast.error(e.response?.data?.message || 'Cannot delete — category may be in use'); }
+  };
+
   const inputProps = (key: string) => ({ value: (form as any)[key], onChange: (e: any) => setForm({...form, [key]: e.target.value}), className: 'form-input' });
 
   return (
-    <AppLayout title="Inventory" subtitle="Manage products, stock levels and categories" allowedRoles={['super_admin','warehouse_staff']}>
-      {/* Toolbar */}
+    <AppLayout title="Inventory" subtitle="Manage products, stock levels and categories" allowedRoles={['business_owner','branch_manager','warehouse_staff']}>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 mb-5 w-fit">
+        <button onClick={() => setTab('products')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='products' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
+          <Package className="w-4 h-4" /> Products
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${ tab==='products' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }`}>{products.length}</span>
+        </button>
+        <button onClick={() => setTab('categories')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='categories' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
+          <FolderOpen className="w-4 h-4" /> Categories
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${ tab==='categories' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }`}>{categories.length}</span>
+        </button>
+      </div>
+
+      {/* ── PRODUCTS TAB ── */}
+      {tab === 'products' && (<>
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -111,7 +147,7 @@ export default function InventoryPage() {
 
       {/* Table */}
       <div className="card p-0 overflow-hidden">
-        {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No products found" icon="📦" /> : (
+        {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No products found" description={search || filterCat ? 'Try adjusting your search or filter.' : 'Add your first product to get started.'} icon={<Package className="w-9 h-9 text-gray-300" />} action={!search && !filterCat ? { label: '+ Add Product', onClick: openAdd } : undefined} /> : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="table-header">
@@ -275,7 +311,69 @@ export default function InventoryPage() {
         </div>
       </Modal>
 
+      </>) /* end products tab */}
+
+      {/* ── CATEGORIES TAB ── */}
+      {tab === 'categories' && (
+        <div>
+          <div className="flex justify-end mb-4">
+            <button className="btn-primary" onClick={() => { setSelectedCat(null); setCatForm({ name:'', description:'' }); setModal('cat-add'); }}>
+              <Plus className="w-4 h-4" /> Add Category
+            </button>
+          </div>
+          <div className="card p-0 overflow-hidden">
+            {loading ? <Spinner /> : categories.length === 0
+              ? <EmptyState message="No categories yet" icon={<FolderOpen className="w-8 h-8 text-gray-300" />} />
+              : (
+              <table className="w-full text-sm">
+                <thead className="table-header">
+                  <tr>
+                    <th className="px-5 py-3 text-left">Name</th>
+                    <th className="px-5 py-3 text-left">Description</th>
+                    <th className="px-5 py-3 text-right">Products</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {categories.map(c => {
+                    const count = products.filter(p => (p.category_id?._id || p.category_id) === c.id).length;
+                    return (
+                      <tr key={c.id} className="hover:bg-gray-50">
+                        <td className="px-5 py-3.5">
+                          <span className="inline-flex items-center gap-2 font-medium text-gray-900">
+                            <span className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />
+                            {c.name}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 text-gray-400 text-sm">{c.description || '—'}</td>
+                        <td className="px-5 py-3.5 text-right">
+                          <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{count} product{count !== 1 ? 's' : ''}</span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => { setSelectedCat(c); setCatForm({ name: c.name, description: c.description || '' }); setModal('cat-edit'); }}
+                              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500"
+                            ><Edit2 className="w-4 h-4" /></button>
+                            <button
+                              onClick={() => setCatConfirm(c)}
+                              className="p-1.5 hover:bg-red-50 rounded-lg text-red-400"
+                              title={count > 0 ? `${count} products use this category` : 'Delete'}
+                            ><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} onConfirm={() => doDelete(confirm?.id)} title="Delete Product" message={`Are you sure you want to deactivate "${confirm?.name}"? It will be hidden from the storefront.`} danger />
+      <ConfirmDialog open={!!catConfirm} onClose={() => setCatConfirm(null)} onConfirm={() => { deleteCat(catConfirm?.id); setCatConfirm(null); }} title="Delete Category" message={`Delete "${catConfirm?.name}"? Products in this category will become uncategorised.`} danger />
 
       {/* Print Label Modal */}
       {labelProduct && (
@@ -355,6 +453,24 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
+      {/* Category Add/Edit Modal */}
+      <Modal open={modal === 'cat-add' || modal === 'cat-edit'} onClose={() => setModal(null)} title={modal === 'cat-edit' ? 'Edit Category' : 'Add Category'} size="sm">
+        <div className="space-y-3">
+          <div>
+            <label className="form-label">Name *</label>
+            <input className="form-input" value={catForm.name} onChange={e => setCatForm({...catForm, name: e.target.value})} placeholder="e.g. Electronics" autoFocus />
+          </div>
+          <div>
+            <label className="form-label">Description</label>
+            <textarea className="form-input" rows={2} value={catForm.description} onChange={e => setCatForm({...catForm, description: e.target.value})} placeholder="Optional description" />
+          </div>
+        </div>
+        <div className="flex gap-3 justify-end mt-5">
+          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+          <button className="btn-primary" onClick={saveCat} disabled={saving}>{saving ? 'Saving…' : modal === 'cat-edit' ? 'Update' : 'Add Category'}</button>
+        </div>
+      </Modal>
+
     </AppLayout>
   );
 }

@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, ChevronLeft, MapPin } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, ChevronDown } from 'lucide-react';
 import api from '@/lib/api';
 
-interface CartItem { product: any; quantity: number; }
+interface CartItem { product: any; quantity: number; branch_id: string; branch_name: string; }
 
 const CART_ID_KEY = 'gems_cart_id';
 
@@ -17,11 +18,20 @@ const toCartItem = (item: any): CartItem => ({
     stock_qty: item.stock_qty,
     low_stock_threshold: item.low_stock_threshold,
     sku: item.sku,
+    branch_id: item.branch_id,
+    branch_name: item.branch_name,
   },
   quantity: item.quantity,
+  branch_id: item.branch_id || '',
+  branch_name: item.branch_name || 'Main Branch',
 });
 
-export default function StorefrontPage() {
+export default function TenantStorefrontPage() {
+  const { tenantSlug } = useParams<{ tenantSlug: string }>();
+  const [tenant, setTenant]   = useState<any>(null);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [activeBranch, setActiveBranch] = useState<any>(null); // null = all branches
+  const [showBranchMenu, setShowBranchMenu] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -66,9 +76,10 @@ export default function StorefrontPage() {
   const loadProducts = useCallback(async (pageNum: number, replace: boolean) => {
     if (pageNum === 1) setLoading(true); else setLoadingMore(true);
     try {
-      const params: any = { page: pageNum, limit: ITEMS_PER_PAGE };
+      const params: any = { page: pageNum, limit: ITEMS_PER_PAGE, tenant_slug: tenantSlug };
       if (search) params.search = search;
       if (filterCat) params.category = filterCat;
+      if (activeBranch) params.branch_slug = activeBranch.slug;
       const r = await api.get('/storefront/products', { params });
       const newProds = r.data.data;
       setProducts(prev => replace ? newProds : [...prev, ...newProds]);
@@ -77,12 +88,20 @@ export default function StorefrontPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [search, filterCat]);
+  }, [search, filterCat, tenantSlug, activeBranch]);
+
+  // Load tenant + branches on mount
+  useEffect(() => {
+    api.get(`/storefront/${tenantSlug}/branches`).then(r => {
+      setTenant(r.data.data.tenant);
+      setBranches(r.data.data.branches);
+    }).catch(() => {});
+  }, [tenantSlug]);
 
   useEffect(() => {
     setPage(1);
     loadProducts(1, true);
-    api.get('/categories').then(c => setCategories(c.data.data)).catch(() => {});
+    api.get('/categories', { params: { tenant_slug: tenantSlug } }).then(c => setCategories(c.data.data)).catch(() => {});
     const savedId = localStorage.getItem(CART_ID_KEY) || '';
     setCartId(savedId);
     if (savedId) {
@@ -90,7 +109,7 @@ export default function StorefrontPage() {
         setCart(r.data.data.items.map(toCartItem));
       }).catch(() => {});
     }
-  }, [search, filterCat]);
+  }, [search, filterCat, activeBranch, tenantSlug]);
 
   useEffect(() => {
     if (page === 1) return;
@@ -109,6 +128,14 @@ export default function StorefrontPage() {
     return () => observer.disconnect();
   }, [hasMore, loadingMore, loading]);
 
+  // Close branch menu on outside click
+  useEffect(() => {
+    if (!showBranchMenu) return;
+    const handler = (e: MouseEvent) => setShowBranchMenu(false);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [showBranchMenu]);
+
   const syncCart = (data: any) => {
     if (data.cart_id) {
       setCartId(data.cart_id);
@@ -124,6 +151,7 @@ export default function StorefrontPage() {
         cart_id: cartId || localStorage.getItem(CART_ID_KEY) || '',
         product_id: product.id || product._id,
         quantity: 1,
+        tenant_id: tenant?.id,
       });
       syncCart(r.data.data);
     } finally { setCartLoading(false); }
@@ -187,11 +215,18 @@ export default function StorefrontPage() {
       const r = await api.post('/storefront/checkout', {
         ...form,
         delivery_fee: deliveryFee,
-        items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity }))
+        tenant_id: tenant?.id,
+        items: cart.map(i => ({
+          product_id: i.product.id,
+          quantity: i.quantity,
+          branch_id: i.branch_id,
+          branch_name: i.branch_name,
+        }))
       });
-      const { order_id, order_number: oNum, total, email, paystack_public_key } = r.data.data;
-      setOrderId(order_id);
-      setOrderNumber(oNum);
+      const { orders, grand_total, email, paystack_public_key } = r.data.data;
+      const orderIds = orders.map((o: any) => o.order_id);
+      const orderNums = orders.map((o: any) => o.order_number);
+      setOrderNumber(orderNums.join(', '));
 
       const script = document.createElement('script');
       script.src = 'https://js.paystack.co/v1/inline.js';
@@ -199,13 +234,13 @@ export default function StorefrontPage() {
         const handler = (window as any).PaystackPop.setup({
           key: paystack_public_key || 'pk_test_demo',
           email,
-          amount: Math.round(total * 100),
+          amount: Math.round(grand_total * 100),
           currency: 'GHS',
-          ref: `GEMS-${oNum}-${Date.now()}`,
+          ref: `GEMS-${orderNums[0]}-${Date.now()}`,
           onClose: () => { setPaying(false); },
           callback: async (response: any) => {
             try {
-              await api.post('/storefront/verify-payment', { reference: response.reference, order_id });
+              await api.post('/storefront/verify-payment', { reference: response.reference, order_ids: orderIds });
               setCompletedCart([...cart]);
               setCompletedTotal(orderTotal);
               setCart([]);
@@ -339,10 +374,48 @@ export default function StorefrontPage() {
                 <Package className="w-5 h-5 text-gray-900" />
               </div>
               <div className="leading-tight">
-                <div className="text-white font-extrabold text-base tracking-tight">GEMS</div>
+                <div className="text-white font-extrabold text-base tracking-tight">{tenant?.business_name || 'GEMS'}</div>
                 <div className="text-yellow-400 text-[10px] font-semibold tracking-widest uppercase -mt-0.5">Store</div>
               </div>
             </button>
+
+            {/* Branch selector — only shown when there are multiple branches */}
+            {branches.length > 1 && (
+              <div className="relative flex-shrink-0">
+                <button
+                  onClick={() => setShowBranchMenu(b => !b)}
+                  className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors border border-white/20"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-yellow-400" />
+                  <span>{activeBranch ? activeBranch.name : 'All Branches'}</span>
+                  <ChevronDown className="w-3 h-3 text-white/60" />
+                </button>
+                {showBranchMenu && (
+                  <div className="absolute top-full left-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                    <button
+                      onClick={() => { setActiveBranch(null); setShowBranchMenu(false); }}
+                      className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition-colors ${
+                        !activeBranch ? 'bg-blue-50 text-[#0D3B6E] font-semibold' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <MapPin className="w-4 h-4" /> All Branches
+                    </button>
+                    {branches.map(b => (
+                      <button
+                        key={b.id}
+                        onClick={() => { setActiveBranch(b); setShowBranchMenu(false); }}
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm border-t border-gray-50 transition-colors ${
+                          activeBranch?.id === b.id ? 'bg-blue-50 text-[#0D3B6E] font-semibold' : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <MapPin className="w-4 h-4" /> {b.name}
+                        {b.address && <span className="text-xs text-gray-400 truncate ml-auto">{b.address}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Location */}
             <button
@@ -726,6 +799,12 @@ export default function StorefrontPage() {
                           {p.stock_qty > 0 && p.stock_qty <= p.low_stock_threshold && (
                             <div className="absolute top-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                               Only {p.stock_qty} left
+                            </div>
+                          )}
+                          {/* Branch badge — only shown when viewing all branches */}
+                          {!activeBranch && p.branch_name && (
+                            <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <MapPin className="w-2.5 h-2.5" />{p.branch_name}
                             </div>
                           )}
                         </div>
@@ -1141,7 +1220,7 @@ export default function StorefrontPage() {
                 </div>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                Ghana&apos;s go-to store for quality products. Powered by GEMS — GTHINK Enterprise Management System.
+                Ghana&apos;s go-to store for electronics, furniture, office supplies and more. Quality products, competitive prices, fast delivery.
               </p>
               <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mb-2">Get deals in your inbox</p>
               <div className="flex mb-6">
@@ -1383,7 +1462,7 @@ export default function StorefrontPage() {
               </button>
             </div>
 
-            {/* Items */}
+            {/* Items grouped by branch */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16">
@@ -1394,44 +1473,52 @@ export default function StorefrontPage() {
                     Browse Products
                   </button>
                 </div>
-              ) : cart.map(i => (
-                <div key={i.product.id} className="flex items-start gap-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
-                  {/* Image */}
-                  <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-white border border-gray-100">
-                    {i.product.images?.[0] ? (
-                      <img src={i.product.images[0]} alt={i.product.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center"><Package className="w-5 h-5 text-gray-300"/></div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-gray-800 truncate">{i.product.name}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">GHS {parseFloat(i.product.price).toFixed(2)} each</div>
-                    <div className="text-xs font-bold text-gray-900 mt-0.5">Subtotal: GHS {(i.product.price * i.quantity).toFixed(2)}</div>
-
-                    {/* Qty + Remove */}
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2 py-1">
-                        <button onClick={() => updateQty(i.product.id, -1)} className="w-5 h-5 flex items-center justify-center hover:text-red-500 transition-colors">
-                          <Minus className="w-3 h-3"/>
-                        </button>
-                        <span className="text-sm font-bold text-gray-900 w-5 text-center">{i.quantity}</span>
-                        <button onClick={() => updateQty(i.product.id, 1)} className="w-5 h-5 flex items-center justify-center hover:text-blue-600 transition-colors">
-                          <Plus className="w-3 h-3"/>
-                        </button>
+              ) : (() => {
+                // Group by branch
+                const groups: Record<string, { branch_name: string; items: CartItem[] }> = {};
+                cart.forEach(i => {
+                  const key = i.branch_id || 'default';
+                  if (!groups[key]) groups[key] = { branch_name: i.branch_name || 'Main Branch', items: [] };
+                  groups[key].items.push(i);
+                });
+                const groupEntries = Object.entries(groups);
+                return groupEntries.map(([key, group]) => (
+                  <div key={key}>
+                    {/* Branch header — only show if multiple branches in cart */}
+                    {groupEntries.length > 1 && (
+                      <div className="flex items-center gap-1.5 mb-2 px-1">
+                        <MapPin className="w-3.5 h-3.5 text-[#0D3B6E]" />
+                        <span className="text-xs font-bold text-[#0D3B6E] uppercase tracking-wide">{group.branch_name}</span>
+                        <div className="flex-1 h-px bg-blue-100" />
                       </div>
-                      <button
-                        onClick={() => setCart(prev => prev.filter(c => c.product.id !== i.product.id))}
-                        className="text-xs text-red-400 hover:text-red-600 hover:underline transition-colors"
-                      >
-                        Remove
-                      </button>
-                    </div>
+                    )}
+                    {group.items.map(i => (
+                      <div key={i.product.id} className="flex items-start gap-3 bg-gray-50 rounded-xl p-3 border border-gray-100 mb-2">
+                        <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-white border border-gray-100">
+                          {i.product.images?.[0] ? (
+                            <img src={i.product.images[0]} alt={i.product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><Package className="w-5 h-5 text-gray-300"/></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-gray-800 truncate">{i.product.name}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">GHS {parseFloat(i.product.price).toFixed(2)} each</div>
+                          <div className="text-xs font-bold text-gray-900 mt-0.5">Subtotal: GHS {(i.product.price * i.quantity).toFixed(2)}</div>
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2 py-1">
+                              <button onClick={() => updateQty(i.product.id, -1)} className="w-5 h-5 flex items-center justify-center hover:text-red-500 transition-colors"><Minus className="w-3 h-3"/></button>
+                              <span className="text-sm font-bold text-gray-900 w-5 text-center">{i.quantity}</span>
+                              <button onClick={() => updateQty(i.product.id, 1)} className="w-5 h-5 flex items-center justify-center hover:text-blue-600 transition-colors"><Plus className="w-3 h-3"/></button>
+                            </div>
+                            <button onClick={() => removeFromCart(i.product.id)} className="text-xs text-red-400 hover:text-red-600 hover:underline transition-colors">Remove</button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
 
             {/* Footer */}

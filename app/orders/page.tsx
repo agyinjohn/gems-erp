@@ -99,7 +99,7 @@ export default function OrdersPage() {
   };
 
   return (
-    <AppLayout title="Sales & Orders" subtitle="Manage customer orders and track payments" allowedRoles={['super_admin','sales_staff']}>
+    <AppLayout title="Sales & Orders" subtitle="Manage customer orders and track payments" allowedRoles={['business_owner','branch_manager','sales_staff']}>
 
       {/* ── Source Tabs ── */}
       <div className="flex gap-0 border-b border-gray-200 mb-5 -mt-1">

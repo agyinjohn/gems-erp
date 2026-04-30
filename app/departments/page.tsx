@@ -44,7 +44,7 @@ export default function DepartmentsPage() {
   };
 
   return (
-    <AppLayout title="Departments" subtitle="Manage company departments and headcount" allowedRoles={['super_admin', 'hr_manager']}>
+    <AppLayout title="Departments" subtitle="Manage company departments and headcount" allowedRoles={['business_owner','hr_manager']}>
       <div className="flex justify-end mb-5">
         <button className="btn-primary" onClick={openAdd}><Plus className="w-4 h-4" />Add Department</button>
       </div>

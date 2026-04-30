@@ -57,7 +57,7 @@ export default function ESSPage() {
   const latestPayslip = payslips[0];
 
   return (
-    <AppLayout title="My Portal" subtitle="View your profile, request leave and access payslips">
+    <AppLayout title="My Portal" subtitle="View your profile, request leave and access payslips" allowedRoles={['business_owner','branch_manager','sales_staff','warehouse_staff','accountant','hr_manager','procurement_officer']}>
       {/* Tabs */}
       <div className="mb-5">
         <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">

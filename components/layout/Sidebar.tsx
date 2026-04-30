@@ -4,30 +4,40 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
-  Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle, X, Monitor
+  Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle, X, Monitor, TrendingUp
 } from 'lucide-react';
 
 const allNavItems = [
-  { href: '/dashboard',   label: 'Dashboard',   icon: LayoutDashboard, roles: ['super_admin','sales_staff','warehouse_staff','accountant','hr_manager','procurement_officer'] },
-  { href: '/ess',         label: 'My Portal',   icon: UserCircle,      roles: ['super_admin','sales_staff','warehouse_staff','accountant','hr_manager','procurement_officer'] },
-  { href: '/inventory',   label: 'Inventory',   icon: Package,         roles: ['super_admin','warehouse_staff'] },
-  { href: '/orders',      label: 'Sales',       icon: ShoppingCart,    roles: ['super_admin','sales_staff'] },
-  { href: '/procurement', label: 'Procurement', icon: Truck,           roles: ['super_admin','procurement_officer'] },
-  { href: '/accounting',  label: 'Accounting',  icon: Calculator,      roles: ['super_admin','accountant'] },
-  { href: '/hr',          label: 'HR & Payroll',icon: Users,           roles: ['super_admin','hr_manager'] },
-  { href: '/departments', label: 'Departments', icon: Building2,       roles: ['super_admin','hr_manager'] },
-  { href: '/crm',         label: 'CRM',         icon: UserCheck,       roles: ['super_admin','sales_staff'] },
-  { href: '/reports',     label: 'Reports',     icon: BarChart2,       roles: ['super_admin','accountant','hr_manager'] },
-  { href: '/storefront',  label: 'Storefront',  icon: Store,           roles: ['super_admin','sales_staff'] },
-  { href: '/pos',         label: 'POS',         icon: Monitor,         roles: ['super_admin','sales_staff'] },
-  { href: '/users',       label: 'Users',       icon: Settings,        roles: ['super_admin'] },
+  // Platform Admin only
+  { href: '/platform',                  label: 'Dashboard',      icon: LayoutDashboard, roles: ['platform_admin'] },
+  { href: '/platform/tenants',          label: 'Businesses',     icon: Building2,       roles: ['platform_admin'] },
+  { href: '/platform/subscriptions',    label: 'Subscriptions',  icon: Calculator,      roles: ['platform_admin'] },
+  { href: '/platform/revenue',          label: 'Revenue',        icon: TrendingUp,      roles: ['platform_admin'] },
+  { href: '/platform/activity',         label: 'Activity',       icon: BarChart2,       roles: ['platform_admin'] },
+  { href: '/platform/settings',         label: 'Settings',       icon: Settings,        roles: ['platform_admin'] },
+
+  // Business roles only
+  { href: '/dashboard',   label: 'Dashboard',   icon: LayoutDashboard, roles: ['business_owner','branch_manager','sales_staff','warehouse_staff','accountant','hr_manager','procurement_officer'] },
+  { href: '/ess',         label: 'My Portal',   icon: UserCircle,      roles: ['branch_manager','sales_staff','warehouse_staff','accountant','hr_manager','procurement_officer'] },
+  { href: '/inventory',   label: 'Inventory',   icon: Package,         roles: ['business_owner','branch_manager','warehouse_staff'] },
+  { href: '/orders',      label: 'Sales',       icon: ShoppingCart,    roles: ['business_owner','branch_manager','sales_staff'] },
+  { href: '/procurement', label: 'Procurement', icon: Truck,           roles: ['business_owner','procurement_officer'] },
+  { href: '/accounting',  label: 'Accounting',  icon: Calculator,      roles: ['business_owner','accountant'] },
+  { href: '/hr',          label: 'HR & Payroll',icon: Users,           roles: ['business_owner','hr_manager'] },
+  { href: '/departments', label: 'Departments', icon: Building2,       roles: ['business_owner','hr_manager'] },
+  { href: '/crm',         label: 'CRM',         icon: UserCheck,       roles: ['business_owner','branch_manager','sales_staff'] },
+  { href: '/reports',     label: 'Reports',     icon: BarChart2,       roles: ['business_owner','accountant','hr_manager'] },
+  { href: '/pos',         label: 'POS',         icon: Monitor,         roles: ['business_owner','branch_manager','sales_staff'] },
+  { href: '/branches',    label: 'Branches',    icon: Store,           roles: ['business_owner'] },
+  { href: '/users',       label: 'Users',       icon: Settings,        roles: ['business_owner'] },
+  { href: '/billing',     label: 'Billing',     icon: Calculator,      roles: ['business_owner'] },
 ];
 
 interface Props { open: boolean; onClose: () => void; }
 
 export default function Sidebar({ open, onClose }: Props) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, tenant } = useAuth();
 
   const navItems = allNavItems.filter(item =>
     user && item.roles.includes(user.role)
@@ -42,8 +52,8 @@ export default function Sidebar({ open, onClose }: Props) {
             <Building2 className="w-5 h-5 text-blue-900" />
           </div>
           <div>
-            <div className="text-white font-bold text-lg leading-tight">GEMS</div>
-            <div className="text-blue-200 text-xs">GThink Enterprise Management System</div>
+            <div className="text-white font-bold text-lg leading-tight">{tenant?.business_name || 'GEMS'}</div>
+            <div className="text-blue-200 text-xs">GTHINK Enterprise Management System</div>
           </div>
         </div>
         {/* Close button — mobile only */}
@@ -56,7 +66,7 @@ export default function Sidebar({ open, onClose }: Props) {
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          const isActive = pathname === item.href || (item.href !== '/platform' && pathname.startsWith(item.href + '/'));
           return (
             <Link
               key={item.href}

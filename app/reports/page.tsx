@@ -55,7 +55,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <AppLayout title="Reports" subtitle="Business intelligence and performance metrics" allowedRoles={['super_admin','accountant','hr_manager']}>
+    <AppLayout title="Reports" subtitle="Business intelligence and performance metrics" allowedRoles={['business_owner','accountant','hr_manager']}>
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 mb-5">
         {([{t:'sales',l:'Sales',icon:<TrendingUp className="w-4 h-4"/>},{t:'inventory',l:'Inventory',icon:<Package className="w-4 h-4"/>},{t:'finance',l:'Finance',icon:<DollarSign className="w-4 h-4"/>},{t:'hr',l:'HR',icon:<Users className="w-4 h-4"/>},{t:'procurement',l:'Procurement',icon:<ShoppingCart className="w-4 h-4"/>},{t:'crm',l:'CRM',icon:<Handshake className="w-4 h-4"/>}]).map(({t,l,icon}) => (
@@ -274,7 +274,7 @@ export default function ReportsPage() {
                   <table className="w-full text-sm">
                     <thead className="table-header"><tr><th className="px-3 py-2 text-left">Customer</th><th className="px-3 py-2 text-left">Company</th><th className="px-3 py-2 text-left">Orders</th><th className="px-3 py-2 text-left">Segment</th></tr></thead>
                     <tbody>{data.top_customers.map((c:any) => (
-                      <tr key={c.id} className="border-t"><td className="px-3 py-2 font-medium">{c.name}</td><td className="px-3 py-2 text-gray-500">{c.company||'—'}</td><td className="px-3 py-2 font-semibold">{c.order_count||0}</td><td className="px-3 py-2 capitalize">{c.segment}</td></tr>
+                      <tr key={c._id || c.name} className="border-t"><td className="px-3 py-2 font-medium">{c.name}</td><td className="px-3 py-2 text-gray-500">{c.company||'—'}</td><td className="px-3 py-2 font-semibold">{c.order_count||0}</td><td className="px-3 py-2 capitalize">{c.segment}</td></tr>
                     ))}</tbody>
                   </table>
                 </div>

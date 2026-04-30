@@ -85,7 +85,7 @@ export default function ProcurementPage() {
   const filtered = pos.filter(p => !search || p.po_number?.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <AppLayout title="Procurement" subtitle="Purchase orders, suppliers and goods receipt" allowedRoles={['super_admin','procurement_officer']}>
+    <AppLayout title="Procurement" subtitle="Purchase orders, suppliers and goods receipt" allowedRoles={['business_owner','procurement_officer']}>
       {/* Tabs */}
       <div className="flex gap-2 mb-5">
         {([{t:'pos',l:'Purchase Orders',icon:<ClipboardList className="w-4 h-4"/>},{t:'suppliers',l:'Suppliers',icon:<Building2 className="w-4 h-4"/>}]).map(({t,l,icon}) => (

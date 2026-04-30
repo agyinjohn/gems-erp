@@ -92,11 +92,31 @@ export function Badge({ status }: { status: string }) {
 }
 
 // ── EMPTY STATE ───────────────────────────────────────────────────────────────
-export function EmptyState({ message, icon }: { message: string; icon?: ReactNode }) {
+interface EmptyStateProps { message: string; description?: string; icon?: ReactNode; action?: { label: string; onClick: () => void }; }
+export function EmptyState({ message, description, icon, action }: EmptyStateProps) {
   return (
-    <div className="text-center py-16 text-gray-400">
-      <div className="flex justify-center mb-3">{icon || <span className="text-4xl">📭</span>}</div>
-      <p className="text-sm">{message}</p>
+    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+      <div className="relative mb-6">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 flex items-center justify-center shadow-sm">
+          {icon
+            ? <div className="text-gray-300 [&>svg]:w-9 [&>svg]:h-9">{icon}</div>
+            : (
+              <svg className="w-9 h-9 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+              </svg>
+            )
+          }
+        </div>
+        <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-blue-100 border-2 border-white" />
+        <div className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-yellow-100 border-2 border-white" />
+      </div>
+      <h3 className="text-base font-semibold text-gray-700 mb-1">{message}</h3>
+      {description && <p className="text-sm text-gray-400 max-w-xs leading-relaxed mb-5">{description}</p>}
+      {action && (
+        <button onClick={action.onClick} className="inline-flex items-center gap-2 bg-[#0D3B6E] hover:bg-[#1A5294] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm shadow-blue-200 mt-2">
+          {action.label}
+        </button>
+      )}
     </div>
   );
 }

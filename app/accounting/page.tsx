@@ -33,7 +33,7 @@ export default function AccountingPage() {
   const [taxForm, setTaxForm] = useState({ name:'', rate:'', applies_to:'both', is_active:true });
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [selectedExpense, setSelectedExpense] = useState<any>(null);
-  const [accForm, setAccForm] = useState({ code:'', name:'', type:'asset', description:'' });
+  const [accForm, setAccForm] = useState({ code:'', name:'', type:'asset', description:'', opening_balance:'' });
 
   const [expForm, setExpForm] = useState({ title:'', category:'', amount:'', account_id:'', description:'', expense_date: new Date().toISOString().split('T')[0] });
   const [jeForm, setJeForm] = useState({ description:'', entry_date: new Date().toISOString().split('T')[0], lines:[{ account_id:'', debit:'', credit:'', description:'' }] });
@@ -47,7 +47,7 @@ export default function AccountingPage() {
         api.get('/journal-entries').catch(()=>({data:{data:[]}})),
         api.get('/accounting/summary').catch(()=>({data:{data:{}}})),
         api.get('/orders?payment_status=pending').catch(()=>({data:{data:[]}})),
-        api.get('/purchase-orders?status=approved,sent,partially_received').catch(()=>({data:{data:[]}})),
+        api.get('/purchase-orders?status=partially_received,completed&payment_status=unpaid').catch(()=>({data:{data:[]}})),
         api.get('/tax-rates').catch(()=>({data:{data:[]}})),
       ]);
       setAccounts(a.data.data); setExpenses(e.data.data);
@@ -127,8 +127,28 @@ export default function AccountingPage() {
   const saveAccount = async () => {
     setSaving(true); setError('');
     try {
-      if (selectedAccount) await api.put(`/accounts/${selectedAccount._id || selectedAccount.id}`, accForm);
+      const accountId = selectedAccount?._id || selectedAccount?.id;
+      if (selectedAccount) await api.put(`/accounts/${accountId}`, accForm);
       else await api.post('/accounts', accForm);
+
+      // Post adjustment journal entry if balance was changed
+      const newBalance = parseFloat(accForm.opening_balance || '0');
+      const oldBalance = parseFloat(selectedAccount?.balance || '0');
+      const diff = newBalance - oldBalance;
+      if (diff !== 0) {
+        const isDebitNormal = ['asset','expense'].includes(accForm.type);
+        await api.post('/journal-entries', {
+          description: `Balance adjustment — ${accForm.name}`,
+          entry_date: new Date().toISOString().split('T')[0],
+          lines: [{
+            account_id: accountId || '', // filled after create for new accounts
+            debit:  isDebitNormal ? (diff > 0 ? Math.abs(diff) : 0) : (diff < 0 ? Math.abs(diff) : 0),
+            credit: isDebitNormal ? (diff < 0 ? Math.abs(diff) : 0) : (diff > 0 ? Math.abs(diff) : 0),
+            description: 'Manual balance adjustment',
+          }],
+        });
+      }
+
       setModal(null); load();
     } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
     finally { setSaving(false); }
@@ -175,8 +195,8 @@ export default function AccountingPage() {
   const openAddTax = () => { setSelectedTax(null); setTaxForm({ name:'', rate:'', applies_to:'both', is_active:true }); setError(''); setTaxModal('add'); };
   const openEditTax = (t: any) => { setSelectedTax(t); setTaxForm({ name:t.name, rate:String(t.rate), applies_to:t.applies_to, is_active:t.is_active }); setError(''); setTaxModal('edit'); };
 
-  const openAddAccount = () => { setSelectedAccount(null); setAccForm({ code:'', name:'', type:'asset', description:'' }); setError(''); setModal('account'); };
-  const openEditAccount = (a: any) => { setSelectedAccount(a); setAccForm({ code: a.code, name: a.name, type: a.type, description: a.description||'' }); setError(''); setModal('account'); };
+  const openAddAccount = () => { setSelectedAccount(null); setAccForm({ code:'', name:'', type:'asset', description:'', opening_balance:'' }); setError(''); setModal('account'); };
+  const openEditAccount = (a: any) => { setSelectedAccount(a); setAccForm({ code: a.code, name: a.name, type: a.type, description: a.description||'', opening_balance: String(a.balance||0) }); setError(''); setModal('account'); };
 
   const arAging = () => {
     const now = Date.now();
@@ -194,7 +214,7 @@ export default function AccountingPage() {
   const typeColors: Record<string,string> = { asset:'bg-green-100 text-green-800', liability:'bg-red-100 text-red-800', equity:'bg-blue-100 text-blue-800', revenue:'bg-purple-100 text-purple-800', expense:'bg-yellow-100 text-yellow-800' };
 
   return (
-    <AppLayout title="Accounting & Finance" subtitle="General ledger, expenses and financial overview" allowedRoles={['super_admin','accountant']}>
+    <AppLayout title="Accounting & Finance" subtitle="General ledger, expenses and financial overview" allowedRoles={['business_owner','accountant']}>
       {/* Tabs */}
       <div className="mb-5">
         {/* Tab bar */}
@@ -389,23 +409,49 @@ export default function AccountingPage() {
       {tab==='ap' && (
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
-            <div className="card"><div className="text-2xl font-bold text-orange-600">{ap.length}</div><div className="text-sm text-gray-500">Outstanding POs</div></div>
-            <div className="card"><div className="text-2xl font-bold text-red-600">GHS {ap.reduce((s:number,p:any)=>s+parseFloat(p.total_cost||0),0).toFixed(2)}</div><div className="text-sm text-gray-500">Total Payable</div></div>
-            <div className="card"><div className="text-2xl font-bold text-gray-600">GHS {ap.length > 0 ? (ap.reduce((s:number,p:any)=>s+parseFloat(p.total_cost||0),0)/ap.length).toFixed(2) : '0.00'}</div><div className="text-sm text-gray-500">Avg PO Value</div></div>
+            <div className="card"><div className="text-2xl font-bold text-orange-600">{ap.length}</div><div className="text-sm text-gray-500">Unpaid Invoices</div></div>
+            <div className="card"><div className="text-2xl font-bold text-red-600">GHS {ap.reduce((s:number,p:any)=>s+parseFloat(p.total_cost||0),0).toFixed(2)}</div><div className="text-sm text-gray-500">Total Outstanding</div></div>
+            <div className="card"><div className="text-2xl font-bold text-gray-600">{ap.filter((p:any)=>p.status==='completed').length}</div><div className="text-sm text-gray-500">Fully Received</div></div>
           </div>
           <div className="card p-0 overflow-hidden">
-            {loading ? <Spinner /> : ap.length===0 ? <EmptyState message="No outstanding payables" icon={<ArrowUpCircle className="w-8 h-8 text-gray-300"/>} /> : (
+            {loading ? <Spinner /> : ap.length===0
+              ? <EmptyState message="No outstanding payables — all received POs are paid" icon={<ArrowUpCircle className="w-8 h-8 text-gray-300"/>} />
+              : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="table-header"><tr>{['PO Number','Supplier','Total Cost','Status','Expected Date'].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
+                  <thead className="table-header">
+                    <tr>{['PO Number','Supplier','Amount Due','Received','Date',''].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr>
+                  </thead>
                   <tbody className="divide-y divide-gray-50">
                     {ap.map((p:any) => (
                       <tr key={p.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-mono text-xs text-blue-700">{p.po_number}</td>
                         <td className="px-4 py-3 font-medium">{p.supplier_id?.name||'—'}</td>
-                        <td className="px-4 py-3 font-semibold text-orange-600">GHS {parseFloat(p.total_cost).toFixed(2)}</td>
-                        <td className="px-4 py-3"><Badge status={p.status} /></td>
-                        <td className="px-4 py-3 text-gray-400 text-xs">{p.expected_date ? new Date(p.expected_date).toLocaleDateString() : '—'}</td>
+                        <td className="px-4 py-3 font-semibold text-red-600">GHS {parseFloat(p.total_cost).toFixed(2)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`badge ${
+                            p.status==='completed' ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {p.status==='completed' ? 'Fully received' : 'Partially received'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-400 text-xs">{new Date(p.created_at).toLocaleDateString()}</td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Mark ${p.po_number} as paid?`)) return;
+                              try {
+                                await api.patch(`/purchase-orders/${p.id}/pay`);
+                                toast.success('Marked as paid');
+                                load();
+                              } catch(e:any) { toast.error(e.response?.data?.message||'Failed'); }
+                            }}
+                            className="text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            Mark Paid
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -888,6 +934,21 @@ export default function AccountingPage() {
           </div>
           <div><label className="form-label">Account Name *</label><input className="form-input" value={accForm.name} onChange={e => setAccForm({...accForm,name:e.target.value})} placeholder="e.g. Cash & Bank" /></div>
           <div><label className="form-label">Description</label><textarea className="form-input" rows={2} value={accForm.description} onChange={e => setAccForm({...accForm,description:e.target.value})} /></div>
+          <div>
+            <label className="form-label">{selectedAccount ? 'Adjust Balance (GHS)' : 'Opening Balance (GHS)'}</label>
+            <input
+              type="number"
+              className="form-input"
+              value={accForm.opening_balance}
+              onChange={e => setAccForm({...accForm, opening_balance: e.target.value})}
+              placeholder="0.00"
+            />
+            {selectedAccount && parseFloat(accForm.opening_balance||'0') !== parseFloat(selectedAccount.balance||'0') && (
+              <p className="text-xs text-blue-600 mt-1">
+                A journal entry of GHS {Math.abs(parseFloat(accForm.opening_balance||'0') - parseFloat(selectedAccount.balance||'0')).toFixed(2)} will be posted automatically.
+              </p>
+            )}
+          </div>
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>

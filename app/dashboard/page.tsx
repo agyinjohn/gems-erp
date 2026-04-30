@@ -16,12 +16,12 @@ export default function DashboardPage() {
     api.get('/dashboard').then(r => setData(r.data.data)).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <AppLayout title="Dashboard"><Spinner /></AppLayout>;
+  if (loading) return <AppLayout title="Dashboard" allowedRoles={['business_owner','branch_manager','sales_staff','warehouse_staff','accountant','hr_manager','procurement_officer']}><Spinner /></AppLayout>;
 
   const kpis = data?.kpis || {};
 
   return (
-    <AppLayout title="Dashboard" subtitle="Welcome back! Here's your business overview.">
+    <AppLayout title="Dashboard" subtitle="Welcome back! Here's your business overview." allowedRoles={['business_owner','branch_manager','sales_staff','warehouse_staff','accountant','hr_manager','procurement_officer']}>
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Total Revenue" value={fmt(kpis.total_revenue)} icon={<DollarSign className="w-6 h-6 text-green-600" />} color="bg-green-50" sub="All time paid orders" />

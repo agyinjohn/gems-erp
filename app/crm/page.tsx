@@ -102,7 +102,7 @@ export default function CRMPage() {
   const totalPipelineValue = leads.filter(l=>!['won','lost'].includes(l.stage)).reduce((s,l)=>s+parseFloat(l.value||0),0);
 
   return (
-    <AppLayout title="CRM" subtitle="Customers, leads and sales pipeline" allowedRoles={['super_admin','sales_staff']}>
+    <AppLayout title="CRM" subtitle="Customers, leads and sales pipeline" allowedRoles={['business_owner','branch_manager','sales_staff']}>
       {/* Summary bar */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         <div className="card py-3 flex items-center gap-3">

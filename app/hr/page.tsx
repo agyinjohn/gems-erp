@@ -113,7 +113,7 @@ export default function HRPage() {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   return (
-    <AppLayout title="HR & Payroll" subtitle="Manage employees, attendance, leave and payroll" allowedRoles={['super_admin','hr_manager']}>
+    <AppLayout title="HR & Payroll" subtitle="Manage employees, attendance, leave and payroll" allowedRoles={['business_owner','hr_manager']}>
       <div className="flex flex-wrap gap-2 mb-5">
         {([{t:'employees',l:'Employees',icon:<Users className="w-4 h-4"/>},{t:'attendance',l:'Attendance',icon:<Clock className="w-4 h-4"/>},{t:'leave',l:'Leave Requests',icon:<Umbrella className="w-4 h-4"/>},{t:'payroll',l:'Payroll',icon:<Banknote className="w-4 h-4"/>}]).map(({t,l,icon}) => (
           <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${tab===t?'bg-blue-700 text-white':'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>

@@ -6,34 +6,37 @@ import { Plus, Edit2, UserX } from 'lucide-react';
 import api from '@/lib/api';
 
 const ROLES = [
-  { value:'super_admin', label:'Super Admin' },
-  { value:'sales_staff', label:'Sales Staff' },
-  { value:'warehouse_staff', label:'Warehouse Staff' },
-  { value:'accountant', label:'Accountant' },
-  { value:'hr_manager', label:'HR Manager' },
-  { value:'procurement_officer', label:'Procurement Officer' },
+  { value:'business_owner',       label:'Business Owner' },
+  { value:'branch_manager',       label:'Branch Manager' },
+  { value:'sales_staff',          label:'Sales Staff' },
+  { value:'warehouse_staff',      label:'Warehouse Staff' },
+  { value:'accountant',           label:'Accountant' },
+  { value:'hr_manager',           label:'HR Manager' },
+  { value:'procurement_officer',  label:'Procurement Officer' },
 ];
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState<'add'|'edit'|null>(null);
+  const [users, setUsers]       = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [modal, setModal]       = useState<'add'|'edit'|null>(null);
   const [selected, setSelected] = useState<any>(null);
-  const [confirm, setConfirm] = useState<any>(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [form, setForm] = useState({ name:'', email:'', password:'', role:'sales_staff', is_active: true });
+  const [confirm, setConfirm]   = useState<any>(null);
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState('');
+  const [form, setForm]         = useState({ name:'', email:'', password:'', role:'sales_staff', branch_id:'', is_active: true });
 
   const load = async () => {
     setLoading(true);
-    const r = await api.get('/users');
+    const [r, b] = await Promise.all([api.get('/users'), api.get('/branches')]);
     setUsers(r.data.data);
+    setBranches(b.data.data);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
-  const openAdd = () => { setForm({ name:'', email:'', password:'', role:'sales_staff', is_active:true }); setError(''); setModal('add'); };
-  const openEdit = (u: any) => { setSelected(u); setForm({ name:u.name, email:u.email, password:'', role:u.role, is_active:u.is_active }); setError(''); setModal('edit'); };
+  const openAdd = () => { setForm({ name:'', email:'', password:'', role:'sales_staff', branch_id:'', is_active:true }); setError(''); setModal('add'); };
+  const openEdit = (u: any) => { setSelected(u); setForm({ name:u.name, email:u.email, password:'', role:u.role, branch_id: u.branch_id?._id || u.branch_id || '', is_active:u.is_active }); setError(''); setModal('edit'); };
 
   const save = async () => {
     setSaving(true); setError('');
@@ -50,7 +53,7 @@ export default function UsersPage() {
     load(); };
 
   return (
-    <AppLayout title="User Management" subtitle="Manage system users and role-based access" allowedRoles={['super_admin']}>
+    <AppLayout title="User Management" subtitle="Manage system users and role-based access" allowedRoles={['business_owner']}>
       <div className="flex justify-between items-center mb-5">
         <div className="text-sm text-gray-500">{users.length} users registered</div>
         <button className="btn-primary" onClick={openAdd}><Plus className="w-4 h-4"/>Add User</button>
@@ -61,10 +64,12 @@ export default function UsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="table-header">
-                <tr>{['Name','Email','Role','Status','Joined','Actions'].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr>
+                <tr>{['Name','Email','Role','Branch','Status','Joined','Actions'].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {users.map(u => (
+                {users.map(u => {
+                  const branch = branches.find(b => b.id === (u.branch_id?._id || u.branch_id));
+                  return (
                   <tr key={u.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -74,6 +79,7 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-500">{u.email}</td>
                     <td className="px-4 py-3"><span className="badge badge-blue">{ROLES.find(r=>r.value===u.role)?.label||u.role}</span></td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{branch ? branch.name : <span className="text-gray-300">Company-wide</span>}</td>
                     <td className="px-4 py-3"><Badge status={u.is_active?'active':'inactive'} /></td>
                     <td className="px-4 py-3 text-gray-400 text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
@@ -83,7 +89,8 @@ export default function UsersPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -99,6 +106,13 @@ export default function UsersPage() {
           <div><label className="form-label">Role *</label>
             <select className="form-input" value={form.role} onChange={e => setForm({...form,role:e.target.value})}>
               {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Branch <span className="text-gray-400 font-normal">(leave blank for company-wide staff)</span></label>
+            <select className="form-input" value={form.branch_id} onChange={e => setForm({...form, branch_id: e.target.value})}>
+              <option value="">Company-wide (no specific branch)</option>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </div>
           {modal==='edit' && (
