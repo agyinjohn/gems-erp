@@ -82,7 +82,7 @@ export default function StorefrontPage() {
   useEffect(() => {
     setPage(1);
     loadProducts(1, true);
-    api.get('/categories').then(c => setCategories(c.data.data)).catch(() => {});
+    api.get('/storefront/categories').then(c => setCategories(c.data.data)).catch(() => {});
     const savedId = localStorage.getItem(CART_ID_KEY) || '';
     setCartId(savedId);
     if (savedId) {
@@ -189,35 +189,46 @@ export default function StorefrontPage() {
         delivery_fee: deliveryFee,
         items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity }))
       });
-      const { order_id, order_number: oNum, total, email, paystack_public_key } = r.data.data;
-      setOrderId(order_id);
-      setOrderNumber(oNum);
+      const { orders, grand_total, email, paystack_public_key, reference } = r.data.data;
+      const firstOrder = orders?.[0];
+      const resolvedOrderId = firstOrder?.order_id;
+      const resolvedOrderNumber = firstOrder?.order_number;
+      const resolvedTotal = grand_total ?? firstOrder?.total;
+      setOrderId(resolvedOrderId);
+      setOrderNumber(resolvedOrderNumber);
 
-      const script = document.createElement('script');
-      script.src = 'https://js.paystack.co/v1/inline.js';
-      script.onload = () => {
+      const openPaystack = () => {
+        const orderIds = orders.map((o: any) => o.order_id);
+        const cartSnapshot = [...cart];
+        const totalSnapshot = orderTotal;
+        const paystackAmount = Math.round(parseFloat(String(resolvedTotal)) * 100);
         const handler = (window as any).PaystackPop.setup({
-          key: paystack_public_key || 'pk_test_demo',
+          key:      paystack_public_key,
           email,
-          amount: Math.round(total * 100),
+          amount:   paystackAmount,
           currency: 'GHS',
-          ref: `GEMS-${oNum}-${Date.now()}`,
-          onClose: () => { setPaying(false); },
+          ref:      reference,
+          onClose:  () => setPaying(false),
           callback: async (response: any) => {
             try {
-              await api.post('/storefront/verify-payment', { reference: response.reference, order_id });
-              setCompletedCart([...cart]);
-              setCompletedTotal(orderTotal);
+              await api.post('/storefront/verify-payment', { reference: response.reference, order_ids: orderIds });
+              setCompletedCart(cartSnapshot);
+              setCompletedTotal(totalSnapshot);
               setCart([]);
               setStep('success');
             } catch { setError('Payment verification failed. Please contact support.'); }
             finally { setPaying(false); }
-          }
+          },
         });
         handler.openIframe();
       };
+
+      const script = document.createElement('script');
+      script.src = 'https://js.paystack.co/v1/inline.js';
+      script.onload = openPaystack;
+      script.onerror = () => { setError('Failed to load Paystack. Check your connection and try again.'); setPaying(false); };
       document.body.appendChild(script);
-    } catch(e:any) { setError(e.response?.data?.message||'Checkout error'); setPaying(false); }
+    } catch(e:any) { setError(e.response?.data?.message || 'Checkout error. Please try again.'); setPaying(false); }
   };
 
   const detailCatColors: Record<string,string> = {
@@ -1141,7 +1152,7 @@ export default function StorefrontPage() {
                 </div>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                Ghana&apos;s go-to store for quality products. Powered by GEMS — GTHINK Enterprise Management System.
+                Ghana&apos;s go-to store for quality products. Powered by GEMS.
               </p>
               <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mb-2">Get deals in your inbox</p>
               <div className="flex mb-6">

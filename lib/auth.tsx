@@ -70,7 +70,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(user);
     setTenant(tenant || null);
     setBranch(branch || null);
-    router.push(user.role === 'platform_admin' ? '/platform' : '/dashboard');
+    const roleRedirects: Record<string, string> = {
+      platform_admin:       '/platform',
+      employee:             '/ess',
+      super_admin:          '/dashboard',
+      business_owner:       '/dashboard',
+      branch_manager:       '/dashboard',
+      sales_staff:          '/pos',
+      warehouse_staff:      '/inventory',
+      accountant:           '/accounting',
+      hr_manager:           '/hr',
+      procurement_officer:  '/procurement',
+    };
+    router.push(roleRedirects[user.role] ?? '/dashboard');
   };
 
   const logout = () => {

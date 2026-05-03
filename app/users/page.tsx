@@ -13,6 +13,7 @@ const ROLES = [
   { value:'accountant',           label:'Accountant' },
   { value:'hr_manager',           label:'HR Manager' },
   { value:'procurement_officer',  label:'Procurement Officer' },
+  { value:'employee',             label:'Employee (Self-Service)' },
 ];
 
 export default function UsersPage() {
@@ -24,18 +25,20 @@ export default function UsersPage() {
   const [confirm, setConfirm]   = useState<any>(null);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
-  const [form, setForm]         = useState({ name:'', email:'', password:'', role:'sales_staff', branch_id:'', is_active: true });
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [form, setForm] = useState({ name:'', email:'', password:'', role:'sales_staff', branch_id:'', is_active: true, job_title:'', gross_salary:'', department_id:'' });
 
   const load = async () => {
     setLoading(true);
-    const [r, b] = await Promise.all([api.get('/users'), api.get('/branches')]);
+    const [r, b, d] = await Promise.all([api.get('/users'), api.get('/branches'), api.get('/departments')]);
     setUsers(r.data.data);
     setBranches(b.data.data);
+    setDepartments(d.data.data);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
-  const openAdd = () => { setForm({ name:'', email:'', password:'', role:'sales_staff', branch_id:'', is_active:true }); setError(''); setModal('add'); };
+  const openAdd = () => { setForm({ name:'', email:'', password:'', role:'sales_staff', branch_id:'', is_active:true, job_title:'', gross_salary:'', department_id:'' }); setError(''); setModal('add'); };
   const openEdit = (u: any) => { setSelected(u); setForm({ name:u.name, email:u.email, password:'', role:u.role, branch_id: u.branch_id?._id || u.branch_id || '', is_active:u.is_active }); setError(''); setModal('edit'); };
 
   const save = async () => {
@@ -115,6 +118,24 @@ export default function UsersPage() {
               {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </div>
+          {modal === 'add' && (
+            <>
+              <div className="border-t border-gray-100 pt-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Employee Details</p>
+                <div className="space-y-3">
+                  <div><label className="form-label">Job Title</label><input className="form-input" placeholder="e.g. Sales Executive" value={form.job_title} onChange={e => setForm({...form, job_title: e.target.value})} /></div>
+                  <div>
+                    <label className="form-label">Department</label>
+                    <select className="form-input" value={form.department_id} onChange={e => setForm({...form, department_id: e.target.value})}>
+                      <option value="">Select department</option>
+                      {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </div>
+                  <div><label className="form-label">Gross Salary (GHS)</label><input type="number" className="form-input" placeholder="0.00" value={form.gross_salary} onChange={e => setForm({...form, gross_salary: e.target.value})} /></div>
+                </div>
+              </div>
+            </>
+          )}
           {modal==='edit' && (
             <div className="flex items-center gap-3">
               <input type="checkbox" id="is_active" checked={form.is_active} onChange={e => setForm({...form,is_active:e.target.checked})} className="w-4 h-4 text-blue-600" />

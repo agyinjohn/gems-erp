@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
+  baseURL: BASE,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -26,5 +28,11 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Public API — no auth token, no redirect — for storefront use
+export const publicApi = axios.create({
+  baseURL: BASE,
+  headers: { 'Content-Type': 'application/json' },
+});
 
 export default api;

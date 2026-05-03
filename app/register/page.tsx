@@ -11,7 +11,7 @@ import api from '@/lib/api';
 const PERKS = [
   { icon: Zap,    text: 'Up and running in minutes' },
   { icon: Shield, text: '14-day free trial, cancel anytime' },
-  { icon: Globe,  text: 'Your own branded storefront' },
+  { icon: Globe,  text: 'Your own branded eCommerce store' },
   { icon: Users,  text: 'Invite your whole team' },
 ];
 
@@ -112,20 +112,19 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="relative z-10">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center shadow-lg">
-              <Package className="w-5 h-5 text-gray-900" />
+            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg">
+              <Package className="w-7 h-7 text-[#0D3B6E]" />
             </div>
-            <span className="font-extrabold text-2xl text-white">GEMS <span className="text-yellow-400">by GTHINK</span></span>
+            <div>
+              <div className="font-extrabold text-3xl text-white leading-tight">GEMS</div>
+              <div className="text-blue-200 text-sm font-medium tracking-wide leading-tight">GThink Enterprise Management System</div>
+            </div>
           </Link>
         </div>
 
         {/* Main content */}
         <div className="relative z-10">
           <div className="mb-8">
-            <h2 className="text-3xl font-extrabold text-white leading-tight mb-4">
-              Your Business. One System.<br />
-              <span className="text-yellow-400">Smart Workplace.</span>
-            </h2>
             <p className="text-blue-200 text-base leading-relaxed">
               All-in-one platform for Stocks, Inventory, Sales, Payment, Procurement, Finance, HR, and CRM.
             </p>
@@ -523,7 +522,7 @@ export default function RegisterPage() {
                     {[
                       { step: '1', text: 'Add your products to inventory', color: 'bg-blue-500' },
                       { step: '2', text: 'Invite your staff members',      color: 'bg-purple-500' },
-                      { step: '3', text: 'Set up your online storefront',  color: 'bg-green-500' },
+                      { step: '3', text: 'Set up your online eCommerce store',  color: 'bg-green-500' },
                       { step: '4', text: 'Configure your branches',        color: 'bg-orange-500' },
                     ].map(item => (
                       <div key={item.step} className="flex items-center gap-3">

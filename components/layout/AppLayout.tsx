@@ -27,7 +27,7 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
     if (!loading && !user) router.push('/login');
     if (!loading && user && allowedRoles && !allowedRoles.includes(user.role)) {
       if (!['business_owner'].includes(user.role)) {
-        router.push(user.role === 'platform_admin' ? '/platform' : '/dashboard');
+        router.push(user.role === 'platform_admin' ? '/platform' : user.role === 'employee' ? '/ess' : '/dashboard');
       }
     }
   }, [user, loading, router, allowedRoles]);

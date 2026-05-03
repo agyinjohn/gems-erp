@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, ChevronDown } from 'lucide-react';
-import api from '@/lib/api';
+import { publicApi } from '@/lib/api';
 
 interface CartItem { product: any; quantity: number; branch_id: string; branch_name: string; }
 
@@ -80,7 +80,7 @@ export default function TenantStorefrontPage() {
       if (search) params.search = search;
       if (filterCat) params.category = filterCat;
       if (activeBranch) params.branch_slug = activeBranch.slug;
-      const r = await api.get('/storefront/products', { params });
+      const r = await publicApi.get('/storefront/products', { params });
       const newProds = r.data.data;
       setProducts(prev => replace ? newProds : [...prev, ...newProds]);
       setHasMore(r.data.hasMore);
@@ -92,7 +92,7 @@ export default function TenantStorefrontPage() {
 
   // Load tenant + branches on mount
   useEffect(() => {
-    api.get(`/storefront/${tenantSlug}/branches`).then(r => {
+    publicApi.get(`/storefront/${tenantSlug}/branches`).then(r => {
       setTenant(r.data.data.tenant);
       setBranches(r.data.data.branches);
     }).catch(() => {});
@@ -101,11 +101,11 @@ export default function TenantStorefrontPage() {
   useEffect(() => {
     setPage(1);
     loadProducts(1, true);
-    api.get('/categories', { params: { tenant_slug: tenantSlug } }).then(c => setCategories(c.data.data)).catch(() => {});
+    publicApi.get('/categories', { params: { tenant_slug: tenantSlug } }).then(c => setCategories(c.data.data)).catch(() => {});
     const savedId = localStorage.getItem(CART_ID_KEY) || '';
     setCartId(savedId);
     if (savedId) {
-      api.get(`/storefront/cart/${savedId}`).then(r => {
+      publicApi.get(`/storefront/cart/${savedId}`).then(r => {
         setCart(r.data.data.items.map(toCartItem));
       }).catch(() => {});
     }
@@ -147,7 +147,7 @@ export default function TenantStorefrontPage() {
   const addToCart = async (product: any) => {
     setCartLoading(true);
     try {
-      const r = await api.post('/storefront/cart/add', {
+      const r = await publicApi.post('/storefront/cart/add', {
         cart_id: cartId || localStorage.getItem(CART_ID_KEY) || '',
         product_id: product.id || product._id,
         quantity: 1,
@@ -163,7 +163,7 @@ export default function TenantStorefrontPage() {
     const newQty = item.quantity + delta;
     setCartLoading(true);
     try {
-      const r = await api.patch('/storefront/cart/update', {
+      const r = await publicApi.patch('/storefront/cart/update', {
         cart_id: cartId,
         product_id: productId,
         quantity: newQty,
@@ -175,7 +175,7 @@ export default function TenantStorefrontPage() {
   const removeFromCart = async (productId: any) => {
     setCartLoading(true);
     try {
-      const r = await api.patch('/storefront/cart/update', {
+      const r = await publicApi.patch('/storefront/cart/update', {
         cart_id: cartId,
         product_id: productId,
         quantity: 0,
@@ -185,7 +185,7 @@ export default function TenantStorefrontPage() {
   };
 
   const clearCart = async () => {
-    if (cartId) await api.delete(`/storefront/cart/${cartId}`);
+    if (cartId) await publicApi.delete(`/storefront/cart/${cartId}`);
     setCart([]);
   };
 
@@ -212,7 +212,7 @@ export default function TenantStorefrontPage() {
     if (cart.length === 0) { setError('Your cart is empty.'); return; }
     setPaying(true); setError('');
     try {
-      const r = await api.post('/storefront/checkout', {
+      const r = await publicApi.post('/storefront/checkout', {
         ...form,
         delivery_fee: deliveryFee,
         tenant_id: tenant?.id,
@@ -238,7 +238,7 @@ export default function TenantStorefrontPage() {
           onClose: () => { setPaying(false); },
           callback: async (response: any) => {
             try {
-              await api.post('/storefront/verify-payment', { reference: response.reference, order_ids: orderIds });
+              await publicApi.post('/storefront/verify-payment', { reference: response.reference, order_ids: orderIds });
               setCompletedCart([...cart]);
               setCompletedTotal(orderTotal);
               setCart([]);

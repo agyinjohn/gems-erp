@@ -6,10 +6,10 @@ import { Building2, Eye, EyeOff, Loader2, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail]     = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw]   = useState(false);
-  const [error, setError]     = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,17 +25,8 @@ export default function LoginPage() {
     }
   };
 
-  const demoAccounts = [
-    { role: 'Platform Admin', email: 'admin@gthink.com',        password: 'Admin@1234', badge: 'bg-red-100 text-red-700' },
-    { role: 'Business Owner', email: 'owner@gems-store.com',    password: 'Admin@1234', badge: 'bg-purple-100 text-purple-700' },
-    { role: 'Sales Staff',    email: 'sales@gthink.com',        password: 'Staff@1234', badge: 'bg-green-100 text-green-700' },
-    { role: 'Accountant',     email: 'accounts@gthink.com',     password: 'Staff@1234', badge: 'bg-blue-100 text-blue-700' },
-    { role: 'HR Manager',     email: 'hr@gthink.com',           password: 'Staff@1234', badge: 'bg-orange-100 text-orange-700' },
-    { role: 'Warehouse',      email: 'warehouse@gthink.com',    password: 'Staff@1234', badge: 'bg-yellow-100 text-yellow-700' },
-  ];
-
   return (
-    <div className="min-h-screen flex" style={{ background: 'linear-gradient(135deg, #0D3B6E 0%, #1A6BB5 100%)' }}>
+    <div className="h-screen flex overflow-hidden" style={{ background: 'linear-gradient(135deg, #0D3B6E 0%, #1A6BB5 100%)' }}>
 
       {/* ── Left branding panel ── */}
       <div className="hidden lg:flex flex-col justify-center px-16 flex-1 text-white relative overflow-hidden">
@@ -67,7 +58,7 @@ export default function LoginPage() {
             All-in-one platform for Stocks, Inventory, Sales, Payment, Procurement, Finance, HR, and CRM.
           </p>
           <div className="mt-10 grid grid-cols-2 gap-4 max-w-sm">
-            {['Stocks & Inventory', 'PoS, Sales & eCommerce', 'HR & Payroll', 'Accounting & Finance'].map(m => (
+            {[' Inventory & Payment', 'POS, Sales & eCommerce', 'HR & Payroll', 'Accounting & Finance'].map(m => (
               <div key={m} className="bg-white/10 rounded-xl px-4 py-3 text-sm text-blue-100">✓ {m}</div>
             ))}
           </div>
@@ -75,7 +66,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right login form ── */}
-      <div className="flex items-center justify-center w-full lg:w-[45%] bg-white px-4 sm:px-8 lg:px-14 py-10 relative">
+      <div className="flex items-center justify-center w-full lg:w-[45%] bg-white px-4 sm:px-8 lg:px-14 overflow-y-auto relative">
 
         {/* Subtle background pattern */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -91,7 +82,7 @@ export default function LoginPage() {
               <Building2 className="w-8 h-8 text-white" />
             </div>
             <span className="font-extrabold text-2xl text-[#0D3B6E] tracking-tight">GEMS</span>
-            <span className="text-xs text-gray-400 mt-1 tracking-widest uppercase">by GTHINK</span>
+
           </div>
 
           {/* Mobile logo */}
@@ -118,7 +109,7 @@ export default function LoginPage() {
               </div>
             )}
             <div>
-              <label className="form-label">Email Address</label>
+              <label className="form-label">Email</label>
               <div className="relative">
                 <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
@@ -169,23 +160,6 @@ export default function LoginPage() {
               }
             </button>
           </form>
-
-          {/* Demo accounts */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Demo Accounts — click to fill</p>
-            <div className="grid grid-cols-2 gap-2">
-              {demoAccounts.map(a => (
-                <button
-                  key={a.email}
-                  type="button"
-                  onClick={() => { setEmail(a.email); setPassword(a.password); }}
-                  className={`text-left px-3 py-2 rounded-lg text-xs font-medium border border-transparent hover:border-gray-200 hover:bg-white transition-all ${a.badge}`}
-                >
-                  {a.role}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Trust badges */}
           <div className="flex items-center justify-center gap-6 mt-6">

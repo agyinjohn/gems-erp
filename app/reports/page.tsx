@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Spinner } from '@/components/ui';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -12,19 +12,21 @@ export default function ReportsPage() {
   const [tab, setTab] = useState<'sales'|'inventory'|'finance'|'hr'|'procurement'|'crm'>('sales');
   const [data, setData] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
-      const endpoint = tab === 'procurement' ? '/reports/procurement'
-        : tab === 'crm' ? '/reports/crm'
-        : `/reports/${tab}`;
-      const r = await api.get(endpoint, { params: { from: dateFrom || undefined, to: dateTo || undefined } }).catch(()=>({data:{data:{}}}));
-      setData(r.data.data||{});
+      const r = await api.get(`/reports/${tab}`, { params: { from: dateFrom || undefined, to: dateTo || undefined } });
+      setData(r.data.data || {});
+    } catch {
+      setError('Failed to load report. Please try again.');
+      setData({});
     } finally { setLoading(false); }
-  };
+  }, [tab, dateFrom, dateTo]);
   useEffect(() => { load(); }, [tab]);
 
   const fmt = (n: any) => `GHS ${parseFloat(n||0).toFixed(2)}`;
@@ -50,12 +52,13 @@ export default function ReportsPage() {
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `gems-${tab}-report-${new Date().toISOString().split('T')[0]}.csv`;
+    const range = dateFrom && dateTo ? `_${dateFrom}_to_${dateTo}` : dateFrom ? `_from_${dateFrom}` : dateTo ? `_to_${dateTo}` : '';
+    a.href = url; a.download = `gems-${tab}-report${range}_${new Date().toISOString().split('T')[0]}.csv`;
     a.click(); URL.revokeObjectURL(url);
   };
 
   return (
-    <AppLayout title="Reports" subtitle="Business intelligence and performance metrics" allowedRoles={['business_owner','accountant','hr_manager']}>
+    <AppLayout title="Reports" subtitle="Business intelligence and performance metrics" allowedRoles={['business_owner','super_admin','accountant','hr_manager']}>
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 mb-5">
         {([{t:'sales',l:'Sales',icon:<TrendingUp className="w-4 h-4"/>},{t:'inventory',l:'Inventory',icon:<Package className="w-4 h-4"/>},{t:'finance',l:'Finance',icon:<DollarSign className="w-4 h-4"/>},{t:'hr',l:'HR',icon:<Users className="w-4 h-4"/>},{t:'procurement',l:'Procurement',icon:<ShoppingCart className="w-4 h-4"/>},{t:'crm',l:'CRM',icon:<Handshake className="w-4 h-4"/>}]).map(({t,l,icon}) => (
@@ -69,7 +72,9 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {loading ? <Spinner /> : (
+      {loading ? <Spinner /> : error ? (
+        <div className="card text-center py-10 text-red-500">{error}</div>
+      ) : (
         <>
           {/* Sales Report */}
           {tab==='sales' && (
@@ -163,7 +168,7 @@ export default function ReportsPage() {
                   <table className="w-full text-sm">
                     <thead className="table-header"><tr><th className="px-3 py-2 text-left">Product</th><th className="px-3 py-2 text-left">SKU</th><th className="px-3 py-2 text-left">Stock</th><th className="px-3 py-2 text-left">Threshold</th></tr></thead>
                     <tbody>{data.low_stock.map((p:any) => (
-                      <tr key={p.id} className="border-t"><td className="px-3 py-2 font-medium">{p.name}</td><td className="px-3 py-2 font-mono text-xs text-gray-500">{p.sku}</td><td className="px-3 py-2 text-red-600 font-semibold">{p.stock_qty}</td><td className="px-3 py-2 text-gray-500">{p.low_stock_threshold}</td></tr>
+                      <tr key={p._id || p.id} className="border-t"><td className="px-3 py-2 font-medium">{p.name}</td><td className="px-3 py-2 font-mono text-xs text-gray-500">{p.sku}</td><td className="px-3 py-2 text-red-600 font-semibold">{p.stock_qty}</td><td className="px-3 py-2 text-gray-500">{p.low_stock_threshold}</td></tr>
                     ))}</tbody>
                   </table>
                 </div>
@@ -178,7 +183,7 @@ export default function ReportsPage() {
                 {[
                   { label:'Total Revenue', value: fmt(data.revenue), color:'text-green-600' },
                   { label:'Total Expenses', value: fmt(data.total_expenses), color:'text-red-600' },
-                  { label:'Net Profit', value: `GHS ${(parseFloat(data.revenue||0)-parseFloat(data.total_expenses||0)).toFixed(2)}`, color:'text-blue-600' },
+                  { label:'Net Profit', value: fmt(data.net_profit ?? (parseFloat(data.revenue||0) - parseFloat(data.total_expenses||0))), color: (data.net_profit ?? (parseFloat(data.revenue||0) - parseFloat(data.total_expenses||0))) >= 0 ? 'text-blue-600' : 'text-red-600' },
                 ].map(k => (
                   <div key={k.label} className="card"><div className={`text-2xl font-bold ${k.color}`}>{k.value}</div><div className="text-sm text-gray-500 mt-1">{k.label}</div></div>
                 ))}
@@ -233,7 +238,7 @@ export default function ReportsPage() {
                   <table className="w-full text-sm">
                     <thead className="table-header"><tr><th className="px-3 py-2 text-left">PO #</th><th className="px-3 py-2 text-left">Supplier</th><th className="px-3 py-2 text-left">Total</th><th className="px-3 py-2 text-left">Status</th></tr></thead>
                     <tbody>{data.recent_pos.map((p:any) => (
-                      <tr key={p.id} className="border-t"><td className="px-3 py-2 font-mono text-xs text-blue-700">{p.po_number}</td><td className="px-3 py-2">{p.supplier_name}</td><td className="px-3 py-2 font-semibold">GHS {parseFloat(p.total_cost).toFixed(2)}</td><td className="px-3 py-2 capitalize">{p.status}</td></tr>
+                      <tr key={p._id || p.po_number} className="border-t"><td className="px-3 py-2 font-mono text-xs text-blue-700">{p.po_number}</td><td className="px-3 py-2">{p.supplier_name}</td><td className="px-3 py-2 font-semibold">GHS {parseFloat(p.total_cost).toFixed(2)}</td><td className="px-3 py-2 capitalize">{p.status}</td></tr>
                     ))}</tbody>
                   </table>
                 </div>

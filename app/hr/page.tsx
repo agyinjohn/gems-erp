@@ -19,7 +19,15 @@ export default function HRPage() {
   const [search, setSearch] = useState('');
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
 
-  const [empForm, setEmpForm] = useState({ name:'', email:'', phone:'', department_id:'', job_title:'', gross_salary:'', start_date:'', employee_code:'' });
+  const [empStep, setEmpStep] = useState(1);
+  const [empForm, setEmpForm] = useState({
+    // Step 1 — Personal
+    name:'', date_of_birth:'', gender:'', nationality:'', marital_status:'', national_id:'', photo:'',
+    // Step 2 — Contact
+    email:'', phone:'', address:'', emergency_name:'', emergency_phone:'', emergency_relation:'',
+    // Step 3 — Employment
+    employee_code:'', job_title:'', department_id:'', gross_salary:'', start_date:'', employment_type:'full_time',
+  });
   const [payForm, setPayForm] = useState({ employee_id:'', month: new Date().getMonth()+1, year: new Date().getFullYear(), allowances:'0', deductions:'0' });
   const [leaveForm, setLeaveForm] = useState({ employee_id:'', leave_type:'annual', start_date:'', end_date:'', reason:'' });
   const [attendanceForm, setAttendanceForm] = useState({ employee_id:'', date: new Date().toISOString().split('T')[0], status:'present', notes:'' });
@@ -50,7 +58,7 @@ export default function HRPage() {
 
   const saveEmployee = async () => {
     setSaving(true); setError('');
-    try { await api.post('/employees', empForm); setModal(null); load(); }
+    try { await api.post('/employees', empForm); setModal(null); setEmpStep(1); load(); }
     catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
     finally { setSaving(false); }
   };
@@ -119,7 +127,7 @@ export default function HRPage() {
           <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${tab===t?'bg-blue-700 text-white':'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>
         ))}
         <div className="ml-auto flex gap-2">
-          {tab==='employees' && <button className="btn-primary" onClick={() => { setEmpForm({name:'',email:'',phone:'',department_id:'',job_title:'',gross_salary:'',start_date:'',employee_code:'EMP-'+Date.now().toString().slice(-4)}); setError(''); setModal('add_emp'); }}><Plus className="w-4 h-4"/>Add Employee</button>}
+          {tab==='employees' && <button className="btn-primary" onClick={() => { setEmpForm({name:'',date_of_birth:'',gender:'',nationality:'',marital_status:'',national_id:'',photo:'',email:'',phone:'',address:'',emergency_name:'',emergency_phone:'',emergency_relation:'',employee_code:'EMP-'+Date.now().toString().slice(-4),job_title:'',department_id:'',gross_salary:'',start_date:'',employment_type:'full_time'}); setEmpStep(1); setError(''); setModal('add_emp'); }}><Plus className="w-4 h-4"/>Add Employee</button>}
           {tab==='attendance' && <button className="btn-primary" onClick={() => { setAttendanceForm({employee_id:'',date:attendanceDate,status:'present',notes:''}); setError(''); setModal('add_attendance'); }}><Calendar className="w-4 h-4"/>Record Attendance</button>}
           {tab==='leave' && <button className="btn-primary" onClick={() => { setLeaveForm({employee_id:'',leave_type:'annual',start_date:'',end_date:'',reason:''}); setError(''); setModal('add_leave'); }}><Plus className="w-4 h-4"/>Apply Leave</button>}
           {tab==='payroll' && <button className="btn-primary" onClick={() => { setPayForm({employee_id:'',month:new Date().getMonth()+1,year:new Date().getFullYear(),allowances:'0',deductions:'0'}); setError(''); setModal('add_payroll'); }}><DollarSign className="w-4 h-4"/>Run Payroll</button>}
@@ -137,17 +145,27 @@ export default function HRPage() {
             {loading ? <Spinner /> : filtered.length===0 ? <EmptyState message="No employees found" icon={<Users className="w-8 h-8 text-gray-300"/>} /> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="table-header"><tr>{['Employee','Code','Department','Job Title','Salary','Status'].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
+                  <thead className="table-header"><tr>{['Employee','Code','Department','Job Title','Type','Salary','Status'].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
                   <tbody className="divide-y divide-gray-50">
                     {filtered.map(e => (
                       <tr key={e.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900">{e.name}</div>
-                          <div className="text-xs text-gray-400">{e.email||'—'}</div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-700 flex items-center justify-center flex-shrink-0">
+                              {e.photo
+                                ? <img src={e.photo} alt={e.name} className="w-full h-full object-cover" />
+                                : <span className="text-white text-sm font-bold">{e.name?.charAt(0).toUpperCase()}</span>}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{e.name}</div>
+                              <div className="text-xs text-gray-400">{e.email||'—'}</div>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-gray-500">{e.employee_code}</td>
                         <td className="px-4 py-3 text-gray-600">{e.department_name||'—'}</td>
                         <td className="px-4 py-3 text-gray-600">{e.job_title||'—'}</td>
+                        <td className="px-4 py-3 text-gray-500 text-xs capitalize">{(e.employment_type||'full_time').replace('_',' ')}</td>
                         <td className="px-4 py-3 font-semibold">GHS {parseFloat(e.gross_salary).toFixed(2)}</td>
                         <td className="px-4 py-3"><Badge status={e.status} /></td>
                       </tr>
@@ -350,27 +368,124 @@ export default function HRPage() {
         </div>
       </Modal>
 
-      {/* Add Employee Modal */}
-      <Modal open={modal==='add_emp'} onClose={() => setModal(null)} title="Add Employee" size="lg">
-        {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2"><label className="form-label">Full Name *</label><input className="form-input" value={empForm.name} onChange={e => setEmpForm({...empForm,name:e.target.value})} /></div>
-          <div><label className="form-label">Employee Code</label><input className="form-input" value={empForm.employee_code} onChange={e => setEmpForm({...empForm,employee_code:e.target.value})} /></div>
-          <div><label className="form-label">Job Title</label><input className="form-input" value={empForm.job_title} onChange={e => setEmpForm({...empForm,job_title:e.target.value})} /></div>
-          <div><label className="form-label">Email</label><input type="email" className="form-input" value={empForm.email} onChange={e => setEmpForm({...empForm,email:e.target.value})} /></div>
-          <div><label className="form-label">Phone</label><input className="form-input" value={empForm.phone} onChange={e => setEmpForm({...empForm,phone:e.target.value})} /></div>
-          <div><label className="form-label">Department</label>
-            <select className="form-input" value={empForm.department_id} onChange={e => setEmpForm({...empForm,department_id:e.target.value})}>
-              <option value="">Select</option>
-              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-          </div>
-          <div><label className="form-label">Gross Salary (GHS) *</label><input type="number" className="form-input" value={empForm.gross_salary} onChange={e => setEmpForm({...empForm,gross_salary:e.target.value})} /></div>
-          <div><label className="form-label">Start Date</label><input type="date" className="form-input" value={empForm.start_date} onChange={e => setEmpForm({...empForm,start_date:e.target.value})} /></div>
+      {/* Add Employee Modal — multi-step */}
+      <Modal open={modal==='add_emp'} onClose={() => { setModal(null); setEmpStep(1); }} title="Add Employee" size="lg">
+        {/* Step indicators */}
+        <div className="flex items-center gap-2 mb-6">
+          {['Personal','Contact','Employment'].map((s, i) => (
+            <div key={s} className="flex items-center gap-2 flex-1">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                empStep > i+1 ? 'bg-green-500 text-white' : empStep === i+1 ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-400'
+              }`}>{empStep > i+1 ? '✓' : i+1}</div>
+              <span className={`text-xs font-medium ${empStep === i+1 ? 'text-[#0D3B6E]' : 'text-gray-400'}`}>{s}</span>
+              {i < 2 && <div className={`flex-1 h-px ${empStep > i+1 ? 'bg-green-400' : 'bg-gray-200'}`} />}
+            </div>
+          ))}
         </div>
-        <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={saveEmployee} disabled={saving}>{saving?'Saving…':'Add Employee'}</button>
+
+        {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
+
+        {/* Step 1 — Personal */}
+        {empStep === 1 && (
+          <div className="space-y-4">
+            {/* Photo upload */}
+            <div className="flex items-center gap-5">
+              <div className="w-20 h-20 rounded-xl bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden flex-shrink-0">
+                {empForm.photo
+                  ? <img src={empForm.photo} alt="photo" className="w-full h-full object-cover" />
+                  : <span className="text-2xl text-gray-300">👤</span>}
+              </div>
+              <div>
+                <label className="form-label">Passport Photo</label>
+                <input type="file" accept="image/*" className="text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = ev => setEmpForm({...empForm, photo: ev.target?.result as string});
+                    reader.readAsDataURL(file);
+                  }}
+                />
+                <p className="text-xs text-gray-400 mt-1">JPG or PNG, max 2MB</p>
+              </div>
+            </div>
+            <div><label className="form-label">Full Name *</label><input className="form-input" value={empForm.name} onChange={e => setEmpForm({...empForm,name:e.target.value})} placeholder="e.g. Kofi Mensah" /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="form-label">Date of Birth</label><input type="date" className="form-input" value={empForm.date_of_birth} onChange={e => setEmpForm({...empForm,date_of_birth:e.target.value})} /></div>
+              <div><label className="form-label">Gender</label>
+                <select className="form-input" value={empForm.gender} onChange={e => setEmpForm({...empForm,gender:e.target.value})}>
+                  <option value="">Select</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div><label className="form-label">Nationality</label><input className="form-input" value={empForm.nationality} onChange={e => setEmpForm({...empForm,nationality:e.target.value})} placeholder="e.g. Ghanaian" /></div>
+              <div><label className="form-label">Marital Status</label>
+                <select className="form-input" value={empForm.marital_status} onChange={e => setEmpForm({...empForm,marital_status:e.target.value})}>
+                  <option value="">Select</option>
+                  <option value="single">Single</option>
+                  <option value="married">Married</option>
+                  <option value="divorced">Divorced</option>
+                  <option value="widowed">Widowed</option>
+                </select>
+              </div>
+              <div className="col-span-2"><label className="form-label">National ID Number</label><input className="form-input" value={empForm.national_id} onChange={e => setEmpForm({...empForm,national_id:e.target.value})} placeholder="GHA-XXXXXXXXX-X" /></div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2 — Contact */}
+        {empStep === 2 && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="form-label">Email</label><input type="email" className="form-input" value={empForm.email} onChange={e => setEmpForm({...empForm,email:e.target.value})} /></div>
+              <div><label className="form-label">Phone</label><input className="form-input" value={empForm.phone} onChange={e => setEmpForm({...empForm,phone:e.target.value})} placeholder="+233 XX XXX XXXX" /></div>
+            </div>
+            <div><label className="form-label">Residential Address</label><textarea className="form-input" rows={2} value={empForm.address} onChange={e => setEmpForm({...empForm,address:e.target.value})} placeholder="Street, City, Region" /></div>
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Emergency Contact</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="form-label">Full Name</label><input className="form-input" value={empForm.emergency_name} onChange={e => setEmpForm({...empForm,emergency_name:e.target.value})} /></div>
+                <div><label className="form-label">Phone</label><input className="form-input" value={empForm.emergency_phone} onChange={e => setEmpForm({...empForm,emergency_phone:e.target.value})} /></div>
+                <div className="col-span-2"><label className="form-label">Relationship</label><input className="form-input" value={empForm.emergency_relation} onChange={e => setEmpForm({...empForm,emergency_relation:e.target.value})} placeholder="e.g. Spouse, Parent, Sibling" /></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3 — Employment */}
+        {empStep === 3 && (
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="form-label">Employee Code</label><input className="form-input" value={empForm.employee_code} onChange={e => setEmpForm({...empForm,employee_code:e.target.value})} /></div>
+            <div><label className="form-label">Job Title</label><input className="form-input" value={empForm.job_title} onChange={e => setEmpForm({...empForm,job_title:e.target.value})} /></div>
+            <div><label className="form-label">Department</label>
+              <select className="form-input" value={empForm.department_id} onChange={e => setEmpForm({...empForm,department_id:e.target.value})}>
+                <option value="">Select</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+            <div><label className="form-label">Employment Type</label>
+              <select className="form-input" value={empForm.employment_type} onChange={e => setEmpForm({...empForm,employment_type:e.target.value})}>
+                <option value="full_time">Full Time</option>
+                <option value="part_time">Part Time</option>
+                <option value="contract">Contract</option>
+                <option value="intern">Intern</option>
+              </select>
+            </div>
+            <div><label className="form-label">Gross Salary (GHS) *</label><input type="number" className="form-input" value={empForm.gross_salary} onChange={e => setEmpForm({...empForm,gross_salary:e.target.value})} /></div>
+            <div><label className="form-label">Start Date</label><input type="date" className="form-input" value={empForm.start_date} onChange={e => setEmpForm({...empForm,start_date:e.target.value})} /></div>
+          </div>
+        )}
+
+        <div className="flex justify-between mt-6">
+          <button className="btn-secondary" onClick={() => empStep > 1 ? setEmpStep(empStep-1) : setModal(null)}>
+            {empStep > 1 ? '← Back' : 'Cancel'}
+          </button>
+          {empStep < 3
+            ? <button className="btn-primary" onClick={() => { if (!empForm.name && empStep===1) { toast.error('Full name is required'); return; } setEmpStep(empStep+1); }}>Next →</button>
+            : <button className="btn-primary" onClick={saveEmployee} disabled={saving}>{saving ? 'Saving…' : 'Add Employee'}</button>
+          }
         </div>
       </Modal>
 

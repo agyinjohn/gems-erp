@@ -119,9 +119,9 @@ const PLANS = [
 ];
 
 const TESTIMONIALS = [
-  { name: 'Kofi Mensah',   role: 'Owner, GEMS Electronics',    text: 'GEMS transformed how we run our 3 branches. Inventory is always accurate and our staff love the POS.',          avatar: 'K' },
-  { name: 'Abena Asante',  role: 'Manager, Chic Boutique',     text: 'The online storefront alone was worth it. We went from zero online sales to 40% of our revenue in 2 months.',        avatar: 'A' },
-  { name: 'Yaw Darko',     role: 'CFO, ProTools Ghana',        text: 'Finally an ERP that understands African businesses. The Paystack integration and GHS support made all the difference.', avatar: 'Y' },
+  { name: 'James Okafor',   role: 'Owner, Okafor Electronics',    text: 'GEMS transformed how we run our 3 branches. Inventory is always accurate and our staff love the POS.',          avatar: 'J' },
+  { name: 'Sarah Mitchell', role: 'Manager, Chic Boutique',        text: 'The online storefront alone was worth it. We went from zero online sales to 40% of our revenue in 2 months.',        avatar: 'S' },
+  { name: 'David Chen',     role: 'CFO, ProTools Ltd',             text: 'Finally an ERP that just works. The Paystack integration, real-time reports and role-based access made all the difference.', avatar: 'D' },
 ];
 
 export default function LandingPage() {
@@ -167,13 +167,13 @@ export default function LandingPage() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-9 h-9 bg-[#0D3B6E] rounded-xl flex items-center justify-center shadow-md shadow-blue-200">
-              <Package className="w-5 h-5 text-white" />
+            <div className="w-11 h-11 bg-[#0D3B6E] rounded-xl flex items-center justify-center shadow-md shadow-blue-200">
+              <Package className="w-6 h-6 text-white" />
             </div>
-            <span className="font-extrabold text-xl tracking-tight">
-              <span className="text-[#0D3B6E]">GEMS</span>
-              <span className="text-yellow-500 ml-1">ERP</span>
-            </span>
+            <div>
+              <div className="font-extrabold text-2xl tracking-tight text-[#0D3B6E] leading-tight">GEMS</div>
+              <div className="text-xs text-gray-400 font-medium leading-tight">GThink Enterprise Management System</div>
+            </div>
           </Link>
 
           {/* Desktop nav links — centred */}
@@ -743,7 +743,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Testimonials</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Trusted by businesses across Ghana</h2>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Trusted by businesses worldwide</h2>
             <p className="text-gray-500 text-lg">See what our customers say about running their business on GEMS.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -800,58 +800,165 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <p className="text-blue-300 text-xs mt-6">14-day free trial · Card required, not charged for 14 days · Cancel anytime</p>
+          <p className="text-blue-300 text-xs mt-6">14-day free trial · Not charged until day 14 · Cancel anytime</p>
         </div>
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="bg-gray-900 text-white py-14 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
-            {/* Brand */}
-            <div className="md:col-span-1">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-9 h-9 bg-yellow-400 rounded-xl flex items-center justify-center">
-                  <Package className="w-4 h-4 text-gray-900" />
+      <footer className="bg-gray-900 text-white">
+
+        {/* Trust bar */}
+        <div className="bg-gray-800 border-b border-gray-700">
+          <div className="max-w-7xl mx-auto px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { icon: Shield,   title: 'Enterprise Security',  sub: 'SOC 2 compliant, 256-bit SSL' },
+              { icon: Zap,      title: '99.9% Uptime',         sub: 'Guaranteed SLA for all plans' },
+              { icon: Globe,    title: 'Works Everywhere',     sub: 'Multi-currency, multi-branch' },
+              { icon: BarChart2,title: 'Real-Time Data',       sub: 'Live dashboards & reports' },
+            ].map(b => {
+              const Icon = b.icon;
+              return (
+                <div key={b.title} className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-yellow-400/10 flex items-center justify-center text-yellow-400 flex-shrink-0">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-white">{b.title}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{b.sub}</div>
+                  </div>
                 </div>
-                <span className="font-extrabold text-lg">GEMS</span>
-              </div>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">All-in-one ERP built for African businesses. Manage your entire operation from one smart workplace.</p>
-              <p className="text-gray-600 text-xs">GTHINK Enterprise Management System</p>
-            </div>
-            {/* Product */}
-            <div>
-              <h4 className="font-bold text-sm uppercase tracking-widest mb-5 text-gray-300">Product</h4>
-              <ul className="space-y-3">
-                {['Features', 'Pricing', 'Demo Store', 'Changelog'].map(l => (
-                  <li key={l}><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">{l}</a></li>
-                ))}
-              </ul>
-            </div>
-            {/* Company */}
-            <div>
-              <h4 className="font-bold text-sm uppercase tracking-widest mb-5 text-gray-300">Company</h4>
-              <ul className="space-y-3">
-                {['About', 'Blog', 'Careers', 'Contact'].map(l => (
-                  <li key={l}><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">{l}</a></li>
-                ))}
-              </ul>
-            </div>
-            {/* Legal */}
-            <div>
-              <h4 className="font-bold text-sm uppercase tracking-widest mb-5 text-gray-300">Legal</h4>
-              <ul className="space-y-3">
-                {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map(l => (
-                  <li key={l}><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">{l}</a></li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-gray-500 text-xs">&copy; {new Date().getFullYear()} GEMS — GTHINK Enterprise Management System. All rights reserved.</p>
-            <p className="text-gray-500 text-xs">Built with ❤️ for African businesses</p>
+              );
+            })}
           </div>
         </div>
+
+        {/* Main columns */}
+        <div className="max-w-7xl mx-auto px-6 py-14">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+
+            {/* Brand */}
+            <div className="md:col-span-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center">
+                  <Package className="w-5 h-5 text-gray-900" />
+                </div>
+                <span className="font-extrabold text-xl text-white">GEMS</span>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                The all-in-one business management platform for growing companies. Inventory, Sales, Finance, HR, Procurement and CRM — all connected in real time.
+              </p>
+
+              {/* Newsletter */}
+              <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mb-2">Get product updates</p>
+              <div className="flex mb-6">
+                <input
+                  type="email"
+                  placeholder="your@company.com"
+                  className="flex-1 bg-gray-800 border border-gray-700 rounded-l-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400 transition-colors"
+                />
+                <button className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-xs px-4 rounded-r-lg transition-colors flex-shrink-0">
+                  Subscribe
+                </button>
+              </div>
+
+              {/* Social */}
+              <div className="flex gap-2">
+                {[
+                  { label: 'LinkedIn',  path: 'M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z M4 6a2 2 0 100-4 2 2 0 000 4z' },
+                  { label: 'Twitter',   path: 'M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z' },
+                  { label: 'Facebook',  path: 'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z' },
+                  { label: 'YouTube',   path: 'M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 00-1.95 1.96A29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z' },
+                ].map(s => (
+                  <button key={s.label} aria-label={s.label}
+                    className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-yellow-400 text-gray-400 hover:text-gray-900 border border-gray-700 hover:border-yellow-400 flex items-center justify-center transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d={s.path} />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Product */}
+            <div className="md:col-span-2">
+              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-5 pb-3 border-b border-gray-700">Product</h4>
+              <ul className="space-y-3">
+                {[
+                  { label: 'Features',    href: '#features' },
+                  { label: 'Pricing',     href: '#pricing' },
+                  { label: 'How it works',href: '#how-it-works' },
+                  { label: 'Demo Store',  href: '/store/gems-store' },
+                  { label: 'Changelog',   href: '#' },
+                  { label: 'Roadmap',     href: '#' },
+                ].map(l => (
+                  <li key={l.label}>
+                    <a href={l.href} className="text-gray-400 hover:text-yellow-400 text-sm transition-colors">{l.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Company */}
+            <div className="md:col-span-2">
+              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-5 pb-3 border-b border-gray-700">Company</h4>
+              <ul className="space-y-3">
+                {['About Us', 'Blog', 'Careers', 'Press', 'Partners', 'Contact'].map(l => (
+                  <li key={l}>
+                    <a href="#" className="text-gray-400 hover:text-yellow-400 text-sm transition-colors">{l}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Support + Legal */}
+            <div className="md:col-span-4">
+              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-5 pb-3 border-b border-gray-700">Support</h4>
+              <ul className="space-y-3 mb-8">
+                {[
+                  { icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', text: 'support@gems-erp.com' },
+                  { icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', text: '+1 (800) GEMS-ERP' },
+                  { icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', text: 'Mon – Fri, 9am – 6pm UTC' },
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 flex-shrink-0">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                      </svg>
+                    </div>
+                    <span className="text-gray-400 text-sm">{item.text}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-4 pb-3 border-b border-gray-700">Legal</h4>
+              <ul className="space-y-3">
+                {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'GDPR'].map(l => (
+                  <li key={l}>
+                    <a href="#" className="text-gray-400 hover:text-yellow-400 text-sm transition-colors">{l}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="border-t border-gray-800 bg-gray-950">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-gray-500 text-xs">&copy; {new Date().getFullYear()} GEMS ERP. All rights reserved.</p>
+            <div className="flex items-center gap-4 text-gray-500 text-xs">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                All systems operational
+              </span>
+              <span className="text-gray-700">·</span>
+              <span>v2.1.0</span>
+            </div>
+          </div>
+        </div>
+
       </footer>
 
     </div>
