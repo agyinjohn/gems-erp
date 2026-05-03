@@ -8,6 +8,17 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showDemo, setShowDemo] = useState(false);
+
+  const DEMO_ACCOUNTS = [
+    { label: 'Platform Admin',  email: 'admin@gthink.com',        password: 'Admin@1234' },
+    { label: 'Business Owner',  email: 'owner@gems-store.com',    password: 'Admin@1234' },
+    { label: 'Sales Staff',     email: 'sales@gthink.com',        password: 'Staff@1234' },
+    { label: 'Warehouse',       email: 'warehouse@gthink.com',    password: 'Staff@1234' },
+    { label: 'Accountant',      email: 'accounts@gthink.com',     password: 'Staff@1234' },
+    { label: 'HR Manager',      email: 'hr@gthink.com',           password: 'Staff@1234' },
+    { label: 'Procurement',     email: 'procurement@gthink.com',  password: 'Staff@1234' },
+  ];
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -160,6 +171,33 @@ export default function LoginPage() {
               }
             </button>
           </form>
+
+          {/* Demo accounts */}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setShowDemo(!showDemo)}
+              className="w-full flex items-center justify-between text-xs text-gray-400 hover:text-gray-600 border border-dashed border-gray-200 rounded-xl px-4 py-2.5 transition-colors"
+            >
+              <span>🧪 Demo accounts (click to fill)</span>
+              <span>{showDemo ? '▲' : '▼'}</span>
+            </button>
+            {showDemo && (
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                {DEMO_ACCOUNTS.map(a => (
+                  <button
+                    key={a.email}
+                    type="button"
+                    onClick={() => { setEmail(a.email); setPassword(a.password); setShowDemo(false); }}
+                    className="text-left px-3 py-2 rounded-lg border border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-colors"
+                  >
+                    <div className="text-xs font-semibold text-gray-700">{a.label}</div>
+                    <div className="text-[10px] text-gray-400 truncate">{a.email}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Trust badges */}
           <div className="flex items-center justify-center gap-6 mt-6">
