@@ -39,7 +39,7 @@ export default function UsersPage() {
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setForm({ name:'', email:'', password:'', role:'sales_staff', branch_id:'', is_active:true, job_title:'', gross_salary:'', department_id:'' }); setError(''); setModal('add'); };
-  const openEdit = (u: any) => { setSelected(u); setForm({ name:u.name, email:u.email, password:'', role:u.role, branch_id: u.branch_id?._id || u.branch_id || '', is_active:u.is_active }); setError(''); setModal('edit'); };
+  const openEdit = (u: any) => { setSelected(u); setForm({ name:u.name, email:u.email, password:'', role:u.role, branch_id: u.branch_id?._id || u.branch_id || '', is_active:u.is_active, job_title:'', gross_salary:'', department_id:'' }); setError(''); setModal('edit'); };
 
   const save = async () => {
     setSaving(true); setError('');
