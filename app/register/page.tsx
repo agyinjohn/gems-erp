@@ -117,7 +117,7 @@ export default function RegisterPage() {
             </div>
             <div>
               <div className="font-extrabold text-3xl text-white leading-tight">GEMS</div>
-              <div className="text-blue-200 text-sm font-medium tracking-wide leading-tight">GThink Enterprise Management System</div>
+              <div className="text-blue-200 text-sm font-medium tracking-wide leading-tight">GTHINK Enterprise Management System</div>
             </div>
           </Link>
         </div>
