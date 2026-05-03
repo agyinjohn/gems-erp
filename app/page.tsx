@@ -172,7 +172,7 @@ export default function LandingPage() {
             </div>
             <div>
               <div className="font-extrabold text-2xl tracking-tight text-[#0D3B6E] leading-tight">GEMS</div>
-              <div className="text-xs text-gray-400 font-medium leading-tight">GThink Enterprise Management System</div>
+              <div className="text-xs text-gray-400 font-medium leading-tight">GTHINK Enterprise Management System</div>
             </div>
           </Link>
 
