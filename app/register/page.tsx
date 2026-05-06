@@ -111,14 +111,9 @@ export default function RegisterPage() {
 
         {/* Logo */}
         <div className="relative z-10">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-              <Package className="w-7 h-7 text-[#0D3B6E]" />
-            </div>
-            <div>
-              <div className="font-extrabold text-3xl text-white leading-tight">GEMS</div>
-              <div className="text-blue-200 text-sm font-medium tracking-wide leading-tight">GTHINK Enterprise Management System</div>
-            </div>
+          <Link href="/" className="flex flex-col gap-2">
+            <img src="/ag.png" alt="GEMS Logo" className="h-24 w-auto object-contain brightness-0 invert" />
+            <div className="text-blue-200 text-lg font-bold tracking-wide">GTHINK Enterprise Management System</div>
           </Link>
         </div>
 
@@ -180,10 +175,7 @@ export default function RegisterPage() {
         <div className="flex items-center justify-between px-8 py-5 bg-white border-b border-gray-100 lg:bg-transparent lg:border-0">
           {/* Mobile logo */}
           <Link href="/" className="flex items-center gap-2 lg:hidden">
-            <div className="w-8 h-8 bg-[#0D3B6E] rounded-lg flex items-center justify-center">
-              <Package className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-extrabold text-[#0D3B6E]">GEMS</span>
+            <img src="/ag.png" alt="GEMS Logo" className="h-10 w-auto object-contain" />
           </Link>
           <div className="hidden lg:block" />
           <div className="flex items-center gap-2.5">

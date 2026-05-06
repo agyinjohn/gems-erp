@@ -8,9 +8,10 @@ import {
 } from 'lucide-react';
 
 const NAV_LINKS = [
-  { label: 'Features',   href: '#features' },
+  { label: 'Features',    href: '#features' },
   { label: 'How it works', href: '#how-it-works' },
-  { label: 'Pricing',    href: '#pricing' },
+  { label: 'Pricing',     href: '#pricing' },
+  { label: 'Contact',     href: '#contact' },
 ];
 
 const FEATURES = [
@@ -124,6 +125,85 @@ const TESTIMONIALS = [
   { name: 'David Chen',     role: 'CFO, ProTools Ltd',             text: 'Finally an ERP that just works. The Paystack integration, real-time reports and role-based access made all the difference.', avatar: 'D' },
 ];
 
+function ContactForm() {
+  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '', interest: 'demo' });
+  const [status, setStatus] = useState<'idle'|'sending'|'sent'|'error'>('idle');
+
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = encodeURIComponent(
+      `Hi GEMS Team!\n\nName: ${form.name}\nEmail: ${form.email}\nPhone: ${form.phone}\nInterest: ${form.interest === 'demo' ? 'Schedule a Demo' : 'General Enquiry'}\n\nMessage:\n${form.message}`
+    );
+    window.open(`https://wa.me/233241550366?text=${text}`, '_blank');
+    setStatus('sent');
+    setForm({ name: '', email: '', phone: '', message: '', interest: 'demo' });
+    setTimeout(() => setStatus('idle'), 4000);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-gray-50 rounded-2xl p-8 space-y-5 border border-gray-100">
+      <h3 className="font-bold text-gray-900 text-lg">Send us a message</h3>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">Full Name *</label>
+          <input required value={form.name} onChange={e => set('name', e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            placeholder="John Mensah" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">Email *</label>
+          <input required type="email" value={form.email} onChange={e => set('email', e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            placeholder="you@company.com" />
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">Phone / WhatsApp</label>
+          <input value={form.phone} onChange={e => set('phone', e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            placeholder="+233 XX XXX XXXX" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">I want to…</label>
+          <select value={form.interest} onChange={e => set('interest', e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+            <option value="demo">Schedule a Demo</option>
+            <option value="pricing">Ask about Pricing</option>
+            <option value="support">Get Support</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-500 mb-1.5">Message</label>
+        <textarea rows={4} value={form.message} onChange={e => set('message', e.target.value)}
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white resize-none"
+          placeholder="Tell us about your business and what you're looking for…" />
+      </div>
+
+      <button type="submit"
+        className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+        {status === 'sending' ? 'Sending…' : (
+          <>
+            <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.855L.057 23.428a.75.75 0 00.916.916l5.573-1.471A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.693 9.693 0 01-4.953-1.358l-.355-.211-3.683.972.986-3.595-.231-.371A9.694 9.694 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
+            Send via WhatsApp
+          </>
+        )}
+      </button>
+
+      {status === 'sent' && (
+        <p className="text-center text-sm text-green-600 font-medium">✓ Opening WhatsApp… we'll reply shortly!</p>
+      )}
+    </form>
+  );
+}
+
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
@@ -166,14 +246,8 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-[68px] flex items-center justify-between gap-8">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-11 h-11 bg-[#0D3B6E] rounded-xl flex items-center justify-center shadow-md shadow-blue-200">
-              <Package className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <div className="font-extrabold text-2xl tracking-tight text-[#0D3B6E] leading-tight">GEMS</div>
-              <div className="text-xs text-gray-400 font-medium leading-tight">GTHINK Enterprise Management System</div>
-            </div>
+          <Link href="/" className="flex items-center flex-shrink-0">
+            <img src="/ag.png" alt="GEMS Logo" className="h-24 w-auto object-contain" />
           </Link>
 
           {/* Desktop nav links — centred */}
@@ -804,6 +878,85 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── CONTACT ── */}
+      <section id="contact" className="py-24 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+
+          {/* Heading */}
+          <div className="text-center mb-14">
+            <span className="inline-block bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4">Contact Us</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Get in touch or schedule a demo</h2>
+            <p className="text-gray-500 text-lg max-w-xl mx-auto">Have questions? Want to see GEMS in action? Reach out and our team will get back to you within 24 hours.</p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+
+            {/* Left — contact info */}
+            <div className="space-y-8">
+              {[
+                {
+                  icon: (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  ),
+                  label: 'Email us',
+                  value: 'hello@gthink.com',
+                  href: 'mailto:hello@gthink.com',
+                },
+                {
+                  icon: (
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.855L.057 23.428a.75.75 0 00.916.916l5.573-1.471A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.693 9.693 0 01-4.953-1.358l-.355-.211-3.683.972.986-3.595-.231-.371A9.694 9.694 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
+                  ),
+                  label: 'WhatsApp',
+                  value: '+233 24 155 0366',
+                  href: 'https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27d%20like%20to%20schedule%20a%20demo.',
+                },
+                {
+                  icon: (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  ),
+                  label: 'Location',
+                  value: 'Accra, Ghana',
+                  href: null,
+                },
+              ].map(({ icon, label, value, href }) => (
+                <div key={label} className="flex items-start gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                    {icon}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-0.5">{label}</p>
+                    {href ? (
+                      <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer" className="text-gray-900 font-semibold hover:text-blue-600 transition-colors">{value}</a>
+                    ) : (
+                      <p className="text-gray-900 font-semibold">{value}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Schedule demo CTA */}
+              <div className="bg-gradient-to-br from-[#0D3B6E] to-[#1A5294] rounded-2xl p-6 text-white">
+                <h3 className="font-bold text-lg mb-2">Book a free demo</h3>
+                <p className="text-blue-200 text-sm mb-4">See GEMS live in 20 minutes. We'll walk you through every module tailored to your business.</p>
+                <a
+                  href="https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27d%20like%20to%20book%20a%20free%20demo."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.855L.057 23.428a.75.75 0 00.916.916l5.573-1.471A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.693 9.693 0 01-4.953-1.358l-.355-.211-3.683.972.986-3.595-.231-.371A9.694 9.694 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
+                  Chat on WhatsApp
+                </a>
+              </div>
+            </div>
+
+            {/* Right — contact form */}
+            <ContactForm />
+
+          </div>
+        </div>
+      </section>
+
       {/* ── FOOTER ── */}
       <footer className="bg-gray-900 text-white">
 
@@ -839,10 +992,7 @@ export default function LandingPage() {
             {/* Brand */}
             <div className="md:col-span-4">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center">
-                  <Package className="w-5 h-5 text-gray-900" />
-                </div>
-                <span className="font-extrabold text-xl text-white">GEMS</span>
+                <img src="/ag.png" alt="GEMS Logo" className="h-24 w-auto object-contain" />
               </div>
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
                 The all-in-one business management platform for growing companies. Inventory, Sales, Finance, HR, Procurement and CRM — all connected in real time.
@@ -960,6 +1110,29 @@ export default function LandingPage() {
         </div>
 
       </footer>
+
+      {/* WhatsApp Floating Action Button */}
+      <a
+        href="https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27d%20like%20to%20schedule%20a%20demo."
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-3 group"
+        aria-label="Chat on WhatsApp"
+      >
+        {/* Tooltip */}
+        <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg">
+          Chat with us · Schedule a demo
+        </span>
+        {/* Button */}
+        <div className="relative flex items-center justify-center w-14 h-14 rounded-full shadow-lg shadow-green-400/40 bg-[#25D366] hover:bg-[#20bd5a] transition-colors">
+          {/* Pulse ring */}
+          <span className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-30" />
+          <svg viewBox="0 0 24 24" fill="white" className="w-7 h-7 relative z-10">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.855L.057 23.428a.75.75 0 00.916.916l5.573-1.471A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.693 9.693 0 01-4.953-1.358l-.355-.211-3.683.972.986-3.595-.231-.371A9.694 9.694 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/>
+          </svg>
+        </div>
+      </a>
 
     </div>
   );

@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { ToastContainer } from '@/components/ui';
+import ChatWidget from '@/components/ChatWidget';
 
 interface Props {
   children: React.ReactNode;
@@ -69,6 +70,7 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
         </main>
         <ToastContainer />
       </div>
+      <ChatWidget />
     </div>
   );
 }

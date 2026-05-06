@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
-  X, Monitor, TrendingUp, CreditCard, ChevronDown,
+  X, Monitor, TrendingUp, CreditCard, ChevronDown, MessageCircle,
 } from 'lucide-react';
 
 const navGroups = [
@@ -19,6 +19,7 @@ const navGroups = [
       { href: '/platform/revenue',       label: 'Revenue',       icon: TrendingUp,      roles: ['platform_admin'] },
       { href: '/platform/activity',      label: 'Activity',      icon: BarChart2,       roles: ['platform_admin'] },
       { href: '/platform/settings',      label: 'Settings',      icon: Settings,        roles: ['platform_admin'] },
+      { href: '/platform/support',        label: 'Support Chat',  icon: MessageCircle,   roles: ['platform_admin'] },
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['business_owner','branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer'] },
       { href: '/ess',       label: 'My Portal', icon: UserCircle,      roles: ['branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer','employee'] },
     ],

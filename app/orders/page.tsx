@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
-import { Plus, Search, Eye, Edit2, Calendar, X } from 'lucide-react';
+import { Plus, Search, Eye, Edit2, Calendar, X, FileText, DollarSign } from 'lucide-react';
 import api from '@/lib/api';
+import InvoiceModal from '@/components/InvoiceModal';
 
 const SOURCES = [
   { key: '',            label: 'All Orders' },
@@ -21,12 +22,13 @@ export default function OrdersPage() {
   const [filterSource, setFilterSource] = useState('');
   const [dateFrom, setDateFrom]     = useState('');
   const [dateTo, setDateTo]         = useState('');
-  const [modal, setModal]           = useState<'add'|'view'|'status'|null>(null);
+  const [modal, setModal]           = useState<'add'|'view'|'status'|'invoice'|null>(null);
   const [selected, setSelected]     = useState<any>(null);
   const [saving, setSaving]         = useState(false);
   const [error, setError]           = useState('');
   const [newStatus, setNewStatus]   = useState('');
-  const [form, setForm]             = useState({ customer_name:'', customer_email:'', customer_phone:'', delivery_address:'', items:[{ product_id:'', quantity:1 }] });
+  const [invoiceData, setInvoiceData] = useState<{ order: any; business: any } | null>(null);
+  const [form, setForm]             = useState({ customer_name:'', customer_email:'', customer_phone:'', delivery_address:'', payment_status:'paid', payment_method:'cash', items:[{ product_id:'', quantity:1 }] });
 
   const load = async () => {
     setLoading(true);
@@ -55,6 +57,14 @@ export default function OrdersPage() {
 
   const clearFilters = () => { setSearch(''); setFilterStatus(''); setDateFrom(''); setDateTo(''); };
   const hasFilters = search || filterStatus || dateFrom || dateTo;
+
+  const openInvoice = async (o: any) => {
+    try {
+      const r = await api.get(`/orders/${o._id || o.id}/invoice`);
+      setInvoiceData(r.data.data);
+      setModal('invoice');
+    } catch { toast.error('Could not load invoice'); }
+  };
 
   const openView = async (o: any) => {
     try {
@@ -162,7 +172,7 @@ export default function OrdersPage() {
           </button>
         )}
 
-        <button className="btn-primary" onClick={() => { setForm({ customer_name:'',customer_email:'',customer_phone:'',delivery_address:'',items:[{product_id:'',quantity:1}] }); setError(''); setModal('add'); }}>
+        <button className="btn-primary" onClick={() => { setForm({ customer_name:'',customer_email:'',customer_phone:'',delivery_address:'',payment_status:'paid',payment_method:'cash',items:[{product_id:'',quantity:1}] }); setError(''); setModal('add'); }}>
           <Plus className="w-4 h-4" />New Order
         </button>
       </div>
@@ -206,8 +216,24 @@ export default function OrdersPage() {
                     <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{new Date(o.created_at || o.createdAt).toLocaleDateString('en-GH', { day:'2-digit', month:'short', year:'numeric' })}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
+                        <button onClick={() => openInvoice(o)} className="p-1.5 hover:bg-green-50 rounded text-green-600" title="View Invoice"><FileText className="w-4 h-4" /></button>
                         <button onClick={() => openView(o)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Eye className="w-4 h-4" /></button>
                         <button onClick={() => openStatus(o)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4" /></button>
+                        {o.payment_status === 'pending' && o.source === 'internal' && (
+                          <button
+                            title="Mark as Paid"
+                            onClick={async () => {
+                              const method = prompt('Payment method? (cash / mobile_money / bank_transfer / card)', 'cash');
+                              if (!method) return;
+                              try {
+                                await api.patch(`/orders/${o.id}/pay`, { payment_method: method });
+                                toast.success('Order marked as paid');
+                                load();
+                              } catch(e:any) { toast.error(e.response?.data?.message || 'Failed'); }
+                            }}
+                            className="p-1.5 hover:bg-yellow-50 rounded text-yellow-600"
+                          ><DollarSign className="w-4 h-4" /></button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -229,6 +255,35 @@ export default function OrdersPage() {
           <div><label className="form-label">Email</label><input className="form-input" type="email" value={form.customer_email} onChange={e => setForm({...form,customer_email:e.target.value})} /></div>
           <div><label className="form-label">Phone</label><input className="form-input" value={form.customer_phone} onChange={e => setForm({...form,customer_phone:e.target.value})} /></div>
           <div className="col-span-2"><label className="form-label">Delivery Address</label><input className="form-input" value={form.delivery_address} onChange={e => setForm({...form,delivery_address:e.target.value})} /></div>
+        </div>
+
+        {/* Payment section */}
+        <div className="border border-gray-100 rounded-xl p-4 mb-4 bg-gray-50">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Payment</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">Payment Status *</label>
+              <select className="form-input" value={form.payment_status} onChange={e => setForm({...form, payment_status: e.target.value})}>
+                <option value="paid">Paid — collected now</option>
+                <option value="pending">Pending — pay later (credit)</option>
+              </select>
+            </div>
+            {form.payment_status === 'paid' && (
+              <div>
+                <label className="form-label">Payment Method *</label>
+                <select className="form-input" value={form.payment_method} onChange={e => setForm({...form, payment_method: e.target.value})}>
+                  <option value="cash">Cash</option>
+                  <option value="mobile_money">Mobile Money</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="card">Card</option>
+                  <option value="cheque">Cheque</option>
+                </select>
+              </div>
+            )}
+          </div>
+          {form.payment_status === 'pending' && (
+            <p className="text-xs text-yellow-600 mt-2 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">⏳ Order will appear in Accounts Receivable until payment is collected.</p>
+          )}
         </div>
         <div className="border-t pt-4">
           <div className="flex items-center justify-between mb-3">
@@ -274,7 +329,7 @@ export default function OrdersPage() {
               <table className="w-full text-sm">
                 <thead className="table-header"><tr><th className="px-3 py-2 text-left">Product</th><th className="px-3 py-2 text-right">Qty</th><th className="px-3 py-2 text-right">Price</th><th className="px-3 py-2 text-right">Total</th></tr></thead>
                 <tbody>{selected.items?.map((item:any) => (
-                  <tr key={item.id} className="border-t"><td className="px-3 py-2">{item.product_name}</td><td className="px-3 py-2 text-right">{item.quantity}</td><td className="px-3 py-2 text-right">GHS {parseFloat(item.unit_price).toFixed(2)}</td><td className="px-3 py-2 text-right font-semibold">GHS {parseFloat(item.total).toFixed(2)}</td></tr>
+                  <tr key={item._id || item.product_id} className="border-t"><td className="px-3 py-2">{item.product_name}</td><td className="px-3 py-2 text-right">{item.quantity}</td><td className="px-3 py-2 text-right">GHS {parseFloat(item.unit_price).toFixed(2)}</td><td className="px-3 py-2 text-right font-semibold">GHS {parseFloat(item.total).toFixed(2)}</td></tr>
                 ))}</tbody>
               </table>
               <div className="text-right font-bold text-gray-900 mt-3 text-lg">Total: GHS {parseFloat(selected.total).toFixed(2)}</div>
@@ -295,6 +350,12 @@ export default function OrdersPage() {
           <button className="btn-primary" onClick={updateStatus} disabled={saving}>{saving ? 'Saving…':'Update Status'}</button>
         </div>
       </Modal>
+      <InvoiceModal
+        open={modal === 'invoice'}
+        onClose={() => { setModal(null); setInvoiceData(null); }}
+        order={invoiceData?.order}
+        business={invoiceData?.business}
+      />
     </AppLayout>
   );
 }
