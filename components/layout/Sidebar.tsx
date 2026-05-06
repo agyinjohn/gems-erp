@@ -59,7 +59,12 @@ const navGroups = [
     items: [
       { href: '/accounting',   label: 'Accounting', icon: Calculator, roles: ['business_owner','accountant'] },
       { href: '/payment-logs', label: 'Payments',   icon: CreditCard, roles: ['business_owner','accountant'] },
-      { href: '/reports',      label: 'Reports',    icon: BarChart2,  roles: ['business_owner','accountant','hr_manager'] },
+    ],
+  },
+  {
+    label: 'Reports',
+    items: [
+      { href: '/reports', label: 'Reports', icon: BarChart2, roles: ['business_owner','accountant','hr_manager'] },
     ],
   },
   {

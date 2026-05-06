@@ -11,7 +11,6 @@ export default function LoginPage() {
   const [showDemo, setShowDemo] = useState(false);
 
   const DEMO_ACCOUNTS = [
-    { label: 'Platform Admin',  email: 'admin@gthink.com',        password: 'Admin@1234' },
     { label: 'Business Owner',  email: 'owner@gems-store.com',    password: 'Admin@1234' },
     { label: 'Sales Staff',     email: 'sales@gthink.com',        password: 'Staff@1234' },
     { label: 'Warehouse',       email: 'warehouse@gthink.com',    password: 'Staff@1234' },

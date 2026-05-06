@@ -246,8 +246,14 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-[68px] flex items-center justify-between gap-8">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center flex-shrink-0">
-            <img src="/ag.png" alt="GEMS Logo" className="h-24 w-auto object-contain" />
+          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="w-11 h-11 bg-[#0D3B6E] rounded-xl flex items-center justify-center shadow-md shadow-blue-200">
+              <Package className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="font-extrabold text-2xl tracking-tight text-[#0D3B6E] leading-tight">GEMS</div>
+              <div className="text-xs text-gray-400 font-medium leading-tight">GTHINK Enterprise Management System</div>
+            </div>
           </Link>
 
           {/* Desktop nav links — centred */}
@@ -1097,15 +1103,8 @@ export default function LandingPage() {
         {/* Bottom bar */}
         <div className="border-t border-gray-800 bg-gray-950">
           <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-gray-500 text-xs">&copy; {new Date().getFullYear()} GEMS ERP. All rights reserved.</p>
-            <div className="flex items-center gap-4 text-gray-500 text-xs">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                All systems operational
-              </span>
-              <span className="text-gray-700">·</span>
-              <span>v2.1.0</span>
-            </div>
+            <p className="text-gray-500 text-xs">&copy; {new Date().getFullYear()} GTHINK Company Limited. All rights reserved.</p>
+            <p className="text-gray-500 text-xs">GEMS &mdash; GTHINK Enterprise Management System</p>
           </div>
         </div>
 
