@@ -4,6 +4,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
 import { Plus, Search, User, TrendingUp, MessageSquare, ArrowRight, Target, Users } from 'lucide-react';
 import api from '@/lib/api';
+import ResponsiveTable from '@/components/ui/ResponsiveTable';
 
 const STAGES = ['new','contacted','qualified','proposal','negotiation','won','lost'];
 const STAGE_COLORS: Record<string,string> = {
@@ -104,7 +105,7 @@ export default function CRMPage() {
   return (
     <AppLayout title="CRM" subtitle="Customers, leads and sales pipeline" allowedRoles={['business_owner','branch_manager','sales_staff']}>
       {/* Summary bar */}
-      <div className="grid grid-cols-3 gap-4 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         <div className="card py-3 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center"><User className="w-5 h-5 text-blue-600"/></div>
           <div><div className="text-xl font-bold">{customers.length}</div><div className="text-xs text-gray-500">Total Customers</div></div>
@@ -120,25 +121,25 @@ export default function CRMPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-2 mb-5">
         {([{t:'customers',l:'Customers',icon:<Users className="w-4 h-4"/>},{t:'leads',l:'Leads & Pipeline',icon:<Target className="w-4 h-4"/>},{t:'contacts',l:'Contact History',icon:<MessageSquare className="w-4 h-4"/>}]).map(({t,l,icon}) => (
-          <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${tab===t?'bg-blue-700 text-white':'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>
+          <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 w-full sm:w-auto ${tab===t?'bg-blue-700 text-white':'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>
         ))}
-        <div className="ml-auto flex gap-2">
-          {tab==='customers' && <button className="btn-primary" onClick={() => { setCustForm({name:'',email:'',phone:'',company:'',address:'',segment:'general',notes:''}); setError(''); setModal('add_customer'); }}><Plus className="w-4 h-4"/>Add Customer</button>}
-          {tab==='leads' && <button className="btn-primary" onClick={() => { setLeadForm({customer_id:'',title:'',stage:'new',value:'',assigned_to:'',notes:'',next_followup:''}); setError(''); setModal('add_lead'); }}><Plus className="w-4 h-4"/>Add Lead</button>}
-          {tab==='contacts' && <button className="btn-primary" onClick={() => { setContactForm({customer_id:'',type:'call',notes:'',contact_date:new Date().toISOString().split('T')[0]}); setError(''); setModal('add_contact'); }}><MessageSquare className="w-4 h-4"/>Log Contact</button>}
+        <div className="sm:ml-auto flex gap-2 w-full sm:w-auto">
+          {tab==='customers' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setCustForm({name:'',email:'',phone:'',company:'',address:'',segment:'general',notes:''}); setError(''); setModal('add_customer'); }}><Plus className="w-4 h-4"/>Add Customer</button>}
+          {tab==='leads' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setLeadForm({customer_id:'',title:'',stage:'new',value:'',assigned_to:'',notes:'',next_followup:''}); setError(''); setModal('add_lead'); }}><Plus className="w-4 h-4"/>Add Lead</button>}
+          {tab==='contacts' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setContactForm({customer_id:'',type:'call',notes:'',contact_date:new Date().toISOString().split('T')[0]}); setError(''); setModal('add_contact'); }}><MessageSquare className="w-4 h-4"/>Log Contact</button>}
         </div>
       </div>
 
       {/* Search + Filter */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input className="form-input pl-9" placeholder={tab==='customers'?'Search customers…':'Search leads…'} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         {tab==='leads' && (
-          <select className="form-input w-auto" value={filterStage} onChange={e => setFilterStage(e.target.value)}>
+          <select className="form-input w-full sm:w-auto" value={filterStage} onChange={e => setFilterStage(e.target.value)}>
             <option value="">All Stages</option>
             {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -149,21 +150,16 @@ export default function CRMPage() {
       {tab==='contacts' && (
         <div className="card p-0 overflow-hidden">
           {loading ? <Spinner /> : contacts.length===0 ? <EmptyState message="No contact history yet" icon={<MessageSquare className="w-8 h-8 text-gray-300"/>} /> : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="table-header"><tr>{['Customer','Type','Notes','Date'].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
-                <tbody className="divide-y divide-gray-50">
-                  {contacts.map((c:any) => (
-                    <tr key={c.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{c.customer_name||'—'}</td>
-                      <td className="px-4 py-3"><span className="badge badge-blue capitalize">{c.type}</span></td>
-                      <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{c.notes||'—'}</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">{new Date(c.contact_date).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ResponsiveTable
+              headers={['Customer','Type','Notes','Date']}
+              data={contacts}
+              renderRow={(c) => [
+                <span className="font-medium">{c.customer_name||'—'}</span>,
+                <span className="badge badge-blue capitalize">{c.type}</span>,
+                <span className="text-gray-500 max-w-xs truncate">{c.notes||'—'}</span>,
+                <span className="text-gray-400 text-xs">{new Date(c.contact_date).toLocaleDateString()}</span>
+              ]}
+            />
           )}
         </div>
       )}
@@ -172,23 +168,18 @@ export default function CRMPage() {
       {tab==='customers' && (
         <div className="card p-0 overflow-hidden">
           {loading ? <Spinner /> : filteredCustomers.length===0 ? <EmptyState message="No customers yet" icon={<Users className="w-8 h-8 text-gray-300"/>} /> : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="table-header"><tr>{['Name','Company','Email','Phone','Segment','Since'].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
-                <tbody className="divide-y divide-gray-50">
-                  {filteredCustomers.map(c => (
-                    <tr key={c.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{c.name}</td>
-                      <td className="px-4 py-3 text-gray-500">{c.company||'—'}</td>
-                      <td className="px-4 py-3 text-gray-500">{c.email||'—'}</td>
-                      <td className="px-4 py-3 text-gray-500">{c.phone||'—'}</td>
-                      <td className="px-4 py-3"><span className="badge badge-blue capitalize">{c.segment}</span></td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">{new Date(c.created_at).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ResponsiveTable
+              headers={['Name','Company','Email','Phone','Segment','Since']}
+              data={filteredCustomers}
+              renderRow={(c) => [
+                <span className="font-medium">{c.name}</span>,
+                <span className="text-gray-500">{c.company||'—'}</span>,
+                <span className="text-gray-500">{c.email||'—'}</span>,
+                <span className="text-gray-500">{c.phone||'—'}</span>,
+                <span className="badge badge-blue capitalize">{c.segment}</span>,
+                <span className="text-gray-400 text-xs">{new Date(c.created_at).toLocaleDateString()}</span>
+              ]}
+            />
           )}
         </div>
       )}
@@ -244,7 +235,7 @@ export default function CRMPage() {
               {customers.map(c => <option key={c.id} value={c.id}>{c.name}{c.company?` — ${c.company}`:''}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="form-label">Type</label>
               <select className="form-input" value={contactForm.type} onChange={e => setContactForm({...contactForm,type:e.target.value})}>
                 {['call','email','meeting','whatsapp','other'].map(t => <option key={t} value={t}>{t}</option>)}
@@ -263,11 +254,11 @@ export default function CRMPage() {
       {/* Convert Lead to Order Modal */}
       <Modal open={modal==='convert_lead'} onClose={() => setModal(null)} title={`Convert Lead to Order — ${selectedLead?.title}`} size="lg">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="col-span-2"><label className="form-label">Customer Name *</label><input className="form-input" value={convertForm.customer_name} onChange={e => setConvertForm({...convertForm,customer_name:e.target.value})} /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div className="sm:col-span-2"><label className="form-label">Customer Name *</label><input className="form-input" value={convertForm.customer_name} onChange={e => setConvertForm({...convertForm,customer_name:e.target.value})} /></div>
           <div><label className="form-label">Email</label><input type="email" className="form-input" value={convertForm.customer_email} onChange={e => setConvertForm({...convertForm,customer_email:e.target.value})} /></div>
           <div><label className="form-label">Phone</label><input className="form-input" value={convertForm.customer_phone} onChange={e => setConvertForm({...convertForm,customer_phone:e.target.value})} /></div>
-          <div className="col-span-2"><label className="form-label">Delivery Address</label><input className="form-input" value={convertForm.delivery_address} onChange={e => setConvertForm({...convertForm,delivery_address:e.target.value})} /></div>
+          <div className="sm:col-span-2"><label className="form-label">Delivery Address</label><input className="form-input" value={convertForm.delivery_address} onChange={e => setConvertForm({...convertForm,delivery_address:e.target.value})} /></div>
         </div>
         <div className="border-t pt-4">
           <div className="flex items-center justify-between mb-3">
@@ -298,11 +289,11 @@ export default function CRMPage() {
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="space-y-3">
           <div><label className="form-label">Name *</label><input className="form-input" value={custForm.name} onChange={e => setCustForm({...custForm,name:e.target.value})} /></div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="form-label">Email</label><input type="email" className="form-input" value={custForm.email} onChange={e => setCustForm({...custForm,email:e.target.value})} /></div>
             <div><label className="form-label">Phone</label><input className="form-input" value={custForm.phone} onChange={e => setCustForm({...custForm,phone:e.target.value})} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="form-label">Company</label><input className="form-input" value={custForm.company} onChange={e => setCustForm({...custForm,company:e.target.value})} /></div>
             <div><label className="form-label">Segment</label>
               <select className="form-input" value={custForm.segment} onChange={e => setCustForm({...custForm,segment:e.target.value})}>
@@ -329,7 +320,7 @@ export default function CRMPage() {
               {customers.map(c => <option key={c.id} value={c.id}>{c.name}{c.company?` — ${c.company}`:''}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="form-label">Stage</label>
               <select className="form-input" value={leadForm.stage} onChange={e => setLeadForm({...leadForm,stage:e.target.value})}>
                 {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -337,7 +328,7 @@ export default function CRMPage() {
             </div>
             <div><label className="form-label">Value (GHS)</label><input type="number" className="form-input" value={leadForm.value} onChange={e => setLeadForm({...leadForm,value:e.target.value})} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="form-label">Assigned To</label>
               <select className="form-input" value={leadForm.assigned_to} onChange={e => setLeadForm({...leadForm,assigned_to:e.target.value})}>
                 <option value="">Unassigned</option>

@@ -98,10 +98,10 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row">
 
       {/* ── LEFT PANEL ── */}
-      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0D3B6E] flex-col p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0D3B6E] flex-col p-8 xl:p-12 relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-32 -right-32 w-80 h-80 bg-white/5 rounded-full" />
@@ -175,50 +175,52 @@ export default function RegisterPage() {
       </div>
 
       {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col bg-gray-50">
+      <div className="flex-1 flex flex-col bg-gray-50 min-h-screen">
 
         {/* Top bar */}
-        <div className="flex items-center justify-between px-8 py-5 bg-white border-b border-gray-100 lg:bg-transparent lg:border-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 lg:py-5 bg-white border-b border-gray-100 lg:bg-transparent lg:border-0">
           {/* Mobile logo */}
           <Link href="/" className="flex items-center gap-2 lg:hidden">
             <Package className="w-8 h-8 text-[#0D3B6E]" />
             <span className="text-lg font-extrabold text-gray-900">GEMS</span>
           </Link>
           <div className="hidden lg:block" />
-          <div className="flex items-center gap-2.5">
-            <span className="text-sm text-gray-400 hidden sm:block">Already have an account?</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs sm:text-sm text-gray-400 hidden sm:block">Already have an account?</span>
             <Link
               href="/login"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0D3B6E] bg-white border border-[#0D3B6E]/20 hover:border-[#0D3B6E]/60 hover:bg-blue-50 px-4 py-2 rounded-full transition-all shadow-sm"
+              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#0D3B6E] bg-white border border-[#0D3B6E]/20 hover:border-[#0D3B6E]/60 hover:bg-blue-50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-all shadow-sm"
             >
-              Log in <ArrowRight className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Log in</span>
+              <span className="sm:hidden">Login</span>
+              <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </Link>
           </div>
         </div>
 
         {/* Form area */}
-        <div className="flex-1 flex items-center justify-center px-6 py-8">
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-6 sm:py-8">
           <div className="w-full max-w-md">
 
             {/* Step indicator */}
             {step < 4 && (
-              <div className="flex items-center mb-8">
+              <div className="flex items-center mb-6 sm:mb-8 px-4 sm:px-0">
                 {[1, 2, 3].map((n, i) => (
                   <div key={n} className="flex items-center flex-1">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2.5 flex-1">
+                      <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all ${
                         step > n ? 'bg-green-500 text-white' :
                         step === n ? 'bg-[#0D3B6E] text-white shadow-lg shadow-blue-200' :
                         'bg-gray-200 text-gray-400'
                       }`}>
-                        {step > n ? <CheckCircle className="w-4 h-4" /> : n}
+                        {step > n ? <CheckCircle className="w-4 h-4 sm:w-4.5 sm:h-4.5" /> : n}
                       </div>
-                      <span className={`text-xs font-semibold hidden sm:block ${step === n ? 'text-[#0D3B6E]' : 'text-gray-400'}`}>
+                      <span className={`text-[10px] sm:text-xs font-semibold text-center sm:text-left ${step === n ? 'text-[#0D3B6E]' : 'text-gray-400'}`}>
                         {n === 1 ? 'Business' : n === 2 ? 'Account' : 'Card'}
                       </span>
                     </div>
                     {i < 2 && (
-                      <div className={`flex-1 h-0.5 mx-3 rounded-full transition-all ${step > n ? 'bg-green-500' : 'bg-gray-200'}`} />
+                      <div className={`flex-1 h-0.5 mx-1 sm:mx-2 rounded-full transition-all ${step > n ? 'bg-green-500' : 'bg-gray-200'}`} />
                     )}
                   </div>
                 ))}
@@ -228,9 +230,9 @@ export default function RegisterPage() {
             {/* ── STEP 1 ── */}
             {step === 1 && (
               <div>
-                <div className="mb-7">
-                  <h1 className="text-2xl font-extrabold text-gray-900 mb-1">Tell us about your business</h1>
-                  <p className="text-gray-500 text-sm">This becomes your business identity on the platform.</p>
+                <div className="mb-6 sm:mb-7">
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Tell us about your business</h1>
+                  <p className="text-gray-500 text-xs sm:text-sm">This becomes your business identity on the platform.</p>
                 </div>
 
                 {error && (
@@ -240,13 +242,13 @@ export default function RegisterPage() {
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
                     <label className="form-label">Business Name *</label>
                     <div className="relative">
                       <Building2 className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
-                        className="form-input pl-10 h-12 text-base"
+                        className="form-input pl-10 h-11 sm:h-12 text-sm sm:text-base"
                         placeholder="e.g. GEMS Electronics"
                         value={form.business_name}
                         onChange={e => set('business_name', e.target.value)}
@@ -257,32 +259,32 @@ export default function RegisterPage() {
                     {form.business_name.trim() && (
                       <div className="mt-2 flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
                         <Globe className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                        <span className="text-xs text-blue-600">
+                        <span className="text-xs text-blue-600 break-all">
                           Store URL: <span className="font-mono font-semibold">/store/{slug}</span>
                         </span>
                       </div>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="form-label">Phone *</label>
                       <div className="relative">
                         <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input className="form-input pl-10 h-12" placeholder="+233 XX XXX XXXX" value={form.phone} onChange={e => set('phone', e.target.value)} />
+                        <input className="form-input pl-10 h-11 sm:h-12 text-sm sm:text-base" placeholder="+233 XX XXX XXXX" value={form.phone} onChange={e => set('phone', e.target.value)} />
                       </div>
                     </div>
                     <div>
                       <label className="form-label">Address *</label>
                       <div className="relative">
                         <MapPin className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input className="form-input pl-10 h-12" placeholder="Accra, Ghana" value={form.address} onChange={e => set('address', e.target.value)} />
+                        <input className="form-input pl-10 h-11 sm:h-12 text-sm sm:text-base" placeholder="Accra, Ghana" value={form.address} onChange={e => set('address', e.target.value)} />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <button onClick={handleNext} className="w-full mt-6 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-12 rounded-xl text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
+                <button onClick={handleNext} className="w-full mt-5 sm:mt-6 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-11 sm:h-12 rounded-xl text-sm sm:text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
 
@@ -297,9 +299,9 @@ export default function RegisterPage() {
             {/* ── STEP 2 ── */}
             {step === 2 && (
               <div>
-                <div className="mb-7">
-                  <h1 className="text-2xl font-extrabold text-gray-900 mb-1">Create your account</h1>
-                  <p className="text-gray-500 text-sm">
+                <div className="mb-6 sm:mb-7">
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Create your account</h1>
+                  <p className="text-gray-500 text-xs sm:text-sm">
                     Owner login for <span className="font-semibold text-gray-700">{form.business_name}</span>
                   </p>
                 </div>
@@ -311,12 +313,12 @@ export default function RegisterPage() {
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
                     <label className="form-label">Email Address *</label>
                     <div className="relative">
                       <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input type="email" className="form-input pl-10 h-12 text-base" placeholder="you@business.com" value={form.email} onChange={e => set('email', e.target.value)} autoFocus />
+                      <input type="email" className="form-input pl-10 h-11 sm:h-12 text-sm sm:text-base" placeholder="you@business.com" value={form.email} onChange={e => set('email', e.target.value)} autoFocus />
                     </div>
                   </div>
 
@@ -324,7 +326,7 @@ export default function RegisterPage() {
                     <label className="form-label">Password *</label>
                     <div className="relative">
                       <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input type={showPw ? 'text' : 'password'} className="form-input pl-10 pr-11 h-12 text-base" placeholder="Create a strong password" value={form.password} onChange={e => set('password', e.target.value)} />
+                      <input type={showPw ? 'text' : 'password'} className="form-input pl-10 pr-11 h-11 sm:h-12 text-sm sm:text-base" placeholder="Create a strong password" value={form.password} onChange={e => set('password', e.target.value)} />
                       <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                         {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -332,7 +334,7 @@ export default function RegisterPage() {
                     {form.password && (
                       <div className="grid grid-cols-2 gap-1.5 mt-2">
                         {pwChecks.map(c => (
-                          <div key={c.label} className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all ${c.ok ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                          <div key={c.label} className={`flex items-center gap-1.5 text-xs px-2 sm:px-2.5 py-1.5 rounded-lg font-medium transition-all ${c.ok ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
                             <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 ${c.ok ? 'bg-green-500' : 'bg-gray-300'}`}>
                               {c.ok && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                             </div>
@@ -349,7 +351,7 @@ export default function RegisterPage() {
                       <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
                         type={showConfirm ? 'text' : 'password'}
-                        className={`form-input pl-10 pr-11 h-12 text-base ${form.confirm_password && form.password !== form.confirm_password ? 'border-red-300 focus:ring-red-200' : ''}`}
+                        className={`form-input pl-10 pr-11 h-11 sm:h-12 text-sm sm:text-base ${form.confirm_password && form.password !== form.confirm_password ? 'border-red-300 focus:ring-red-200' : ''}`}
                         placeholder="Repeat your password"
                         value={form.confirm_password}
                         onChange={e => set('confirm_password', e.target.value)}
@@ -372,13 +374,13 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-3 mt-6">
-                  <button onClick={() => { setStep(1); setError(''); }} className="h-12 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1.5 font-medium text-sm">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 mt-5 sm:mt-6">
+                  <button onClick={() => { setStep(1); setError(''); }} className="h-11 sm:h-12 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 font-medium text-sm">
                     <ArrowLeft className="w-4 h-4" /> Back
                   </button>
-                  <button onClick={handleSubmit} disabled={loading} className="flex-1 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-12 rounded-xl text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
+                  <button onClick={handleSubmit} disabled={loading} className="flex-1 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-11 sm:h-12 rounded-xl text-sm sm:text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
                     {loading
-                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating account…</>
+                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</>
                       : <>Create Account <ArrowRight className="w-4 h-4" /></>
                     }
                   </button>
@@ -394,12 +396,12 @@ export default function RegisterPage() {
             {/* ── STEP 3 — Card ── */}
             {step === 3 && (
               <div>
-                <div className="mb-6">
-                  <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full mb-4">
+                <div className="mb-5 sm:mb-6">
+                  <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full mb-3 sm:mb-4">
                     <CheckCircle className="w-3.5 h-3.5" /> Account created successfully!
                   </div>
-                  <h1 className="text-2xl font-extrabold text-gray-900 mb-1">One last step — secure your trial</h1>
-                  <p className="text-gray-500 text-sm">Add a card to keep access after your free trial. <strong className="text-gray-700">Nothing is charged today.</strong></p>
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">One last step — secure your trial</h1>
+                  <p className="text-gray-500 text-xs sm:text-sm">Add a card to keep access after your free trial. <strong className="text-gray-700">Nothing is charged today.</strong></p>
                 </div>
 
                 {error && (
@@ -410,31 +412,31 @@ export default function RegisterPage() {
                 )}
 
                 {/* Mock card visual */}
-                <div className="relative h-44 rounded-2xl bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0a2d54] p-6 mb-5 overflow-hidden shadow-xl shadow-blue-200">
+                <div className="relative h-40 sm:h-44 rounded-2xl bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0a2d54] p-5 sm:p-6 mb-4 sm:mb-5 overflow-hidden shadow-xl shadow-blue-200">
                   {/* Decorative circles */}
                   <div className="absolute -top-8 -right-8 w-36 h-36 bg-white/5 rounded-full" />
                   <div className="absolute -bottom-10 -left-6 w-40 h-40 bg-yellow-400/10 rounded-full" />
                   {/* Chip */}
-                  <div className="w-10 h-7 rounded-md bg-gradient-to-br from-yellow-300 to-yellow-500 mb-5 flex items-center justify-center">
-                    <div className="w-6 h-4 rounded-sm border border-yellow-600/40 grid grid-cols-2 gap-px p-0.5">
+                  <div className="w-9 h-6 sm:w-10 sm:h-7 rounded-md bg-gradient-to-br from-yellow-300 to-yellow-500 mb-4 sm:mb-5 flex items-center justify-center">
+                    <div className="w-5 h-3.5 sm:w-6 sm:h-4 rounded-sm border border-yellow-600/40 grid grid-cols-2 gap-px p-0.5">
                       <div className="bg-yellow-600/30 rounded-sm" /><div className="bg-yellow-600/30 rounded-sm" />
                       <div className="bg-yellow-600/30 rounded-sm" /><div className="bg-yellow-600/30 rounded-sm" />
                     </div>
                   </div>
                   {/* Card number placeholder */}
-                  <div className="flex gap-3 mb-4">
+                  <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
                     {['••••', '••••', '••••', '••••'].map((g, i) => (
-                      <span key={i} className="text-white/60 font-mono text-base tracking-widest">{g}</span>
+                      <span key={i} className="text-white/60 font-mono text-sm sm:text-base tracking-widest">{g}</span>
                     ))}
                   </div>
                   <div className="flex items-end justify-between">
                     <div>
-                      <div className="text-white/40 text-[10px] uppercase tracking-widest mb-0.5">Card Holder</div>
-                      <div className="text-white font-semibold text-sm tracking-wide">{form.business_name || 'Your Name'}</div>
+                      <div className="text-white/40 text-[9px] sm:text-[10px] uppercase tracking-widest mb-0.5">Card Holder</div>
+                      <div className="text-white font-semibold text-xs sm:text-sm tracking-wide truncate max-w-[150px] sm:max-w-none">{form.business_name || 'Your Name'}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-white/40 text-[10px] uppercase tracking-widest mb-0.5">Expires</div>
-                      <div className="text-white font-semibold text-sm">••/••</div>
+                      <div className="text-white/40 text-[9px] sm:text-[10px] uppercase tracking-widest mb-0.5">Expires</div>
+                      <div className="text-white font-semibold text-xs sm:text-sm">••/••</div>
                     </div>
                   </div>
                 </div>
@@ -464,7 +466,7 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Trust badges */}
-                <div className="flex items-center justify-center gap-5 mb-5">
+                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 mb-4 sm:mb-5">
                   {[
                     { icon: Shield, text: 'SSL Secured' },
                     { icon: Lock,   text: 'PCI Compliant' },
@@ -480,10 +482,10 @@ export default function RegisterPage() {
                 <button
                   onClick={handleCardAuthorize}
                   disabled={cardLoading}
-                  className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-13 py-3.5 rounded-xl text-base transition-colors flex items-center justify-center gap-2.5 shadow-lg shadow-blue-200"
+                  className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-11 sm:h-13 py-3 sm:py-3.5 rounded-xl text-sm sm:text-base transition-colors flex items-center justify-center gap-2.5 shadow-lg shadow-blue-200"
                 >
                   {cardLoading
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting to Paystack…</>
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting…</>
                     : <><CreditCard className="w-4 h-4" /> Secure my trial with a card</>
                   }
                 </button>
@@ -502,18 +504,18 @@ export default function RegisterPage() {
             {step === 4 && (
               <div className="text-center">
                 {/* Animated success icon */}
-                <div className="relative w-24 h-24 mx-auto mb-6">
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6">
                   <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-30" />
-                  <div className="relative w-24 h-24 bg-green-500 rounded-full flex items-center justify-center shadow-xl shadow-green-200">
-                    <CheckCircle className="w-12 h-12 text-white" />
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-green-500 rounded-full flex items-center justify-center shadow-xl shadow-green-200">
+                    <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
                   </div>
                 </div>
 
-                <h1 className="text-3xl font-extrabold text-gray-900 mb-2">You're all set! 🎉</h1>
-                <p className="text-gray-500 mb-1">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">You're all set! 🎉</h1>
+                <p className="text-gray-500 mb-1 text-sm sm:text-base">
                   <span className="font-bold text-gray-800">{createdBusiness}</span> has been created.
                 </p>
-                <p className="text-gray-400 text-sm mb-8">Your 14-day free trial has started. Log in to get started.</p>
+                <p className="text-gray-400 text-xs sm:text-sm mb-6 sm:mb-8">Your 14-day free trial has started. Log in to get started.</p>
 
                 <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-6 text-left shadow-sm">
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">What to do next</p>
@@ -532,7 +534,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <Link href="/login" className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-12 rounded-xl text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
+                <Link href="/login" className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-11 sm:h-12 rounded-xl text-sm sm:text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
                   Go to Login <ArrowRight className="w-4 h-4" />
                 </Link>
                 <p className="text-xs text-gray-400 mt-3">Use the email and password you just created</p>

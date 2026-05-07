@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast } from '@/components/ui';
+import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast, ResponsiveTable } from '@/components/ui';
 import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -125,21 +125,21 @@ export default function InventoryPage() {
 
       {/* ── PRODUCTS TAB ── */}
       {tab === 'products' && (<>
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-5">
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input className="form-input pl-9" placeholder="Search products or SKU…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <select className="form-input w-auto" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
+        <select className="form-input sm:w-auto" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
           <option value="">All Categories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <button className="btn-primary" onClick={openAdd}><Plus className="w-4 h-4" />Add Product</button>
+        <button className="btn-primary w-full sm:w-auto" onClick={openAdd}><Plus className="w-4 h-4" />Add Product</button>
       </div>
 
       {/* Low stock alert */}
       {products.filter(p => p.stock_qty <= p.low_stock_threshold).length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 flex items-center gap-3 mb-5 text-sm text-yellow-800">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-3 sm:px-4 py-3 flex items-start sm:items-center gap-2 sm:gap-3 mb-4 sm:mb-5 text-xs sm:text-sm text-yellow-800">
           <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
           <span><strong>{products.filter(p => p.stock_qty <= p.low_stock_threshold).length} products</strong> are at or below their low stock threshold.</span>
         </div>
@@ -148,94 +148,98 @@ export default function InventoryPage() {
       {/* Table */}
       <div className="card p-0 overflow-hidden">
         {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No products found" description={search || filterCat ? 'Try adjusting your search or filter.' : 'Add your first product to get started.'} icon={<Package className="w-9 h-9 text-gray-300" />} action={!search && !filterCat ? { label: '+ Add Product', onClick: openAdd } : undefined} /> : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="table-header">
-                <tr>
-                  <th className="px-5 py-3 text-left">Product</th>
-                  <th className="px-5 py-3 text-left">Category</th>
-                  <th className="px-5 py-3 text-right">Price</th>
-                  <th className="px-5 py-3 text-right">Margin</th>
-                  <th className="px-5 py-3 text-center">Stock Level</th>
-                  <th className="px-5 py-3 text-center">Status</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map(p => {
+          <ResponsiveTable
+            columns={[
+              {
+                key: 'name',
+                label: 'Product',
+                render: (_, p) => (
+                  <div>
+                    <div className="font-medium text-gray-900">{p.name}</div>
+                    <div className="text-xs text-gray-400 font-mono mt-0.5">{p.sku}</div>
+                  </div>
+                )
+              },
+              {
+                key: 'category',
+                label: 'Category',
+                render: (_, p) => p.category_name
+                  ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">{p.category_name}</span>
+                  : <span className="text-gray-300">—</span>
+              },
+              {
+                key: 'price',
+                label: 'Price',
+                render: (_, p) => (
+                  <div>
+                    <div className="font-semibold text-gray-900">GHS {parseFloat(p.price).toLocaleString('en-GH', { minimumFractionDigits: 2 })}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">Cost: GHS {parseFloat(p.cost_price).toLocaleString('en-GH', { minimumFractionDigits: 2 })}</div>
+                  </div>
+                )
+              },
+              {
+                key: 'margin',
+                label: 'Margin',
+                render: (_, p) => {
+                  const margin = p.price > 0 ? Math.round(((p.price - p.cost_price) / p.price) * 100) : 0;
+                  return (
+                    <span className={`font-semibold text-sm ${ margin >= 30 ? 'text-green-600' : margin >= 15 ? 'text-yellow-600' : 'text-red-500' }`}>
+                      {margin}%
+                    </span>
+                  );
+                }
+              },
+              {
+                key: 'stock',
+                label: 'Stock Level',
+                render: (_, p) => {
                   const isLow = p.stock_qty <= p.low_stock_threshold;
                   const isOut = p.stock_qty === 0;
-                  const margin = p.price > 0 ? Math.round(((p.price - p.cost_price) / p.price) * 100) : 0;
                   const stockPct = Math.min(100, Math.round((p.stock_qty / Math.max(p.low_stock_threshold * 3, 1)) * 100));
                   const stockColor = isOut ? 'bg-red-500' : isLow ? 'bg-yellow-400' : 'bg-green-500';
                   const stockLabel = isOut ? 'Out of stock' : isLow ? 'Low stock' : 'In stock';
                   const stockTextColor = isOut ? 'text-red-600' : isLow ? 'text-yellow-600' : 'text-green-600';
                   return (
-                    <tr key={p.id} className="hover:bg-gray-50 transition-colors group">
-                      {/* Product */}
-                      <td className="px-5 py-3.5">
-                        <div className="font-medium text-gray-900">{p.name}</div>
-                        <div className="text-xs text-gray-400 font-mono mt-0.5">{p.sku}</div>
-                      </td>
-                      {/* Category */}
-                      <td className="px-5 py-3.5">
-                        {p.category_name
-                          ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">{p.category_name}</span>
-                          : <span className="text-gray-300">—</span>}
-                      </td>
-                      {/* Price */}
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="font-semibold text-gray-900">GHS {parseFloat(p.price).toLocaleString('en-GH', { minimumFractionDigits: 2 })}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">Cost: GHS {parseFloat(p.cost_price).toLocaleString('en-GH', { minimumFractionDigits: 2 })}</div>
-                      </td>
-                      {/* Margin */}
-                      <td className="px-5 py-3.5 text-right">
-                        <span className={`font-semibold text-sm ${ margin >= 30 ? 'text-green-600' : margin >= 15 ? 'text-yellow-600' : 'text-red-500' }`}>
-                          {margin}%
-                        </span>
-                      </td>
-                      {/* Stock Level */}
-                      <td className="px-5 py-3.5">
-                        <div className="flex flex-col items-center gap-1 min-w-[110px]">
-                          <div className="flex items-center justify-between w-full">
-                            <span className={`text-xs font-medium ${stockTextColor}`}>{stockLabel}</span>
-                            <span className="text-xs text-gray-500 font-mono">{p.stock_qty} <span className="text-gray-400">{p.unit}</span></span>
-                          </div>
-                          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all ${stockColor}`} style={{ width: `${stockPct}%` }} />
-                          </div>
-                        </div>
-                      </td>
-                      {/* Status */}
-                      <td className="px-5 py-3.5 text-center">
-                        <Badge status={p.is_active ? 'active' : 'inactive'} />
-                      </td>
-                      {/* Actions */}
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => { setLabelProduct(p); setLabelQty(1); }} title="Print Label" className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500 transition-colors"><Tag className="w-4 h-4" /></button>
-                          <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"><TrendingDown className="w-4 h-4" /></button>
-                          <button onClick={() => openEdit(p)} title="Edit" className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"><Edit2 className="w-4 h-4" /></button>
-                          <button onClick={() => setConfirm({ id: p.id, name: p.name })} title="Delete" className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                        </div>
-                      </td>
-                    </tr>
+                    <div className="flex flex-col gap-1 min-w-[110px]">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-medium ${stockTextColor}`}>{stockLabel}</span>
+                        <span className="text-xs text-gray-500 font-mono">{p.stock_qty} <span className="text-gray-400">{p.unit}</span></span>
+                      </div>
+                      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${stockColor}`} style={{ width: `${stockPct}%` }} />
+                      </div>
+                    </div>
                   );
-                })}
-              </tbody>
-            </table>
-            {/* Footer count */}
-            <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
-              Showing {filtered.length} of {products.length} products
-            </div>
-          </div>
+                }
+              },
+              {
+                key: 'status',
+                label: 'Status',
+                render: (_, p) => <Badge status={p.is_active ? 'active' : 'inactive'} />
+              },
+              {
+                key: 'actions',
+                label: 'Actions',
+                render: (_, p) => (
+                  <div className="flex items-center justify-end gap-1">
+                    <button onClick={() => { setLabelProduct(p); setLabelQty(1); }} title="Print Label" className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500 transition-colors"><Tag className="w-4 h-4" /></button>
+                    <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"><TrendingDown className="w-4 h-4" /></button>
+                    <button onClick={() => openEdit(p)} title="Edit" className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"><Edit2 className="w-4 h-4" /></button>
+                    <button onClick={() => setConfirm({ id: p.id, name: p.name })} title="Delete" className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                )
+              }
+            ]}
+            data={filtered}
+            keyField="id"
+          />
         )}
       </div>
 
       {/* Add / Edit Modal */}
       <Modal open={modal === 'add' || modal === 'edit'} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Product' : 'Edit Product'} size="lg">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="col-span-2"><label className="form-label">Product Name *</label><input {...inputProps('name')} placeholder="e.g. Laptop Pro 15" /></div>
           <div><label className="form-label">SKU <span className="text-gray-400 font-normal">(optional — auto-generated if blank)</span></label><input {...inputProps('sku')} placeholder="e.g. ELEC-001" /></div>
           <div><label className="form-label">Barcode <span className="text-gray-400 font-normal">(optional — EAN, UPC etc.)</span></label><input {...inputProps('barcode')} placeholder="e.g. 6001234567890" /></div>

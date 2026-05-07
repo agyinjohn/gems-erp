@@ -4,6 +4,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast } from '@/components/ui';
 import { Plus, Edit2, UserX } from 'lucide-react';
 import api from '@/lib/api';
+import ResponsiveTable from '@/components/ui/ResponsiveTable';
 
 const ROLES = [
   { value:'business_owner',       label:'Business Owner' },
@@ -57,46 +58,35 @@ export default function UsersPage() {
 
   return (
     <AppLayout title="User Management" subtitle="Manage system users and role-based access" allowedRoles={['business_owner']}>
-      <div className="flex justify-between items-center mb-5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
         <div className="text-sm text-gray-500">{users.length} users registered</div>
-        <button className="btn-primary" onClick={openAdd}><Plus className="w-4 h-4"/>Add User</button>
+        <button className="btn-primary w-full sm:w-auto" onClick={openAdd}><Plus className="w-4 h-4"/>Add User</button>
       </div>
 
       <div className="card p-0 overflow-hidden">
         {loading ? <Spinner /> : users.length===0 ? <EmptyState message="No users found" icon="👤" /> : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="table-header">
-                <tr>{['Name','Email','Role','Branch','Status','Joined','Actions'].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {users.map(u => {
-                  const branch = branches.find(b => b.id === (u.branch_id?._id || u.branch_id));
-                  return (
-                  <tr key={u.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-700 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">{u.name.charAt(0).toUpperCase()}</div>
-                        <span className="font-medium">{u.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{u.email}</td>
-                    <td className="px-4 py-3"><span className="badge badge-blue">{ROLES.find(r=>r.value===u.role)?.label||u.role}</span></td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{branch ? branch.name : <span className="text-gray-300">Company-wide</span>}</td>
-                    <td className="px-4 py-3"><Badge status={u.is_active?'active':'inactive'} /></td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button onClick={() => openEdit(u)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4"/></button>
-                        {u.is_active && <button onClick={() => setConfirm(u)} className="p-1.5 hover:bg-red-50 rounded text-red-500"><UserX className="w-4 h-4"/></button>}
-                      </div>
-                    </td>
-                  </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            headers={['Name','Email','Role','Branch','Status','Joined','Actions']}
+            data={users}
+            renderRow={(u) => {
+              const branch = branches.find(b => b.id === (u.branch_id?._id || u.branch_id));
+              return [
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-700 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">{u.name.charAt(0).toUpperCase()}</div>
+                  <span className="font-medium">{u.name}</span>
+                </div>,
+                <span className="text-gray-500">{u.email}</span>,
+                <span className="badge badge-blue">{ROLES.find(r=>r.value===u.role)?.label||u.role}</span>,
+                <span className="text-gray-500 text-xs">{branch ? branch.name : <span className="text-gray-300">Company-wide</span>}</span>,
+                <Badge status={u.is_active?'active':'inactive'} />,
+                <span className="text-gray-400 text-xs">{new Date(u.created_at).toLocaleDateString()}</span>,
+                <div className="flex gap-2">
+                  <button onClick={() => openEdit(u)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4"/></button>
+                  {u.is_active && <button onClick={() => setConfirm(u)} className="p-1.5 hover:bg-red-50 rounded text-red-500"><UserX className="w-4 h-4"/></button>}
+                </div>
+              ];
+            }}
+          />
         )}
       </div>
 

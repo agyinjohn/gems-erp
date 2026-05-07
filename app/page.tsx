@@ -1066,9 +1066,9 @@ export default function LandingPage() {
             {/* Left — text */}
             <div ref={heroRef} className="flex flex-col">
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '0ms' }}>
-                <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-6">
-                  <Zap className="w-3.5 h-3.5 text-yellow-400" />
-                  Smart Workplace — Your Business. One System.
+                <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-lg px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium mb-6">
+                  <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-400 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Smart Workplace — Your Business. One System.</span>
                 </div>
               </div>
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '150ms' }}>
@@ -1684,7 +1684,7 @@ export default function LandingPage() {
 
         {/* Trust bar */}
         <div className="bg-gray-800 border-b border-gray-700">
-          <div className="max-w-7xl mx-auto px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {[
               { icon: Shield, title: 'Enterprise Security', sub: 'SOC 2 compliant, 256-bit SSL' },
               { icon: Zap, title: '99.9% Uptime', sub: 'Guaranteed SLA for all plans' },
@@ -1693,13 +1693,13 @@ export default function LandingPage() {
             ].map(b => {
               const Icon = b.icon;
               return (
-                <div key={b.title} className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-yellow-400/10 flex items-center justify-center text-yellow-400 flex-shrink-0">
-                    <Icon className="w-5 h-5" />
+                <div key={b.title} className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-yellow-400/10 flex items-center justify-center text-yellow-400 flex-shrink-0">
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-white">{b.title}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">{b.sub}</div>
+                    <div className="text-xs sm:text-sm font-semibold text-white">{b.title}</div>
+                    <div className="text-[10px] sm:text-xs text-gray-400 mt-0.5">{b.sub}</div>
                   </div>
                 </div>
               );
@@ -1708,27 +1708,27 @@ export default function LandingPage() {
         </div>
 
         {/* Main columns */}
-        <div className="max-w-7xl mx-auto px-6 py-14">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 sm:gap-10">
 
             {/* Brand */}
-            <div className="md:col-span-4">
+            <div className="md:col-span-4 pb-8 md:pb-0 border-b md:border-b-0 border-gray-800">
               <div className="flex items-center gap-3 mb-4">
-                <img src="/ag.png" alt="GEMS Logo" className="h-24 w-auto object-contain" />
+                <img src="/ag.png" alt="GEMS Logo" className="h-16 sm:h-20 md:h-24 w-auto object-contain" />
               </div>
-              <p className="text-gray-400 text-sm leading-relaxed mb-6">
+              <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-6">
                 The all-in-one business management platform for growing companies. Inventory, Sales, Finance, HR, Procurement and CRM — all connected in real time.
               </p>
 
               {/* Newsletter */}
-              <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mb-2">Get product updates</p>
+              <p className="text-[10px] sm:text-xs font-semibold text-gray-300 uppercase tracking-wide mb-2">Get product updates</p>
               <div className="flex mb-6">
                 <input
                   type="email"
                   placeholder="your@company.com"
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-l-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400 transition-colors"
+                  className="flex-1 bg-gray-800 border border-gray-700 rounded-l-lg px-2.5 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400 transition-colors"
                 />
-                <button className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-xs px-4 rounded-r-lg transition-colors flex-shrink-0">
+                <button className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-[10px] sm:text-xs px-3 sm:px-4 rounded-r-lg transition-colors flex-shrink-0">
                   Subscribe
                 </button>
               </div>
@@ -1742,9 +1742,9 @@ export default function LandingPage() {
                   { label: 'YouTube', path: 'M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 00-1.95 1.96A29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z' },
                 ].map(s => (
                   <button key={s.label} aria-label={s.label}
-                    className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-yellow-400 text-gray-400 hover:text-gray-900 border border-gray-700 hover:border-yellow-400 flex items-center justify-center transition-all"
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gray-800 hover:bg-yellow-400 text-gray-400 hover:text-gray-900 border border-gray-700 hover:border-yellow-400 flex items-center justify-center transition-all"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d={s.path} />
                     </svg>
                   </button>
@@ -1753,9 +1753,9 @@ export default function LandingPage() {
             </div>
 
             {/* Product */}
-            <div className="md:col-span-2">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-5 pb-3 border-b border-gray-700">Product</h4>
-              <ul className="space-y-3">
+            <div className="md:col-span-2 pb-8 md:pb-0 border-b md:border-b-0 border-gray-800">
+              <h4 className="text-xs sm:text-sm font-bold text-white uppercase tracking-widest mb-4 sm:mb-5 pb-2 sm:pb-3 border-b border-gray-700">Product</h4>
+              <ul className="space-y-2 sm:space-y-3">
                 {[
                   { label: 'Features', href: '#features' },
                   { label: 'Pricing', href: '#pricing' },
@@ -1765,19 +1765,19 @@ export default function LandingPage() {
                   { label: 'Roadmap', href: '#' },
                 ].map(l => (
                   <li key={l.label}>
-                    <a href={l.href} className="text-gray-400 hover:text-yellow-400 text-sm transition-colors">{l.label}</a>
+                    <a href={l.href} className="text-gray-400 hover:text-yellow-400 text-xs sm:text-sm transition-colors">{l.label}</a>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Company */}
-            <div className="md:col-span-2">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-5 pb-3 border-b border-gray-700">Company</h4>
-              <ul className="space-y-3">
+            <div className="md:col-span-2 pb-8 md:pb-0 border-b md:border-b-0 border-gray-800">
+              <h4 className="text-xs sm:text-sm font-bold text-white uppercase tracking-widest mb-4 sm:mb-5 pb-2 sm:pb-3 border-b border-gray-700">Company</h4>
+              <ul className="space-y-2 sm:space-y-3">
                 {['About Us', 'Blog', 'Careers', 'Press', 'Partners', 'Contact'].map(l => (
                   <li key={l}>
-                    <a href="#" className="text-gray-400 hover:text-yellow-400 text-sm transition-colors">{l}</a>
+                    <a href="#" className="text-gray-400 hover:text-yellow-400 text-xs sm:text-sm transition-colors">{l}</a>
                   </li>
                 ))}
               </ul>
@@ -1785,29 +1785,29 @@ export default function LandingPage() {
 
             {/* Support + Legal */}
             <div className="md:col-span-4">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-5 pb-3 border-b border-gray-700">Support</h4>
-              <ul className="space-y-3 mb-8">
+              <h4 className="text-xs sm:text-sm font-bold text-white uppercase tracking-widest mb-4 sm:mb-5 pb-2 sm:pb-3 border-b border-gray-700">Support</h4>
+              <ul className="space-y-2.5 sm:space-y-3 mb-6 sm:mb-8">
                 {[
                   { icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', text: 'support@gems-erp.com' },
                   { icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', text: '+1 (800) GEMS-ERP' },
                   { icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', text: 'Mon – Fri, 9am – 6pm UTC' },
                 ].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 flex-shrink-0">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <li key={i} className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 flex-shrink-0">
+                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                       </svg>
                     </div>
-                    <span className="text-gray-400 text-sm">{item.text}</span>
+                    <span className="text-gray-400 text-xs sm:text-sm">{item.text}</span>
                   </li>
                 ))}
               </ul>
 
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-4 pb-3 border-b border-gray-700">Legal</h4>
-              <ul className="space-y-3">
+              <h4 className="text-xs sm:text-sm font-bold text-white uppercase tracking-widest mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-gray-700">Legal</h4>
+              <ul className="space-y-2 sm:space-y-3">
                 {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'GDPR'].map(l => (
                   <li key={l}>
-                    <a href="#" className="text-gray-400 hover:text-yellow-400 text-sm transition-colors">{l}</a>
+                    <a href="#" className="text-gray-400 hover:text-yellow-400 text-xs sm:text-sm transition-colors">{l}</a>
                   </li>
                 ))}
               </ul>
@@ -1818,9 +1818,9 @@ export default function LandingPage() {
 
         {/* Bottom bar */}
         <div className="border-t border-gray-800 bg-gray-950">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-gray-500 text-xs">Copyright &copy; 2026 GTHINK Company Limited &mdash; All rights reserved</p>
-            <p className="text-gray-500 text-xs">GEMS &mdash; GTHINK Enterprise Management System</p>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+            <p className="text-gray-500 text-[10px] sm:text-xs text-center sm:text-left">Copyright &copy; 2026 GTHINK Company Limited &mdash; All rights reserved</p>
+            <p className="text-gray-500 text-[10px] sm:text-xs text-center sm:text-right">GEMS &mdash; GTHINK Enterprise Management System</p>
           </div>
         </div>
 

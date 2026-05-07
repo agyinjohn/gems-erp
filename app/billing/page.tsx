@@ -185,7 +185,7 @@ export default function BillingPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="text-xs text-gray-400 mb-1">Current Plan</div>
                 <div className="font-bold text-gray-900 capitalize text-lg">{status?.plan}</div>
@@ -381,7 +381,7 @@ export default function BillingPage() {
         <h2 className="font-bold text-gray-900 mb-1">Choose a Plan</h2>
         <p className="text-sm text-gray-400 mb-5">Select a plan to renew or upgrade your subscription.</p>
 
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {plans.map(p => (
             <button
               key={p.key}
@@ -413,7 +413,7 @@ export default function BillingPage() {
         {/* Duration selection */}
         <div className="mb-5">
           <label className="form-label">Billing Duration</label>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {DURATIONS.map(d => (
               <button
                 key={d.days}
@@ -434,7 +434,7 @@ export default function BillingPage() {
         </div>
 
         {/* Summary + Pay button */}
-        <div className="bg-gray-50 rounded-xl p-5 flex items-center justify-between">
+        <div className="bg-gray-50 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="text-sm text-gray-500">
               <span className="font-semibold text-gray-900 capitalize">{selectedPlan}</span> plan ·{' '}
@@ -452,7 +452,7 @@ export default function BillingPage() {
           <button
             onClick={handlePay}
             disabled={paying || !selectedPlan}
-            className="btn-primary px-8 py-4 text-base disabled:opacity-50"
+            className="btn-primary px-8 py-4 text-base disabled:opacity-50 w-full sm:w-auto"
           >
             {paying ? (
               <><RefreshCw className="w-4 h-4 animate-spin" /> Processing…</>

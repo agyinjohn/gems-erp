@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle, X, Send, Loader2, Minus } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, Minus, Move } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -26,6 +26,64 @@ export default function ChatWidget() {
   const [unread, setUnread] = useState(0);
   const socketRef = useRef<Socket | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  
+  // Draggable state - only two positions allowed
+  const [position, setPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [tempPosition, setTempPosition] = useState({ x: 0, y: 0 });
+  const [hasDragged, setHasDragged] = useState(false);
+  const widgetRef = useRef<HTMLDivElement>(null);
+
+  // Calculate actual pixel position based on position state
+  const getPixelPosition = (pos: 'bottom-right' | 'bottom-left', isOpen: boolean) => {
+    const margin = 16;
+    const buttonSize = 56;
+    const windowWidth = 320;
+    const windowHeight = 400;
+    
+    const width = isOpen ? windowWidth : buttonSize;
+    const height = isOpen ? windowHeight : buttonSize;
+    
+    if (pos === 'bottom-right') {
+      return {
+        x: window.innerWidth - width - margin,
+        y: window.innerHeight - height - margin
+      };
+    } else {
+      return {
+        x: margin,
+        y: window.innerHeight - height - margin
+      };
+    }
+  };
+
+  // Get current pixel position
+  const currentPixelPosition = getPixelPosition(position, open);
+  
+  // Use temp position while dragging, otherwise use calculated position
+  const displayPosition = isDragging ? tempPosition : currentPixelPosition;
+
+  // Load saved position from localStorage (only once on mount)
+  useEffect(() => {
+    const saved = localStorage.getItem('chat_widget_position');
+    if (saved && (saved === 'bottom-right' || saved === 'bottom-left')) {
+      setPosition(saved);
+    } else {
+      setPosition('bottom-right'); // Default
+    }
+  }, []);
+
+  // Handle window resize - recalculate pixel positions
+  useEffect(() => {
+    const handleResize = () => {
+      // Force re-render to recalculate positions
+      setPosition(prev => prev);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [open]);
 
   if (!user || user.role === 'platform_admin') return null;
 
@@ -81,27 +139,153 @@ export default function ChatWidget() {
 
   const fmt = (d: string) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+  // Drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!(e.target as HTMLElement).closest('button[type="button"]') || 
+        (e.target as HTMLElement).closest('.drag-handle') ||
+        !open) {
+      e.preventDefault();
+      setIsDragging(true);
+      setHasDragged(false);
+      setTempPosition(currentPixelPosition);
+      setDragStart({
+        x: e.clientX - currentPixelPosition.x,
+        y: e.clientY - currentPixelPosition.y
+      });
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!(e.target as HTMLElement).closest('button[type="button"]') || 
+        (e.target as HTMLElement).closest('.drag-handle') ||
+        !open) {
+      const touch = e.touches[0];
+      setIsDragging(true);
+      setHasDragged(false);
+      setTempPosition(currentPixelPosition);
+      setDragStart({
+        x: touch.clientX - currentPixelPosition.x,
+        y: touch.clientY - currentPixelPosition.y
+      });
+    }
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    setHasDragged(true);
+    
+    const newX = e.clientX - dragStart.x;
+    const newY = e.clientY - dragStart.y;
+    
+    setTempPosition({ x: newX, y: newY });
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    setHasDragged(true);
+    
+    const touch = e.touches[0];
+    const newX = touch.clientX - dragStart.x;
+    const newY = touch.clientY - dragStart.y;
+    
+    setTempPosition({ x: newX, y: newY });
+  };
+
+  const handleMouseUp = () => {
+    if (hasDragged) {
+      // Determine which position is closer: bottom-left or bottom-right
+      const screenCenter = window.innerWidth / 2;
+      const newPosition = tempPosition.x < screenCenter ? 'bottom-left' : 'bottom-right';
+      
+      setPosition(newPosition);
+      localStorage.setItem('chat_widget_position', newPosition);
+    }
+    setIsDragging(false);
+    setHasDragged(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      const handleMove = (e: MouseEvent) => handleMouseMove(e);
+      const handleTouchMoveEvent = (e: TouchEvent) => handleTouchMove(e);
+      
+      document.addEventListener('mousemove', handleMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMoveEvent, { passive: false });
+      document.addEventListener('touchend', handleMouseUp);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMoveEvent);
+        document.removeEventListener('touchend', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragStart, tempPosition, open]);
+
   if (!open) {
     return (
-      <button
-        onClick={handleOpen}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#0D3B6E] hover:bg-[#1A5294] text-white rounded-full shadow-xl flex items-center justify-center transition-colors"
+      <div
+        ref={widgetRef}
+        className={`fixed z-50 transition-all duration-300 ${
+          isDragging ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
+        style={{
+          left: `${displayPosition.x}px`,
+          top: `${displayPosition.y}px`,
+        }}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
       >
-        <MessageCircle className="w-6 h-6" />
-        {unread > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-            {unread}
-          </span>
+        <button
+          onClick={(e) => {
+            if (!hasDragged) {
+              handleOpen();
+            }
+            setHasDragged(false);
+          }}
+          className="w-14 h-14 bg-[#0D3B6E] hover:bg-[#1A5294] text-white rounded-full shadow-xl flex items-center justify-center transition-colors relative"
+        >
+          <MessageCircle className="w-6 h-6" />
+          {unread > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+              {unread}
+            </span>
+          )}
+        </button>
+        
+        {/* Position indicator while dragging */}
+        {isDragging && (
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+            {tempPosition.x < window.innerWidth / 2 ? '← Bottom Left' : 'Bottom Right →'}
+          </div>
         )}
-      </button>
+      </div>
     );
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-80 flex flex-col shadow-2xl rounded-2xl overflow-hidden border border-gray-200">
+    <div 
+      ref={widgetRef}
+      className={`fixed z-50 w-80 flex flex-col rounded-2xl overflow-hidden border border-gray-200 transition-all duration-300 ${
+        isDragging ? 'shadow-2xl' : 'shadow-xl'
+      }`}
+      style={{
+        left: `${displayPosition.x}px`,
+        top: `${displayPosition.y}px`,
+        cursor: isDragging ? 'grabbing' : 'default'
+      }}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+    >
       {/* Header */}
-      <div className="bg-[#0D3B6E] text-white px-4 py-3 flex items-center justify-between">
+      <div className="bg-[#0D3B6E] text-white px-4 py-3 flex items-center justify-between drag-handle cursor-grab active:cursor-grabbing relative">
         <div className="flex items-center gap-2">
+          <Move className="w-3.5 h-3.5 text-white/50" />
           <MessageCircle className="w-4 h-4" />
           <span className="font-semibold text-sm">Support Chat</span>
           <span className="w-2 h-2 bg-green-400 rounded-full" />
@@ -114,6 +298,13 @@ export default function ChatWidget() {
             <X className="w-4 h-4" />
           </button>
         </div>
+        
+        {/* Position indicator while dragging */}
+        {isDragging && (
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+            {tempPosition.x < window.innerWidth / 2 ? '← Bottom Left' : 'Bottom Right →'}
+          </div>
+        )}
       </div>
 
       {!minimized && (

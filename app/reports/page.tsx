@@ -60,15 +60,15 @@ export default function ReportsPage() {
   return (
     <AppLayout title="Reports" subtitle="Business intelligence and performance metrics" allowedRoles={['business_owner','super_admin','accountant','hr_manager']}>
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-2 mb-5">
         {([{t:'sales',l:'Sales',icon:<TrendingUp className="w-4 h-4"/>},{t:'inventory',l:'Inventory',icon:<Package className="w-4 h-4"/>},{t:'finance',l:'Finance',icon:<DollarSign className="w-4 h-4"/>},{t:'hr',l:'HR',icon:<Users className="w-4 h-4"/>},{t:'procurement',l:'Procurement',icon:<ShoppingCart className="w-4 h-4"/>},{t:'crm',l:'CRM',icon:<Handshake className="w-4 h-4"/>}]).map(({t,l,icon}) => (
-          <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${tab===t?'bg-blue-700 text-white':'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>
+          <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 w-full sm:w-auto ${tab===t?'bg-blue-700 text-white':'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>
         ))}
-        <div className="ml-auto flex items-center gap-2">
-          <input type="date" className="form-input py-1.5 text-xs w-36" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-          <input type="date" className="form-input py-1.5 text-xs w-36" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-          <button className="btn-primary py-1.5" onClick={load}>Apply</button>
-          <button className="btn-secondary py-1.5 flex items-center gap-1" onClick={exportCSV}><Download className="w-3.5 h-3.5" />Export CSV</button>
+        <div className="sm:ml-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <input type="date" className="form-input py-1.5 text-xs w-full sm:w-36" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          <input type="date" className="form-input py-1.5 text-xs w-full sm:w-36" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          <button className="btn-primary py-1.5 w-full sm:w-auto" onClick={load}>Apply</button>
+          <button className="btn-secondary py-1.5 flex items-center justify-center gap-1 w-full sm:w-auto" onClick={exportCSV}><Download className="w-3.5 h-3.5" />Export CSV</button>
         </div>
       </div>
 

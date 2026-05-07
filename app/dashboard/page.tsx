@@ -45,7 +45,7 @@ export default function DashboardPage() {
       <AppLayout title="Dashboard" subtitle="Here's your inventory overview." allowedRoles={ALL_ROLES}>
 
         {/* ── KPI Cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <StatCard label="Total Products"  value={kpis.total_products ?? '—'} icon={<Package className="w-6 h-6 text-blue-600" />}        color="bg-blue-50"   sub="Active SKUs" />
           <StatCard label="Healthy Stock"   value={kpis.healthy_stock  ?? '—'} icon={<Package className="w-6 h-6 text-green-600" />}       color="bg-green-50"  sub="Above threshold" />
           <StatCard label="Low Stock"        value={kpis.low_stock      ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-yellow-600" />} color="bg-yellow-50" sub="Below threshold" />
@@ -55,7 +55,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Stock Health Donut + 7-day Trend ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
 
           {/* Stock health breakdown */}
           <div className="card">
@@ -120,7 +120,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Low Stock Alerts + Top Moved Products ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
 
           {/* Low Stock Alerts */}
           <div className="card">
@@ -201,7 +201,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Recent Movements + Quick Actions ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800">Recent Stock Movements</h3>
@@ -232,7 +232,7 @@ export default function DashboardPage() {
 
           <div className="card">
             <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {[
                 { label: 'View Inventory',    href: '/inventory',   color: 'bg-blue-50 text-blue-700',    icon: <Package className="w-5 h-5" /> },
                 { label: 'Adjust Stock',      href: '/inventory',   color: 'bg-yellow-50 text-yellow-700', icon: <RefreshCw className="w-5 h-5" /> },
@@ -267,7 +267,7 @@ export default function DashboardPage() {
     <AppLayout title="Dashboard" subtitle={subtitle[role] || "Welcome back!"} allowedRoles={ALL_ROLES}>
 
       {/* ── ROW 1: KPIs visible to admin + relevant roles ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
 
         {/* Revenue — admin, accountant, sales */}
         {can('super_admin','business_owner','branch_manager','accountant','sales_staff') && (
@@ -330,7 +330,7 @@ export default function DashboardPage() {
 
       {/* ── CHARTS — admin, sales, accountant ── */}
       {can('super_admin','business_owner','branch_manager','sales_staff','accountant') && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
           <div className="card">
             <h3 className="font-semibold text-gray-800 mb-4">Monthly Revenue</h3>
             {data?.monthly_sales?.length ? (
@@ -364,7 +364,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── BOTTOM SECTION ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
         {/* Recent Orders — admin, sales, procurement */}
         {can('super_admin','business_owner','branch_manager','sales_staff','procurement_officer') && (

@@ -528,9 +528,9 @@ export default function AccountingPage() {
   return (
     <AppLayout title="Accounting & Finance" subtitle="General ledger, expenses and financial overview" allowedRoles={['business_owner','accountant']}>
       {/* Tabs */}
-      <div className="mb-5">
+      <div className="mb-4 md:mb-5">
         {/* Tab bar */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto scrollbar-hide">
           <div className="flex min-w-max border-b border-gray-100">
             {([
               { t:'overview',       l:'Overview',       icon:<LayoutDashboard className="w-3.5 h-3.5"/> },
@@ -558,14 +558,14 @@ export default function AccountingPage() {
                   <button
                     key={item.t}
                     onClick={() => setTab(item.t as any)}
-                    className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                    className={`relative flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${
                       tab === item.t
                         ? 'text-blue-700 bg-blue-50/60'
                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    {item.icon}
-                    {item.l}
+                    <span className="flex-shrink-0">{item.icon}</span>
+                    <span className="hidden sm:inline">{item.l}</span>
                     {tab === item.t && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />}
                   </button>
                 )
@@ -574,32 +574,32 @@ export default function AccountingPage() {
         </div>
 
         {/* Action button row — sits below the tab bar */}
-        <div className="flex justify-end mt-3">
-          {tab==='expenses'     && <button className="btn-primary" onClick={() => { setSelectedExpense(null); setExpForm({title:'',category:'',amount:'',account_id:'',description:'',expense_date:new Date().toISOString().split('T')[0],receipt:null}); setError(''); setModal('expense'); }}><Plus className="w-4 h-4" />Add Expense</button>}
-          {tab==='accounts'     && <button className="btn-primary" onClick={openAddAccount}><Plus className="w-4 h-4" />Add Account</button>}
-          {tab==='tax'          && <button className="btn-primary" onClick={openAddTax}><Plus className="w-4 h-4" />Add Tax Rate</button>}
-          {tab==='journal'      && <button className="btn-primary" onClick={() => { setJeForm({description:'',entry_date:new Date().toISOString().split('T')[0],lines:[{account_id:'',debit:'',credit:'',description:''}]}); setError(''); setModal('journal'); }}><Plus className="w-4 h-4" />New Entry</button>}
-          {tab==='pl'           && pl && <div className="flex gap-2"><button className="btn-secondary" onClick={exportPlCsv}><Download className="w-4 h-4" />CSV</button><button className="btn-secondary" onClick={() => printReport('P&L Report','pl-print')}><Download className="w-4 h-4" />Print/PDF</button></div>}
-          {tab==='bs'           && bs && <div className="flex gap-2"><button className="btn-secondary" onClick={exportBsCsv}><Download className="w-4 h-4" />CSV</button><button className="btn-secondary" onClick={() => printReport('Balance Sheet','bs-print')}><Download className="w-4 h-4" />Print/PDF</button></div>}
-          {tab==='cashflow'     && cf && <div className="flex gap-2"><button className="btn-secondary" onClick={exportCfCsv}><Download className="w-4 h-4" />CSV</button><button className="btn-secondary" onClick={() => printReport('Cash Flow Statement','cf-print')}><Download className="w-4 h-4" />Print/PDF</button></div>}
-          {tab==='budget'       && <div className="flex gap-2">{budgetData && <button className="btn-secondary" onClick={exportBudgetCsv}><Download className="w-4 h-4" />CSV</button>}<button className="btn-primary" onClick={() => { setEditingBudget(null); setBudgetForm({ category:'', amount:'', period:budgetPeriod, period_type:budgetPeriodType }); setBudgetModal(true); }}><Plus className="w-4 h-4" />Set Budget</button></div>}
+        <div className="flex flex-wrap justify-end gap-2 mt-3">
+          {tab==='expenses'     && <button className="btn-primary text-xs md:text-sm" onClick={() => { setSelectedExpense(null); setExpForm({title:'',category:'',amount:'',account_id:'',description:'',expense_date:new Date().toISOString().split('T')[0],receipt:null}); setError(''); setModal('expense'); }}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Expense</button>}
+          {tab==='accounts'     && <button className="btn-primary text-xs md:text-sm" onClick={openAddAccount}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Account</button>}
+          {tab==='tax'          && <button className="btn-primary text-xs md:text-sm" onClick={openAddTax}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Tax</button>}
+          {tab==='journal'      && <button className="btn-primary text-xs md:text-sm" onClick={() => { setJeForm({description:'',entry_date:new Date().toISOString().split('T')[0],lines:[{account_id:'',debit:'',credit:'',description:''}]}); setError(''); setModal('journal'); }}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">New </span>Entry</button>}
+          {tab==='pl'           && pl && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportPlCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('P&L Report','pl-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
+          {tab==='bs'           && bs && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportBsCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('Balance Sheet','bs-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
+          {tab==='cashflow'     && cf && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportCfCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('Cash Flow Statement','cf-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
+          {tab==='budget'       && <div className="flex gap-2">{budgetData && <button className="btn-secondary text-xs md:text-sm" onClick={exportBudgetCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button>}<button className="btn-primary text-xs md:text-sm" onClick={() => { setEditingBudget(null); setBudgetForm({ category:'', amount:'', period:budgetPeriod, period_type:budgetPeriodType }); setBudgetModal(true); }}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Set </span>Budget</button></div>}
           {tab==='trial-balance' && tb && <button className="btn-secondary" onClick={() => { const rows = [['Code','Account','Type','Debit','Credit'],...(tb.accounts||[]).map((r:any)=>[r.code,r.name,r.type,r.debit_balance.toFixed(2),r.credit_balance.toFixed(2)]),['','TOTALS','',tb.totals.debit.toFixed(2),tb.totals.credit.toFixed(2)]]; const csv=rows.map(r=>r.map((c:any)=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`trial-balance-${Date.now()}.csv`; a.click(); }}><Download className="w-4 h-4" />CSV</button>}
-          {tab==='invoices'      && <button className="btn-primary" onClick={() => setInvModal(true)}><Plus className="w-4 h-4" />New Invoice</button>}
-          {tab==='periods'       && <button className="btn-primary" onClick={() => setPeriodModal(true)}><Plus className="w-4 h-4" />New Period</button>}
+          {tab==='invoices'      && <button className="btn-primary text-xs md:text-sm" onClick={() => setInvModal(true)}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">New </span>Invoice</button>}
+          {tab==='periods'       && <button className="btn-primary text-xs md:text-sm" onClick={() => setPeriodModal(true)}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">New </span>Period</button>}
         </div>
       </div>
       {/* Overview */}
       {tab==='overview' && (
         loading ? <Spinner /> : (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               <StatCard label="Total Revenue" value={`GHS ${parseFloat(summary.revenue||0).toFixed(0)}`} icon={<TrendingUp className="w-6 h-6 text-green-600"/>} color="bg-green-50" />
               <StatCard label="Total Expenses" value={`GHS ${parseFloat(summary.expenses||0).toFixed(0)}`} icon={<TrendingDown className="w-6 h-6 text-red-600"/>} color="bg-red-50" />
               <StatCard label="Net Profit" value={`GHS ${(parseFloat(summary.revenue||0)-parseFloat(summary.expenses||0)).toFixed(0)}`} icon={<DollarSign className="w-6 h-6 text-blue-600"/>} color="bg-blue-50" />
               <StatCard label="Journal Entries" value={journal.length} icon={<BookOpen className="w-6 h-6 text-purple-600"/>} color="bg-purple-50" />
             </div>
             {/* Account Balances by Type */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {['asset','liability','equity','revenue','expense'].map(type => {
                 const typeAccs = accounts.filter(a => a.type===type);
                 if (!typeAccs.length) return null;
@@ -630,16 +630,16 @@ export default function AccountingPage() {
         <div className="card p-0 overflow-hidden">
           {loading ? <Spinner /> : accounts.length===0 ? <EmptyState message="No accounts configured" icon={<BookMarked className="w-8 h-8 text-gray-300"/>} /> : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="table-header"><tr>{['Code','Account Name','Type','Balance',''].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
+              <table className="w-full text-xs md:text-sm">
+                <thead className="table-header"><tr>{['Code','Account Name','Type','Balance',''].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr></thead>
                 <tbody className="divide-y divide-gray-50">
                   {accounts.map(a => (
                     <tr key={a.id||a._id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono text-xs text-gray-500">{a.code}</td>
-                      <td className="px-4 py-3 font-medium">{a.name}</td>
-                      <td className="px-4 py-3"><span className={`badge ${typeColors[a.type]}`}>{a.type}</span></td>
-                      <td className="px-4 py-3 font-semibold">GHS {parseFloat(a.balance||0).toFixed(2)}</td>
-                      <td className="px-4 py-3"><button onClick={() => openEditAccount(a)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-4 h-4" /></button></td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-gray-500">{a.code}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{a.name}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3"><span className={`badge text-xs ${typeColors[a.type]}`}>{a.type}</span></td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 font-semibold">GHS {parseFloat(a.balance||0).toFixed(2)}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3"><button onClick={() => openEditAccount(a)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -654,25 +654,25 @@ export default function AccountingPage() {
         <div className="card p-0 overflow-hidden">
           {loading ? <Spinner /> : expenses.length===0 ? <EmptyState message="No expenses recorded" icon={<Receipt className="w-8 h-8 text-gray-300"/>} /> : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="table-header"><tr>{['Title','Category','Amount','Date','Recorded By','Receipt',''].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
+              <table className="w-full text-xs md:text-sm">
+                <thead className="table-header"><tr>{['Title','Category','Amount','Date','Recorded By','Receipt',''].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr></thead>
                 <tbody className="divide-y divide-gray-50">
                   {expenses.map(e => (
                     <tr key={e.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{e.title}</td>
-                      <td className="px-4 py-3 text-gray-500">{e.category||'—'}</td>
-                      <td className="px-4 py-3 font-semibold text-red-600">GHS {parseFloat(e.amount).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{new Date(e.expense_date).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 text-gray-500">{e.created_by?.name||'—'}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{e.title}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500">{e.category||'—'}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GHS {parseFloat(e.amount).toFixed(2)}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 text-xs">{new Date(e.expense_date).toLocaleDateString()}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 hidden lg:table-cell">{e.created_by?.name||'—'}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 hidden md:table-cell">
                         {e.receipt?.file
                           ? <a href={e.receipt.file} download={e.receipt.name} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-medium"><FileText className="w-3.5 h-3.5" />{e.receipt.name?.length > 16 ? e.receipt.name.slice(0,16)+'…' : e.receipt.name}</a>
                           : <span className="text-xs text-gray-300">—</span>
                         }
                       </td>
-                      <td className="px-4 py-3 flex gap-1">
-                        <button onClick={() => openEditExpense(e)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-4 h-4" /></button>
-                        <button onClick={() => deleteExpense(e.id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-4 h-4" /></button>
+                      <td className="px-3 md:px-4 py-2 md:py-3 flex gap-1">
+                        <button onClick={() => openEditExpense(e)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
+                        <button onClick={() => deleteExpense(e.id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
                       </td>
                     </tr>
                   ))}
@@ -686,7 +686,7 @@ export default function AccountingPage() {
       {/* AR Tab */}
       {tab==='ar' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
             <div className="card"><div className="text-2xl font-bold text-blue-600">{ar.length}</div><div className="text-sm text-gray-500">Open Invoices</div></div>
             <div className="card"><div className="text-2xl font-bold text-red-600">GHS {ar.reduce((s:number,o:any)=>s+parseFloat(o.amount_due||0),0).toFixed(2)}</div><div className="text-sm text-gray-500">Total Outstanding</div></div>
             <div className="card"><div className="text-2xl font-bold text-orange-600">{ar.filter((o:any)=>o.status==='overdue').length}</div><div className="text-sm text-gray-500">Overdue</div></div>
@@ -696,7 +696,7 @@ export default function AccountingPage() {
             const { current, d30, d60, d90 } = arAging();
             const sum = (arr: any[]) => arr.reduce((s,o) => s + parseFloat(o.amount_due||0), 0);
             return (
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {[{label:'Current (0-30d)',arr:current,color:'bg-green-50 border-green-200 text-green-700'},{label:'31-60 days',arr:d30,color:'bg-yellow-50 border-yellow-200 text-yellow-700'},{label:'61-90 days',arr:d60,color:'bg-orange-50 border-orange-200 text-orange-700'},{label:'90+ days',arr:d90,color:'bg-red-50 border-red-200 text-red-700'}].map(({label,arr,color}) => (
                   <div key={label} className={`rounded-xl border p-4 ${color}`}>
                     <div className="text-xs font-medium mb-1">{label}</div>
@@ -710,8 +710,8 @@ export default function AccountingPage() {
           <div className="card p-0 overflow-hidden">
             {loading ? <Spinner /> : ar.length===0 ? <EmptyState message="No outstanding receivables" icon={<ArrowDownCircle className="w-8 h-8 text-gray-300"/>} /> : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="table-header"><tr>{['Invoice #','Customer','Amount Due','Issued','Due Date','Age','Status'].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
+                <table className="w-full text-xs md:text-sm">
+                  <thead className="table-header"><tr>{['Invoice #','Customer','Amount Due','Issued','Due Date','Age','Status'].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr></thead>
                   <tbody className="divide-y divide-gray-50">
                     {ar.map((o:any) => {
                       const days = Math.floor((Date.now() - new Date(o.issue_date || o.created_at).getTime()) / 86400000);
@@ -719,13 +719,13 @@ export default function AccountingPage() {
                       const statusColor: Record<string,string> = { sent:'bg-blue-100 text-blue-700', partially_paid:'bg-yellow-100 text-yellow-700', overdue:'bg-red-100 text-red-700' };
                       return (
                         <tr key={o.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-mono text-xs text-blue-700">{o.invoice_number}</td>
-                          <td className="px-4 py-3 font-medium">{o.customer_name}</td>
-                          <td className="px-4 py-3 font-semibold text-red-600">GHS {parseFloat(o.amount_due||0).toFixed(2)}</td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">{new Date(o.issue_date).toLocaleDateString()}</td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">{new Date(o.due_date).toLocaleDateString()}</td>
-                          <td className={`px-4 py-3 text-xs ${ageColor}`}>{days}d</td>
-                          <td className="px-4 py-3"><span className={`badge ${statusColor[o.status] || 'bg-gray-100 text-gray-600'}`}>{o.status.replace('_',' ')}</span></td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{o.invoice_number}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{o.customer_name}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GHS {parseFloat(o.amount_due||0).toFixed(2)}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 text-gray-400 text-xs hidden md:table-cell">{new Date(o.issue_date).toLocaleDateString()}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 text-gray-400 text-xs hidden lg:table-cell">{new Date(o.due_date).toLocaleDateString()}</td>
+                          <td className={`px-3 md:px-4 py-2 md:py-3 text-xs ${ageColor}`}>{days}d</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3"><span className={`badge text-xs ${statusColor[o.status] || 'bg-gray-100 text-gray-600'}`}>{o.status.replace('_',' ')}</span></td>
                         </tr>
                       );
                     })}
@@ -740,7 +740,7 @@ export default function AccountingPage() {
       {/* AP Tab */}
       {tab==='ap' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
             <div className="card">
               <div className="text-2xl font-bold text-orange-600">{apLedger?.entries.length ?? '—'}</div>
               <div className="text-sm text-gray-500">Open Payables</div>
@@ -760,20 +760,20 @@ export default function AccountingPage() {
               ? <EmptyState message="No outstanding payables in the GL — account 2001 is clear" icon={<ArrowUpCircle className="w-8 h-8 text-gray-300"/>} />
               : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs md:text-sm">
                   <thead className="table-header">
-                    <tr>{['Reference','Description','Supplier','PO #','Date','Outstanding',''].map(h => <th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr>
+                    <tr>{['Reference','Description','Supplier','PO #','Date','Outstanding',''].map(h => <th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {apLedger.entries.map((e: any, i: number) => (
                       <tr key={i} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-mono text-xs text-blue-700">{e.reference}</td>
-                        <td className="px-4 py-3 text-gray-700 max-w-xs truncate">{e.description}</td>
-                        <td className="px-4 py-3 font-medium">{e.supplier || <span className="text-gray-400">—</span>}</td>
-                        <td className="px-4 py-3 font-mono text-xs">{e.po_number || <span className="text-gray-400">—</span>}</td>
-                        <td className="px-4 py-3 text-xs text-gray-400">{new Date(e.entry_date).toLocaleDateString()}</td>
-                        <td className="px-4 py-3 font-semibold text-red-600">GHS {e.outstanding.toFixed(2)}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{e.reference}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-gray-700 max-w-xs truncate hidden lg:table-cell">{e.description}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{e.supplier || <span className="text-gray-400">—</span>}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs hidden md:table-cell">{e.po_number || <span className="text-gray-400">—</span>}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-xs text-gray-400 hidden lg:table-cell">{new Date(e.entry_date).toLocaleDateString()}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GHS {e.outstanding.toFixed(2)}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">
                           <div className="flex gap-1">
                             {e.po_id && (
                               <button
@@ -781,11 +781,11 @@ export default function AccountingPage() {
                                   setPoPayModal(e);
                                   setPoPayForm({ amount: e.outstanding.toFixed(2), method: 'bank_transfer', reference: '', note: '' });
                                 }}
-                                className="text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg"
+                                className="text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-2 md:px-3 py-1 md:py-1.5 rounded-lg"
                               >Pay</button>
                             )}
                             {e.payments?.length > 0 && (
-                              <button onClick={() => setHistoryModal({ type:'po', label: e.po_number || e.reference, payments: e.payments, total: e.outstanding + e.payments.reduce((s:number,p:any)=>s+p.amount,0), paid: e.payments.reduce((s:number,p:any)=>s+p.amount,0) })} className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded">History</button>
+                              <button onClick={() => setHistoryModal({ type:'po', label: e.po_number || e.reference, payments: e.payments, total: e.outstanding + e.payments.reduce((s:number,p:any)=>s+p.amount,0), paid: e.payments.reduce((s:number,p:any)=>s+p.amount,0) })} className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded hidden md:inline-block">History</button>
                             )}
                           </div>
                         </td>
@@ -794,8 +794,8 @@ export default function AccountingPage() {
                   </tbody>
                   <tfoot>
                     <tr className="bg-gray-50 font-semibold border-t-2 border-gray-200">
-                      <td className="px-4 py-3" colSpan={5}>Total Outstanding</td>
-                      <td className="px-4 py-3 text-red-600">GHS {apLedger.total_outstanding.toFixed(2)}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3" colSpan={5}>Total Outstanding</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-red-600">GHS {apLedger.total_outstanding.toFixed(2)}</td>
                       <td />
                     </tr>
                   </tfoot>
@@ -808,14 +808,14 @@ export default function AccountingPage() {
 
       {/* Reconciliation Tab */}
       {tab==='reconciliation' && (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Input */}
           <div className="card">
             <h3 className="font-semibold text-gray-800 mb-1">Bank Reconciliation</h3>
-            <p className="text-sm text-gray-500 mb-4">Paste your bank statement below. Each line should contain a date, description, and amount. The last number on each line is used as the amount.</p>
+            <p className="text-xs md:text-sm text-gray-500 mb-4">Paste your bank statement below. Each line should contain a date, description, and amount. The last number on each line is used as the amount.</p>
             <p className="text-xs text-gray-400 mb-3 font-mono">e.g. &nbsp; 2024-01-15 &nbsp; Sales receipt &nbsp; 5000.00 &nbsp;&nbsp;|&nbsp;&nbsp; 2024-01-16 &nbsp; Supplier payment &nbsp; -1200.00</p>
             <textarea
-              className="form-input font-mono text-xs mb-3"
+              className="form-input font-mono text-xs"
               rows={7}
               placeholder={`2024-01-15  Sales receipt  5000.00\n2024-01-16  Supplier payment  -1200.00\n2024-01-17  Office rent  -4500.00`}
               value={bankStatement}
@@ -825,19 +825,19 @@ export default function AccountingPage() {
               <div className="mb-3 text-xs text-gray-500">{parsedLines.length} line{parsedLines.length !== 1 ? 's' : ''} parsed — totalling <span className="font-semibold text-gray-700">GHS {parsedLines.reduce((s,l)=>s+l.amount,0).toFixed(2)}</span></div>
             )}
             {reconError && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-3">{reconError}</div>}
-            <div className="flex gap-3">
-              <button className="btn-primary" onClick={runReconciliation} disabled={reconLoading || !parsedLines.length}>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button className="btn-primary w-full sm:w-auto" onClick={runReconciliation} disabled={reconLoading || !parsedLines.length}>
                 {reconLoading ? 'Reconciling…' : 'Run Reconciliation'}
               </button>
-              {reconResult && <button className="btn-secondary" onClick={() => { setReconResult(null); setBankStatement(''); setParsedLines([]); }}>Clear</button>}
+              {reconResult && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setReconResult(null); setBankStatement(''); setParsedLines([]); }}>Clear</button>}
             </div>
           </div>
 
           {/* Results */}
           {reconResult && (
-            <div className="space-y-5">
+            <div className="space-y-4 md:space-y-5">
               {/* Summary cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 <div className="card bg-blue-50 border-blue-100">
                   <div className="text-xs text-blue-600 font-medium mb-1">Bank Statement Total</div>
                   <div className="text-xl font-bold text-blue-800">GHS {reconResult.bankTotal.toFixed(2)}</div>
@@ -863,29 +863,29 @@ export default function AccountingPage() {
               {/* Matched transactions */}
               {reconResult.matched.length > 0 && (
                 <div className="card p-0 overflow-hidden">
-                  <div className="px-4 py-3 border-b bg-green-50 flex items-center gap-2">
+                  <div className="px-3 md:px-4 py-3 border-b bg-green-50 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-                    <span className="font-semibold text-sm text-green-800">Matched Transactions ({reconResult.matched.length})</span>
+                    <span className="font-semibold text-xs md:text-sm text-green-800">Matched Transactions ({reconResult.matched.length})</span>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-xs md:text-sm">
                       <thead className="table-header">
                         <tr>
-                          <th className="px-4 py-2 text-left">Bank Date</th>
-                          <th className="px-4 py-2 text-left">Bank Description</th>
-                          <th className="px-4 py-2 text-left">GL Reference</th>
-                          <th className="px-4 py-2 text-left">GL Description</th>
-                          <th className="px-4 py-2 text-right">Amount</th>
+                          <th className="px-3 md:px-4 py-2 text-left">Bank Date</th>
+                          <th className="px-3 md:px-4 py-2 text-left">Bank Description</th>
+                          <th className="px-3 md:px-4 py-2 text-left hidden md:table-cell">GL Reference</th>
+                          <th className="px-3 md:px-4 py-2 text-left hidden lg:table-cell">GL Description</th>
+                          <th className="px-3 md:px-4 py-2 text-right">Amount</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
                         {reconResult.matched.map((m: any, i: number) => (
                           <tr key={i} className="hover:bg-gray-50">
-                            <td className="px-4 py-2 text-xs text-gray-500">{m.bank.date || '—'}</td>
-                            <td className="px-4 py-2 text-gray-700 max-w-xs truncate">{m.bank.description}</td>
-                            <td className="px-4 py-2 font-mono text-xs text-blue-600">{m.gl.reference}</td>
-                            <td className="px-4 py-2 text-gray-500 max-w-xs truncate">{m.gl.description}</td>
-                            <td className={`px-4 py-2 text-right font-semibold ${m.bank.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GHS {parseFloat(m.bank.amount).toFixed(2)}</td>
+                            <td className="px-3 md:px-4 py-2 text-xs text-gray-500">{m.bank.date || '—'}</td>
+                            <td className="px-3 md:px-4 py-2 text-gray-700 max-w-xs truncate">{m.bank.description}</td>
+                            <td className="px-3 md:px-4 py-2 font-mono text-xs text-blue-600 hidden md:table-cell">{m.gl.reference}</td>
+                            <td className="px-3 md:px-4 py-2 text-gray-500 max-w-xs truncate hidden lg:table-cell">{m.gl.description}</td>
+                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${m.bank.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GHS {parseFloat(m.bank.amount).toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -897,19 +897,19 @@ export default function AccountingPage() {
               {/* Unmatched bank lines */}
               {reconResult.unmatchedBank.length > 0 && (
                 <div className="card p-0 overflow-hidden">
-                  <div className="px-4 py-3 border-b bg-yellow-50 flex items-center gap-2">
+                  <div className="px-3 md:px-4 py-3 border-b bg-yellow-50 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />
-                    <span className="font-semibold text-sm text-yellow-800">In Bank — Not in System ({reconResult.unmatchedBank.length})</span>
+                    <span className="font-semibold text-xs md:text-sm text-yellow-800">In Bank — Not in System ({reconResult.unmatchedBank.length})</span>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="table-header"><tr><th className="px-4 py-2 text-left">Date</th><th className="px-4 py-2 text-left">Description</th><th className="px-4 py-2 text-right">Amount</th></tr></thead>
+                    <table className="w-full text-xs md:text-sm">
+                      <thead className="table-header"><tr><th className="px-3 md:px-4 py-2 text-left">Date</th><th className="px-3 md:px-4 py-2 text-left">Description</th><th className="px-3 md:px-4 py-2 text-right">Amount</th></tr></thead>
                       <tbody className="divide-y divide-gray-50">
                         {reconResult.unmatchedBank.map((l: any, i: number) => (
                           <tr key={i} className="hover:bg-gray-50">
-                            <td className="px-4 py-2 text-xs text-gray-500">{l.date || '—'}</td>
-                            <td className="px-4 py-2 text-gray-700">{l.description}</td>
-                            <td className={`px-4 py-2 text-right font-semibold ${l.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GHS {parseFloat(l.amount).toFixed(2)}</td>
+                            <td className="px-3 md:px-4 py-2 text-xs text-gray-500">{l.date || '—'}</td>
+                            <td className="px-3 md:px-4 py-2 text-gray-700">{l.description}</td>
+                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${l.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GHS {parseFloat(l.amount).toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -921,20 +921,20 @@ export default function AccountingPage() {
               {/* Unmatched GL lines */}
               {reconResult.unmatchedGl.length > 0 && (
                 <div className="card p-0 overflow-hidden">
-                  <div className="px-4 py-3 border-b bg-red-50 flex items-center gap-2">
+                  <div className="px-3 md:px-4 py-3 border-b bg-red-50 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
-                    <span className="font-semibold text-sm text-red-800">In System — Not in Bank ({reconResult.unmatchedGl.length})</span>
+                    <span className="font-semibold text-xs md:text-sm text-red-800">In System — Not in Bank ({reconResult.unmatchedGl.length})</span>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="table-header"><tr><th className="px-4 py-2 text-left">Date</th><th className="px-4 py-2 text-left">Reference</th><th className="px-4 py-2 text-left">Description</th><th className="px-4 py-2 text-right">Amount</th></tr></thead>
+                    <table className="w-full text-xs md:text-sm">
+                      <thead className="table-header"><tr><th className="px-3 md:px-4 py-2 text-left">Date</th><th className="px-3 md:px-4 py-2 text-left">Reference</th><th className="px-3 md:px-4 py-2 text-left hidden md:table-cell">Description</th><th className="px-3 md:px-4 py-2 text-right">Amount</th></tr></thead>
                       <tbody className="divide-y divide-gray-50">
                         {reconResult.unmatchedGl.map((l: any, i: number) => (
                           <tr key={i} className="hover:bg-gray-50">
-                            <td className="px-4 py-2 text-xs text-gray-500">{new Date(l.date).toLocaleDateString()}</td>
-                            <td className="px-4 py-2 font-mono text-xs text-blue-600">{l.reference}</td>
-                            <td className="px-4 py-2 text-gray-700">{l.description}</td>
-                            <td className={`px-4 py-2 text-right font-semibold ${l.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GHS {l.amount.toFixed(2)}</td>
+                            <td className="px-3 md:px-4 py-2 text-xs text-gray-500">{new Date(l.date).toLocaleDateString()}</td>
+                            <td className="px-3 md:px-4 py-2 font-mono text-xs text-blue-600">{l.reference}</td>
+                            <td className="px-3 md:px-4 py-2 text-gray-700 hidden md:table-cell">{l.description}</td>
+                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${l.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GHS {l.amount.toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -952,23 +952,23 @@ export default function AccountingPage() {
         <div className="card p-0 overflow-hidden">
           {loading ? <Spinner /> : journal.length===0 ? <EmptyState message="No journal entries yet" icon={<BookOpen className="w-8 h-8 text-gray-300"/>} /> : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="table-header"><tr>{['Reference','Description','Debit','Credit','Date','Source','Status',''].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
+              <table className="w-full text-xs md:text-sm">
+                <thead className="table-header"><tr>{['Reference','Description','Debit','Credit','Date','Source','Status',''].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr></thead>
                 <tbody className="divide-y divide-gray-50">
                   {journal.map(j => (
                     <tr key={j.id} className={`hover:bg-gray-50 ${j.status==='voided' ? 'opacity-50' : ''}`}>
-                      <td className="px-4 py-3 font-mono text-xs text-blue-700">{j.reference}</td>
-                      <td className="px-4 py-3 font-medium max-w-xs truncate">{j.description}</td>
-                      <td className="px-4 py-3 text-green-700 font-semibold">GHS {parseFloat(j.total_debit||0).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-red-600 font-semibold">GHS {parseFloat(j.total_credit||0).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{new Date(j.entry_date).toLocaleDateString()}</td>
-                      <td className="px-4 py-3"><span className="badge badge-blue">{j.source}</span></td>
-                      <td className="px-4 py-3">
-                        <span className={`badge ${j.status==='voided' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
+                      <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{j.reference}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 font-medium max-w-xs truncate hidden lg:table-cell">{j.description}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-green-700 font-semibold">GHS {parseFloat(j.total_debit||0).toFixed(2)}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-red-600 font-semibold">GHS {parseFloat(j.total_credit||0).toFixed(2)}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 text-xs hidden md:table-cell">{new Date(j.entry_date).toLocaleDateString()}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 hidden lg:table-cell"><span className="badge badge-blue text-xs">{j.source}</span></td>
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        <span className={`badge text-xs ${j.status==='voided' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
                           {j.status || 'posted'}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 md:px-4 py-2 md:py-3">
                         {j.status !== 'voided' && (
                           <button
                             onClick={async () => {
@@ -980,7 +980,7 @@ export default function AccountingPage() {
                                 load();
                               } catch (e: any) { toast.error(e.response?.data?.message || 'Failed to void'); }
                             }}
-                            className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded"
+                            className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded hidden md:inline-block"
                           >Void</button>
                         )}
                       </td>
@@ -1105,13 +1105,13 @@ export default function AccountingPage() {
 
       {/* Cash Flow Tab */}
       {tab==='cashflow' && (
-        <div className="space-y-5">
+        <div className="space-y-4 md:space-y-5">
           <div className="card">
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3">
               <div><label className="form-label">From</label><input type="date" className="form-input" value={cfFrom} onChange={e => setCfFrom(e.target.value)} /></div>
               <div><label className="form-label">To</label><input type="date" className="form-input" value={cfTo} onChange={e => setCfTo(e.target.value)} /></div>
-              <button className="btn-primary" onClick={loadCf} disabled={cfLoading}>{cfLoading ? 'Loading…' : 'Generate Report'}</button>
-              {cf && <button className="btn-secondary" onClick={() => { setCfFrom(''); setCfTo(''); setCf(null); }}>Clear</button>}
+              <button className="btn-primary w-full sm:w-auto" onClick={loadCf} disabled={cfLoading}>{cfLoading ? 'Loading…' : 'Generate Report'}</button>
+              {cf && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setCfFrom(''); setCfTo(''); setCf(null); }}>Clear</button>}
             </div>
           </div>
           {cfLoading && <Spinner />}
@@ -1133,7 +1133,7 @@ export default function AccountingPage() {
             return (
               <div id="cf-print">
                 {/* Summary cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
                   <div className="card bg-blue-50 border-blue-100">
                     <div className="text-xs text-blue-600 font-medium mb-1">Operating Cash Flow</div>
                     <div className={`text-xl font-bold ${isPos(cf.operating.net) ? 'text-blue-800' : 'text-red-700'}`}>{fmt(cf.operating.net)}</div>
@@ -1218,19 +1218,19 @@ export default function AccountingPage() {
 
             {/* P&L Report Tab */}
       {tab==='pl' && (
-        <div className="space-y-5">
+        <div className="space-y-4 md:space-y-5">
           <div className="card">
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3">
               <div><label className="form-label">From</label><input type="date" className="form-input" value={plFrom} onChange={e => setPlFrom(e.target.value)} /></div>
               <div><label className="form-label">To</label><input type="date" className="form-input" value={plTo} onChange={e => setPlTo(e.target.value)} /></div>
-              <button className="btn-primary" onClick={loadPl} disabled={plLoading}>{plLoading ? 'Loading...' : 'Generate Report'}</button>
-                {pl && <button className="btn-secondary" onClick={() => { setPlFrom(''); setPlTo(''); setPl(null); }}>Clear</button>}
+              <button className="btn-primary w-full sm:w-auto" onClick={loadPl} disabled={plLoading}>{plLoading ? 'Loading...' : 'Generate Report'}</button>
+                {pl && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setPlFrom(''); setPlTo(''); setPl(null); }}>Clear</button>}
             </div>
           </div>
           {plLoading && <Spinner />}
           {pl && (
             <div id="pl-print" className="space-y-5">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 <StatCard label="Revenue" value={`GHS ${parseFloat(pl.revenue||0).toFixed(2)}`} icon={<TrendingUp className="w-6 h-6 text-green-600"/>} color="bg-green-50" />
                 <StatCard label="Gross Profit" value={`GHS ${parseFloat(pl.gross_profit||0).toFixed(2)}`} icon={<DollarSign className="w-6 h-6 text-blue-600"/>} color="bg-blue-50" />
                 <StatCard label="Total Expenses" value={`GHS ${parseFloat(pl.total_expenses||0).toFixed(2)}`} icon={<TrendingDown className="w-6 h-6 text-red-600"/>} color="bg-red-50" />
@@ -1281,10 +1281,10 @@ export default function AccountingPage() {
 
       {/* Budget vs Actual Tab */}
       {tab==='budget' && (
-        <div className="space-y-5">
+        <div className="space-y-4 md:space-y-5">
           {/* Controls */}
           <div className="card">
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3">
               <div>
                 <label className="form-label">Period Type</label>
                 <select className="form-input" value={budgetPeriodType} onChange={e => setBudgetPeriodType(e.target.value)}>
@@ -1295,11 +1295,11 @@ export default function AccountingPage() {
               <div>
                 <label className="form-label">{budgetPeriodType === 'annual' ? 'Year' : 'Month'}</label>
                 {budgetPeriodType === 'annual'
-                  ? <input type="number" className="form-input w-28" placeholder="2024" value={budgetPeriod} onChange={e => setBudgetPeriod(e.target.value)} />
+                  ? <input type="number" className="form-input w-full sm:w-28" placeholder="2024" value={budgetPeriod} onChange={e => setBudgetPeriod(e.target.value)} />
                   : <input type="month" className="form-input" value={budgetPeriod} onChange={e => setBudgetPeriod(e.target.value)} />
                 }
               </div>
-              <button className="btn-primary" onClick={loadBudget} disabled={budgetLoading}>{budgetLoading ? 'Loading…' : 'Load Report'}</button>
+              <button className="btn-primary w-full sm:w-auto" onClick={loadBudget} disabled={budgetLoading}>{budgetLoading ? 'Loading…' : 'Load Report'}</button>
             </div>
           </div>
 
@@ -1312,7 +1312,7 @@ export default function AccountingPage() {
             return (
               <div className="space-y-4">
                 {/* Summary cards */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                   <div className="card bg-blue-50 border-blue-100">
                     <div className="text-xs text-blue-600 font-medium mb-1">Total Budgeted</div>
                     <div className="text-xl font-bold text-blue-800">{fmt(totals.budgeted)}</div>
@@ -1330,15 +1330,15 @@ export default function AccountingPage() {
 
                 {/* Table */}
                 <div className="card p-0 overflow-hidden">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-xs md:text-sm">
                     <thead className="table-header">
                       <tr>
-                        <th className="px-4 py-3 text-left">Category</th>
-                        <th className="px-4 py-3 text-right">Budget</th>
-                        <th className="px-4 py-3 text-right">Actual</th>
-                        <th className="px-4 py-3 text-right">Variance</th>
-                        <th className="px-4 py-3 text-left w-40">% Used</th>
-                        <th className="px-4 py-3"></th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-left">Category</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-right">Budget</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-right">Actual</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-right hidden md:table-cell">Variance</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-left w-32 md:w-40">% Used</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -1348,27 +1348,27 @@ export default function AccountingPage() {
                         const varColor = r.variance >= 0 ? 'text-green-600' : 'text-red-600';
                         return (
                           <tr key={r.category} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 font-medium">{r.category}</td>
-                            <td className="px-4 py-3 text-right text-gray-700">{fmt(r.budgeted)}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-red-600">{fmt(r.actual)}</td>
-                            <td className={`px-4 py-3 text-right font-semibold ${varColor}`}>{fmt(r.variance)}</td>
-                            <td className="px-4 py-3">
+                            <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{r.category}</td>
+                            <td className="px-3 md:px-4 py-2 md:py-3 text-right text-gray-700">{fmt(r.budgeted)}</td>
+                            <td className="px-3 md:px-4 py-2 md:py-3 text-right font-semibold text-red-600">{fmt(r.actual)}</td>
+                            <td className={`px-3 md:px-4 py-2 md:py-3 text-right font-semibold ${varColor} hidden md:table-cell`}>{fmt(r.variance)}</td>
+                            <td className="px-3 md:px-4 py-2 md:py-3">
                               {r.pct !== null ? (
                                 <div className="flex items-center gap-2">
                                   <div className="flex-1 bg-gray-100 rounded-full h-2">
                                     <div className={`h-2 rounded-full ${barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
                                   </div>
-                                  <span className={`text-xs font-semibold w-10 text-right ${pct > 100 ? 'text-red-600' : 'text-gray-600'}`}>{pct.toFixed(0)}%</span>
+                                  <span className={`text-xs font-semibold w-8 md:w-10 text-right ${pct > 100 ? 'text-red-600' : 'text-gray-600'}`}>{pct.toFixed(0)}%</span>
                                 </div>
                               ) : <span className="text-xs text-gray-400">No budget set</span>}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-3 md:px-4 py-2 md:py-3">
                               <div className="flex gap-1">
                                 <button
                                   onClick={() => { setEditingBudget(r); setBudgetForm({ category: r.category, amount: String(r.budgeted || ''), period: budgetPeriod, period_type: budgetPeriodType }); setBudgetModal(true); }}
                                   className="p-1.5 hover:bg-gray-100 rounded text-gray-500"
-                                ><Edit2 className="w-4 h-4" /></button>
-                                {r.budget_id && <button onClick={() => deleteBudget(r.budget_id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-4 h-4" /></button>}
+                                ><Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
+                                {r.budget_id && <button onClick={() => deleteBudget(r.budget_id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>}
                               </div>
                             </td>
                           </tr>
@@ -1378,11 +1378,11 @@ export default function AccountingPage() {
                     {/* Totals row */}
                     <tfoot>
                       <tr className="bg-gray-50 font-semibold border-t-2 border-gray-200">
-                        <td className="px-4 py-3">Total</td>
-                        <td className="px-4 py-3 text-right">{fmt(totals.budgeted)}</td>
-                        <td className="px-4 py-3 text-right text-red-600">{fmt(totals.actual)}</td>
-                        <td className={`px-4 py-3 text-right ${totals.variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(totals.variance)}</td>
-                        <td className="px-4 py-3">{totalPct !== null ? `${totalPct.toFixed(1)}%` : '—'}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">Total</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-right">{fmt(totals.budgeted)}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-right text-red-600">{fmt(totals.actual)}</td>
+                        <td className={`px-3 md:px-4 py-2 md:py-3 text-right ${totals.variance >= 0 ? 'text-green-600' : 'text-red-600'} hidden md:table-cell`}>{fmt(totals.variance)}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">{totalPct !== null ? `${totalPct.toFixed(1)}%` : '—'}</td>
                         <td />
                       </tr>
                     </tfoot>
@@ -1397,18 +1397,18 @@ export default function AccountingPage() {
 
       {/* Tax / VAT Tab */}
       {tab==='tax' && (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* VAT Return */}
           <div className="card">
             <h3 className="font-semibold text-gray-800 mb-3">VAT Return</h3>
-            <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3 mb-4">
               <div><label className="form-label">From</label><input type="date" className="form-input" value={vatFrom} onChange={e => setVatFrom(e.target.value)} /></div>
               <div><label className="form-label">To</label><input type="date" className="form-input" value={vatTo} onChange={e => setVatTo(e.target.value)} /></div>
-              <button className="btn-primary" onClick={loadVatReturn} disabled={vatLoading}>{vatLoading ? 'Loading…' : 'Generate'}</button>
-              {vatReturn && <button className="btn-secondary" onClick={() => { setVatReturn(null); setVatFrom(''); setVatTo(''); }}>Clear</button>}
+              <button className="btn-primary w-full sm:w-auto" onClick={loadVatReturn} disabled={vatLoading}>{vatLoading ? 'Loading…' : 'Generate'}</button>
+              {vatReturn && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setVatReturn(null); setVatFrom(''); setVatTo(''); }}>Clear</button>}
             </div>
             {vatReturn && (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                 <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
                   <div className="text-xs text-blue-600 font-medium mb-1">Output VAT (Collected)</div>
                   <div className="text-xl font-bold text-blue-800">GHS {parseFloat(vatReturn.output_vat||0).toFixed(2)}</div>
@@ -1435,18 +1435,18 @@ export default function AccountingPage() {
             </div>
             {loading ? <Spinner /> : taxRates.length===0 ? <EmptyState message="No tax rates configured" icon={<Receipt className="w-8 h-8 text-gray-300"/>} /> : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="table-header"><tr>{['Name','Rate (%)','Applies To','Status',''].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
+                <table className="w-full text-xs md:text-sm">
+                  <thead className="table-header"><tr>{['Name','Rate (%)','Applies To','Status',''].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr></thead>
                   <tbody className="divide-y divide-gray-50">
                     {taxRates.map(t => (
                       <tr key={t.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium">{t.name}</td>
-                        <td className="px-4 py-3 font-semibold text-blue-700">{parseFloat(t.rate).toFixed(2)}%</td>
-                        <td className="px-4 py-3"><span className="badge badge-blue">{t.applies_to}</span></td>
-                        <td className="px-4 py-3">{t.is_active ? <span className="badge bg-green-100 text-green-700">Active</span> : <span className="badge bg-gray-100 text-gray-500">Inactive</span>}</td>
-                        <td className="px-4 py-3 flex gap-1">
-                          <button onClick={() => openEditTax(t)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-4 h-4" /></button>
-                          <button onClick={() => deleteTax(t.id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-4 h-4" /></button>
+                        <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{t.name}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-blue-700">{parseFloat(t.rate).toFixed(2)}%</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 hidden md:table-cell"><span className="badge badge-blue text-xs">{t.applies_to}</span></td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">{t.is_active ? <span className="badge bg-green-100 text-green-700 text-xs">Active</span> : <span className="badge bg-gray-100 text-gray-500 text-xs">Inactive</span>}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 flex gap-1">
+                          <button onClick={() => openEditTax(t)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
+                          <button onClick={() => deleteTax(t.id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
                         </td>
                       </tr>
                     ))}
@@ -1474,9 +1474,9 @@ export default function AccountingPage() {
           </div>
           <div className="text-xs text-gray-400">Period: <strong>{budgetPeriod}</strong> ({budgetPeriodType})</div>
         </div>
-        <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => { setBudgetModal(false); setEditingBudget(null); }}>Cancel</button>
-          <button className="btn-primary" onClick={saveBudget} disabled={saving}>{saving ? 'Saving…' : 'Save Budget'}</button>
+        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
+          <button className="btn-secondary w-full sm:w-auto" onClick={() => { setBudgetModal(false); setEditingBudget(null); }}>Cancel</button>
+          <button className="btn-primary w-full sm:w-auto" onClick={saveBudget} disabled={saving}>{saving ? 'Saving…' : 'Save Budget'}</button>
         </div>
       </Modal>
 
@@ -1485,7 +1485,7 @@ export default function AccountingPage() {
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="space-y-3">
           <div><label className="form-label">Name *</label><input className="form-input" value={taxForm.name} onChange={e => setTaxForm({...taxForm,name:e.target.value})} placeholder="e.g. VAT" /></div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label className="form-label">Rate (%) *</label><input type="number" className="form-input" value={taxForm.rate} onChange={e => setTaxForm({...taxForm,rate:e.target.value})} placeholder="e.g. 15" /></div>
             <div><label className="form-label">Applies To</label>
               <select className="form-input" value={taxForm.applies_to} onChange={e => setTaxForm({...taxForm,applies_to:e.target.value})}>
@@ -1502,9 +1502,9 @@ export default function AccountingPage() {
             </div>
           )}
         </div>
-        <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => setTaxModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={saveTax} disabled={saving}>{saving?'Saving…':taxModal==='edit'?'Update':'Add Tax Rate'}</button>
+        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
+          <button className="btn-secondary w-full sm:w-auto" onClick={() => setTaxModal(null)}>Cancel</button>
+          <button className="btn-primary w-full sm:w-auto" onClick={saveTax} disabled={saving}>{saving?'Saving…':taxModal==='edit'?'Update':'Add Tax Rate'}</button>
         </div>
       </Modal>
 
@@ -1513,11 +1513,11 @@ export default function AccountingPage() {
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="space-y-3">
           <div><label className="form-label">Title *</label><input className="form-input" value={expForm.title} onChange={e => setExpForm({...expForm,title:e.target.value})} placeholder="e.g. Office rent" /></div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label className="form-label">Category</label><input className="form-input" value={expForm.category} onChange={e => setExpForm({...expForm,category:e.target.value})} placeholder="e.g. Rent" /></div>
             <div><label className="form-label">Amount (GHS) *</label><input type="number" className="form-input" value={expForm.amount} onChange={e => setExpForm({...expForm,amount:e.target.value})} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label className="form-label">Account</label>
               <select className="form-input" value={expForm.account_id} onChange={e => setExpForm({...expForm,account_id:e.target.value})}>
                 <option value="">Select account</option>
@@ -1553,28 +1553,28 @@ export default function AccountingPage() {
             )}
           </div>
         </div>
-        <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={saveExpense} disabled={saving}>{saving?'Saving…':selectedExpense?'Update Expense':'Save Expense'}</button>
+        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
+          <button className="btn-secondary w-full sm:w-auto" onClick={() => setModal(null)}>Cancel</button>
+          <button className="btn-primary w-full sm:w-auto" onClick={saveExpense} disabled={saving}>{saving?'Saving…':selectedExpense?'Update Expense':'Save Expense'}</button>
         </div>
       </Modal>
 
       {/* Journal Entry Modal */}
       <Modal open={modal==='journal'} onClose={() => setModal(null)} title="New Journal Entry" size="lg">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="col-span-2"><label className="form-label">Description *</label><input className="form-input" value={jeForm.description} onChange={e => setJeForm({...jeForm,description:e.target.value})} /></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="md:col-span-2"><label className="form-label">Description *</label><input className="form-input" value={jeForm.description} onChange={e => setJeForm({...jeForm,description:e.target.value})} /></div>
           <div><label className="form-label">Date</label><input type="date" className="form-input" value={jeForm.entry_date} onChange={e => setJeForm({...jeForm,entry_date:e.target.value})} /></div>
         </div>
         <div className="border-t pt-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium">Journal Lines</h4>
+            <h4 className="font-medium text-sm md:text-base">Journal Lines</h4>
             <button className="btn-secondary py-1 text-xs" onClick={addJeLine}><Plus className="w-3 h-3" />Add Line</button>
           </div>
           <div className="space-y-2">
             {jeForm.lines.map((line,i) => (
-              <div key={i} className="grid grid-cols-4 gap-2">
-                <select className="form-input col-span-2" value={line.account_id} onChange={e => updateJeLine(i,'account_id',e.target.value)}>
+              <div key={i} className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                <select className="form-input md:col-span-2" value={line.account_id} onChange={e => updateJeLine(i,'account_id',e.target.value)}>
                   <option value="">Select account</option>
                   {accounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
                 </select>
@@ -1583,14 +1583,14 @@ export default function AccountingPage() {
               </div>
             ))}
           </div>
-          <div className="flex justify-end gap-8 mt-3 text-sm font-semibold">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-8 mt-3 text-xs sm:text-sm font-semibold">
             <span>Total Debit: GHS {jeForm.lines.reduce((s,l)=>s+(parseFloat(l.debit)||0),0).toFixed(2)}</span>
             <span>Total Credit: GHS {jeForm.lines.reduce((s,l)=>s+(parseFloat(l.credit)||0),0).toFixed(2)}</span>
           </div>
         </div>
-        <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={saveJournal} disabled={saving}>{saving?'Saving…':'Post Entry'}</button>
+        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
+          <button className="btn-secondary w-full sm:w-auto" onClick={() => setModal(null)}>Cancel</button>
+          <button className="btn-primary w-full sm:w-auto" onClick={saveJournal} disabled={saving}>{saving?'Saving…':'Post Entry'}</button>
         </div>
       </Modal>
 
@@ -1598,7 +1598,7 @@ export default function AccountingPage() {
       <Modal open={modal==='account'} onClose={() => setModal(null)} title={selectedAccount ? 'Edit Account' : 'Add Account'} size="md">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label className="form-label">Code *</label><input className="form-input" value={accForm.code} onChange={e => setAccForm({...accForm,code:e.target.value})} placeholder="e.g. 1001" disabled={!!selectedAccount} /></div>
             <div><label className="form-label">Type *</label>
               <select className="form-input" value={accForm.type} onChange={e => setAccForm({...accForm,type:e.target.value})}>
@@ -1624,19 +1624,19 @@ export default function AccountingPage() {
             )}
           </div>
         </div>
-        <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={saveAccount} disabled={saving}>{saving?'Saving…':selectedAccount?'Update Account':'Add Account'}</button>
+        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
+          <button className="btn-secondary w-full sm:w-auto" onClick={() => setModal(null)}>Cancel</button>
+          <button className="btn-primary w-full sm:w-auto" onClick={saveAccount} disabled={saving}>{saving?'Saving…':selectedAccount?'Update Account':'Add Account'}</button>
         </div>
       </Modal>
       {/* Trial Balance Tab */}
       {tab==='trial-balance' && (
-        <div className="space-y-5">
+        <div className="space-y-4 md:space-y-5">
           <div className="card">
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3">
               <div><label className="form-label">As of Date</label><input type="date" className="form-input" value={tbAsOf} onChange={e => setTbAsOf(e.target.value)} /></div>
-              <button className="btn-primary" onClick={loadTrialBalance} disabled={tbLoading}>{tbLoading ? 'Loading…' : 'Generate'}</button>
-              {tb && <button className="btn-secondary" onClick={() => { setTb(null); setTbAsOf(''); }}>Clear</button>}
+              <button className="btn-primary w-full sm:w-auto" onClick={loadTrialBalance} disabled={tbLoading}>{tbLoading ? 'Loading…' : 'Generate'}</button>
+              {tb && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setTb(null); setTbAsOf(''); }}>Clear</button>}
             </div>
           </div>
           {tbLoading && <Spinner />}
@@ -1645,44 +1645,44 @@ export default function AccountingPage() {
             const isBalanced = Math.abs(tb.totals.debit - tb.totals.credit) < 0.01;
             return (
               <div className="card p-0 overflow-hidden">
-                <div className="text-center py-5 px-6 border-b border-gray-100">
+                <div className="text-center py-4 md:py-5 px-4 md:px-6 border-b border-gray-100">
                   <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">GEMS</p>
-                  <h2 className="text-xl font-bold text-gray-900">Trial Balance</h2>
-                  <p className="text-sm text-gray-500 mt-1">As at {new Date(tb.as_of).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</p>
+                  <h2 className="text-lg md:text-xl font-bold text-gray-900">Trial Balance</h2>
+                  <p className="text-xs md:text-sm text-gray-500 mt-1">As at {new Date(tb.as_of).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-xs md:text-sm">
                     <thead className="table-header">
                       <tr>
-                        <th className="px-4 py-3 text-left">Code</th>
-                        <th className="px-4 py-3 text-left">Account Name</th>
-                        <th className="px-4 py-3 text-left">Type</th>
-                        <th className="px-4 py-3 text-right">Debit (GHS)</th>
-                        <th className="px-4 py-3 text-right">Credit (GHS)</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-left">Code</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-left">Account Name</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-left hidden md:table-cell">Type</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-right">Debit (GHS)</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-right">Credit (GHS)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {tb.accounts.map((r: any) => (
                         <tr key={r.code} className="hover:bg-gray-50">
-                          <td className="px-4 py-2.5 font-mono text-xs text-gray-500">{r.code}</td>
-                          <td className="px-4 py-2.5 font-medium">{r.name}</td>
-                          <td className="px-4 py-2.5"><span className={`badge ${typeColors[r.type]}`}>{r.type}</span></td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">{r.debit_balance > 0 ? fmt(r.debit_balance) : '—'}</td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">{r.credit_balance > 0 ? fmt(r.credit_balance) : '—'}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-2.5 font-mono text-xs text-gray-500">{r.code}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-2.5 font-medium">{r.name}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-2.5 hidden md:table-cell"><span className={`badge text-xs ${typeColors[r.type]}`}>{r.type}</span></td>
+                          <td className="px-3 md:px-4 py-2 md:py-2.5 text-right tabular-nums">{r.debit_balance > 0 ? fmt(r.debit_balance) : '—'}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-2.5 text-right tabular-nums">{r.credit_balance > 0 ? fmt(r.credit_balance) : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="bg-gray-50 font-bold border-t-2 border-gray-300">
-                        <td className="px-4 py-3" colSpan={3}>TOTALS</td>
-                        <td className="px-4 py-3 text-right tabular-nums">{fmt(tb.totals.debit)}</td>
-                        <td className="px-4 py-3 text-right tabular-nums">{fmt(tb.totals.credit)}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3" colSpan={3}>TOTALS</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-right tabular-nums">{fmt(tb.totals.debit)}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-right tabular-nums">{fmt(tb.totals.credit)}</td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
-                <div className={`mx-4 mb-4 mt-2 rounded-lg px-4 py-2.5 flex items-center justify-between text-sm ${isBalanced ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                  <span className={`text-xs font-mono ${isBalanced ? 'text-green-700' : 'text-red-700'}`}>Debit {fmt(tb.totals.debit)} = Credit {fmt(tb.totals.credit)}</span>
+                <div className={`mx-3 md:mx-4 mb-3 md:mb-4 mt-2 rounded-lg px-3 md:px-4 py-2 md:py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs md:text-sm ${isBalanced ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                  <span className={`font-mono ${isBalanced ? 'text-green-700' : 'text-red-700'}`}>Debit {fmt(tb.totals.debit)} = Credit {fmt(tb.totals.credit)}</span>
                   <span className={`font-bold ${isBalanced ? 'text-green-700' : 'text-red-700'}`}>{isBalanced ? '✓ Balanced' : '✗ Unbalanced'}</span>
                 </div>
               </div>
@@ -1700,9 +1700,9 @@ export default function AccountingPage() {
             : (
             <div className="card p-0 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs md:text-sm">
                   <thead className="table-header">
-                    <tr>{['Invoice #','Customer','Subtotal','Tax','Total','Amount Due','Issued','Due','Status',''].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr>
+                    <tr>{['Invoice #','Customer','Subtotal','Tax','Total','Amount Due','Issued','Due','Status',''].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {invoices.map((inv: any) => {
@@ -1713,31 +1713,31 @@ export default function AccountingPage() {
                       };
                       return (
                         <tr key={inv.id} className={`hover:bg-gray-50 ${inv.status==='void'?'opacity-50':''}`}>
-                          <td className="px-4 py-3 font-mono text-xs text-blue-700">{inv.invoice_number}</td>
-                          <td className="px-4 py-3 font-medium">
+                          <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{inv.invoice_number}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 font-medium">
                             <div>{inv.customer_name}</div>
-                            {inv.customer_email && <div className="text-xs text-gray-400">{inv.customer_email}</div>}
+                            {inv.customer_email && <div className="text-xs text-gray-400 hidden md:block">{inv.customer_email}</div>}
                           </td>
-                          <td className="px-4 py-3 tabular-nums">GHS {parseFloat(inv.subtotal||0).toFixed(2)}</td>
-                          <td className="px-4 py-3 tabular-nums text-gray-500">GHS {parseFloat(inv.tax_amount||0).toFixed(2)}</td>
-                          <td className="px-4 py-3 font-semibold tabular-nums">GHS {parseFloat(inv.total||0).toFixed(2)}</td>
-                          <td className="px-4 py-3 font-semibold text-red-600 tabular-nums">GHS {parseFloat(inv.amount_due||0).toFixed(2)}</td>
-                          <td className="px-4 py-3 text-xs text-gray-400">{new Date(inv.issue_date).toLocaleDateString()}</td>
-                          <td className="px-4 py-3 text-xs text-gray-400">{new Date(inv.due_date).toLocaleDateString()}</td>
-                          <td className="px-4 py-3"><span className={`badge ${statusColor[inv.status]||'bg-gray-100 text-gray-600'}`}>{inv.status.replace('_',' ')}</span></td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 md:px-4 py-2 md:py-3 tabular-nums hidden lg:table-cell">GHS {parseFloat(inv.subtotal||0).toFixed(2)}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 tabular-nums text-gray-500 hidden lg:table-cell">GHS {parseFloat(inv.tax_amount||0).toFixed(2)}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 font-semibold tabular-nums">GHS {parseFloat(inv.total||0).toFixed(2)}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600 tabular-nums">GHS {parseFloat(inv.amount_due||0).toFixed(2)}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 text-xs text-gray-400 hidden md:table-cell">{new Date(inv.issue_date).toLocaleDateString()}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 text-xs text-gray-400 hidden lg:table-cell">{new Date(inv.due_date).toLocaleDateString()}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3"><span className={`badge text-xs ${statusColor[inv.status]||'bg-gray-100 text-gray-600'}`}>{inv.status.replace('_',' ')}</span></td>
+                          <td className="px-3 md:px-4 py-2 md:py-3">
                             <div className="flex gap-1">
                               {inv.status==='draft' && (
-                                <button onClick={async () => { try { await api.patch(`/invoices/${inv.id}/send`); toast.success('Invoice sent'); loadInvoices(); loadAr(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2.5 py-1 rounded-lg">Send</button>
+                                <button onClick={async () => { try { await api.patch(`/invoices/${inv.id}/send`); toast.success('Invoice sent'); loadInvoices(); loadAr(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2 md:px-2.5 py-1 rounded-lg">Send</button>
                               )}
                               {['sent','partially_paid','overdue'].includes(inv.status) && (
-                                <button onClick={() => { setPayModal(inv); setPayForm({ amount: String(inv.amount_due), method:'cash', reference:'', note:'' }); }} className="text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-2.5 py-1 rounded-lg">Record Payment</button>
+                                <button onClick={() => { setPayModal(inv); setPayForm({ amount: String(inv.amount_due), method:'cash', reference:'', note:'' }); }} className="text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-2 md:px-2.5 py-1 rounded-lg">Pay</button>
                               )}
                               {inv.payments?.length > 0 && (
-                                <button onClick={() => setHistoryModal({ type:'invoice', label: inv.invoice_number, payments: inv.payments, total: inv.total, paid: inv.amount_paid })} className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded">History</button>
+                                <button onClick={() => setHistoryModal({ type:'invoice', label: inv.invoice_number, payments: inv.payments, total: inv.total, paid: inv.amount_paid })} className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded hidden md:inline-block">History</button>
                               )}
                               {['draft','sent','overdue'].includes(inv.status) && (
-                                <button onClick={async () => { if (!confirm('Void this invoice?')) return; try { await api.patch(`/invoices/${inv.id}/void`); toast.success('Voided'); loadInvoices(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded">Void</button>
+                                <button onClick={async () => { if (!confirm('Void this invoice?')) return; try { await api.patch(`/invoices/${inv.id}/void`); toast.success('Voided'); loadInvoices(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded hidden md:inline-block">Void</button>
                               )}
                             </div>
                           </td>
@@ -1760,30 +1760,30 @@ export default function AccountingPage() {
             : (
             <div className="card p-0 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs md:text-sm">
                   <thead className="table-header">
-                    <tr>{['Name','Type','Start','End','Status',''].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr>
+                    <tr>{['Name','Type','Start','End','Status',''].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {periods.map((p: any) => (
                       <tr key={p.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium">{p.name}</td>
-                        <td className="px-4 py-3"><span className="badge badge-blue">{p.type}</span></td>
-                        <td className="px-4 py-3 text-xs text-gray-500">{new Date(p.start_date).toLocaleDateString()}</td>
-                        <td className="px-4 py-3 text-xs text-gray-500">{new Date(p.end_date).toLocaleDateString()}</td>
-                        <td className="px-4 py-3">
-                          <span className={`badge ${p.status==='open' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{p.status}</span>
+                        <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{p.name}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3"><span className="badge badge-blue text-xs">{p.type}</span></td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-xs text-gray-500">{new Date(p.start_date).toLocaleDateString()}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-xs text-gray-500 hidden md:table-cell">{new Date(p.end_date).toLocaleDateString()}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          <span className={`badge text-xs ${p.status==='open' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{p.status}</span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 md:px-4 py-2 md:py-3">
                           <div className="flex gap-1">
                             {p.status==='open' && (
-                              <button onClick={async () => { if (!confirm(`Close period "${p.name}"?`)) return; try { await api.patch(`/accounting/periods/${p.id}/close`); toast.success('Period closed'); loadPeriods(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 px-2.5 py-1 rounded-lg">Close</button>
+                              <button onClick={async () => { if (!confirm(`Close period "${p.name}"?`)) return; try { await api.patch(`/accounting/periods/${p.id}/close`); toast.success('Period closed'); loadPeriods(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 px-2 md:px-2.5 py-1 rounded-lg">Close</button>
                             )}
                             {p.status==='closed' && (
                               <>
-                                <button onClick={async () => { if (!confirm(`Reopen period "${p.name}"?`)) return; try { await api.patch(`/accounting/periods/${p.id}/reopen`); toast.success('Period reopened'); loadPeriods(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2.5 py-1 rounded-lg">Reopen</button>
+                                <button onClick={async () => { if (!confirm(`Reopen period "${p.name}"?`)) return; try { await api.patch(`/accounting/periods/${p.id}/reopen`); toast.success('Period reopened'); loadPeriods(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2 md:px-2.5 py-1 rounded-lg">Reopen</button>
                                 {p.type==='year' && (
-                                  <button onClick={async () => { if (!confirm(`Post year-end closing entries for "${p.name}"? This cannot be undone.`)) return; try { await api.post(`/accounting/periods/${p.id}/year-end-close`); toast.success('Year-end closing posted'); loadPeriods(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 px-2.5 py-1 rounded-lg">Year-End Close</button>
+                                  <button onClick={async () => { if (!confirm(`Post year-end closing entries for "${p.name}"? This cannot be undone.`)) return; try { await api.post(`/accounting/periods/${p.id}/year-end-close`); toast.success('Year-end closing posted'); loadPeriods(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 px-2 md:px-2.5 py-1 rounded-lg hidden md:inline-block">Year-End Close</button>
                                 )}
                               </>
                             )}
@@ -1803,7 +1803,7 @@ export default function AccountingPage() {
       <Modal open={!!payModal} onClose={() => setPayModal(null)} title={`Record Payment — ${payModal?.invoice_number}`} size="sm">
         <div className="space-y-3">
           <div><label className="form-label">Amount (GHS) *</label><input type="number" className="form-input" value={payForm.amount} onChange={e => setPayForm({...payForm,amount:e.target.value})} /></div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label className="form-label">Method</label>
               <select className="form-input" value={payForm.method} onChange={e => setPayForm({...payForm,method:e.target.value})}>
                 {['cash','bank_transfer','cheque','mobile_money','card'].map(m=><option key={m} value={m}>{m.replace('_',' ')}</option>)}
@@ -1813,20 +1813,20 @@ export default function AccountingPage() {
           </div>
           <div><label className="form-label">Note</label><input className="form-input" value={payForm.note} onChange={e => setPayForm({...payForm,note:e.target.value})} /></div>
         </div>
-        <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => setPayModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={recordPayment} disabled={invSaving}>{invSaving?'Saving…':'Record Payment'}</button>
+        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
+          <button className="btn-secondary w-full sm:w-auto" onClick={() => setPayModal(null)}>Cancel</button>
+          <button className="btn-primary w-full sm:w-auto" onClick={recordPayment} disabled={invSaving}>{invSaving?'Saving…':'Record Payment'}</button>
         </div>
       </Modal>
 
       {/* New Invoice Modal */}
       <Modal open={invModal} onClose={() => setInvModal(false)} title="New Invoice" size="lg">
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label className="form-label">Customer Name *</label><input className="form-input" value={invForm.customer_name} onChange={e => setInvForm({...invForm,customer_name:e.target.value})} /></div>
             <div><label className="form-label">Customer Email</label><input type="email" className="form-input" value={invForm.customer_email} onChange={e => setInvForm({...invForm,customer_email:e.target.value})} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label className="form-label">Due Date *</label><input type="date" className="form-input" value={invForm.due_date} onChange={e => setInvForm({...invForm,due_date:e.target.value})} /></div>
             <div><label className="form-label">Notes</label><input className="form-input" value={invForm.notes} onChange={e => setInvForm({...invForm,notes:e.target.value})} /></div>
           </div>
@@ -1838,11 +1838,11 @@ export default function AccountingPage() {
             <div className="space-y-2">
               {invForm.lines.map((line,i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                  <input className="form-input col-span-5" placeholder="Description" value={line.description} onChange={e => { const l=[...invForm.lines]; l[i]={...l[i],description:e.target.value}; setInvForm({...invForm,lines:l}); }} />
-                  <input type="number" className="form-input col-span-2" placeholder="Qty" value={line.quantity} onChange={e => { const l=[...invForm.lines]; l[i]={...l[i],quantity:e.target.value}; setInvForm({...invForm,lines:l}); }} />
-                  <input type="number" className="form-input col-span-2" placeholder="Unit Price" value={line.unit_price} onChange={e => { const l=[...invForm.lines]; l[i]={...l[i],unit_price:e.target.value}; setInvForm({...invForm,lines:l}); }} />
-                  <input type="number" className="form-input col-span-2" placeholder="Tax %" value={line.tax_rate} onChange={e => { const l=[...invForm.lines]; l[i]={...l[i],tax_rate:e.target.value}; setInvForm({...invForm,lines:l}); }} />
-                  <button className="col-span-1 p-1.5 hover:bg-red-50 rounded text-red-400" onClick={() => setInvForm({...invForm,lines:invForm.lines.filter((_,j)=>j!==i)})} disabled={invForm.lines.length===1}><Trash2 className="w-4 h-4"/></button>
+                  <input className="form-input col-span-12 md:col-span-5" placeholder="Description" value={line.description} onChange={e => { const l=[...invForm.lines]; l[i]={...l[i],description:e.target.value}; setInvForm({...invForm,lines:l}); }} />
+                  <input type="number" className="form-input col-span-3 md:col-span-2" placeholder="Qty" value={line.quantity} onChange={e => { const l=[...invForm.lines]; l[i]={...l[i],quantity:e.target.value}; setInvForm({...invForm,lines:l}); }} />
+                  <input type="number" className="form-input col-span-3 md:col-span-2" placeholder="Unit Price" value={line.unit_price} onChange={e => { const l=[...invForm.lines]; l[i]={...l[i],unit_price:e.target.value}; setInvForm({...invForm,lines:l}); }} />
+                  <input type="number" className="form-input col-span-3 md:col-span-2" placeholder="Tax %" value={line.tax_rate} onChange={e => { const l=[...invForm.lines]; l[i]={...l[i],tax_rate:e.target.value}; setInvForm({...invForm,lines:l}); }} />
+                  <button className="col-span-3 md:col-span-1 p-1.5 hover:bg-red-50 rounded text-red-400" onClick={() => setInvForm({...invForm,lines:invForm.lines.filter((_,j)=>j!==i)})} disabled={invForm.lines.length===1}><Trash2 className="w-4 h-4"/></button>
                 </div>
               ))}
             </div>
@@ -1851,9 +1851,9 @@ export default function AccountingPage() {
             </div>
           </div>
         </div>
-        <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => setInvModal(false)}>Cancel</button>
-          <button className="btn-primary" onClick={saveInvoice} disabled={invSaving}>{invSaving?'Saving…':'Create Invoice'}</button>
+        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
+          <button className="btn-secondary w-full sm:w-auto" onClick={() => setInvModal(false)}>Cancel</button>
+          <button className="btn-primary w-full sm:w-auto" onClick={saveInvoice} disabled={invSaving}>{invSaving?'Saving…':'Create Invoice'}</button>
         </div>
       </Modal>
 
@@ -1868,14 +1868,14 @@ export default function AccountingPage() {
               <option value="year">Year</option>
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label className="form-label">Start Date *</label><input type="date" className="form-input" value={periodForm.start_date} onChange={e => setPeriodForm({...periodForm,start_date:e.target.value})} /></div>
             <div><label className="form-label">End Date *</label><input type="date" className="form-input" value={periodForm.end_date} onChange={e => setPeriodForm({...periodForm,end_date:e.target.value})} /></div>
           </div>
         </div>
-        <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => setPeriodModal(false)}>Cancel</button>
-          <button className="btn-primary" onClick={savePeriod} disabled={invSaving}>{invSaving?'Saving…':'Create Period'}</button>
+        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
+          <button className="btn-secondary w-full sm:w-auto" onClick={() => setPeriodModal(false)}>Cancel</button>
+          <button className="btn-primary w-full sm:w-auto" onClick={savePeriod} disabled={invSaving}>{invSaving?'Saving…':'Create Period'}</button>
         </div>
       </Modal>
 
@@ -1883,7 +1883,7 @@ export default function AccountingPage() {
       <Modal open={!!historyModal} onClose={() => setHistoryModal(null)} title={`Payment History — ${historyModal?.label}`} size="xl">
         {historyModal && (
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-gray-50 rounded-xl px-4 py-3">
                 <div className="text-xs text-gray-500 mb-1">Total</div>
                 <div className="font-semibold">GHS {parseFloat(historyModal.total||0).toFixed(2)}</div>
@@ -1976,7 +1976,7 @@ export default function AccountingPage() {
                 <p className="text-xs text-green-600 mt-1">✓ Full payment — payable will be cleared.</p>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="form-label">Payment Method</label>
                 <select className="form-input" value={poPayForm.method} onChange={e => setPoPayForm({ ...poPayForm, method: e.target.value })}>
@@ -1996,10 +1996,10 @@ export default function AccountingPage() {
             </div>
           </div>
         )}
-        <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => setPoPayModal(null)}>Cancel</button>
+        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
+          <button className="btn-secondary w-full sm:w-auto" onClick={() => setPoPayModal(null)}>Cancel</button>
           <button
-            className="btn-primary"
+            className="btn-primary w-full sm:w-auto"
             disabled={poPaySaving || !parseFloat(poPayForm.amount || '0')}
             onClick={async () => {
               setPoPaySaving(true);

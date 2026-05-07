@@ -5,6 +5,7 @@ import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
 import { Plus, Search, Eye, Edit2, Calendar, X, FileText, DollarSign } from 'lucide-react';
 import api from '@/lib/api';
 import InvoiceModal from '@/components/InvoiceModal';
+import ResponsiveTable from '@/components/ui/ResponsiveTable';
 
 const SOURCES = [
   { key: '',            label: 'All Orders' },
@@ -112,12 +113,12 @@ export default function OrdersPage() {
     <AppLayout title="Sales & Orders" subtitle="Manage customer orders and track payments" allowedRoles={['business_owner','branch_manager','sales_staff']}>
 
       {/* ── Source Tabs ── */}
-      <div className="flex gap-0 border-b border-gray-200 mb-5 -mt-1">
+      <div className="flex gap-0 border-b border-gray-200 mb-5 -mt-1 overflow-x-auto">
         {SOURCES.map(s => (
           <button
             key={s.key}
             onClick={() => setFilterSource(s.key)}
-            className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
               filterSource === s.key
                 ? 'border-[#0D3B6E] text-[#0D3B6E]'
                 : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
@@ -134,45 +135,47 @@ export default function OrdersPage() {
       </div>
 
       {/* ── Filters ── */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+      <div className="flex flex-col gap-3 mb-5">
         {/* Search */}
-        <div className="relative flex-1">
+        <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input className="form-input pl-9" placeholder="Search order # or customer…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
-        {/* Status */}
-        <select className="form-input w-auto" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="">All Statuses</option>
-          {['pending','processing','shipped','delivered','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Status */}
+          <select className="form-input w-full sm:w-auto" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <option value="">All Statuses</option>
+            {['pending','processing','shipped','delivered','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
 
-        {/* Date From */}
-        <div className="relative">
-          <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="date" className="form-input pl-9 w-40"
-            value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-          />
+          {/* Date From */}
+          <div className="relative flex-1 sm:flex-initial">
+            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="date" className="form-input pl-9 w-full sm:w-40"
+              value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            />
+          </div>
+
+          {/* Date To */}
+          <div className="relative flex-1 sm:flex-initial">
+            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="date" className="form-input pl-9 w-full sm:w-40"
+              value={dateTo} onChange={e => setDateTo(e.target.value)}
+            />
+          </div>
+
+          {/* Clear filters */}
+          {hasFilters && (
+            <button onClick={clearFilters} className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg border border-red-200 transition-colors w-full sm:w-auto">
+              <X className="w-4 h-4" /> Clear
+            </button>
+          )}
         </div>
 
-        {/* Date To */}
-        <div className="relative">
-          <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="date" className="form-input pl-9 w-40"
-            value={dateTo} onChange={e => setDateTo(e.target.value)}
-          />
-        </div>
-
-        {/* Clear filters */}
-        {hasFilters && (
-          <button onClick={clearFilters} className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg border border-red-200 transition-colors">
-            <X className="w-4 h-4" /> Clear
-          </button>
-        )}
-
-        <button className="btn-primary" onClick={() => { setForm({ customer_name:'',customer_email:'',customer_phone:'',delivery_address:'',payment_status:'paid',payment_method:'cash',items:[{product_id:'',quantity:1}] }); setError(''); setModal('add'); }}>
+        <button className="btn-primary w-full sm:w-auto" onClick={() => { setForm({ customer_name:'',customer_email:'',customer_phone:'',delivery_address:'',payment_status:'paid',payment_method:'cash',items:[{product_id:'',quantity:1}] }); setError(''); setModal('add'); }}>
           <Plus className="w-4 h-4" />New Order
         </button>
       </div>
@@ -190,77 +193,66 @@ export default function OrdersPage() {
       {/* ── Table ── */}
       <div className="card p-0 overflow-hidden">
         {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No orders found" icon="🛒" /> : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="table-header">
-                <tr>{['Order #','Customer','Source','Total','Payment','Status','Date','Actions'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left">{h}</th>
-                ))}</tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map(o => (
-                  <tr key={o.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs font-medium text-blue-700">{o.order_number}</td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{o.customer_name}</div>
-                      <div className="text-xs text-gray-400">{o.customer_email}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${sourceBadgeColor[o.source] || 'bg-gray-100 text-gray-500'}`}>
-                        {sourceLabel[o.source] || o.source || '—'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-semibold">GHS {parseFloat(o.total).toFixed(2)}</td>
-                    <td className="px-4 py-3"><Badge status={o.payment_status} /></td>
-                    <td className="px-4 py-3"><Badge status={o.status} /></td>
-                    <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{new Date(o.created_at || o.createdAt).toLocaleDateString('en-GH', { day:'2-digit', month:'short', year:'numeric' })}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button onClick={() => openInvoice(o)} className="p-1.5 hover:bg-green-50 rounded text-green-600" title="View Invoice"><FileText className="w-4 h-4" /></button>
-                        <button onClick={() => openView(o)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Eye className="w-4 h-4" /></button>
-                        <button onClick={() => openStatus(o)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4" /></button>
-                        {o.payment_status === 'pending' && o.source === 'internal' && (
-                          <button
-                            title="Mark as Paid"
-                            onClick={async () => {
-                              const method = prompt('Payment method? (cash / mobile_money / bank_transfer / card)', 'cash');
-                              if (!method) return;
-                              try {
-                                await api.patch(`/orders/${o.id}/pay`, { payment_method: method });
-                                toast.success('Order marked as paid');
-                                load();
-                              } catch(e:any) { toast.error(e.response?.data?.message || 'Failed'); }
-                            }}
-                            className="p-1.5 hover:bg-yellow-50 rounded text-yellow-600"
-                          ><DollarSign className="w-4 h-4" /></button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
+          <>
+            <ResponsiveTable
+              headers={['Order #','Customer','Source','Total','Payment','Status','Date','Actions']}
+              data={filtered}
+              renderRow={(o) => ([
+                <span className="font-mono text-xs font-medium text-blue-700">{o.order_number}</span>,
+                <div>
+                  <div className="font-medium text-gray-900">{o.customer_name}</div>
+                  <div className="text-xs text-gray-400">{o.customer_email}</div>
+                </div>,
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${sourceBadgeColor[o.source] || 'bg-gray-100 text-gray-500'}`}>
+                  {sourceLabel[o.source] || o.source || '—'}
+                </span>,
+                <span className="font-semibold">GHS {parseFloat(o.total).toFixed(2)}</span>,
+                <Badge status={o.payment_status} />,
+                <Badge status={o.status} />,
+                <span className="text-gray-500 text-xs whitespace-nowrap">{new Date(o.created_at || o.createdAt).toLocaleDateString('en-GH', { day:'2-digit', month:'short', year:'numeric' })}</span>,
+                <div className="flex gap-2">
+                  <button onClick={() => openInvoice(o)} className="p-1.5 hover:bg-green-50 rounded text-green-600" title="View Invoice"><FileText className="w-4 h-4" /></button>
+                  <button onClick={() => openView(o)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Eye className="w-4 h-4" /></button>
+                  <button onClick={() => openStatus(o)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4" /></button>
+                  {o.payment_status === 'pending' && o.source === 'internal' && (
+                    <button
+                      title="Mark as Paid"
+                      onClick={async () => {
+                        const method = prompt('Payment method? (cash / mobile_money / bank_transfer / card)', 'cash');
+                        if (!method) return;
+                        try {
+                          await api.patch(`/orders/${o.id}/pay`, { payment_method: method });
+                          toast.success('Order marked as paid');
+                          load();
+                        } catch(e:any) { toast.error(e.response?.data?.message || 'Failed'); }
+                      }}
+                      className="p-1.5 hover:bg-yellow-50 rounded text-yellow-600"
+                    ><DollarSign className="w-4 h-4" /></button>
+                  )}
+                </div>
+              ])}
+            />
+            <div className="px-3 sm:px-4 py-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
               {filtered.length} order{filtered.length !== 1 ? 's' : ''} · Total: <strong className="text-gray-700">GHS {filtered.reduce((s,o) => s + parseFloat(o.total||0), 0).toFixed(2)}</strong>
             </div>
-          </div>
+          </>
         )}
       </div>
 
       {/* New Order Modal */}
       <Modal open={modal === 'add'} onClose={() => setModal(null)} title="Create Internal Order" size="lg">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="col-span-2"><label className="form-label">Customer Name *</label><input className="form-input" value={form.customer_name} onChange={e => setForm({...form,customer_name:e.target.value})} /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div className="sm:col-span-2"><label className="form-label">Customer Name *</label><input className="form-input" value={form.customer_name} onChange={e => setForm({...form,customer_name:e.target.value})} /></div>
           <div><label className="form-label">Email</label><input className="form-input" type="email" value={form.customer_email} onChange={e => setForm({...form,customer_email:e.target.value})} /></div>
           <div><label className="form-label">Phone</label><input className="form-input" value={form.customer_phone} onChange={e => setForm({...form,customer_phone:e.target.value})} /></div>
-          <div className="col-span-2"><label className="form-label">Delivery Address</label><input className="form-input" value={form.delivery_address} onChange={e => setForm({...form,delivery_address:e.target.value})} /></div>
+          <div className="sm:col-span-2"><label className="form-label">Delivery Address</label><input className="form-input" value={form.delivery_address} onChange={e => setForm({...form,delivery_address:e.target.value})} /></div>
         </div>
 
         {/* Payment section */}
         <div className="border border-gray-100 rounded-xl p-4 mb-4 bg-gray-50">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Payment</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="form-label">Payment Status *</label>
               <select className="form-input" value={form.payment_status} onChange={e => setForm({...form, payment_status: e.target.value})}>
@@ -314,7 +306,7 @@ export default function OrdersPage() {
       <Modal open={modal === 'view'} onClose={() => setModal(null)} title={`Order — ${selected?.order_number}`} size="lg">
         {selected && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div><span className="text-gray-500">Customer:</span> <strong>{selected.customer_name}</strong></div>
               <div><span className="text-gray-500">Email:</span> {selected.customer_email || '—'}</div>
               <div><span className="text-gray-500">Phone:</span> {selected.customer_phone || '—'}</div>
@@ -322,7 +314,7 @@ export default function OrdersPage() {
               <div><span className="text-gray-500">Payment:</span> <Badge status={selected.payment_status} /></div>
               <div><span className="text-gray-500">Status:</span> <Badge status={selected.status} /></div>
               <div><span className="text-gray-500">Date:</span> {new Date(selected.created_at || selected.createdAt).toLocaleString()}</div>
-              {selected.delivery_address && <div className="col-span-2"><span className="text-gray-500">Address:</span> {selected.delivery_address}</div>}
+              {selected.delivery_address && <div className="sm:col-span-2"><span className="text-gray-500">Address:</span> {selected.delivery_address}</div>}
             </div>
             <div className="border-t pt-4">
               <h4 className="font-medium text-gray-800 mb-3">Items</h4>

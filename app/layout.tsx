@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth';
+import ResponsiveDebug from '@/components/ResponsiveDebug';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={inter.className} suppressHydrationWarning>
         <AuthProvider>{children}</AuthProvider>
+        <ResponsiveDebug />
       </body>
     </html>
   );
