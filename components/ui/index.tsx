@@ -155,3 +155,6 @@ export function ConfirmDialog({ open, onClose, onConfirm, title, message, danger
     </Modal>
   );
 }
+
+// ── RESPONSIVE TABLE ──────────────────────────────────────────────────────────
+export { default as ResponsiveTable } from './ResponsiveTable';
