@@ -128,8 +128,8 @@ export default function Sidebar({ open, onClose }: Props) {
             <Building2 className="w-5 h-5 text-blue-900" />
           </div>
           <div>
-            <div className="text-white font-bold text-lg leading-tight">{tenant?.business_name || 'GEMS'}</div>
-            <div className="text-blue-200 text-xs">GTHINK Enterprise Management System</div>
+            <div className="text-white font-bold text-lg leading-tight">GEMS</div>
+            <div className="text-blue-200 text-xs truncate uppercase">{tenant?.business_name || 'Business Portal'}</div>
           </div>
         </div>
         <button onClick={onClose} className="lg:hidden text-white/60 hover:text-white p-1">
@@ -220,6 +220,7 @@ export default function Sidebar({ open, onClose }: Props) {
           <div className="text-white text-sm font-medium truncate">{user?.name}</div>
           <div className="text-blue-200 text-xs truncate">{user?.email}</div>
         </div>
+        <div className="text-blue-300 text-[10px] mt-2 text-center truncate uppercase">GTHINK Enterprise Management System</div>
       </div>
     </aside>
   );

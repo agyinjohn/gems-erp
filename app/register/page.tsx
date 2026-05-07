@@ -101,7 +101,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex">
 
       {/* ── LEFT PANEL ── */}
-      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0D3B6E] flex-col justify-between p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0D3B6E] flex-col p-12 relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-32 -right-32 w-80 h-80 bg-white/5 rounded-full" />
@@ -109,11 +109,17 @@ export default function RegisterPage() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/3 rounded-full" />
         </div>
 
+        {/* Spacer */}
+        <div className="flex-1" />
+
         {/* Logo */}
-        <div className="relative z-10">
-          <Link href="/" className="flex flex-col gap-2">
-            <img src="/ag.png" alt="GEMS Logo" className="h-24 w-auto object-contain brightness-0 invert" />
-            <div className="text-blue-200 text-lg font-bold tracking-wide">GTHINK Enterprise Management System</div>
+        <div className="relative z-10 mb-12">
+          <Link href="/" className="flex items-center gap-3">
+            <Package className="w-10 h-10 text-white" />
+            <div>
+              <div className="text-white text-2xl font-extrabold tracking-tight">GEMS</div>
+              <div className="text-blue-200 text-sm font-medium tracking-wide">GTHINK Enterprise Management System</div>
+            </div>
           </Link>
         </div>
 
@@ -121,7 +127,7 @@ export default function RegisterPage() {
         <div className="relative z-10">
           <div className="mb-8">
             <p className="text-blue-200 text-base leading-relaxed">
-              All-in-one platform for Stocks, Inventory, Sales, Payment, Procurement, Finance, HR, and CRM.
+              All-in-one platform for Inventory, Sales, Payments, Procurement, Finance, HR, CRM, and More — all connected, all in real time.
             </p>
           </div>
 
@@ -163,7 +169,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Bottom */}
-        <div className="relative z-10 text-blue-300 text-xs">
+        <div className="relative z-10 text-blue-300 text-xs mt-auto pt-8">
           © {new Date().getFullYear()} GEMS — GTHINK Enterprise Management System
         </div>
       </div>
@@ -175,7 +181,8 @@ export default function RegisterPage() {
         <div className="flex items-center justify-between px-8 py-5 bg-white border-b border-gray-100 lg:bg-transparent lg:border-0">
           {/* Mobile logo */}
           <Link href="/" className="flex items-center gap-2 lg:hidden">
-            <img src="/ag.png" alt="GEMS Logo" className="h-10 w-auto object-contain" />
+            <Package className="w-8 h-8 text-[#0D3B6E]" />
+            <span className="text-lg font-extrabold text-gray-900">GEMS</span>
           </Link>
           <div className="hidden lg:block" />
           <div className="flex items-center gap-2.5">

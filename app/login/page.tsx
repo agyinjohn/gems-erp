@@ -11,12 +11,13 @@ export default function LoginPage() {
   const [showDemo, setShowDemo] = useState(false);
 
   const DEMO_ACCOUNTS = [
-    { label: 'Business Owner',  email: 'owner@gems-store.com',    password: 'Admin@1234' },
-    { label: 'Sales Staff',     email: 'sales@gthink.com',        password: 'Staff@1234' },
-    { label: 'Warehouse',       email: 'warehouse@gthink.com',    password: 'Staff@1234' },
-    { label: 'Accountant',      email: 'accounts@gthink.com',     password: 'Staff@1234' },
-    { label: 'HR Manager',      email: 'hr@gthink.com',           password: 'Staff@1234' },
-    { label: 'Procurement',     email: 'procurement@gthink.com',  password: 'Staff@1234' },
+    { label: 'Platform Admin', email: 'admin@gthink.com', password: 'Admin@1234' },
+    { label: 'Business Owner', email: 'owner@gems-store.com', password: 'Admin@1234' },
+    { label: 'Sales Staff', email: 'sales@gthink.com', password: 'Staff@1234' },
+    { label: 'Inventory', email: 'warehouse@gthink.com', password: 'Staff@1234' },
+    { label: 'Accountant', email: 'accounts@gthink.com', password: 'Staff@1234' },
+    { label: 'HR Manager', email: 'hr@gthink.com', password: 'Staff@1234' },
+    { label: 'Procurement', email: 'procurement@gthink.com', password: 'Staff@1234' },
   ];
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
@@ -76,7 +77,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right login form ── */}
-      <div className="flex items-center justify-center w-full lg:w-[45%] bg-white px-4 sm:px-8 lg:px-14 overflow-y-auto relative">
+      <div className="flex items-center justify-center w-full lg:w-[45%] bg-white px-4 sm:px-8 lg:px-10 relative">
 
         {/* Subtle background pattern */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -87,12 +88,11 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px] relative z-10">
 
           {/* Logo — desktop only */}
-          <div className="hidden lg:flex flex-col items-center mb-10">
-            <div className="w-16 h-16 bg-[#0D3B6E] rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-3">
-              <Building2 className="w-8 h-8 text-white" />
+          <div className="hidden lg:flex flex-col items-center mb-6">
+            <div className="w-12 h-12 bg-[#0D3B6E] rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-2">
+              <Building2 className="w-6 h-6 text-white" />
             </div>
-            <span className="font-extrabold text-2xl text-[#0D3B6E] tracking-tight">GEMS</span>
-
+            <span className="font-extrabold text-xl text-[#0D3B6E] tracking-tight">GEMS</span>
           </div>
 
           {/* Mobile logo */}
@@ -105,13 +105,13 @@ export default function LoginPage() {
           </div>
 
           {/* Heading */}
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Welcome</h2>
+          <div className="mb-5 text-center">
+            <h2 className="text-2xl font-extrabold text-gray-900 mb-1">Welcome</h2>
             <p className="text-gray-400 text-sm">Enter your credentials to access your workspace</p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
                 <span className="w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center flex-shrink-0">!</span>
@@ -154,7 +154,7 @@ export default function LoginPage() {
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <div className="flex justify-end mt-1.5">
+              <div className="flex justify-end mt-1">
                 <Link href="/forgot-password" className="text-xs text-[#0D3B6E] hover:underline font-medium">Forgot password?</Link>
               </div>
             </div>
@@ -172,7 +172,7 @@ export default function LoginPage() {
           </form>
 
           {/* Demo accounts */}
-          <div className="mt-4">
+          <div className="mt-3">
             <button
               type="button"
               onClick={() => setShowDemo(!showDemo)}
@@ -199,7 +199,7 @@ export default function LoginPage() {
           </div>
 
           {/* Trust badges */}
-          <div className="flex items-center justify-center gap-6 mt-6">
+          <div className="flex items-center justify-center gap-6 mt-4">
             {[
               { icon: '🔒', text: 'SSL Secured' },
               { icon: '🛡️', text: 'Data Protected' },
@@ -213,7 +213,7 @@ export default function LoginPage() {
           </div>
 
           {/* Register CTA */}
-          <div className="mt-7 pt-6 border-t border-gray-100 flex items-center justify-center gap-2.5">
+          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-center gap-2.5">
             <span className="text-sm text-gray-400">Don't have an account?</span>
             <Link
               href="/register"
@@ -224,8 +224,8 @@ export default function LoginPage() {
           </div>
 
           {/* Footer note */}
-          <p className="text-center text-xs text-gray-300 mt-6">
-            &copy; {new Date().getFullYear()} GEMS by GTHINK &middot; All rights reserved
+          <p className="text-center text-xs text-gray-400 mt-5">
+            GEMS Portal - {new Date().getFullYear()} - v1.3.5
           </p>
 
         </div>
