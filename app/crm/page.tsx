@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
-import { Plus, Search, User, TrendingUp, MessageSquare, ArrowRight, Target, Users } from 'lucide-react';
+import { Plus, Search, User, TrendingUp, MessageSquare, ArrowRight, Target, Users, Phone, Mail, MessageCircle, Video, MoreHorizontal } from 'lucide-react';
 import api from '@/lib/api';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
 
@@ -29,7 +29,7 @@ export default function CRMPage() {
 
   const [custForm, setCustForm] = useState({ name:'', email:'', phone:'', company:'', address:'', segment:'general', notes:'' });
   const [leadForm, setLeadForm] = useState({ customer_id:'', title:'', stage:'new', value:'', assigned_to:'', notes:'', next_followup:'' });
-  const [contactForm, setContactForm] = useState({ customer_id:'', type:'call', notes:'', contact_date: new Date().toISOString().split('T')[0] });
+  const [contactForm, setContactForm] = useState<any>({ customer_id:'', type:'call', notes:'', contact_date: new Date().toISOString().split('T')[0], subject:'' });
   const [convertForm, setConvertForm] = useState({ customer_name:'', customer_email:'', customer_phone:'', delivery_address:'', items:[{product_id:'',quantity:1}] });
 
   const load = async () => {
@@ -128,7 +128,7 @@ export default function CRMPage() {
         <div className="sm:ml-auto flex gap-2 w-full sm:w-auto">
           {tab==='customers' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setCustForm({name:'',email:'',phone:'',company:'',address:'',segment:'general',notes:''}); setError(''); setModal('add_customer'); }}><Plus className="w-4 h-4"/>Add Customer</button>}
           {tab==='leads' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setLeadForm({customer_id:'',title:'',stage:'new',value:'',assigned_to:'',notes:'',next_followup:''}); setError(''); setModal('add_lead'); }}><Plus className="w-4 h-4"/>Add Lead</button>}
-          {tab==='contacts' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setContactForm({customer_id:'',type:'call',notes:'',contact_date:new Date().toISOString().split('T')[0]}); setError(''); setModal('add_contact'); }}><MessageSquare className="w-4 h-4"/>Log Contact</button>}
+          {tab==='contacts' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setContactForm({customer_id:'',type:'call',notes:'',contact_date:new Date().toISOString().split('T')[0],subject:''}); setError(''); setModal('add_contact'); }}><MessageSquare className="w-4 h-4"/>Log Contact</button>}
         </div>
       </div>
 
@@ -228,26 +228,118 @@ export default function CRMPage() {
       {/* Log Contact Modal */}
       <Modal open={modal==='add_contact'} onClose={() => setModal(null)} title="Log Contact" size="md">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
-        <div className="space-y-3">
-          <div><label className="form-label">Customer</label>
-            <select className="form-input" value={contactForm.customer_id} onChange={e => setContactForm({...contactForm,customer_id:e.target.value})}>
+        <div className="space-y-4">
+
+          {/* Customer */}
+          <div>
+            <label className="form-label">Customer</label>
+            <select className="form-input" value={contactForm.customer_id} onChange={e => setContactForm({...contactForm, customer_id: e.target.value})}>
               <option value="">Select customer</option>
-              {customers.map(c => <option key={c.id} value={c.id}>{c.name}{c.company?` — ${c.company}`:''}</option>)}
+              {customers.map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ''}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><label className="form-label">Type</label>
-              <select className="form-input" value={contactForm.type} onChange={e => setContactForm({...contactForm,type:e.target.value})}>
-                {['call','email','meeting','whatsapp','other'].map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+
+          {/* Type tabs */}
+          <div>
+            <label className="form-label">Contact Type</label>
+            <div className="grid grid-cols-5 gap-2">
+              {([
+                { type: 'call',      icon: Phone,          label: 'Call',      color: 'text-blue-600 bg-blue-50 border-blue-200' },
+                { type: 'sms',       icon: MessageCircle,  label: 'SMS',       color: 'text-green-600 bg-green-50 border-green-200' },
+                { type: 'whatsapp',  icon: MessageSquare,  label: 'WhatsApp',  color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+                { type: 'email',     icon: Mail,           label: 'Email',     color: 'text-purple-600 bg-purple-50 border-purple-200' },
+                { type: 'meeting',   icon: Video,          label: 'Meeting',   color: 'text-orange-600 bg-orange-50 border-orange-200' },
+              ] as const).map(({ type, icon: Icon, label, color }) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setContactForm({ ...contactForm, type })}
+                  className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 text-xs font-semibold transition-all ${
+                    contactForm.type === type ? color + ' border-current' : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
             </div>
-            <div><label className="form-label">Date</label><input type="date" className="form-input" value={contactForm.contact_date} onChange={e => setContactForm({...contactForm,contact_date:e.target.value})} /></div>
           </div>
-          <div><label className="form-label">Notes</label><textarea className="form-input" rows={3} value={contactForm.notes} onChange={e => setContactForm({...contactForm,notes:e.target.value})} /></div>
+
+          {/* Type-specific fields */}
+          {contactForm.type === 'email' && (
+            <div className="space-y-3 bg-purple-50 border border-purple-100 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-xs font-bold text-purple-700 mb-1">
+                <Mail className="w-3.5 h-3.5" /> Compose Email
+              </div>
+              <div>
+                <label className="form-label">Subject</label>
+                <input className="form-input" placeholder="e.g. Follow-up on proposal" value={(contactForm as any).subject || ''}
+                  onChange={e => setContactForm({ ...contactForm, subject: e.target.value } as any)} />
+              </div>
+              <div>
+                <label className="form-label">Message</label>
+                <textarea className="form-input" rows={4} placeholder="Write your email message here…" value={contactForm.notes}
+                  onChange={e => setContactForm({ ...contactForm, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+
+          {(contactForm.type === 'sms' || contactForm.type === 'whatsapp') && (
+            <div className={`space-y-3 rounded-xl p-4 border ${
+              contactForm.type === 'sms' ? 'bg-green-50 border-green-100' : 'bg-emerald-50 border-emerald-100'
+            }`}>
+              <div className={`flex items-center gap-2 text-xs font-bold mb-1 ${
+                contactForm.type === 'sms' ? 'text-green-700' : 'text-emerald-700'
+              }`}>
+                {contactForm.type === 'sms' ? <MessageCircle className="w-3.5 h-3.5" /> : <MessageSquare className="w-3.5 h-3.5" />}
+                {contactForm.type === 'sms' ? 'Compose SMS' : 'Compose WhatsApp Message'}
+              </div>
+              <div>
+                <label className="form-label">Message</label>
+                <textarea className="form-input" rows={3}
+                  placeholder={contactForm.type === 'sms' ? 'Keep it short — SMS is limited to 160 characters' : 'Write your WhatsApp message…'}
+                  value={contactForm.notes}
+                  onChange={e => setContactForm({ ...contactForm, notes: e.target.value })} />
+                {contactForm.type === 'sms' && (
+                  <p className={`text-xs mt-1 text-right ${ contactForm.notes.length > 160 ? 'text-red-500' : 'text-gray-400' }`}>
+                    {contactForm.notes.length}/160
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {(contactForm.type === 'call' || contactForm.type === 'meeting') && (
+            <div className={`space-y-3 rounded-xl p-4 border ${
+              contactForm.type === 'call' ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'
+            }`}>
+              <div className={`flex items-center gap-2 text-xs font-bold mb-1 ${
+                contactForm.type === 'call' ? 'text-blue-700' : 'text-orange-700'
+              }`}>
+                {contactForm.type === 'call' ? <Phone className="w-3.5 h-3.5" /> : <Video className="w-3.5 h-3.5" />}
+                {contactForm.type === 'call' ? 'Call Notes' : 'Meeting Notes'}
+              </div>
+              <div>
+                <label className="form-label">Notes / Outcome</label>
+                <textarea className="form-input" rows={3}
+                  placeholder={contactForm.type === 'call' ? 'What was discussed? Any follow-up actions?' : 'Meeting agenda, decisions made, next steps…'}
+                  value={contactForm.notes}
+                  onChange={e => setContactForm({ ...contactForm, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+
+          {/* Date */}
+          <div>
+            <label className="form-label">Date</label>
+            <input type="date" className="form-input" value={contactForm.contact_date}
+              onChange={e => setContactForm({ ...contactForm, contact_date: e.target.value })} />
+          </div>
         </div>
+
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={saveContact} disabled={saving}>{saving?'Saving…':'Log Contact'}</button>
+          <button className="btn-primary" onClick={saveContact} disabled={saving}>{saving ? 'Saving…' : 'Log Contact'}</button>
         </div>
       </Modal>
 

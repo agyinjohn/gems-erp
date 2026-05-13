@@ -307,7 +307,7 @@
 //                   </div>
 //                   <div>
 //                     <div className="flex gap-0.5 mb-0.5">{[...Array(5)].map((_,i) => <Star key={i} className="w-3 h-3 text-yellow-400 fill-yellow-400" />)}</div>
-//                     <p className="text-blue-200 text-xs">Trusted by <span className="font-bold text-white">500+</span> businesses</p>
+//                     <p className="text-blue-200 text-xs">Trusted by <span className="font-bold text-white">100+</span> businesses</p>
 //                   </div>
 //                 </div>
 //               </div>
@@ -391,7 +391,7 @@
 //         <div className="max-w-5xl mx-auto">
 //           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
 //             {[
-//               { value: '500+', label: 'Businesses', icon: Building2, color: 'bg-blue-50 text-blue-600' },
+//               { value: '100+', label: 'Businesses', icon: Building2, color: 'bg-blue-50 text-blue-600' },
 //               { value: '9',    label: 'Modules',    icon: Package,   color: 'bg-purple-50 text-purple-600' },
 //               { value: '99.9%',label: 'Uptime',     icon: Zap,       color: 'bg-yellow-50 text-yellow-600' },
 //               { value: '24/7', label: 'Support',    icon: Shield,    color: 'bg-green-50 text-green-600' },
@@ -724,14 +724,14 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Package, ShoppingCart, Users, Calculator, Truck, BarChart2,
   CheckCircle, ArrowRight, Menu, X, Store, Building2,
-  Star, Zap, Shield, Globe, UserCheck, Phone,
+  Star, Zap, Shield, Globe, UserCheck, Phone, Mail, MessageCircle, MessageSquare,
 } from 'lucide-react';
 
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
   { label: 'How it works', href: '#how-it-works' },
   { label: 'Pricing', href: '#pricing' },
-  { label: 'Contact', href: '#contact' },
+  { label: 'Get in Touch', href: '#contact' },
 ];
 
 const FEATURES = [
@@ -927,6 +927,8 @@ function ContactForm() {
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
+  const [contactChannel, setContactChannel] = useState<'email'|'sms'|'whatsapp'>('email');
+  const [contactMsg, setContactMsg] = useState({ name:'', contact:'', subject:'', message:'' });
   const [heroVisible, setHeroVisible] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -1079,7 +1081,7 @@ export default function LandingPage() {
               </div>
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '300ms' }}>
                 <p className="text-lg text-blue-200 mb-8 leading-relaxed max-w-lg">
-                  All-in-one platform for Inventory, Sales, Payments, Procurement, Finance, HR, CRM, and More — all connected, all in real time.
+                  All-in-one platform for Stocks, Inventory, Sales, eCommerce, Payments, Procurement, Finance, Accounting, HR, CRM, and More — all connected, all in real time.
                 </p>
               </div>
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '450ms' }}>
@@ -1105,7 +1107,7 @@ export default function LandingPage() {
                     <div className="flex gap-0.5 mb-0.5">
                       {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-yellow-400 fill-yellow-400" />)}
                     </div>
-                    <p className="text-blue-200 text-xs">Trusted by <span className="font-bold text-white">500+</span> businesses</p>
+                    <p className="text-blue-200 text-xs">Trusted by <span className="font-bold text-white">100+</span> businesses</p>
                   </div>
                 </div>
               </div>
@@ -1270,8 +1272,8 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             {[
-              { value: '500+', label: 'Businesses', icon: Building2, color: 'bg-blue-50 text-blue-600' },
-              { value: '9', label: 'Modules', icon: Package, color: 'bg-purple-50 text-purple-600' },
+              { value: '100+', label: 'Businesses', icon: Building2, color: 'bg-blue-50 text-blue-600' },
+              { value: '10', label: 'Modules', icon: Package, color: 'bg-purple-50 text-purple-600' },
               { value: '99.9%', label: 'Uptime', icon: Zap, color: 'bg-yellow-50 text-yellow-600' },
               { value: '24/7', label: 'Support', icon: Shield, color: 'bg-green-50 text-green-600' },
             ].map(s => {
@@ -1601,80 +1603,118 @@ export default function LandingPage() {
       </section>
 
       {/* ── CONTACT ── */}
-      <section id="contact" className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-
-          {/* Heading */}
-          <div className="text-center mb-14">
-            <span className="inline-block bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4">Contact Us</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Get in touch or schedule a demo</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">Have questions? Want to see GEMS in action? Reach out and our team will get back to you within 24 hours.</p>
+      <section id="contact" className="py-24 px-6 bg-gray-50 border-t border-gray-100">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Get in touch</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">We'd love to hear from you</h2>
+            <p className="text-gray-500 text-lg">Reach us via your preferred channel. We typically respond within a few hours.</p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
 
-            {/* Left — contact info */}
-            <div className="space-y-8">
+            {/* Left — contact info cards */}
+            <div className="space-y-4">
               {[
-                {
-                  icon: (
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                  ),
-                  label: 'Email us',
-                  value: 'hello@gthink.com',
-                  href: 'mailto:hello@gthink.com',
-                },
-                {
-                  icon: (
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" /><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.855L.057 23.428a.75.75 0 00.916.916l5.573-1.471A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.693 9.693 0 01-4.953-1.358l-.355-.211-3.683.972.986-3.595-.231-.371A9.694 9.694 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z" /></svg>
-                  ),
-                  label: 'WhatsApp',
-                  value: '+233 24 155 0366',
-                  href: 'https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27d%20like%20to%20schedule%20a%20demo.',
-                },
-                {
-                  icon: (
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                  ),
-                  label: 'Location',
-                  value: 'Accra, Ghana',
-                  href: null,
-                },
-              ].map(({ icon, label, value, href }) => (
-                <div key={label} className="flex items-start gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
-                    {icon}
+                { icon: Phone,         label: 'Call Us',       value: '+233 241 550 366',        sub: '+233 256 791 600 · +233 303 957 042', color: 'bg-blue-50 text-blue-600',       href: 'tel:+233241550366' },
+                { icon: MessageCircle, label: 'SMS',           value: '+233 241 550 366',        sub: 'Text us anytime',                    color: 'bg-green-50 text-green-600',     href: 'sms:+233241550366' },
+                { icon: MessageSquare, label: 'WhatsApp',      value: '+233 241 550 366',        sub: 'Quick responses guaranteed',         color: 'bg-emerald-50 text-emerald-600', href: 'https://wa.me/233241550366' },
+                { icon: Mail,          label: 'Email',         value: 'support@gthink.com',      sub: 'We reply within 24 hours',           color: 'bg-purple-50 text-purple-600',   href: 'mailto:support@gthink.com' },
+              ].map(({ icon: Icon, label, value, sub, color, href }) => (
+                <a key={label} href={href} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-gray-200 transition-all group">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-0.5">{label}</p>
-                    {href ? (
-                      <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer" className="text-gray-900 font-semibold hover:text-blue-600 transition-colors">{value}</a>
-                    ) : (
-                      <p className="text-gray-900 font-semibold">{value}</p>
-                    )}
+                  <div className="flex-1">
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-0.5">{label}</div>
+                    <div className="font-semibold text-gray-900 group-hover:text-[#0D3B6E] transition-colors">{value}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{sub}</div>
                   </div>
-                </div>
-              ))}
-
-              {/* Schedule demo CTA */}
-              <div className="bg-gradient-to-br from-[#0D3B6E] to-[#1A5294] rounded-2xl p-6 text-white">
-                <h3 className="font-bold text-lg mb-2">Book a free demo</h3>
-                <p className="text-blue-200 text-sm mb-4">See GEMS live in 20 minutes. We'll walk you through every module tailored to your business.</p>
-                <a
-                  href="https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27d%20like%20to%20book%20a%20free%20demo."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors"
-                >
-                  <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" /><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.855L.057 23.428a.75.75 0 00.916.916l5.573-1.471A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.693 9.693 0 01-4.953-1.358l-.355-.211-3.683.972.986-3.595-.231-.371A9.694 9.694 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z" /></svg>
-                  Chat on WhatsApp
+                  <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#0D3B6E] group-hover:translate-x-1 transition-all" />
                 </a>
-              </div>
+              ))}
             </div>
 
-            {/* Right — contact form */}
-            <ContactForm />
+            {/* Right — message form with channel tabs */}
+            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+              <h3 className="font-bold text-gray-900 mb-5">Send us a message</h3>
 
+              {/* Channel tabs */}
+              <div className="grid grid-cols-3 gap-2 mb-5">
+                {([
+                  { type: 'email',    icon: Mail,          label: 'Email',    color: 'text-purple-600 bg-purple-50 border-purple-200' },
+                  { type: 'sms',     icon: MessageCircle, label: 'SMS',      color: 'text-green-600 bg-green-50 border-green-200' },
+                  { type: 'whatsapp',icon: MessageSquare, label: 'WhatsApp', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+                ] as const).map(({ type, icon: Icon, label, color }) => (
+                  <button key={type} type="button"
+                    onClick={() => setContactChannel(type)}
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
+                      contactChannel === type ? color + ' border-current' : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                    }`}>
+                    <Icon className="w-4 h-4" /> {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="form-label">Name *</label>
+                    <input className="form-input" placeholder="Your name" value={contactMsg.name} onChange={e => setContactMsg(m => ({...m, name: e.target.value}))} />
+                  </div>
+                  <div>
+                    <label className="form-label">{contactChannel === 'email' ? 'Email *' : 'Phone *'}</label>
+                    <input className="form-input"
+                      placeholder={contactChannel === 'email' ? 'you@company.com' : '+233 XX XXX XXXX'}
+                      value={contactMsg.contact}
+                      onChange={e => setContactMsg(m => ({...m, contact: e.target.value}))} />
+                  </div>
+                </div>
+
+                {contactChannel === 'email' && (
+                  <div>
+                    <label className="form-label">Subject</label>
+                    <input className="form-input" placeholder="e.g. Question about pricing"
+                      value={contactMsg.subject} onChange={e => setContactMsg(m => ({...m, subject: e.target.value}))} />
+                  </div>
+                )}
+
+                <div>
+                  <label className="form-label">Message *</label>
+                  <textarea className="form-input" rows={4}
+                    placeholder={
+                      contactChannel === 'email' ? 'Write your message here…' :
+                      contactChannel === 'sms' ? 'Keep it short — 160 characters max' :
+                      'Write your WhatsApp message…'
+                    }
+                    value={contactMsg.message}
+                    onChange={e => setContactMsg(m => ({...m, message: e.target.value}))} />
+                  {contactChannel === 'sms' && (
+                    <p className={`text-xs mt-1 text-right ${contactMsg.message.length > 160 ? 'text-red-500' : 'text-gray-400'}`}>
+                      {contactMsg.message.length}/160
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (!contactMsg.name || !contactMsg.contact || !contactMsg.message) return;
+                    if (contactChannel === 'email') {
+                      window.location.href = `mailto:support@gthink.com?subject=${encodeURIComponent(contactMsg.subject||'Contact from '+contactMsg.name)}&body=${encodeURIComponent(contactMsg.message)}`;
+                    } else if (contactChannel === 'whatsapp') {
+                      window.open(`https://wa.me/233241550366?text=${encodeURIComponent(contactMsg.message)}`, '_blank');
+                    } else {
+                      window.location.href = `sms:+233241550366?body=${encodeURIComponent(contactMsg.message)}`;
+                    }
+                  }}
+                  className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-12 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+                >
+                  {contactChannel === 'email' ? <Mail className="w-4 h-4" /> : contactChannel === 'sms' ? <MessageCircle className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+                  Send via {contactChannel === 'email' ? 'Email' : contactChannel === 'sms' ? 'SMS' : 'WhatsApp'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -1717,7 +1757,7 @@ export default function LandingPage() {
                 <img src="/ag.png" alt="GEMS Logo" className="h-16 sm:h-20 md:h-24 w-auto object-contain" />
               </div>
               <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-6">
-                The all-in-one business management platform for growing companies. Inventory, Sales, Payments, Procurement, Finance, HR, CRM, and More — all connected in real time.
+                The all-in-one business management platform for growing companies. Stocks, Inventory, Sales, eCommerce, Payments, Procurement, Finance, Accounting, HR, CRM, and More — all connected in real time.
               </p>
 
               {/* Newsletter */}
@@ -1736,18 +1776,17 @@ export default function LandingPage() {
               {/* Social */}
               <div className="flex gap-2">
                 {[
-                  { label: 'LinkedIn', path: 'M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z M4 6a2 2 0 100-4 2 2 0 000 4z' },
-                  { label: 'Twitter', path: 'M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z' },
-                  { label: 'Facebook', path: 'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z' },
-                  { label: 'YouTube', path: 'M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 00-1.95 1.96A29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z' },
+                  { label: 'Facebook',  href: 'https://www.facebook.com/share/1DkjiyTDzC/',      path: 'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z' },
+                  { label: 'Instagram', href: 'https://www.instagram.com/gthink_company_ltd',    path: 'M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01M6.5 19.5h11a3 3 0 003-3v-11a3 3 0 00-3-3h-11a3 3 0 00-3 3v11a3 3 0 003 3z' },
+                  { label: 'WhatsApp',  href: 'https://wa.me/233241550366',                      path: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z' },
                 ].map(s => (
-                  <button key={s.label} aria-label={s.label}
+                  <a key={s.label} href={s.href} target="_blank" rel="noreferrer" aria-label={s.label}
                     className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gray-800 hover:bg-yellow-400 text-gray-400 hover:text-gray-900 border border-gray-700 hover:border-yellow-400 flex items-center justify-center transition-all"
                   >
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d={s.path} />
                     </svg>
-                  </button>
+                  </a>
                 ))}
               </div>
             </div>
