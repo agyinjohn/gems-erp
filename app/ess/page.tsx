@@ -175,14 +175,14 @@ export default function ESSPage() {
                             <Banknote className="w-5 h-5 text-green-600" />
                           </div>
                           <div className="text-xs text-gray-400 mb-0.5">Gross Salary</div>
-                          <div className="text-lg font-extrabold text-gray-900">GHS {parseFloat(me.gross_salary||0).toLocaleString('en-GH', { minimumFractionDigits:2 })}</div>
+                          <div className="text-lg font-extrabold text-gray-900">GH₵ {parseFloat(me.gross_salary||0).toLocaleString('en-GH', { minimumFractionDigits:2 })}</div>
                         </div>
                         <div className="bg-white rounded-2xl border border-gray-100 p-4">
                           <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center mb-3">
                             <TrendingUp className="w-5 h-5 text-blue-600" />
                           </div>
                           <div className="text-xs text-gray-400 mb-0.5">Total Earned</div>
-                          <div className="text-lg font-extrabold text-gray-900">GHS {totalEarned.toLocaleString('en-GH', { minimumFractionDigits:2 })}</div>
+                          <div className="text-lg font-extrabold text-gray-900">GH₵ {totalEarned.toLocaleString('en-GH', { minimumFractionDigits:2 })}</div>
                         </div>
                         <div className="bg-white rounded-2xl border border-gray-100 p-4">
                           <div className="w-9 h-9 bg-yellow-50 rounded-xl flex items-center justify-center mb-3">
@@ -222,9 +222,9 @@ export default function ESSPage() {
                             <p className="text-xs text-gray-400 mb-4">{months[latestPayslip.month - 1]} {latestPayslip.year}</p>
                             <div className="space-y-2">
                               {[
-                                { label: 'Gross Salary',  value: `GHS ${parseFloat(latestPayslip.gross_salary).toFixed(2)}`,        color: 'text-gray-800' },
-                                { label: 'Allowances',    value: `+ GHS ${parseFloat(latestPayslip.allowances||0).toFixed(2)}`,     color: 'text-green-600' },
-                                { label: 'Deductions',    value: `- GHS ${parseFloat(latestPayslip.deductions||0).toFixed(2)}`,     color: 'text-red-500' },
+                                { label: 'Gross Salary',  value: `GH₵ ${parseFloat(latestPayslip.gross_salary).toFixed(2)}`,        color: 'text-gray-800' },
+                                { label: 'Allowances',    value: `+ GH₵ ${parseFloat(latestPayslip.allowances||0).toFixed(2)}`,     color: 'text-green-600' },
+                                { label: 'Deductions',    value: `- GH₵ ${parseFloat(latestPayslip.deductions||0).toFixed(2)}`,     color: 'text-red-500' },
                               ].map(row => (
                                 <div key={row.label} className="flex justify-between text-sm py-1.5 border-b border-gray-50">
                                   <span className="text-gray-500">{row.label}</span>
@@ -233,7 +233,7 @@ export default function ESSPage() {
                               ))}
                               <div className="flex justify-between text-sm pt-2">
                                 <span className="font-bold text-gray-800">Net Pay</span>
-                                <span className="font-extrabold text-blue-700 text-base">GHS {parseFloat(latestPayslip.net_salary).toFixed(2)}</span>
+                                <span className="font-extrabold text-blue-700 text-base">GH₵ {parseFloat(latestPayslip.net_salary).toFixed(2)}</span>
                               </div>
                             </div>
                           </>
@@ -316,10 +316,10 @@ export default function ESSPage() {
                       {payslips.map(p => (
                         <tr key={p.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium">{months[p.month - 1]} {p.year}</td>
-                          <td className="px-4 py-3">GHS {parseFloat(p.gross_salary).toFixed(2)}</td>
-                          <td className="px-4 py-3 text-green-600">+GHS {parseFloat(p.allowances||0).toFixed(2)}</td>
-                          <td className="px-4 py-3 text-red-600">-GHS {parseFloat(p.deductions||0).toFixed(2)}</td>
-                          <td className="px-4 py-3 font-bold text-blue-700">GHS {parseFloat(p.net_salary).toFixed(2)}</td>
+                          <td className="px-4 py-3">GH₵ {parseFloat(p.gross_salary).toFixed(2)}</td>
+                          <td className="px-4 py-3 text-green-600">+GH₵ {parseFloat(p.allowances||0).toFixed(2)}</td>
+                          <td className="px-4 py-3 text-red-600">-GH₵ {parseFloat(p.deductions||0).toFixed(2)}</td>
+                          <td className="px-4 py-3 font-bold text-blue-700">GH₵ {parseFloat(p.net_salary).toFixed(2)}</td>
                           <td className="px-4 py-3"><Badge status={p.status} /></td>
                         </tr>
                       ))}

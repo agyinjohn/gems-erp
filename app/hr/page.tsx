@@ -166,7 +166,7 @@ export default function HRPage() {
                         <td className="px-4 py-3 text-gray-600">{e.department_name||'—'}</td>
                         <td className="px-4 py-3 text-gray-600">{e.job_title||'—'}</td>
                         <td className="px-4 py-3 text-gray-500 text-xs capitalize">{(e.employment_type||'full_time').replace('_',' ')}</td>
-                        <td className="px-4 py-3 font-semibold">GHS {parseFloat(e.gross_salary).toFixed(2)}</td>
+                        <td className="px-4 py-3 font-semibold">GH₵ {parseFloat(e.gross_salary).toFixed(2)}</td>
                         <td className="px-4 py-3"><Badge status={e.status} /></td>
                       </tr>
                     ))}
@@ -298,10 +298,10 @@ export default function HRPage() {
                     <tr key={p.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium">{p.employee_name||'—'}</td>
                       <td className="px-4 py-3 text-gray-500">{months[p.month-1]} {p.year}</td>
-                      <td className="px-4 py-3">GHS {parseFloat(p.gross_salary).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-green-600">+GHS {parseFloat(p.allowances||0).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-red-600">-GHS {parseFloat(p.deductions||0).toFixed(2)}</td>
-                      <td className="px-4 py-3 font-semibold">GHS {parseFloat(p.net_salary).toFixed(2)}</td>
+                      <td className="px-4 py-3">GH₵ {parseFloat(p.gross_salary).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-green-600">+GH₵ {parseFloat(p.allowances||0).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-red-600">-GH₵ {parseFloat(p.deductions||0).toFixed(2)}</td>
+                      <td className="px-4 py-3 font-semibold">GH₵ {parseFloat(p.net_salary).toFixed(2)}</td>
                       <td className="px-4 py-3"><Badge status={p.status} /></td>
                       <td className="px-4 py-3">
                         {p.status==='submitted' && <button onClick={() => approvePayroll(p.id)} className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4"/></button>}
@@ -473,7 +473,7 @@ export default function HRPage() {
                 <option value="intern">Intern</option>
               </select>
             </div>
-            <div><label className="form-label">Gross Salary (GHS) *</label><input type="number" className="form-input" value={empForm.gross_salary} onChange={e => setEmpForm({...empForm,gross_salary:e.target.value})} /></div>
+            <div><label className="form-label">Gross Salary (GH₵) *</label><input type="number" className="form-input" value={empForm.gross_salary} onChange={e => setEmpForm({...empForm,gross_salary:e.target.value})} /></div>
             <div><label className="form-label">Start Date</label><input type="date" className="form-input" value={empForm.start_date} onChange={e => setEmpForm({...empForm,start_date:e.target.value})} /></div>
           </div>
         )}
@@ -496,7 +496,7 @@ export default function HRPage() {
           <div><label className="form-label">Employee *</label>
             <select className="form-input" value={payForm.employee_id} onChange={e => setPayForm({...payForm,employee_id:e.target.value})}>
               <option value="">Select employee</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{e.name} — GHS {e.gross_salary}</option>)}
+              {employees.map(e => <option key={e.id} value={e.id}>{e.name} — GH₵ {e.gross_salary}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -508,17 +508,17 @@ export default function HRPage() {
             <div><label className="form-label">Year</label><input type="number" className="form-input" value={payForm.year} onChange={e => setPayForm({...payForm,year:parseInt(e.target.value)})} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="form-label">Allowances (GHS)</label><input type="number" className="form-input" value={payForm.allowances} onChange={e => setPayForm({...payForm,allowances:e.target.value})} /></div>
-            <div><label className="form-label">Deductions (GHS)</label><input type="number" className="form-input" value={payForm.deductions} onChange={e => setPayForm({...payForm,deductions:e.target.value})} /></div>
+            <div><label className="form-label">Allowances (GH₵)</label><input type="number" className="form-input" value={payForm.allowances} onChange={e => setPayForm({...payForm,allowances:e.target.value})} /></div>
+            <div><label className="form-label">Deductions (GH₵)</label><input type="number" className="form-input" value={payForm.deductions} onChange={e => setPayForm({...payForm,deductions:e.target.value})} /></div>
           </div>
           {payForm.employee_id && (
             <div className="bg-blue-50 rounded-lg p-3 text-sm">
               <div className="font-medium text-blue-800">Payroll Preview</div>
               <div className="text-blue-600 mt-1">
-                Gross: GHS {employees.find(e=>e.id==payForm.employee_id)?.gross_salary || 0} +
-                Allowances: GHS {payForm.allowances} −
-                Deductions: GHS {payForm.deductions} =
-                <strong> Net: GHS {(parseFloat(employees.find(e=>e.id==payForm.employee_id)?.gross_salary||0) + parseFloat(payForm.allowances||'0') - parseFloat(payForm.deductions||'0')).toFixed(2)}</strong>
+                Gross: GH₵ {employees.find(e=>e.id==payForm.employee_id)?.gross_salary || 0} +
+                Allowances: GH₵ {payForm.allowances} −
+                Deductions: GH₵ {payForm.deductions} =
+                <strong> Net: GH₵ {(parseFloat(employees.find(e=>e.id==payForm.employee_id)?.gross_salary||0) + parseFloat(payForm.allowances||'0') - parseFloat(payForm.deductions||'0')).toFixed(2)}</strong>
               </div>
             </div>
           )}

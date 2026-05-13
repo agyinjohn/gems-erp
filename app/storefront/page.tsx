@@ -298,13 +298,13 @@ export default function StorefrontPage() {
                         <div className="text-sm font-medium text-gray-800 truncate">{i.product.name}</div>
                         <div className="text-xs text-gray-400">Qty: {i.quantity}</div>
                       </div>
-                      <div className="text-sm font-semibold text-gray-800">GHS {(i.product.price * i.quantity).toFixed(2)}</div>
+                      <div className="text-sm font-semibold text-gray-800">GH₵ {(i.product.price * i.quantity).toFixed(2)}</div>
                     </div>
                   ))}
                 </div>
                 <div className="flex justify-between font-bold text-gray-900 pt-3 mt-1 border-t border-gray-100">
                   <span>Total Paid</span>
-                  <span>GHS {cartTotal.toFixed(2)}</span>
+                  <span>GH₵ {cartTotal.toFixed(2)}</span>
                 </div>
               </div>
             )}
@@ -404,7 +404,7 @@ export default function StorefrontPage() {
               </div>
               <div className="hidden md:block text-left">
                 <div className="text-[10px] text-blue-300 uppercase tracking-wide">Cart</div>
-                <div className="text-sm font-bold text-white group-hover:text-yellow-400 transition-colors">GHS {cartTotal.toFixed(2)}</div>
+                <div className="text-sm font-bold text-white group-hover:text-yellow-400 transition-colors">GH₵ {cartTotal.toFixed(2)}</div>
               </div>
             </button>
           </div>
@@ -466,7 +466,7 @@ export default function StorefrontPage() {
                 )}
                 {(priceMax !== '' || priceMin > 0) && (
                   <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-xs font-medium px-2.5 py-1 rounded-full">
-                    GHS {priceMin}&ndash;{priceMax !== '' ? priceMax : '∞'}
+                    GH₵ {priceMin}&ndash;{priceMax !== '' ? priceMax : '∞'}
                     <button onClick={() => { setPriceMin(0); setPriceMax(''); resetPage(); }} className="hover:text-purple-900">&times;</button>
                   </span>
                 )}
@@ -516,19 +516,19 @@ export default function StorefrontPage() {
               {openSections.price && (
                 <div className="px-5 pb-5">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-semibold text-[#0D3B6E] bg-blue-50 px-2.5 py-1.5 rounded-lg">GHS {priceMin.toLocaleString()}</span>
+                    <span className="text-xs font-semibold text-[#0D3B6E] bg-blue-50 px-2.5 py-1.5 rounded-lg">GH₵ {priceMin.toLocaleString()}</span>
                     <span className="text-xs text-gray-400">&mdash;</span>
-                    <span className="text-xs font-semibold text-[#0D3B6E] bg-blue-50 px-2.5 py-1.5 rounded-lg">{priceMax !== '' ? `GHS ${Number(priceMax).toLocaleString()}` : 'Any'}</span>
+                    <span className="text-xs font-semibold text-[#0D3B6E] bg-blue-50 px-2.5 py-1.5 rounded-lg">{priceMax !== '' ? `GH₵ ${Number(priceMax).toLocaleString()}` : 'Any'}</span>
                   </div>
                   <div className="space-y-3 mb-4">
                     <div>
-                      <div className="flex justify-between text-[10px] text-gray-400 mb-1"><span>Min</span><span>GHS {priceMin}</span></div>
+                      <div className="flex justify-between text-[10px] text-gray-400 mb-1"><span>Min</span><span>GH₵ {priceMin}</span></div>
                       <input type="range" min={0} max={maxProductPrice} step={50} value={priceMin}
                         onChange={e => { setPriceMin(Number(e.target.value)); resetPage(); }}
                         className="w-full accent-[#0D3B6E] cursor-pointer" />
                     </div>
                     <div>
-                      <div className="flex justify-between text-[10px] text-gray-400 mb-1"><span>Max</span><span>{priceMax !== '' ? `GHS ${priceMax}` : 'Any'}</span></div>
+                      <div className="flex justify-between text-[10px] text-gray-400 mb-1"><span>Max</span><span>{priceMax !== '' ? `GH₵ ${priceMax}` : 'Any'}</span></div>
                       <input type="range" min={0} max={maxProductPrice} step={50}
                         value={priceMax !== '' ? priceMax : maxProductPrice}
                         onChange={e => { setPriceMax(Number(e.target.value) >= maxProductPrice ? '' : Number(e.target.value)); resetPage(); }}
@@ -537,7 +537,7 @@ export default function StorefrontPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {([[0,200],[200,500],[500,1000],[1000,'']] as [number,number|''][]).map(([mn,mx]) => {
-                      const label = mx === '' ? `GHS ${mn}+` : `GHS ${mn}\u2013${mx}`;
+                      const label = mx === '' ? `GH₵ ${mn}+` : `GH₵ ${mn}\u2013${mx}`;
                       const active = priceMin === mn && priceMax === mx;
                       return (
                         <button key={label} onClick={() => { setPriceMin(mn); setPriceMax(mx); resetPage(); }}
@@ -619,7 +619,7 @@ export default function StorefrontPage() {
           <div className="flex items-center justify-center gap-8 bg-yellow-400 rounded-xl px-6 py-3 mb-6">
             <div className="flex items-center gap-2">
               <Truck className="w-4 h-4 text-gray-800 flex-shrink-0" />
-              <span className="text-gray-900 text-sm font-semibold">Free Delivery on orders over GHS 500</span>
+              <span className="text-gray-900 text-sm font-semibold">Free Delivery on orders over GH₵ 500</span>
             </div>
             <div className="hidden md:block w-px h-4 bg-yellow-600/30" />
             <div className="hidden md:flex items-center gap-2">
@@ -762,7 +762,7 @@ export default function StorefrontPage() {
                           </div>
 
                           <div className="mt-auto">
-                            <div className="text-xl font-extrabold text-gray-900 mb-1">GHS {parseFloat(p.price).toFixed(2)}</div>
+                            <div className="text-xl font-extrabold text-gray-900 mb-1">GH₵ {parseFloat(p.price).toFixed(2)}</div>
                             {p.stock_qty > 0 && (
                               <div className="text-[10px] text-green-600 font-semibold mb-3">In Stock</div>
                             )}
@@ -877,7 +877,7 @@ export default function StorefrontPage() {
                   <span className="text-sm text-blue-600 hover:underline cursor-pointer">24 ratings</span>
                 </div>
                 <div className="mb-4">
-                  <div className="text-3xl font-extrabold text-gray-900">GHS {parseFloat(selectedProduct.price).toFixed(2)}</div>
+                  <div className="text-3xl font-extrabold text-gray-900">GH₵ {parseFloat(selectedProduct.price).toFixed(2)}</div>
                   <div className="text-xs text-gray-400 mt-0.5">Inclusive of all taxes</div>
                 </div>
                 <div className="mb-4">
@@ -896,14 +896,14 @@ export default function StorefrontPage() {
               {/* Buy Box */}
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 sticky top-24">
-                  <div className="text-2xl font-extrabold text-gray-900 mb-1">GHS {parseFloat(selectedProduct.price).toFixed(2)}</div>
-                  <div className="text-xs text-gray-400 mb-4">Free delivery on orders over GHS 500</div>
+                  <div className="text-2xl font-extrabold text-gray-900 mb-1">GH₵ {parseFloat(selectedProduct.price).toFixed(2)}</div>
+                  <div className="text-xs text-gray-400 mb-4">Free delivery on orders over GH₵ 500</div>
                   {selectedProduct.stock_qty > 0 ? (
                     <>
                       <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-2">
                         <div className="flex items-center gap-2 text-sm text-gray-700">
                           <Truck className="w-4 h-4 text-green-600 flex-shrink-0" />
-                          <span><strong>Free delivery</strong> on orders over GHS 500</span>
+                          <span><strong>Free delivery</strong> on orders over GH₵ 500</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-700">
                           <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0" />
@@ -978,7 +978,7 @@ export default function StorefrontPage() {
                         </div>
                         <div className="p-3">
                           <p className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1">{p.name}</p>
-                          <p className="text-sm font-extrabold text-gray-900">GHS {parseFloat(p.price).toFixed(2)}</p>
+                          <p className="text-sm font-extrabold text-gray-900">GH₵ {parseFloat(p.price).toFixed(2)}</p>
                         </div>
                       </div>
                     ))}
@@ -1056,7 +1056,7 @@ export default function StorefrontPage() {
                   className="w-full bg-yellow-400 hover:bg-yellow-300 disabled:opacity-60 text-gray-900 font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
                 >
                   <Lock className="w-4 h-4" />
-                  {paying ? 'Processing…' : `Pay GHS ${cartTotal.toFixed(2)} with Paystack`}
+                  {paying ? 'Processing…' : `Pay GH₵ ${cartTotal.toFixed(2)} with Paystack`}
                 </button>
                 <p className="text-[10px] text-gray-400 text-center mt-2">You will be redirected to Paystack to complete payment securely</p>
               </div>
@@ -1079,26 +1079,26 @@ export default function StorefrontPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-medium text-gray-800 truncate">{i.product.name}</div>
-                        <div className="text-xs text-gray-400">GHS {parseFloat(i.product.price).toFixed(2)} each</div>
+                        <div className="text-xs text-gray-400">GH₵ {parseFloat(i.product.price).toFixed(2)} each</div>
                       </div>
-                      <div className="text-sm font-semibold text-gray-900 flex-shrink-0">GHS {(i.product.price * i.quantity).toFixed(2)}</div>
+                      <div className="text-sm font-semibold text-gray-900 flex-shrink-0">GH₵ {(i.product.price * i.quantity).toFixed(2)}</div>
                     </div>
                   ))}
                 </div>
                 <div className="border-t border-gray-100 pt-3 space-y-2">
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>Subtotal ({cartCount} items)</span>
-                    <span>GHS {cartTotal.toFixed(2)}</span>
+                    <span>GH₵ {cartTotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>Delivery</span>
                     <span className={deliveryFee === 0 ? 'text-green-600 font-medium' : ''}>
-                      {deliveryFee === 0 ? 'Free' : `GHS ${deliveryFee.toFixed(2)}`}
+                      {deliveryFee === 0 ? 'Free' : `GH₵ ${deliveryFee.toFixed(2)}`}
                     </span>
                   </div>
                   <div className="flex justify-between font-bold text-gray-900 text-base pt-2 border-t border-gray-100">
                     <span>Total</span>
-                    <span>GHS {orderTotal.toFixed(2)}</span>
+                    <span>GH₵ {orderTotal.toFixed(2)}</span>
                   </div>
                 </div>
                 <button onClick={() => setShowCart(true)} className="w-full mt-4 text-xs text-blue-600 hover:underline text-center">
@@ -1118,7 +1118,7 @@ export default function StorefrontPage() {
         <div className="bg-gray-800 border-b border-gray-700">
           <div className="max-w-7xl mx-auto px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { icon: <Truck className="w-5 h-5" />, title: 'Free Delivery', sub: 'On orders over GHS 500' },
+              { icon: <Truck className="w-5 h-5" />, title: 'Free Delivery', sub: 'On orders over GH₵ 500' },
               { icon: <ShieldCheck className="w-5 h-5" />, title: 'Secure Checkout', sub: 'Paystack — card & mobile money' },
               { icon: <BadgeCheck className="w-5 h-5" />, title: 'Quality Guaranteed', sub: 'Verified suppliers only' },
               { icon: <Search className="w-5 h-5" />, title: 'Order Tracking', sub: 'Know where your order is' },
@@ -1419,8 +1419,8 @@ export default function StorefrontPage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-gray-800 truncate">{i.product.name}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">GHS {parseFloat(i.product.price).toFixed(2)} each</div>
-                    <div className="text-xs font-bold text-gray-900 mt-0.5">Subtotal: GHS {(i.product.price * i.quantity).toFixed(2)}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">GH₵ {parseFloat(i.product.price).toFixed(2)} each</div>
+                    <div className="text-xs font-bold text-gray-900 mt-0.5">Subtotal: GH₵ {(i.product.price * i.quantity).toFixed(2)}</div>
 
                     {/* Qty + Remove */}
                     <div className="flex items-center gap-2 mt-2">
@@ -1450,21 +1450,21 @@ export default function StorefrontPage() {
               <div className="p-4 border-t border-gray-100 bg-white space-y-3">
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>Subtotal ({cartCount} items)</span>
-                  <span>GHS {cartTotal.toFixed(2)}</span>
+                  <span>GH₵ {cartTotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>Delivery</span>
                   <span className={deliveryFee === 0 ? 'text-green-600 font-medium' : ''}>
-                    {deliveryFee === 0 ? 'Free' : `GHS ${deliveryFee.toFixed(2)}`}
+                    {deliveryFee === 0 ? 'Free' : `GH₵ ${deliveryFee.toFixed(2)}`}
                   </span>
                 </div>
                 <div className="flex justify-between font-bold text-gray-900 text-base pt-2 border-t border-gray-100">
                   <span>Total</span>
-                  <span>GHS {orderTotal.toFixed(2)}</span>
+                  <span>GH₵ {orderTotal.toFixed(2)}</span>
                 </div>
                 {deliveryFee > 0 && (
                   <div className="text-xs text-center text-gray-400 bg-yellow-50 rounded-lg py-2 px-3">
-                    Add <strong>GHS {(500 - cartTotal).toFixed(2)}</strong> more for free delivery
+                    Add <strong>GH₵ {(500 - cartTotal).toFixed(2)}</strong> more for free delivery
                   </div>
                 )}
                 <button

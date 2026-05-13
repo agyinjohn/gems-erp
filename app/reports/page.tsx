@@ -29,7 +29,7 @@ export default function ReportsPage() {
   }, [tab, dateFrom, dateTo]);
   useEffect(() => { load(); }, [tab]);
 
-  const fmt = (n: any) => `GHS ${parseFloat(n||0).toFixed(2)}`;
+  const fmt = (n: any) => `GH₵ ${parseFloat(n||0).toFixed(2)}`;
 
   const exportCSV = () => {
     const rows: string[][] = [['Report', tab.toUpperCase()], ['Generated', new Date().toLocaleString()], []];
@@ -98,7 +98,7 @@ export default function ReportsPage() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                         <XAxis dataKey="month" tick={{fontSize:11}} />
                         <YAxis tick={{fontSize:11}} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
-                        <Tooltip formatter={(v:any)=>[`GHS ${Number(v).toFixed(2)}`,'Revenue']} />
+                        <Tooltip formatter={(v:any)=>[`GH₵ ${Number(v).toFixed(2)}`,'Revenue']} />
                         <Bar dataKey="revenue" fill="#1A6BB5" radius={[4,4,0,0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -112,7 +112,7 @@ export default function ReportsPage() {
                         <Pie data={data.top_products} dataKey="revenue" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,percent})=>`${name} ${((percent??0)*100).toFixed(0)}%`}>
                           {data.top_products.map((_:any,i:number) => <Cell key={i} fill={COLORS[i%COLORS.length]} />)}
                         </Pie>
-                        <Tooltip formatter={(v:any)=>[`GHS ${Number(v).toFixed(2)}`]} />
+                        <Tooltip formatter={(v:any)=>[`GH₵ ${Number(v).toFixed(2)}`]} />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : <div className="h-40 flex items-center justify-center text-gray-400 text-sm">No data</div>}
@@ -156,7 +156,7 @@ export default function ReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis dataKey="category" tick={{fontSize:11}} />
                       <YAxis tick={{fontSize:11}} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
-                      <Tooltip formatter={(v:any)=>[`GHS ${Number(v).toFixed(2)}`,'Value']} />
+                      <Tooltip formatter={(v:any)=>[`GH₵ ${Number(v).toFixed(2)}`,'Value']} />
                       <Bar dataKey="value" fill="#0D3B6E" radius={[4,4,0,0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -196,7 +196,7 @@ export default function ReportsPage() {
                       <Pie data={data.expenses_by_category} dataKey="total" nameKey="category" cx="50%" cy="50%" outerRadius={80} label>
                         {data.expenses_by_category.map((_:any,i:number) => <Cell key={i} fill={COLORS[i%COLORS.length]} />)}
                       </Pie>
-                      <Tooltip formatter={(v:any)=>[`GHS ${Number(v).toFixed(2)}`]} />
+                      <Tooltip formatter={(v:any)=>[`GH₵ ${Number(v).toFixed(2)}`]} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -226,7 +226,7 @@ export default function ReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis dataKey="supplier" tick={{fontSize:11}} />
                       <YAxis tick={{fontSize:11}} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
-                      <Tooltip formatter={(v:any)=>[`GHS ${Number(v).toFixed(2)}`,'Spend']} />
+                      <Tooltip formatter={(v:any)=>[`GH₵ ${Number(v).toFixed(2)}`,'Spend']} />
                       <Bar dataKey="total" fill="#0D3B6E" radius={[4,4,0,0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -238,7 +238,7 @@ export default function ReportsPage() {
                   <table className="w-full text-sm">
                     <thead className="table-header"><tr><th className="px-3 py-2 text-left">PO #</th><th className="px-3 py-2 text-left">Supplier</th><th className="px-3 py-2 text-left">Total</th><th className="px-3 py-2 text-left">Status</th></tr></thead>
                     <tbody>{data.recent_pos.map((p:any) => (
-                      <tr key={p._id || p.po_number} className="border-t"><td className="px-3 py-2 font-mono text-xs text-blue-700">{p.po_number}</td><td className="px-3 py-2">{p.supplier_name}</td><td className="px-3 py-2 font-semibold">GHS {parseFloat(p.total_cost).toFixed(2)}</td><td className="px-3 py-2 capitalize">{p.status}</td></tr>
+                      <tr key={p._id || p.po_number} className="border-t"><td className="px-3 py-2 font-mono text-xs text-blue-700">{p.po_number}</td><td className="px-3 py-2">{p.supplier_name}</td><td className="px-3 py-2 font-semibold">GH₵ {parseFloat(p.total_cost).toFixed(2)}</td><td className="px-3 py-2 capitalize">{p.status}</td></tr>
                     ))}</tbody>
                   </table>
                 </div>

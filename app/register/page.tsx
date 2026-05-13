@@ -10,7 +10,7 @@ import api from '@/lib/api';
 
 const PERKS = [
   { icon: Zap,    text: 'Up and running in minutes' },
-  { icon: Shield, text: '14-day free trial, cancel anytime' },
+  { icon: Shield, text: '14-day free trial, subscribe to continue' },
   { icon: Globe,  text: 'Your own branded eCommerce store' },
   { icon: Users,  text: 'Invite your whole team' },
 ];
@@ -388,7 +388,7 @@ export default function RegisterPage() {
 
                 <div className="mt-4 flex items-center gap-2.5 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-xl px-4 py-3">
                   <Zap className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-                  <p className="text-xs text-blue-700"><strong>14-day free trial</strong> — card required, not charged for 14 days. Cancel anytime.</p>
+                  <p className="text-xs text-blue-700"><strong>14-day free trial</strong> — card required, not charged for 14 days. Subscribe to continue.</p>
                 </div>
               </div>
             )}
@@ -446,7 +446,7 @@ export default function RegisterPage() {
                   <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">What happens next</p>
                   <div className="space-y-0">
                     {[
-                      { dot: 'bg-green-500',  day: 'Today',    text: 'Card saved — GHS 0 charged now' },
+                      { dot: 'bg-green-500',  day: 'Today',    text: 'Card saved — GH₵ 0 charged now' },
                       { dot: 'bg-blue-400',   day: 'Days 1–13', text: 'Full access to every module, free' },
                       { dot: 'bg-yellow-400', day: 'Day 13',   text: 'We remind you before any charge' },
                       { dot: 'bg-[#0D3B6E]', day: 'Day 14',   text: 'Auto-billed only if you keep access' },
@@ -470,7 +470,7 @@ export default function RegisterPage() {
                   {[
                     { icon: Shield, text: 'SSL Secured' },
                     { icon: Lock,   text: 'PCI Compliant' },
-                    { icon: Zap,    text: 'Cancel anytime' },
+                    { icon: Zap,    text: 'Subscribe to continue' },
                   ].map(({ icon: Icon, text }) => (
                     <div key={text} className="flex items-center gap-1.5 text-xs text-gray-400">
                       <Icon className="w-3.5 h-3.5 text-gray-300" />

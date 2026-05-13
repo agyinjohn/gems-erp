@@ -335,7 +335,7 @@ export default function POSPage() {
                       <div className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide mb-1">{p.category_name || 'General'}</div>
                       <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 leading-snug">{p.name}</h3>
                       <div className="mt-auto">
-                        <div className="text-lg font-extrabold text-gray-900 mb-1">GHS {parseFloat(String(p.price)).toFixed(2)}</div>
+                        <div className="text-lg font-extrabold text-gray-900 mb-1">GH₵ {parseFloat(String(p.price)).toFixed(2)}</div>
                         {!outOfStock && (
                           <div className="text-[10px] text-green-600 font-semibold">
                             {inCart ? `${inCart.quantity} in cart` : 'In Stock'}
@@ -411,7 +411,7 @@ export default function POSPage() {
                       <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-400 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{idx + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-800 leading-snug truncate">{i.product.name}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">GHS {parseFloat(String(i.product.price)).toFixed(2)} each</p>
+                        <p className="text-xs text-gray-400 mt-0.5">GH₵ {parseFloat(String(i.product.price)).toFixed(2)} each</p>
                         {/* Qty controls */}
                         <div className="flex items-center gap-2 mt-2">
                           <button
@@ -438,7 +438,7 @@ export default function POSPage() {
                           <X className="w-4 h-4" />
                         </button>
                         <span className="text-sm font-extrabold text-gray-900 tabular-nums">
-                          GHS {(i.product.price * i.quantity).toFixed(2)}
+                          GH₵ {(i.product.price * i.quantity).toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -454,11 +454,11 @@ export default function POSPage() {
             <div className="px-5 py-3 space-y-1.5 border-b border-gray-100">
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Items ({cartCount})</span>
-                <span className="tabular-nums">GHS {cartTotal.toFixed(2)}</span>
+                <span className="tabular-nums">GH₵ {cartTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-base font-extrabold text-gray-900 pt-1">
                 <span>Total</span>
-                <span className="tabular-nums text-[#0D3B6E]">GHS {cartTotal.toFixed(2)}</span>
+                <span className="tabular-nums text-[#0D3B6E]">GH₵ {cartTotal.toFixed(2)}</span>
               </div>
             </div>
             {/* Charge button */}
@@ -469,7 +469,7 @@ export default function POSPage() {
                 className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold py-4 rounded-2xl text-base transition-all flex items-center justify-center gap-2.5 shadow-md"
               >
                 <Banknote className="w-5 h-5" />
-                {cart.length === 0 ? 'Add items to charge' : `Charge  GHS ${cartTotal.toFixed(2)}`}
+                {cart.length === 0 ? 'Add items to charge' : `Charge  GH₵ ${cartTotal.toFixed(2)}`}
               </button>
             </div>
           </div>
@@ -486,7 +486,7 @@ export default function POSPage() {
             <div className="bg-[#0D3B6E] px-6 py-4 flex items-center justify-between">
               <div>
                 <p className="text-white/60 text-xs font-medium uppercase tracking-widest">Amount Due</p>
-                <p className="text-white font-extrabold text-3xl tabular-nums">GHS {cartTotal.toFixed(2)}</p>
+                <p className="text-white font-extrabold text-3xl tabular-nums">GH₵ {cartTotal.toFixed(2)}</p>
               </div>
               <button onClick={() => setShowPayModal(false)} className="text-white/50 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors">
                 <X className="w-5 h-5" />
@@ -527,11 +527,11 @@ export default function POSPage() {
                   {/* Display */}
                   <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-right mb-3">
                     <p className="text-2xl font-extrabold text-gray-900 tabular-nums">
-                      GHS {amountTendered || '0.00'}
+                      GH₵ {amountTendered || '0.00'}
                     </p>
                     {parseFloat(amountTendered) >= cartTotal && (
                       <p className="text-sm font-semibold text-green-600 mt-0.5">
-                        Change: GHS {(parseFloat(amountTendered) - cartTotal).toFixed(2)}
+                        Change: GH₵ {(parseFloat(amountTendered) - cartTotal).toFixed(2)}
                       </p>
                     )}
                   </div>
@@ -629,10 +629,10 @@ export default function POSPage() {
                   <div key={i.product.id} className="flex justify-between items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-800 font-medium truncate">{i.product.name}</p>
-                      <p className="text-xs text-gray-400">{i.quantity} &times; GHS {parseFloat(String(i.product.price)).toFixed(2)}</p>
+                      <p className="text-xs text-gray-400">{i.quantity} &times; GH₵ {parseFloat(String(i.product.price)).toFixed(2)}</p>
                     </div>
                     <span className="text-sm font-bold text-gray-900 tabular-nums flex-shrink-0">
-                      GHS {(i.product.price * i.quantity).toFixed(2)}
+                      GH₵ {(i.product.price * i.quantity).toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -642,7 +642,7 @@ export default function POSPage() {
               <div className="border-t border-dashed border-gray-200 pt-3 space-y-1.5">
                 <div className="flex justify-between font-extrabold text-gray-900 text-base">
                   <span>Total Paid</span>
-                  <span className="tabular-nums">GHS {receipt.total.toFixed(2)}</span>
+                  <span className="tabular-nums">GH₵ {receipt.total.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>Payment Method</span>
@@ -652,11 +652,11 @@ export default function POSPage() {
                   <>
                     <div className="flex justify-between text-xs text-gray-500">
                       <span>Cash Tendered</span>
-                      <span className="tabular-nums">GHS {receipt.amount_tendered.toFixed(2)}</span>
+                      <span className="tabular-nums">GH₵ {receipt.amount_tendered.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm font-bold text-green-600">
                       <span>Change</span>
-                      <span className="tabular-nums">GHS {receipt.change.toFixed(2)}</span>
+                      <span className="tabular-nums">GH₵ {receipt.change.toFixed(2)}</span>
                     </div>
                   </>
                 )}

@@ -296,7 +296,7 @@
 //                     <Store className="w-4 h-4" /> View Demo Store
 //                   </Link>
 //                 </div>
-//                 <p className="text-blue-300 text-sm">14-day free trial · Not charged until day 14 · Cancel anytime</p>
+//                 <p className="text-blue-300 text-sm">14-day free trial · Not charged until day 14 · Subscribe to continue</p>
 //               </div>
 //               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '600ms' }}>
 //                 <div className="flex items-center gap-4 mt-8 pt-8 border-t border-white/10">
@@ -331,7 +331,7 @@
 //                   <div className="bg-gray-50 p-4">
 //                     <div className="grid grid-cols-4 gap-2 mb-3">
 //                       {[
-//                         { label: 'Revenue',   value: `GHS ${revenue}k`,          change: '+12%', color: 'text-green-600',  bar: 'bg-green-400',  pct: '72%' },
+//                         { label: 'Revenue',   value: `GH₵ ${revenue}k`,          change: '+12%', color: 'text-green-600',  bar: 'bg-green-400',  pct: '72%' },
 //                         { label: 'Orders',    value: orders.toLocaleString(),     change: '+8%',  color: 'text-blue-600',   bar: 'bg-blue-400',   pct: '65%' },
 //                         { label: 'Products',  value: products.toString(),         change: '+3%',  color: 'text-purple-600', bar: 'bg-purple-400', pct: '48%' },
 //                         { label: 'Customers', value: customers.toLocaleString(),  change: '+18%', color: 'text-orange-600', bar: 'bg-orange-400', pct: '80%' },
@@ -368,7 +368,7 @@
 //                         <div className="bg-white rounded-xl p-2.5 border border-gray-100 shadow-sm flex-1" style={{ opacity: heroVisible ? 1 : 0, transition: 'opacity 0.6s ease', transitionDelay: '1100ms' }}>
 //                           <div className="text-[10px] font-bold text-gray-700 mb-1.5">Recent Orders</div>
 //                           <div className="space-y-1.5">
-//                             {[['Kofi M.','GHS 420','bg-green-400'],['Abena A.','GHS 185','bg-yellow-400'],['Yaw D.','GHS 930','bg-green-400']].map(([n,a,c]) => (
+//                             {[['Kofi M.','GH₵ 420','bg-green-400'],['Abena A.','GH₵ 185','bg-yellow-400'],['Yaw D.','GH₵ 930','bg-green-400']].map(([n,a,c]) => (
 //                               <div key={n} className="flex items-center justify-between">
 //                                 <div className="flex items-center gap-1"><div className={`w-1.5 h-1.5 rounded-full ${c}`} /><span className="text-[9px] text-gray-600">{n}</span></div>
 //                                 <span className="text-[9px] font-bold text-gray-700">{a}</span>
@@ -520,7 +520,7 @@
 //           <div className="text-center mb-14">
 //             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Pricing</span>
 //             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Simple, transparent pricing</h2>
-//             <p className="text-gray-500 text-lg">Start free for 14 days. Not charged until day 14. Cancel anytime.</p>
+//             <p className="text-gray-500 text-lg">Start free for 14 days. Not charged until day 14. Subscribe to continue.</p>
 //           </div>
 //           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
 //             {PLANS.map(p => (
@@ -584,7 +584,7 @@
 //               Log In to Dashboard
 //             </Link>
 //           </div>
-//           <p className="text-blue-300 text-xs mt-6">14-day free trial · Not charged until day 14 · Cancel anytime</p>
+//           <p className="text-blue-300 text-xs mt-6">14-day free trial · Not charged until day 14 · Subscribe to continue</p>
 //         </div>
 //       </section>
 
@@ -815,7 +815,7 @@ const PLANS = [
   {
     key: 'starter',
     label: 'Starter',
-    price: 29,
+    price: 350,
     color: 'border-gray-200',
     badge: 'bg-blue-100 text-blue-700',
     features: ['1 Branch', '5 Users', 'Inventory & POS', 'Online Storefront', 'Sales & Orders', 'Basic Reports'],
@@ -823,7 +823,7 @@ const PLANS = [
   {
     key: 'pro',
     label: 'Pro',
-    price: 79,
+    price: 850,
     popular: true,
     color: 'border-[#0D3B6E]',
     badge: 'bg-purple-100 text-purple-700',
@@ -832,7 +832,7 @@ const PLANS = [
   {
     key: 'enterprise',
     label: 'Enterprise',
-    price: 199,
+    price: 2000,
     color: 'border-gray-200',
     badge: 'bg-orange-100 text-orange-700',
     features: ['Unlimited Branches', 'Unlimited Users', 'All Pro features', 'Dedicated Support', 'Custom Onboarding', 'SLA Guarantee'],
@@ -1079,7 +1079,7 @@ export default function LandingPage() {
               </div>
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '300ms' }}>
                 <p className="text-lg text-blue-200 mb-8 leading-relaxed max-w-lg">
-                  All-in-one platform for Stocks, Inventory, Sales, Procurement, Finance, HR, and CRM — all connected, all in real time.
+                  All-in-one platform for Inventory, Sales, Payments, Procurement, Finance, HR, CRM, and More — all connected, all in real time.
                 </p>
               </div>
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '450ms' }}>
@@ -1091,7 +1091,7 @@ export default function LandingPage() {
                     <Store className="w-4 h-4" /> View Demo Store
                   </Link>
                 </div>
-                <p className="text-blue-300 text-sm">14-day free trial · Not charged until day 14 · Cancel anytime</p>
+                <p className="text-blue-300 text-sm">14-day free trial · Not charged until day 14 · Subscribe to continue</p>
               </div>
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '600ms' }}>
                 <div className="flex items-center gap-4 mt-8 pt-8 border-t border-white/10">
@@ -1133,7 +1133,7 @@ export default function LandingPage() {
                     {/* KPI row — animated counters */}
                     <div className="grid grid-cols-4 gap-2 mb-3">
                       {[
-                        { label: 'Revenue', value: `GHS ${revenue}k`, change: '+12%', color: 'text-green-600', bar: 'bg-green-400', pct: '72%' },
+                        { label: 'Revenue', value: `GH₵ ${revenue}k`, change: '+12%', color: 'text-green-600', bar: 'bg-green-400', pct: '72%' },
                         { label: 'Orders', value: orders.toLocaleString(), change: '+8%', color: 'text-blue-600', bar: 'bg-blue-400', pct: '65%' },
                         { label: 'Products', value: products.toString(), change: '+3%', color: 'text-purple-600', bar: 'bg-purple-400', pct: '48%' },
                         { label: 'Customers', value: customers.toLocaleString(), change: '+18%', color: 'text-orange-600', bar: 'bg-orange-400', pct: '80%' },
@@ -1242,7 +1242,7 @@ export default function LandingPage() {
                           style={{ opacity: heroVisible ? 1 : 0, transition: 'opacity 0.6s ease', transitionDelay: '1300ms' }}>
                           <div className="text-[10px] font-bold text-gray-700 mb-1.5">Recent Orders</div>
                           <div className="space-y-1.5">
-                            {[['Kofi M.', 'GHS 420', 'bg-green-400'], ['Abena A.', 'GHS 185', 'bg-yellow-400'], ['Yaw D.', 'GHS 930', 'bg-green-400']].map(([n, a, c], i) => (
+                            {[['Kofi M.', 'GH₵ 420', 'bg-green-400'], ['Abena A.', 'GH₵ 185', 'bg-yellow-400'], ['Yaw D.', 'GH₵ 930', 'bg-green-400']].map(([n, a, c], i) => (
                               <div key={n} className="flex items-center justify-between"
                                 style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateX(0)' : 'translateX(8px)', transition: 'opacity 0.4s ease, transform 0.4s ease', transitionDelay: `${1400 + i * 100}ms` }}>
                                 <div className="flex items-center gap-1">
@@ -1299,7 +1299,7 @@ export default function LandingPage() {
           <div className="text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Everything you need</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">One System. Every Module.</h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">GEMS gives you Inventory, Sales, Procurement, Finance, HR and CRM — all connected, all in real time.</p>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">GEMS gives you Inventory, Sales, Payments, Procurement, Finance, HR, CRM, and More — all connected, all in real time.</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
@@ -1349,8 +1349,8 @@ export default function LandingPage() {
                 };
                 const STATS: Record<string, { l: string, v: string }[]> = {
                   inventory: [{ l: 'Products', v: '342' }, { l: 'Low Stock', v: '18' }, { l: 'Turnover', v: '94%' }],
-                  sales: [{ l: 'Orders', v: '1,284' }, { l: 'Revenue', v: 'GHS 124k' }, { l: 'Avg Order', v: 'GHS 97' }],
-                  accounting: [{ l: 'Expenses', v: 'GHS 42k' }, { l: 'Net Profit', v: 'GHS 82k' }, { l: 'Entries', v: '156' }],
+                  sales: [{ l: 'Orders', v: '1,284' }, { l: 'Revenue', v: 'GH₵ 124k' }, { l: 'Avg Order', v: 'GH₵ 97' }],
+                  accounting: [{ l: 'Expenses', v: 'GH₵ 42k' }, { l: 'Net Profit', v: 'GH₵ 82k' }, { l: 'Entries', v: '156' }],
                   procurement: [{ l: 'POs', v: '48' }, { l: 'Suppliers', v: '12' }, { l: 'On Time', v: '91%' }],
                   hr: [{ l: 'Employees', v: '24' }, { l: 'On Leave', v: '2' }, { l: 'Attendance', v: '97%' }],
                   crm: [{ l: 'Customers', v: '891' }, { l: 'Leads', v: '64' }, { l: 'Won', v: '38%' }],
@@ -1496,7 +1496,7 @@ export default function LandingPage() {
           <div className="text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Pricing</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Simple, transparent pricing</h2>
-            <p className="text-gray-500 text-lg">Start free for 14 days. Not charged until day 14. Cancel anytime.</p>
+            <p className="text-gray-500 text-lg">Start free for 14 days. Not charged until day 14. Subscribe to continue.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
             {PLANS.map(p => (
@@ -1509,7 +1509,7 @@ export default function LandingPage() {
                 )}
                 <span className={`text-xs font-bold px-3 py-1 rounded-full inline-block mb-4 w-fit ${p.badge}`}>{p.label}</span>
                 <div className="text-4xl font-extrabold text-gray-900 mb-1">
-                  ${p.price}<span className="text-base font-normal text-gray-400">/mo</span>
+                  GH₵ {p.price}<span className="text-base font-normal text-gray-400">/mo</span>
                 </div>
                 <p className="text-xs text-gray-400 mb-6">per month, billed monthly</p>
                 <ul className="space-y-3 flex-1 mb-8">
@@ -1596,7 +1596,7 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <p className="text-blue-300 text-xs mt-6">14-day free trial · Not charged until day 14 · Cancel anytime</p>
+          <p className="text-blue-300 text-xs mt-6">14-day free trial · Not charged until day 14 · Subscribe to continue</p>
         </div>
       </section>
 
@@ -1717,7 +1717,7 @@ export default function LandingPage() {
                 <img src="/ag.png" alt="GEMS Logo" className="h-16 sm:h-20 md:h-24 w-auto object-contain" />
               </div>
               <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-6">
-                The all-in-one business management platform for growing companies. Inventory, Sales, Finance, HR, Procurement and CRM — all connected in real time.
+                The all-in-one business management platform for growing companies. Inventory, Sales, Payments, Procurement, Finance, HR, CRM, and More — all connected in real time.
               </p>
 
               {/* Newsletter */}

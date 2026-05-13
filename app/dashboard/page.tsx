@@ -7,7 +7,7 @@ import { Package, ShoppingCart, Users, DollarSign, AlertTriangle, TrendingUp, Us
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
-const fmt = (n: number) => n >= 1000 ? `GHS ${(n/1000).toFixed(1)}k` : `GHS ${n?.toFixed(2) || '0.00'}`;
+const fmt = (n: number) => n >= 1000 ? `GH₵ ${(n/1000).toFixed(1)}k` : `GH₵ ${n?.toFixed(2) || '0.00'}`;
 
 const ALL_ROLES = ['super_admin','business_owner','branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer'];
 
@@ -50,7 +50,7 @@ export default function DashboardPage() {
           <StatCard label="Healthy Stock"   value={kpis.healthy_stock  ?? '—'} icon={<Package className="w-6 h-6 text-green-600" />}       color="bg-green-50"  sub="Above threshold" />
           <StatCard label="Low Stock"        value={kpis.low_stock      ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-yellow-600" />} color="bg-yellow-50" sub="Below threshold" />
           <StatCard label="Out of Stock"     value={kpis.out_of_stock   ?? '—'} icon={<Package className="w-6 h-6 text-red-600" />}         color="bg-red-50"    sub="Zero quantity" />
-          <StatCard label="Inventory Value"  value={`GHS ${(kpis.stock_value || 0).toLocaleString('en-GH', { minimumFractionDigits: 0 })}`} icon={<DollarSign className="w-6 h-6 text-indigo-600" />} color="bg-indigo-50" sub="At cost price" />
+          <StatCard label="Inventory Value"  value={`GH₵ ${(kpis.stock_value || 0).toLocaleString('en-GH', { minimumFractionDigits: 0 })}`} icon={<DollarSign className="w-6 h-6 text-indigo-600" />} color="bg-indigo-50" sub="At cost price" />
           <StatCard label="Pending Deliveries" value={kpis.pending_pos ?? '—'} icon={<Truck className="w-6 h-6 text-cyan-600" />}          color="bg-cyan-50"   sub="POs awaiting receipt" />
         </div>
 
@@ -339,7 +339,7 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: any) => [`GHS ${Number(v).toFixed(2)}`, 'Revenue']} />
+                  <Tooltip formatter={(v: any) => [`GH₵ ${Number(v).toFixed(2)}`, 'Revenue']} />
                   <Bar dataKey="revenue" fill="#1A6BB5" radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -379,7 +379,7 @@ export default function DashboardPage() {
                       <div className="text-xs text-gray-500">{o.customer_name}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-gray-900">GHS {parseFloat(o.total).toFixed(2)}</div>
+                      <div className="text-sm font-semibold text-gray-900">GH₵ {parseFloat(o.total).toFixed(2)}</div>
                       <Badge status={o.payment_status} />
                     </div>
                   </div>
@@ -412,7 +412,7 @@ export default function DashboardPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-sm font-medium text-gray-900 truncate">{p.name}</span>
-                              <span className="text-sm font-bold text-gray-900 flex-shrink-0">GHS {Number(p.revenue).toLocaleString('en-GH', { minimumFractionDigits: 0 })}</span>
+                              <span className="text-sm font-bold text-gray-900 flex-shrink-0">GH₵ {Number(p.revenue).toLocaleString('en-GH', { minimumFractionDigits: 0 })}</span>
                             </div>
                           </div>
                         </div>

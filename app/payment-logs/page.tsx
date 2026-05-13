@@ -151,7 +151,7 @@ export default function PaymentLogsPage() {
                           </span>
                         </td>
                         <td className="px-5 py-3 text-right font-bold text-gray-900">
-                          {log.currency === 'USD' ? '$' : 'GHS'} {parseFloat(log.amount).toFixed(2)}
+                          {log.currency === 'USD' ? '$' : 'GH₵'} {parseFloat(log.amount).toFixed(2)}
                         </td>
                       </tr>
                     );

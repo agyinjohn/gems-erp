@@ -121,7 +121,7 @@ export default function UsersPage() {
                       {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                   </div>
-                  <div><label className="form-label">Gross Salary (GHS)</label><input type="number" className="form-input" placeholder="0.00" value={form.gross_salary} onChange={e => setForm({...form, gross_salary: e.target.value})} /></div>
+                  <div><label className="form-label">Gross Salary (GH₵)</label><input type="number" className="form-input" placeholder="0.00" value={form.gross_salary} onChange={e => setForm({...form, gross_salary: e.target.value})} /></div>
                 </div>
               </div>
             </>

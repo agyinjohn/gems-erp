@@ -112,7 +112,7 @@ export default function ProcurementPage() {
                 renderRow={(po) => [
                   <span className="font-mono text-xs font-medium text-blue-700">{po.po_number}</span>,
                   <span className="font-medium">{po.supplier_name || '—'}</span>,
-                  <span className="font-semibold">GHS {parseFloat(po.total_cost||0).toFixed(2)}</span>,
+                  <span className="font-semibold">GH₵ {parseFloat(po.total_cost||0).toFixed(2)}</span>,
                   <Badge status={po.status} />,
                   <span className="text-gray-500 text-xs">{po.expected_date ? new Date(po.expected_date).toLocaleDateString() : '—'}</span>,
                   <div className="flex gap-2">
@@ -176,7 +176,7 @@ export default function ProcurementPage() {
               </div>
             ))}
           </div>
-          <div className="text-right font-semibold mt-3">Total: GHS {getPoTotal().toFixed(2)}</div>
+          <div className="text-right font-semibold mt-3">Total: GH₵ {getPoTotal().toFixed(2)}</div>
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>

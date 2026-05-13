@@ -206,7 +206,7 @@ export default function OrdersPage() {
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${sourceBadgeColor[o.source] || 'bg-gray-100 text-gray-500'}`}>
                   {sourceLabel[o.source] || o.source || '—'}
                 </span>,
-                <span className="font-semibold">GHS {parseFloat(o.total).toFixed(2)}</span>,
+                <span className="font-semibold">GH₵ {parseFloat(o.total).toFixed(2)}</span>,
                 <Badge status={o.payment_status} />,
                 <Badge status={o.status} />,
                 <span className="text-gray-500 text-xs whitespace-nowrap">{new Date(o.created_at || o.createdAt).toLocaleDateString('en-GH', { day:'2-digit', month:'short', year:'numeric' })}</span>,
@@ -233,7 +233,7 @@ export default function OrdersPage() {
               ])}
             />
             <div className="px-3 sm:px-4 py-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
-              {filtered.length} order{filtered.length !== 1 ? 's' : ''} · Total: <strong className="text-gray-700">GHS {filtered.reduce((s,o) => s + parseFloat(o.total||0), 0).toFixed(2)}</strong>
+              {filtered.length} order{filtered.length !== 1 ? 's' : ''} · Total: <strong className="text-gray-700">GH₵ {filtered.reduce((s,o) => s + parseFloat(o.total||0), 0).toFixed(2)}</strong>
             </div>
           </>
         )}
@@ -287,14 +287,14 @@ export default function OrdersPage() {
               <div key={i} className="flex gap-2 items-center">
                 <select className="form-input flex-1" value={item.product_id} onChange={e => updateItem(i,'product_id',e.target.value)}>
                   <option value="">Select product</option>
-                  {products.map((p:any) => <option key={p.id} value={p.id}>{p.name} — GHS {p.price} (stock: {p.stock_qty})</option>)}
+                  {products.map((p:any) => <option key={p.id} value={p.id}>{p.name} — GH₵ {p.price} (stock: {p.stock_qty})</option>)}
                 </select>
                 <input type="number" className="form-input w-20" min={1} value={item.quantity} onChange={e => updateItem(i,'quantity',parseInt(e.target.value))} />
                 {form.items.length > 1 && <button onClick={() => removeItem(i)} className="text-red-400 hover:text-red-600 px-1">✕</button>}
               </div>
             ))}
           </div>
-          <div className="mt-4 text-right font-semibold text-gray-900">Total: GHS {getTotal().toFixed(2)}</div>
+          <div className="mt-4 text-right font-semibold text-gray-900">Total: GH₵ {getTotal().toFixed(2)}</div>
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
@@ -321,10 +321,10 @@ export default function OrdersPage() {
               <table className="w-full text-sm">
                 <thead className="table-header"><tr><th className="px-3 py-2 text-left">Product</th><th className="px-3 py-2 text-right">Qty</th><th className="px-3 py-2 text-right">Price</th><th className="px-3 py-2 text-right">Total</th></tr></thead>
                 <tbody>{selected.items?.map((item:any) => (
-                  <tr key={item._id || item.product_id} className="border-t"><td className="px-3 py-2">{item.product_name}</td><td className="px-3 py-2 text-right">{item.quantity}</td><td className="px-3 py-2 text-right">GHS {parseFloat(item.unit_price).toFixed(2)}</td><td className="px-3 py-2 text-right font-semibold">GHS {parseFloat(item.total).toFixed(2)}</td></tr>
+                  <tr key={item._id || item.product_id} className="border-t"><td className="px-3 py-2">{item.product_name}</td><td className="px-3 py-2 text-right">{item.quantity}</td><td className="px-3 py-2 text-right">GH₵ {parseFloat(item.unit_price).toFixed(2)}</td><td className="px-3 py-2 text-right font-semibold">GH₵ {parseFloat(item.total).toFixed(2)}</td></tr>
                 ))}</tbody>
               </table>
-              <div className="text-right font-bold text-gray-900 mt-3 text-lg">Total: GHS {parseFloat(selected.total).toFixed(2)}</div>
+              <div className="text-right font-bold text-gray-900 mt-3 text-lg">Total: GH₵ {parseFloat(selected.total).toFixed(2)}</div>
             </div>
           </div>
         )}

@@ -116,7 +116,7 @@ export default function CRMPage() {
         </div>
         <div className="card py-3 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center"><span className="text-green-600 font-bold text-sm">₵</span></div>
-          <div><div className="text-xl font-bold">GHS {totalPipelineValue.toFixed(0)}</div><div className="text-xs text-gray-500">Pipeline Value</div></div>
+          <div><div className="text-xl font-bold">GH₵ {totalPipelineValue.toFixed(0)}</div><div className="text-xs text-gray-500">Pipeline Value</div></div>
         </div>
       </div>
 
@@ -203,7 +203,7 @@ export default function CRMPage() {
                         <div key={lead.id} className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
                           <div className="font-medium text-sm text-gray-900 mb-1 truncate">{lead.title}</div>
                           <div className="text-xs text-gray-500 mb-2">{lead.customer_name||'—'}</div>
-                          {lead.value && <div className="text-xs font-semibold text-green-700 mb-2">GHS {parseFloat(lead.value).toFixed(0)}</div>}
+                          {lead.value && <div className="text-xs font-semibold text-green-700 mb-2">GH₵ {parseFloat(lead.value).toFixed(0)}</div>}
                           <div className="flex gap-1 mb-2">
                             <select className="flex-1 text-xs border border-gray-200 rounded px-1 py-1 bg-gray-50" value={lead.stage} onChange={e => updateLeadStage(lead.id, e.target.value)}>
                               {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -270,7 +270,7 @@ export default function CRMPage() {
               <div key={i} className="flex gap-2">
                 <select className="form-input flex-1" value={item.product_id} onChange={e => { const it=[...convertForm.items]; it[i]={...it[i],product_id:e.target.value}; setConvertForm({...convertForm,items:it}); }}>
                   <option value="">Select product</option>
-                  {products.map((p:any) => <option key={p.id} value={p.id}>{p.name} — GHS {p.price}</option>)}
+                  {products.map((p:any) => <option key={p.id} value={p.id}>{p.name} — GH₵ {p.price}</option>)}
                 </select>
                 <input type="number" className="form-input w-20" min={1} value={item.quantity} onChange={e => { const it=[...convertForm.items]; it[i]={...it[i],quantity:parseInt(e.target.value)}; setConvertForm({...convertForm,items:it}); }} />
                 {convertForm.items.length>1 && <button onClick={() => setConvertForm({...convertForm,items:convertForm.items.filter((_,idx)=>idx!==i)})} className="text-red-400 px-1">✕</button>}
@@ -326,7 +326,7 @@ export default function CRMPage() {
                 {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
-            <div><label className="form-label">Value (GHS)</label><input type="number" className="form-input" value={leadForm.value} onChange={e => setLeadForm({...leadForm,value:e.target.value})} /></div>
+            <div><label className="form-label">Value (GH₵)</label><input type="number" className="form-input" value={leadForm.value} onChange={e => setLeadForm({...leadForm,value:e.target.value})} /></div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="form-label">Assigned To</label>

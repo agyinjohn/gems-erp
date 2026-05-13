@@ -286,13 +286,13 @@ export default function AccountingPage() {
     const rows = [
       ['P&L Report', plFrom || 'All time', plTo || ''],
       [],
-      ['Metric', 'Amount (GHS)'],
+      ['Metric', 'Amount (GH₵)'],
       ['Revenue', pl.revenue],
       ['Gross Profit', pl.gross_profit],
       ['Total Expenses', pl.total_expenses],
       ['Net Profit', pl.net_profit],
       [],
-      ['Category', 'Amount (GHS)'],
+      ['Category', 'Amount (GH₵)'],
       ...(pl.expenses_by_category?.map((c:any) => [c.category, c.total]) || []),
     ];
     exportCSV(`pl-report-${Date.now()}.csv`, rows);
@@ -389,7 +389,7 @@ export default function AccountingPage() {
     if (!budgetData) return;
     const rows = [
       ['Budget vs Actual', budgetData.period],
-      ['Category','Budget (GHS)','Actual (GHS)','Variance (GHS)','% Used'],
+      ['Category','Budget (GH₵)','Actual (GH₵)','Variance (GH₵)','% Used'],
       ...budgetData.rows.map((r:any) => [r.category, r.budgeted.toFixed(2), r.actual.toFixed(2), r.variance.toFixed(2), r.pct !== null ? r.pct.toFixed(1)+'%' : 'N/A']),
       [],
       ['TOTAL', budgetData.totals.budgeted.toFixed(2), budgetData.totals.actual.toFixed(2), budgetData.totals.variance.toFixed(2)],
@@ -593,9 +593,9 @@ export default function AccountingPage() {
         loading ? <Spinner /> : (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              <StatCard label="Total Revenue" value={`GHS ${parseFloat(summary.revenue||0).toFixed(0)}`} icon={<TrendingUp className="w-6 h-6 text-green-600"/>} color="bg-green-50" />
-              <StatCard label="Total Expenses" value={`GHS ${parseFloat(summary.expenses||0).toFixed(0)}`} icon={<TrendingDown className="w-6 h-6 text-red-600"/>} color="bg-red-50" />
-              <StatCard label="Net Profit" value={`GHS ${(parseFloat(summary.revenue||0)-parseFloat(summary.expenses||0)).toFixed(0)}`} icon={<DollarSign className="w-6 h-6 text-blue-600"/>} color="bg-blue-50" />
+              <StatCard label="Total Revenue" value={`GH₵ ${parseFloat(summary.revenue||0).toFixed(0)}`} icon={<TrendingUp className="w-6 h-6 text-green-600"/>} color="bg-green-50" />
+              <StatCard label="Total Expenses" value={`GH₵ ${parseFloat(summary.expenses||0).toFixed(0)}`} icon={<TrendingDown className="w-6 h-6 text-red-600"/>} color="bg-red-50" />
+              <StatCard label="Net Profit" value={`GH₵ ${(parseFloat(summary.revenue||0)-parseFloat(summary.expenses||0)).toFixed(0)}`} icon={<DollarSign className="w-6 h-6 text-blue-600"/>} color="bg-blue-50" />
               <StatCard label="Journal Entries" value={journal.length} icon={<BookOpen className="w-6 h-6 text-purple-600"/>} color="bg-purple-50" />
             </div>
             {/* Account Balances by Type */}
@@ -613,7 +613,7 @@ export default function AccountingPage() {
                             <span className="text-sm font-medium text-gray-800">{a.name}</span>
                             <span className="text-xs text-gray-400 ml-2">{a.code}</span>
                           </div>
-                          <span className="text-sm font-semibold">GHS {parseFloat(a.balance||0).toFixed(2)}</span>
+                          <span className="text-sm font-semibold">GH₵ {parseFloat(a.balance||0).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -638,7 +638,7 @@ export default function AccountingPage() {
                       <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-gray-500">{a.code}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{a.name}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3"><span className={`badge text-xs ${typeColors[a.type]}`}>{a.type}</span></td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-semibold">GHS {parseFloat(a.balance||0).toFixed(2)}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 font-semibold">GH₵ {parseFloat(a.balance||0).toFixed(2)}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3"><button onClick={() => openEditAccount(a)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button></td>
                     </tr>
                   ))}
@@ -661,7 +661,7 @@ export default function AccountingPage() {
                     <tr key={e.id} className="hover:bg-gray-50">
                       <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{e.title}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500">{e.category||'—'}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GHS {parseFloat(e.amount).toFixed(2)}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GH₵ {parseFloat(e.amount).toFixed(2)}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 text-xs">{new Date(e.expense_date).toLocaleDateString()}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 hidden lg:table-cell">{e.created_by?.name||'—'}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 hidden md:table-cell">
@@ -688,7 +688,7 @@ export default function AccountingPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
             <div className="card"><div className="text-2xl font-bold text-blue-600">{ar.length}</div><div className="text-sm text-gray-500">Open Invoices</div></div>
-            <div className="card"><div className="text-2xl font-bold text-red-600">GHS {ar.reduce((s:number,o:any)=>s+parseFloat(o.amount_due||0),0).toFixed(2)}</div><div className="text-sm text-gray-500">Total Outstanding</div></div>
+            <div className="card"><div className="text-2xl font-bold text-red-600">GH₵ {ar.reduce((s:number,o:any)=>s+parseFloat(o.amount_due||0),0).toFixed(2)}</div><div className="text-sm text-gray-500">Total Outstanding</div></div>
             <div className="card"><div className="text-2xl font-bold text-orange-600">{ar.filter((o:any)=>o.status==='overdue').length}</div><div className="text-sm text-gray-500">Overdue</div></div>
           </div>
           {/* Aging Buckets */}
@@ -700,7 +700,7 @@ export default function AccountingPage() {
                 {[{label:'Current (0-30d)',arr:current,color:'bg-green-50 border-green-200 text-green-700'},{label:'31-60 days',arr:d30,color:'bg-yellow-50 border-yellow-200 text-yellow-700'},{label:'61-90 days',arr:d60,color:'bg-orange-50 border-orange-200 text-orange-700'},{label:'90+ days',arr:d90,color:'bg-red-50 border-red-200 text-red-700'}].map(({label,arr,color}) => (
                   <div key={label} className={`rounded-xl border p-4 ${color}`}>
                     <div className="text-xs font-medium mb-1">{label}</div>
-                    <div className="text-xl font-bold">GHS {sum(arr).toFixed(2)}</div>
+                    <div className="text-xl font-bold">GH₵ {sum(arr).toFixed(2)}</div>
                     <div className="text-xs mt-1">{arr.length} invoice{arr.length!==1?'s':''}</div>
                   </div>
                 ))}
@@ -721,7 +721,7 @@ export default function AccountingPage() {
                         <tr key={o.id} className="hover:bg-gray-50">
                           <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{o.invoice_number}</td>
                           <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{o.customer_name}</td>
-                          <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GHS {parseFloat(o.amount_due||0).toFixed(2)}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GH₵ {parseFloat(o.amount_due||0).toFixed(2)}</td>
                           <td className="px-3 md:px-4 py-2 md:py-3 text-gray-400 text-xs hidden md:table-cell">{new Date(o.issue_date).toLocaleDateString()}</td>
                           <td className="px-3 md:px-4 py-2 md:py-3 text-gray-400 text-xs hidden lg:table-cell">{new Date(o.due_date).toLocaleDateString()}</td>
                           <td className={`px-3 md:px-4 py-2 md:py-3 text-xs ${ageColor}`}>{days}d</td>
@@ -746,7 +746,7 @@ export default function AccountingPage() {
               <div className="text-sm text-gray-500">Open Payables</div>
             </div>
             <div className="card">
-              <div className="text-2xl font-bold text-red-600">GHS {(apLedger?.total_outstanding ?? 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold text-red-600">GH₵ {(apLedger?.total_outstanding ?? 0).toFixed(2)}</div>
               <div className="text-sm text-gray-500">Total Outstanding (GL)</div>
             </div>
             <div className="card">
@@ -772,7 +772,7 @@ export default function AccountingPage() {
                         <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{e.supplier || <span className="text-gray-400">—</span>}</td>
                         <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs hidden md:table-cell">{e.po_number || <span className="text-gray-400">—</span>}</td>
                         <td className="px-3 md:px-4 py-2 md:py-3 text-xs text-gray-400 hidden lg:table-cell">{new Date(e.entry_date).toLocaleDateString()}</td>
-                        <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GHS {e.outstanding.toFixed(2)}</td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GH₵ {e.outstanding.toFixed(2)}</td>
                         <td className="px-3 md:px-4 py-2 md:py-3">
                           <div className="flex gap-1">
                             {e.po_id && (
@@ -795,7 +795,7 @@ export default function AccountingPage() {
                   <tfoot>
                     <tr className="bg-gray-50 font-semibold border-t-2 border-gray-200">
                       <td className="px-3 md:px-4 py-2 md:py-3" colSpan={5}>Total Outstanding</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 text-red-600">GHS {apLedger.total_outstanding.toFixed(2)}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-red-600">GH₵ {apLedger.total_outstanding.toFixed(2)}</td>
                       <td />
                     </tr>
                   </tfoot>
@@ -822,7 +822,7 @@ export default function AccountingPage() {
               onChange={e => handleStatementChange(e.target.value)}
             />
             {parsedLines.length > 0 && (
-              <div className="mb-3 text-xs text-gray-500">{parsedLines.length} line{parsedLines.length !== 1 ? 's' : ''} parsed — totalling <span className="font-semibold text-gray-700">GHS {parsedLines.reduce((s,l)=>s+l.amount,0).toFixed(2)}</span></div>
+              <div className="mb-3 text-xs text-gray-500">{parsedLines.length} line{parsedLines.length !== 1 ? 's' : ''} parsed — totalling <span className="font-semibold text-gray-700">GH₵ {parsedLines.reduce((s,l)=>s+l.amount,0).toFixed(2)}</span></div>
             )}
             {reconError && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-3">{reconError}</div>}
             <div className="flex flex-col sm:flex-row gap-3">
@@ -840,17 +840,17 @@ export default function AccountingPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 <div className="card bg-blue-50 border-blue-100">
                   <div className="text-xs text-blue-600 font-medium mb-1">Bank Statement Total</div>
-                  <div className="text-xl font-bold text-blue-800">GHS {reconResult.bankTotal.toFixed(2)}</div>
+                  <div className="text-xl font-bold text-blue-800">GH₵ {reconResult.bankTotal.toFixed(2)}</div>
                   <div className="text-xs text-blue-500 mt-1">{parsedLines.length} lines</div>
                 </div>
                 <div className="card bg-green-50 border-green-100">
                   <div className="text-xs text-green-600 font-medium mb-1">System GL Total (Cash)</div>
-                  <div className="text-xl font-bold text-green-800">GHS {reconResult.glTotal.toFixed(2)}</div>
+                  <div className="text-xl font-bold text-green-800">GH₵ {reconResult.glTotal.toFixed(2)}</div>
                   <div className="text-xs text-green-500 mt-1">Cash & Bank account</div>
                 </div>
                 <div className={`card ${reconResult.isBalanced ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
                   <div className={`text-xs font-medium mb-1 ${reconResult.isBalanced ? 'text-green-600' : 'text-red-600'}`}>Difference</div>
-                  <div className={`text-xl font-bold ${reconResult.isBalanced ? 'text-green-800' : 'text-red-800'}`}>GHS {reconResult.difference.toFixed(2)}</div>
+                  <div className={`text-xl font-bold ${reconResult.isBalanced ? 'text-green-800' : 'text-red-800'}`}>GH₵ {reconResult.difference.toFixed(2)}</div>
                   <div className={`text-xs mt-1 ${reconResult.isBalanced ? 'text-green-500' : 'text-red-500'}`}>{reconResult.isBalanced ? '✓ Balanced' : 'Discrepancy'}</div>
                 </div>
                 <div className="card bg-gray-50">
@@ -885,7 +885,7 @@ export default function AccountingPage() {
                             <td className="px-3 md:px-4 py-2 text-gray-700 max-w-xs truncate">{m.bank.description}</td>
                             <td className="px-3 md:px-4 py-2 font-mono text-xs text-blue-600 hidden md:table-cell">{m.gl.reference}</td>
                             <td className="px-3 md:px-4 py-2 text-gray-500 max-w-xs truncate hidden lg:table-cell">{m.gl.description}</td>
-                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${m.bank.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GHS {parseFloat(m.bank.amount).toFixed(2)}</td>
+                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${m.bank.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GH₵ {parseFloat(m.bank.amount).toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -909,7 +909,7 @@ export default function AccountingPage() {
                           <tr key={i} className="hover:bg-gray-50">
                             <td className="px-3 md:px-4 py-2 text-xs text-gray-500">{l.date || '—'}</td>
                             <td className="px-3 md:px-4 py-2 text-gray-700">{l.description}</td>
-                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${l.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GHS {parseFloat(l.amount).toFixed(2)}</td>
+                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${l.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GH₵ {parseFloat(l.amount).toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -934,7 +934,7 @@ export default function AccountingPage() {
                             <td className="px-3 md:px-4 py-2 text-xs text-gray-500">{new Date(l.date).toLocaleDateString()}</td>
                             <td className="px-3 md:px-4 py-2 font-mono text-xs text-blue-600">{l.reference}</td>
                             <td className="px-3 md:px-4 py-2 text-gray-700 hidden md:table-cell">{l.description}</td>
-                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${l.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GHS {l.amount.toFixed(2)}</td>
+                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${l.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GH₵ {l.amount.toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -959,8 +959,8 @@ export default function AccountingPage() {
                     <tr key={j.id} className={`hover:bg-gray-50 ${j.status==='voided' ? 'opacity-50' : ''}`}>
                       <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{j.reference}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 font-medium max-w-xs truncate hidden lg:table-cell">{j.description}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 text-green-700 font-semibold">GHS {parseFloat(j.total_debit||0).toFixed(2)}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 text-red-600 font-semibold">GHS {parseFloat(j.total_credit||0).toFixed(2)}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-green-700 font-semibold">GH₵ {parseFloat(j.total_debit||0).toFixed(2)}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-red-600 font-semibold">GH₵ {parseFloat(j.total_credit||0).toFixed(2)}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 text-xs hidden md:table-cell">{new Date(j.entry_date).toLocaleDateString()}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 hidden lg:table-cell"><span className="badge badge-blue text-xs">{j.source}</span></td>
                       <td className="px-3 md:px-4 py-2 md:py-3">
@@ -1036,7 +1036,7 @@ export default function AccountingPage() {
                     <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">GEMS</p>
                     <h2 className="text-2xl font-bold text-gray-900">Balance Sheet</h2>
                     <p className="text-sm text-gray-500 mt-1">As at {new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">All amounts in Ghana Cedis (GHS)</p>
+                    <p className="text-xs text-gray-400 mt-0.5">All amounts in Ghana Cedis (GH₵)</p>
                   </div>
                   <div className="px-8 py-6">
                     <Section title="Assets" />
@@ -1116,7 +1116,7 @@ export default function AccountingPage() {
           </div>
           {cfLoading && <Spinner />}
           {cf && (() => {
-            const fmt = (v: any) => `GHS ${parseFloat(v||0).toLocaleString('en-GH', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
+            const fmt = (v: any) => `GH₵ ${parseFloat(v||0).toLocaleString('en-GH', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
             const isPos = (v: any) => parseFloat(v||0) >= 0;
             const Row = ({ label, value, indent = false, bold = false }: { label: string; value: any; indent?: boolean; bold?: boolean }) => (
               <div className={`flex justify-between py-2 border-b border-gray-50 last:border-0 ${bold ? 'font-semibold' : ''}`}>
@@ -1160,7 +1160,7 @@ export default function AccountingPage() {
                     <p className="text-sm text-gray-500 mt-1">
                       {cfFrom && cfTo ? `${new Date(cfFrom).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} — ${new Date(cfTo).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}` : 'All time'}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">All amounts in Ghana Cedis (GHS)</p>
+                    <p className="text-xs text-gray-400 mt-0.5">All amounts in Ghana Cedis (GH₵)</p>
                   </div>
 
                   <div className="px-8 py-6 space-y-6">
@@ -1231,10 +1231,10 @@ export default function AccountingPage() {
           {pl && (
             <div id="pl-print" className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                <StatCard label="Revenue" value={`GHS ${parseFloat(pl.revenue||0).toFixed(2)}`} icon={<TrendingUp className="w-6 h-6 text-green-600"/>} color="bg-green-50" />
-                <StatCard label="Gross Profit" value={`GHS ${parseFloat(pl.gross_profit||0).toFixed(2)}`} icon={<DollarSign className="w-6 h-6 text-blue-600"/>} color="bg-blue-50" />
-                <StatCard label="Total Expenses" value={`GHS ${parseFloat(pl.total_expenses||0).toFixed(2)}`} icon={<TrendingDown className="w-6 h-6 text-red-600"/>} color="bg-red-50" />
-                <StatCard label="Net Profit" value={`GHS ${parseFloat(pl.net_profit||0).toFixed(2)}`} icon={<DollarSign className="w-6 h-6 text-purple-600"/>} color={pl.net_profit >= 0 ? 'bg-green-50' : 'bg-red-50'} />
+                <StatCard label="Revenue" value={`GH₵ ${parseFloat(pl.revenue||0).toFixed(2)}`} icon={<TrendingUp className="w-6 h-6 text-green-600"/>} color="bg-green-50" />
+                <StatCard label="Gross Profit" value={`GH₵ ${parseFloat(pl.gross_profit||0).toFixed(2)}`} icon={<DollarSign className="w-6 h-6 text-blue-600"/>} color="bg-blue-50" />
+                <StatCard label="Total Expenses" value={`GH₵ ${parseFloat(pl.total_expenses||0).toFixed(2)}`} icon={<TrendingDown className="w-6 h-6 text-red-600"/>} color="bg-red-50" />
+                <StatCard label="Net Profit" value={`GH₵ ${parseFloat(pl.net_profit||0).toFixed(2)}`} icon={<DollarSign className="w-6 h-6 text-purple-600"/>} color={pl.net_profit >= 0 ? 'bg-green-50' : 'bg-red-50'} />
               </div>
               {pl.expenses_by_category?.length > 0 && (
                 <div className="card">
@@ -1245,7 +1245,7 @@ export default function AccountingPage() {
                       {pl.expenses_by_category.map((c:any) => (
                         <tr key={c.category} className="hover:bg-gray-50">
                           <td className="px-4 py-2">{c.category}</td>
-                          <td className="px-4 py-2 text-right font-semibold text-red-600">GHS {parseFloat(c.total).toFixed(2)}</td>
+                          <td className="px-4 py-2 text-right font-semibold text-red-600">GH₵ {parseFloat(c.total).toFixed(2)}</td>
                           <td className="px-4 py-2 text-right text-gray-500">{pl.total_expenses > 0 ? ((c.total/pl.total_expenses)*100).toFixed(1) : 0}%</td>
                         </tr>
                       ))}
@@ -1266,7 +1266,7 @@ export default function AccountingPage() {
                           <div className="flex-1 bg-gray-100 rounded-full h-2">
                             <div className="bg-blue-500 h-2 rounded-full" style={{width:`${pct}%`}} />
                           </div>
-                          <span className="text-xs font-semibold w-28 text-right">GHS {parseFloat(m.revenue).toFixed(2)}</span>
+                          <span className="text-xs font-semibold w-28 text-right">GH₵ {parseFloat(m.revenue).toFixed(2)}</span>
                         </div>
                       );
                     })}
@@ -1306,7 +1306,7 @@ export default function AccountingPage() {
           {budgetLoading && <Spinner />}
 
           {budgetData && (() => {
-            const fmt = (v: any) => `GHS ${parseFloat(v||0).toLocaleString('en-GH', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
+            const fmt = (v: any) => `GH₵ ${parseFloat(v||0).toLocaleString('en-GH', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
             const { rows, totals } = budgetData;
             const totalPct = totals.budgeted > 0 ? (totals.actual / totals.budgeted) * 100 : null;
             return (
@@ -1411,17 +1411,17 @@ export default function AccountingPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                 <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
                   <div className="text-xs text-blue-600 font-medium mb-1">Output VAT (Collected)</div>
-                  <div className="text-xl font-bold text-blue-800">GHS {parseFloat(vatReturn.output_vat||0).toFixed(2)}</div>
+                  <div className="text-xl font-bold text-blue-800">GH₵ {parseFloat(vatReturn.output_vat||0).toFixed(2)}</div>
                   <div className="text-xs text-blue-500 mt-1">VAT charged to customers</div>
                 </div>
                 <div className="rounded-xl bg-orange-50 border border-orange-100 p-4">
                   <div className="text-xs text-orange-600 font-medium mb-1">Input VAT (Paid)</div>
-                  <div className="text-xl font-bold text-orange-800">GHS {parseFloat(vatReturn.input_vat||0).toFixed(2)}</div>
+                  <div className="text-xl font-bold text-orange-800">GH₵ {parseFloat(vatReturn.input_vat||0).toFixed(2)}</div>
                   <div className="text-xs text-orange-500 mt-1">VAT paid to suppliers</div>
                 </div>
                 <div className={`rounded-xl border p-4 ${vatReturn.status === 'payable' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
                   <div className={`text-xs font-medium mb-1 ${vatReturn.status === 'payable' ? 'text-red-600' : 'text-green-600'}`}>Net VAT {vatReturn.status === 'payable' ? 'Payable' : 'Reclaimable'}</div>
-                  <div className={`text-xl font-bold ${vatReturn.status === 'payable' ? 'text-red-800' : 'text-green-800'}`}>GHS {Math.abs(parseFloat(vatReturn.net_vat_payable||0)).toFixed(2)}</div>
+                  <div className={`text-xl font-bold ${vatReturn.status === 'payable' ? 'text-red-800' : 'text-green-800'}`}>GH₵ {Math.abs(parseFloat(vatReturn.net_vat_payable||0)).toFixed(2)}</div>
                   <div className={`text-xs mt-1 ${vatReturn.status === 'payable' ? 'text-red-500' : 'text-green-500'}`}>{vatReturn.status === 'payable' ? 'Owed to tax authority' : 'Claimable from tax authority'}</div>
                 </div>
               </div>
@@ -1469,7 +1469,7 @@ export default function AccountingPage() {
             }
           </div>
           <div>
-            <label className="form-label">Budget Amount (GHS) *</label>
+            <label className="form-label">Budget Amount (GH₵) *</label>
             <input type="number" className="form-input" value={budgetForm.amount} onChange={e => setBudgetForm({...budgetForm, amount: e.target.value})} placeholder="0.00" />
           </div>
           <div className="text-xs text-gray-400">Period: <strong>{budgetPeriod}</strong> ({budgetPeriodType})</div>
@@ -1515,7 +1515,7 @@ export default function AccountingPage() {
           <div><label className="form-label">Title *</label><input className="form-input" value={expForm.title} onChange={e => setExpForm({...expForm,title:e.target.value})} placeholder="e.g. Office rent" /></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label className="form-label">Category</label><input className="form-input" value={expForm.category} onChange={e => setExpForm({...expForm,category:e.target.value})} placeholder="e.g. Rent" /></div>
-            <div><label className="form-label">Amount (GHS) *</label><input type="number" className="form-input" value={expForm.amount} onChange={e => setExpForm({...expForm,amount:e.target.value})} /></div>
+            <div><label className="form-label">Amount (GH₵) *</label><input type="number" className="form-input" value={expForm.amount} onChange={e => setExpForm({...expForm,amount:e.target.value})} /></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label className="form-label">Account</label>
@@ -1584,8 +1584,8 @@ export default function AccountingPage() {
             ))}
           </div>
           <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-8 mt-3 text-xs sm:text-sm font-semibold">
-            <span>Total Debit: GHS {jeForm.lines.reduce((s,l)=>s+(parseFloat(l.debit)||0),0).toFixed(2)}</span>
-            <span>Total Credit: GHS {jeForm.lines.reduce((s,l)=>s+(parseFloat(l.credit)||0),0).toFixed(2)}</span>
+            <span>Total Debit: GH₵ {jeForm.lines.reduce((s,l)=>s+(parseFloat(l.debit)||0),0).toFixed(2)}</span>
+            <span>Total Credit: GH₵ {jeForm.lines.reduce((s,l)=>s+(parseFloat(l.credit)||0),0).toFixed(2)}</span>
           </div>
         </div>
         <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
@@ -1609,7 +1609,7 @@ export default function AccountingPage() {
           <div><label className="form-label">Account Name *</label><input className="form-input" value={accForm.name} onChange={e => setAccForm({...accForm,name:e.target.value})} placeholder="e.g. Cash & Bank" /></div>
           <div><label className="form-label">Description</label><textarea className="form-input" rows={2} value={accForm.description} onChange={e => setAccForm({...accForm,description:e.target.value})} /></div>
           <div>
-            <label className="form-label">{selectedAccount ? 'Adjust Balance (GHS)' : 'Opening Balance (GHS)'}</label>
+            <label className="form-label">{selectedAccount ? 'Adjust Balance (GH₵)' : 'Opening Balance (GH₵)'}</label>
             <input
               type="number"
               className="form-input"
@@ -1619,7 +1619,7 @@ export default function AccountingPage() {
             />
             {selectedAccount && parseFloat(accForm.opening_balance||'0') !== parseFloat(selectedAccount.balance||'0') && (
               <p className="text-xs text-blue-600 mt-1">
-                A journal entry of GHS {Math.abs(parseFloat(accForm.opening_balance||'0') - parseFloat(selectedAccount.balance||'0')).toFixed(2)} will be posted automatically.
+                A journal entry of GH₵ {Math.abs(parseFloat(accForm.opening_balance||'0') - parseFloat(selectedAccount.balance||'0')).toFixed(2)} will be posted automatically.
               </p>
             )}
           </div>
@@ -1657,8 +1657,8 @@ export default function AccountingPage() {
                         <th className="px-3 md:px-4 py-2 md:py-3 text-left">Code</th>
                         <th className="px-3 md:px-4 py-2 md:py-3 text-left">Account Name</th>
                         <th className="px-3 md:px-4 py-2 md:py-3 text-left hidden md:table-cell">Type</th>
-                        <th className="px-3 md:px-4 py-2 md:py-3 text-right">Debit (GHS)</th>
-                        <th className="px-3 md:px-4 py-2 md:py-3 text-right">Credit (GHS)</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-right">Debit (GH₵)</th>
+                        <th className="px-3 md:px-4 py-2 md:py-3 text-right">Credit (GH₵)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -1718,10 +1718,10 @@ export default function AccountingPage() {
                             <div>{inv.customer_name}</div>
                             {inv.customer_email && <div className="text-xs text-gray-400 hidden md:block">{inv.customer_email}</div>}
                           </td>
-                          <td className="px-3 md:px-4 py-2 md:py-3 tabular-nums hidden lg:table-cell">GHS {parseFloat(inv.subtotal||0).toFixed(2)}</td>
-                          <td className="px-3 md:px-4 py-2 md:py-3 tabular-nums text-gray-500 hidden lg:table-cell">GHS {parseFloat(inv.tax_amount||0).toFixed(2)}</td>
-                          <td className="px-3 md:px-4 py-2 md:py-3 font-semibold tabular-nums">GHS {parseFloat(inv.total||0).toFixed(2)}</td>
-                          <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600 tabular-nums">GHS {parseFloat(inv.amount_due||0).toFixed(2)}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 tabular-nums hidden lg:table-cell">GH₵ {parseFloat(inv.subtotal||0).toFixed(2)}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 tabular-nums text-gray-500 hidden lg:table-cell">GH₵ {parseFloat(inv.tax_amount||0).toFixed(2)}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 font-semibold tabular-nums">GH₵ {parseFloat(inv.total||0).toFixed(2)}</td>
+                          <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600 tabular-nums">GH₵ {parseFloat(inv.amount_due||0).toFixed(2)}</td>
                           <td className="px-3 md:px-4 py-2 md:py-3 text-xs text-gray-400 hidden md:table-cell">{new Date(inv.issue_date).toLocaleDateString()}</td>
                           <td className="px-3 md:px-4 py-2 md:py-3 text-xs text-gray-400 hidden lg:table-cell">{new Date(inv.due_date).toLocaleDateString()}</td>
                           <td className="px-3 md:px-4 py-2 md:py-3"><span className={`badge text-xs ${statusColor[inv.status]||'bg-gray-100 text-gray-600'}`}>{inv.status.replace('_',' ')}</span></td>
@@ -1802,7 +1802,7 @@ export default function AccountingPage() {
       {/* Record Payment Modal */}
       <Modal open={!!payModal} onClose={() => setPayModal(null)} title={`Record Payment — ${payModal?.invoice_number}`} size="sm">
         <div className="space-y-3">
-          <div><label className="form-label">Amount (GHS) *</label><input type="number" className="form-input" value={payForm.amount} onChange={e => setPayForm({...payForm,amount:e.target.value})} /></div>
+          <div><label className="form-label">Amount (GH₵) *</label><input type="number" className="form-input" value={payForm.amount} onChange={e => setPayForm({...payForm,amount:e.target.value})} /></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label className="form-label">Method</label>
               <select className="form-input" value={payForm.method} onChange={e => setPayForm({...payForm,method:e.target.value})}>
@@ -1847,7 +1847,7 @@ export default function AccountingPage() {
               ))}
             </div>
             <div className="flex justify-end mt-2 text-sm font-semibold text-gray-700">
-              Total: GHS {invForm.lines.reduce((s,l)=>{ const t=parseFloat(l.quantity||'0')*parseFloat(l.unit_price||'0'); return s+t+(t*(parseFloat(l.tax_rate||'0')/100)); },0).toFixed(2)}
+              Total: GH₵ {invForm.lines.reduce((s,l)=>{ const t=parseFloat(l.quantity||'0')*parseFloat(l.unit_price||'0'); return s+t+(t*(parseFloat(l.tax_rate||'0')/100)); },0).toFixed(2)}
             </div>
           </div>
         </div>
@@ -1886,15 +1886,15 @@ export default function AccountingPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-gray-50 rounded-xl px-4 py-3">
                 <div className="text-xs text-gray-500 mb-1">Total</div>
-                <div className="font-semibold">GHS {parseFloat(historyModal.total||0).toFixed(2)}</div>
+                <div className="font-semibold">GH₵ {parseFloat(historyModal.total||0).toFixed(2)}</div>
               </div>
               <div className="bg-green-50 rounded-xl px-4 py-3">
                 <div className="text-xs text-green-600 mb-1">Total Paid</div>
-                <div className="font-semibold text-green-700">GHS {parseFloat(historyModal.paid||0).toFixed(2)}</div>
+                <div className="font-semibold text-green-700">GH₵ {parseFloat(historyModal.paid||0).toFixed(2)}</div>
               </div>
               <div className="bg-red-50 rounded-xl px-4 py-3">
                 <div className="text-xs text-red-500 mb-1">Outstanding</div>
-                <div className="font-semibold text-red-600">GHS {Math.max(0, parseFloat(historyModal.total||0) - parseFloat(historyModal.paid||0)).toFixed(2)}</div>
+                <div className="font-semibold text-red-600">GH₵ {Math.max(0, parseFloat(historyModal.total||0) - parseFloat(historyModal.paid||0)).toFixed(2)}</div>
               </div>
             </div>
             {historyModal.payments?.length > 0 ? (
@@ -1918,7 +1918,7 @@ export default function AccountingPage() {
                           {p.date ? new Date(p.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '—'}
                           <div className="text-gray-400">{p.date ? new Date(p.date).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }) : ''}</div>
                         </td>
-                        <td className="px-4 py-2.5 font-semibold text-green-700">GHS {parseFloat(p.amount||0).toFixed(2)}</td>
+                        <td className="px-4 py-2.5 font-semibold text-green-700">GH₵ {parseFloat(p.amount||0).toFixed(2)}</td>
                         <td className="px-4 py-2.5"><span className="badge bg-blue-50 text-blue-700">{(p.method||'cash').replace('_',' ')}</span></td>
                         <td className="px-4 py-2.5 font-mono text-xs text-gray-600">{p.reference || '—'}</td>
                         <td className="px-4 py-2.5 text-xs text-gray-500">{p.note || '—'}</td>
@@ -1928,7 +1928,7 @@ export default function AccountingPage() {
                   <tfoot>
                     <tr className="bg-gray-50 font-semibold border-t-2 border-gray-200">
                       <td className="px-4 py-2.5" colSpan={2}>Total Paid</td>
-                      <td className="px-4 py-2.5 text-green-700">GHS {historyModal.payments.reduce((s:number,p:any)=>s+parseFloat(p.amount||0),0).toFixed(2)}</td>
+                      <td className="px-4 py-2.5 text-green-700">GH₵ {historyModal.payments.reduce((s:number,p:any)=>s+parseFloat(p.amount||0),0).toFixed(2)}</td>
                       <td colSpan={3} />
                     </tr>
                   </tfoot>
@@ -1955,11 +1955,11 @@ export default function AccountingPage() {
               </div>
               <div className="flex justify-between mb-1">
                 <span className="text-gray-500">Total Outstanding</span>
-                <span className="font-semibold text-red-600">GHS {poPayModal.outstanding.toFixed(2)}</span>
+                <span className="font-semibold text-red-600">GH₵ {poPayModal.outstanding.toFixed(2)}</span>
               </div>
             </div>
             <div>
-              <label className="form-label">Amount Paying (GHS) *</label>
+              <label className="form-label">Amount Paying (GH₵) *</label>
               <input
                 type="number"
                 className="form-input"
@@ -1969,7 +1969,7 @@ export default function AccountingPage() {
               />
               {parseFloat(poPayForm.amount || '0') < poPayModal.outstanding && parseFloat(poPayForm.amount || '0') > 0 && (
                 <p className="text-xs text-yellow-600 mt-1">
-                  Partial payment — GHS {(poPayModal.outstanding - parseFloat(poPayForm.amount)).toFixed(2)} will remain outstanding.
+                  Partial payment — GH₵ {(poPayModal.outstanding - parseFloat(poPayForm.amount)).toFixed(2)} will remain outstanding.
                 </p>
               )}
               {parseFloat(poPayForm.amount || '0') >= poPayModal.outstanding && (
@@ -2006,7 +2006,7 @@ export default function AccountingPage() {
               try {
                 const res = await api.patch(`/purchase-orders/${poPayModal.po_id}/pay`, poPayForm);
                 const { paid, outstanding } = res.data;
-                toast.success(`GHS ${parseFloat(paid).toFixed(2)} paid${ outstanding > 0 ? ` — GHS ${parseFloat(outstanding).toFixed(2)} still outstanding` : ' — fully cleared' }`);
+                toast.success(`GH₵ ${parseFloat(paid).toFixed(2)} paid${ outstanding > 0 ? ` — GH₵ ${parseFloat(outstanding).toFixed(2)} still outstanding` : ' — fully cleared' }`);
                 setPoPayModal(null);
                 loadApLedger();
               } catch (e: any) { toast.error(e.response?.data?.message || 'Payment failed'); }
