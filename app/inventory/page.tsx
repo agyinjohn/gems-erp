@@ -813,6 +813,7 @@ export default function InventoryPage() {
             {loading ? <Spinner /> : categories.length === 0
               ? <EmptyState message="No categories yet" icon={<FolderOpen className="w-8 h-8 text-gray-300" />} />
               : (
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="table-header">
                   <tr>
@@ -872,6 +873,7 @@ export default function InventoryPage() {
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </div>

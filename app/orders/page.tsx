@@ -112,6 +112,14 @@ export default function OrdersPage() {
   return (
     <AppLayout title="Sales & Orders" subtitle="Manage customer orders and track payments" allowedRoles={['business_owner','branch_manager','sales_staff']}>
 
+      {/* ── Header row ── */}
+      <div className="flex items-center justify-between mb-5">
+        <div />
+        <button className="btn-primary" onClick={() => { setForm({ customer_name:'',customer_email:'',customer_phone:'',delivery_address:'',payment_status:'paid',payment_method:'cash',items:[{product_id:'',quantity:1}] }); setError(''); setModal('add'); }}>
+          <Plus className="w-4 h-4" /> New Order
+        </button>
+      </div>
+
       {/* ── Source Tabs ── */}
       <div className="flex gap-0 border-b border-gray-200 mb-5 -mt-1 overflow-x-auto">
         {SOURCES.map(s => (
@@ -174,10 +182,6 @@ export default function OrdersPage() {
             </button>
           )}
         </div>
-
-        <button className="btn-primary w-full sm:w-auto" onClick={() => { setForm({ customer_name:'',customer_email:'',customer_phone:'',delivery_address:'',payment_status:'paid',payment_method:'cash',items:[{product_id:'',quantity:1}] }); setError(''); setModal('add'); }}>
-          <Plus className="w-4 h-4" />New Order
-        </button>
       </div>
 
       {/* ── Results summary ── */}
@@ -195,7 +199,7 @@ export default function OrdersPage() {
         {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No orders found" icon="🛒" /> : (
           <>
             <ResponsiveTable
-              headers={['Order #','Customer','Source','Total','Payment','Status','Date','Actions']}
+              headers={['Order #','Customer','Source','Total','Payment Status','Payment Method','Status','Date','Actions']}
               data={filtered}
               renderRow={(o) => ([
                 <span className="font-mono text-xs font-medium text-blue-700">{o.order_number}</span>,
@@ -208,6 +212,7 @@ export default function OrdersPage() {
                 </span>,
                 <span className="font-semibold">GH₵ {parseFloat(o.total).toFixed(2)}</span>,
                 <Badge status={o.payment_status} />,
+                <span className="text-xs text-gray-600 capitalize">{o.payment_method ? o.payment_method.replace(/_/g,' ') : '—'}</span>,
                 <Badge status={o.status} />,
                 <span className="text-gray-500 text-xs whitespace-nowrap">{new Date(o.created_at || o.createdAt).toLocaleDateString('en-GH', { day:'2-digit', month:'short', year:'numeric' })}</span>,
                 <div className="flex gap-2">

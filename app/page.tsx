@@ -599,7 +599,7 @@
 //           <div className="grid lg:grid-cols-2 gap-12 items-start">
 //             <div className="space-y-8">
 //               {[
-//                 { label: 'Email us',  value: 'hello@gthink.com',   href: 'mailto:hello@gthink.com' },
+//                 { label: 'Email us',  value: 'gthinkcompanylimited@gmail.com',   href: 'mailto:gthinkcompanylimited@gmail.com' },
 //                 { label: 'WhatsApp', value: '+233 24 155 0366',    href: 'https://wa.me/233241550366' },
 //                 { label: 'Location', value: 'Accra, Ghana',        href: null },
 //               ].map(({ label, value, href }) => (
@@ -738,12 +738,12 @@ const FEATURES = [
   {
     icon: Package,
     title: 'Stocks & Inventory',
-    tagline: 'Always know what you have',
-    desc: 'Track stock levels in real time across all branches. Set reorder alerts, manage products with barcode scanning, and print labels instantly.',
+    tagline: 'Know what you have. Know where it is.',
+    desc: 'Stocks refers to the quantity of goods you hold for sale — how many units you have and when to reorder. Inventory goes deeper: it tracks the full lifecycle of every product, from purchase and storage to movement across branches and final sale. Together, they give you complete visibility and control.',
     color: 'bg-blue-50 text-blue-600',
     accent: '#2563eb',
     stat: { value: '99%', label: 'Stock accuracy' },
-    bullets: ['Real-time stock levels', 'Low stock alerts', 'Barcode scanning & label printing', 'Multi-branch stock view'],
+    bullets: ['Stock levels & reorder alerts', 'Barcode scanning & label printing', 'Full product lifecycle tracking', 'Multi-branch inventory view'],
     preview: 'inventory',
   },
   {
@@ -767,6 +767,17 @@ const FEATURES = [
     stat: { value: '100%', label: 'Audit ready' },
     bullets: ['Double-entry bookkeeping', 'Expense tracking', 'P&L & balance sheet', 'Bank reconciliation'],
     preview: 'accounting',
+  },
+  {
+    icon: Globe,
+    title: 'Payment System',
+    tagline: 'Accept payments everywhere',
+    desc: 'Accept card payments, mobile money and cash. Fully integrated with Paystack for secure online and in-store checkout across all your branches.',
+    color: 'bg-green-50 text-green-600',
+    accent: '#16a34a',
+    stat: { value: '99.9%', label: 'Payment uptime' },
+    bullets: ['Card & mobile money', 'Paystack integration', 'In-store & online', 'Instant reconciliation'],
+    preview: 'payment',
   },
   {
     icon: Truck,
@@ -801,9 +812,20 @@ const FEATURES = [
     bullets: ['Customer database', 'Lead pipeline', 'Interaction history', 'Follow-up reminders'],
     preview: 'crm',
   },
+  {
+    icon: ShoppingCart,
+    title: 'POS Terminal',
+    tagline: 'Fast, reliable point of sale',
+    desc: 'Process walk-in sales instantly with a touch-friendly POS terminal. Accept cash and mobile money, print receipts, track every transaction and sync stock in real time.',
+    color: 'bg-indigo-50 text-indigo-600',
+    accent: '#4f46e5',
+    stat: { value: '3s', label: 'Avg checkout time' },
+    bullets: ['Touch-friendly interface', 'Cash & mobile money', 'Instant receipt printing', 'Real-time stock sync'],
+    preview: 'pos',
+  },
 ];
 
-const MORE_MODULES = ['Multi-Branch Management', 'Public Storefront', 'Payment Integration', 'Audit Logs', 'Role-Based Access', 'Real-Time Reports'];
+const MORE_MODULES = ['Multi-Branch Management', 'Public Storefront', 'Payment Integration', 'Audit Logs', 'Role-Based Access', 'Real-Time Reports', 'SMS Notifications', 'Email Notifications'];
 
 const STEPS = [
   { step: '01', title: 'Sign Up', desc: 'Create your business account in under 2 minutes. No credit card required for the 14-day trial.' },
@@ -816,113 +838,80 @@ const PLANS = [
     key: 'starter',
     label: 'Starter',
     price: 350,
+    desc: 'Perfect for small businesses getting started.',
     color: 'border-gray-200',
     badge: 'bg-blue-100 text-blue-700',
-    features: ['1 Branch', '5 Users', 'Inventory & POS', 'Online Storefront', 'Sales & Orders', 'Basic Reports'],
+    features: [
+      '1 Branch',
+      '5 Users',
+      'Stocks & Inventory',
+      'Sales & Orders',
+      'POS Terminal',
+      'Basic Reports',
+    ],
   },
   {
     key: 'pro',
     label: 'Pro',
     price: 850,
+    desc: 'For growing businesses that need the full suite.',
     popular: true,
     color: 'border-[#0D3B6E]',
     badge: 'bg-purple-100 text-purple-700',
-    features: ['5 Branches', '20 Users', 'All Starter features', 'HR & Payroll', 'Procurement', 'Advanced Reports', 'Priority Support'],
+    features: [
+      '5 Branches',
+      '20 Users',
+      'All Starter Features',
+      'Procurement',
+      'HR & Payroll',
+      'CRM',
+      'Advanced Reports',
+      'Priority Support',
+    ],
   },
   {
     key: 'enterprise',
     label: 'Enterprise',
     price: 2000,
+    desc: 'For large operations that need everything.',
     color: 'border-gray-200',
     badge: 'bg-orange-100 text-orange-700',
-    features: ['Unlimited Branches', 'Unlimited Users', 'All Pro features', 'Dedicated Support', 'Custom Onboarding', 'SLA Guarantee'],
+    features: [
+      '15 Branches',
+      'Unlimited Users',
+      'All Pro Features',
+      'Dedicated Support',
+      'Custom Onboarding',
+      'SLA Guarantee',
+    ],
+  },
+];
+
+const ADDONS = [
+  {
+    key: 'storefront',
+    icon: '🛍️',
+    title: 'Online Storefront',
+    price: 100,
+    desc: 'Launch a branded online store with your own URL. Accept orders, showcase products and collect payments online via Paystack.',
+    bullets: ['Custom branded storefront URL', 'Online product catalogue', 'Paystack checkout integration', 'Order management from dashboard'],
+  },
+  {
+    key: 'accounting',
+    icon: '📊',
+    title: 'Advanced Accounting',
+    price: 150,
+    desc: 'Full double-entry bookkeeping, P&L statements, balance sheets, bank reconciliation and audit-ready financial reports.',
+    bullets: ['Double-entry bookkeeping', 'P&L & balance sheet reports', 'Bank reconciliation', 'Audit trail & journal entries'],
   },
 ];
 
 const TESTIMONIALS = [
-  { name: 'James Okafor', role: 'Owner, Okafor Electronics', text: 'GEMS transformed how we run our 3 branches. Inventory is always accurate and our staff love the POS.', avatar: 'J' },
-  { name: 'Sarah Mitchell', role: 'Manager, Chic Boutique', text: 'The online storefront alone was worth it. We went from zero online sales to 40% of our revenue in 2 months.', avatar: 'S' },
-  { name: 'David Chen', role: 'CFO, ProTools Ltd', text: 'Finally an ERP that just works. The Paystack integration, real-time reports and role-based access made all the difference.', avatar: 'D' },
+  { name: 'Kwame Asante', role: 'Owner, Asante Electronics', text: 'GEMS transformed how we run our 3 branches. Inventory is always accurate and our staff love the POS.', avatar: 'K' },
+  { name: 'Abena Mensah', role: 'Manager, Chic Boutique', text: 'The online storefront alone was worth it. We went from zero online sales to 40% of our revenue in 2 months.', avatar: 'A' },
+  { name: 'Kofi Boateng', role: 'CFO, ProTools Ltd', text: 'Finally an ERP that just works. The Paystack integration, real-time reports and role-based access made all the difference.', avatar: 'K' },
 ];
 
-function ContactForm() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '', interest: 'demo' });
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = encodeURIComponent(
-      `Hi GEMS Team!\n\nName: ${form.name}\nEmail: ${form.email}\nPhone: ${form.phone}\nInterest: ${form.interest === 'demo' ? 'Schedule a Demo' : 'General Enquiry'}\n\nMessage:\n${form.message}`
-    );
-    window.open(`https://wa.me/233241550366?text=${text}`, '_blank');
-    setStatus('sent');
-    setForm({ name: '', email: '', phone: '', message: '', interest: 'demo' });
-    setTimeout(() => setStatus('idle'), 4000);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="bg-gray-50 rounded-2xl p-8 space-y-5 border border-gray-100">
-      <h3 className="font-bold text-gray-900 text-lg">Send us a message</h3>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Full Name *</label>
-          <input required value={form.name} onChange={e => set('name', e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            placeholder="John Mensah" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Email *</label>
-          <input required type="email" value={form.email} onChange={e => set('email', e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            placeholder="you@company.com" />
-        </div>
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Phone / WhatsApp</label>
-          <input value={form.phone} onChange={e => set('phone', e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            placeholder="+233 XX XXX XXXX" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">I want to…</label>
-          <select value={form.interest} onChange={e => set('interest', e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-            <option value="demo">Schedule a Demo</option>
-            <option value="pricing">Ask about Pricing</option>
-            <option value="support">Get Support</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1.5">Message</label>
-        <textarea rows={4} value={form.message} onChange={e => set('message', e.target.value)}
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white resize-none"
-          placeholder="Tell us about your business and what you're looking for…" />
-      </div>
-
-      <button type="submit"
-        className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-        {status === 'sending' ? 'Sending…' : (
-          <>
-            <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" /><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.855L.057 23.428a.75.75 0 00.916.916l5.573-1.471A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.693 9.693 0 01-4.953-1.358l-.355-.211-3.683.972.986-3.595-.231-.371A9.694 9.694 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z" /></svg>
-            Send via WhatsApp
-          </>
-        )}
-      </button>
-
-      {status === 'sent' && (
-        <p className="text-center text-sm text-green-600 font-medium">✓ Opening WhatsApp… we'll reply shortly!</p>
-      )}
-    </form>
-  );
-}
 
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1127,7 +1116,7 @@ export default function LandingPage() {
                       <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
                     </div>
                     <div className="flex-1 bg-white rounded-md h-5 flex items-center px-3">
-                      <span className="text-[10px] text-gray-400 font-mono">app.gems-erp.com/dashboard</span>
+                      <span className="text-[10px] text-gray-400 font-mono">app.gthink.com/dashboard</span>
                     </div>
                   </div>
 
@@ -1273,7 +1262,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             {[
               { value: '100+', label: 'Businesses', icon: Building2, color: 'bg-blue-50 text-blue-600' },
-              { value: '10', label: 'Modules', icon: Package, color: 'bg-purple-50 text-purple-600' },
+              { value: '10+', label: 'Modules', icon: Package, color: 'bg-purple-50 text-purple-600' },
               { value: '99.9%', label: 'Uptime', icon: Zap, color: 'bg-yellow-50 text-yellow-600' },
               { value: '24/7', label: 'Support', icon: Shield, color: 'bg-green-50 text-green-600' },
             ].map(s => {
@@ -1343,19 +1332,23 @@ export default function LandingPage() {
                 if (activeFeature !== i) return null;
                 const PATHS: Record<string, { area: string, line: string, dots: number[][] }> = {
                   inventory: { area: 'M0,50 C40,44 80,30 120,24 C160,18 200,32 240,18 C270,8 300,10 320,5 L320,72 L0,72 Z', line: 'M0,50 C40,44 80,30 120,24 C160,18 200,32 240,18 C270,8 300,10 320,5', dots: [[0, 50], [120, 24], [240, 18], [320, 5]] },
-                  sales: { area: 'M0,56 C40,48 80,38 120,30 C160,22 200,36 240,22 C270,10 300,14 320,7 L320,72 L0,72 Z', line: 'M0,56 C40,48 80,38 120,30 C160,22 200,36 240,22 C270,10 300,14 320,7', dots: [[0, 56], [120, 30], [240, 22], [320, 7]] },
+                  sales:      { area: 'M0,56 C40,48 80,38 120,30 C160,22 200,36 240,22 C270,10 300,14 320,7 L320,72 L0,72 Z', line: 'M0,56 C40,48 80,38 120,30 C160,22 200,36 240,22 C270,10 300,14 320,7', dots: [[0, 56], [120, 30], [240, 22], [320, 7]] },
                   accounting: { area: 'M0,44 C40,40 80,34 120,28 C160,22 200,28 240,20 C270,14 300,16 320,10 L320,72 L0,72 Z', line: 'M0,44 C40,40 80,34 120,28 C160,22 200,28 240,20 C270,14 300,16 320,10', dots: [[0, 44], [120, 28], [240, 20], [320, 10]] },
+                  payment: { area: 'M0,54 C40,46 80,36 120,28 C160,20 200,30 240,16 C270,8 300,10 320,5 L320,72 L0,72 Z', line: 'M0,54 C40,46 80,36 120,28 C160,20 200,30 240,16 C270,8 300,10 320,5', dots: [[0, 54], [120, 28], [240, 16], [320, 5]] },
                   procurement: { area: 'M0,52 C40,48 80,42 120,36 C160,30 200,36 240,28 C270,20 300,22 320,14 L320,72 L0,72 Z', line: 'M0,52 C40,48 80,42 120,36 C160,30 200,36 240,28 C270,20 300,22 320,14', dots: [[0, 52], [120, 36], [240, 28], [320, 14]] },
                   hr: { area: 'M0,50 C40,46 80,40 120,34 C160,28 200,34 240,24 C270,16 300,18 320,12 L320,72 L0,72 Z', line: 'M0,50 C40,46 80,40 120,34 C160,28 200,34 240,24 C270,16 300,18 320,12', dots: [[0, 50], [120, 34], [240, 24], [320, 12]] },
                   crm: { area: 'M0,58 C40,52 80,44 120,36 C160,28 200,40 240,26 C270,14 300,16 320,8 L320,72 L0,72 Z', line: 'M0,58 C40,52 80,44 120,36 C160,28 200,40 240,26 C270,14 300,16 320,8', dots: [[0, 58], [120, 36], [240, 26], [320, 8]] },
+                  pos:  { area: 'M0,60 C40,52 80,42 120,32 C160,22 200,34 240,18 C270,8 300,10 320,4 L320,72 L0,72 Z',  line: 'M0,60 C40,52 80,42 120,32 C160,22 200,34 240,18 C270,8 300,10 320,4',  dots: [[0, 60], [120, 32], [240, 18], [320, 4]] },
                 };
                 const STATS: Record<string, { l: string, v: string }[]> = {
                   inventory: [{ l: 'Products', v: '342' }, { l: 'Low Stock', v: '18' }, { l: 'Turnover', v: '94%' }],
-                  sales: [{ l: 'Orders', v: '1,284' }, { l: 'Revenue', v: 'GH₵ 124k' }, { l: 'Avg Order', v: 'GH₵ 97' }],
+                  sales:      [{ l: 'Orders', v: '1,284' }, { l: 'Revenue', v: 'GH₵ 124k' }, { l: 'Avg Order', v: 'GH₵ 97' }],
                   accounting: [{ l: 'Expenses', v: 'GH₵ 42k' }, { l: 'Net Profit', v: 'GH₵ 82k' }, { l: 'Entries', v: '156' }],
+                  payment: [{ l: 'Transactions', v: '3,842' }, { l: 'Success Rate', v: '99.9%' }, { l: 'Avg Value', v: 'GH₵ 210' }],
                   procurement: [{ l: 'POs', v: '48' }, { l: 'Suppliers', v: '12' }, { l: 'On Time', v: '91%' }],
                   hr: [{ l: 'Employees', v: '24' }, { l: 'On Leave', v: '2' }, { l: 'Attendance', v: '97%' }],
                   crm: [{ l: 'Customers', v: '891' }, { l: 'Leads', v: '64' }, { l: 'Won', v: '38%' }],
+                  pos:  [{ l: 'Sales Today', v: '84' }, { l: 'Revenue', v: 'GH₵ 12k' }, { l: 'Avg Sale', v: 'GH₵ 143' }],
                 };
                 const p = PATHS[f.preview];
                 const s = STATS[f.preview];
@@ -1457,11 +1450,11 @@ export default function LandingPage() {
           </div>
 
           {/* More modules */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-12">
-            <span className="text-sm text-gray-400 mr-1">Also includes:</span>
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mt-12">
+            <span className="text-xs text-gray-400 mr-1 whitespace-nowrap">Also includes:</span>
             {MORE_MODULES.map(m => (
-              <span key={m} className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 px-3 py-1.5 rounded-full transition-colors">
-                <CheckCircle className="w-3 h-3 text-green-500" /> {m}
+              <span key={m} className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 px-2 py-1 rounded-full transition-colors whitespace-nowrap">
+                <CheckCircle className="w-2.5 h-2.5 text-green-500 flex-shrink-0" /> {m}
               </span>
             ))}
           </div>
@@ -1493,47 +1486,181 @@ export default function LandingPage() {
       </section>
 
       {/* ── PRICING ── */}
-      <section id="pricing" className="py-24 px-6">
-        <div className="max-w-5xl mx-auto">
+      {/* ── PRICING ── */}
+      <section id="pricing" className="py-24 px-6 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Pricing</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Simple, transparent pricing</h2>
             <p className="text-gray-500 text-lg">Start free for 14 days. Not charged until day 14. Subscribe to continue.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+
+          {/* Plan cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mb-6">
             {PLANS.map(p => (
-              <div key={p.key} className={`relative bg-white rounded-2xl border-2 p-8 flex flex-col ${p.popular ? 'border-[#0D3B6E] shadow-2xl shadow-blue-100' : 'border-gray-200'
-                }`}>
+              <div key={p.key} className={`relative bg-white rounded-2xl border-2 p-7 flex flex-col ${
+                p.popular ? 'border-[#0D3B6E] shadow-2xl shadow-blue-100' : 'border-gray-200'
+              }`}>
                 {p.popular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0D3B6E] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
                     Most Popular
                   </div>
                 )}
-                <span className={`text-xs font-bold px-3 py-1 rounded-full inline-block mb-4 w-fit ${p.badge}`}>{p.label}</span>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full inline-block mb-3 w-fit ${p.badge}`}>{p.label}</span>
                 <div className="text-4xl font-extrabold text-gray-900 mb-1">
-                  GH₵ {p.price}<span className="text-base font-normal text-gray-400">/mo</span>
+                  GH₵ {p.price.toLocaleString()}<span className="text-base font-normal text-gray-400">/mo</span>
                 </div>
-                <p className="text-xs text-gray-400 mb-6">per month, billed monthly</p>
-                <ul className="space-y-3 flex-1 mb-8">
+                <p className="text-xs text-gray-400 mb-2">per month, billed monthly</p>
+                <p className="text-sm text-gray-500 mb-6 pb-6 border-b border-gray-100">{p.desc}</p>
+                <ul className="space-y-2.5 flex-1 mb-8">
                   {p.features.map(f => (
-                    <li key={f} className="flex items-center gap-2.5 text-sm text-gray-600">
+                    <li key={f} className="flex items-center gap-2.5 text-sm text-gray-700">
                       <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> {f}
                     </li>
                   ))}
                 </ul>
-                <Link
-                  href="/register"
-                  className={`w-full text-center font-bold py-3 rounded-xl text-sm transition-colors ${p.popular
-                    ? 'bg-[#0D3B6E] hover:bg-[#1A5294] text-white shadow-lg shadow-blue-200'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
-                    }`}
-                >
+                <Link href="/register"
+                  className={`w-full text-center font-bold py-3 rounded-xl text-sm transition-colors ${
+                    p.popular
+                      ? 'bg-[#0D3B6E] hover:bg-[#1A5294] text-white shadow-lg shadow-blue-200'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                  }`}>
                   Start free trial
                 </Link>
               </div>
             ))}
           </div>
-          <p className="text-center text-sm text-gray-400 mt-8">All plans include a 14-day free trial. No credit card charged until day 14.</p>
+
+          <p className="text-center text-sm text-gray-400 mb-16">All plans include a 14-day free trial. No credit card charged until day 14.</p>
+
+          {/* Add-ons */}
+          <div className="mb-4">
+            <div className="text-center mb-10">
+              <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-3">Add-Ons</span>
+              <h3 className="text-2xl font-extrabold text-gray-900 mb-2">Extend your plan</h3>
+              <p className="text-gray-500">Add only what your business needs. Available on any plan.</p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              {ADDONS.map((addon, ai) => {
+                const addonIcons = [<Store className="w-5 h-5" />, <Calculator className="w-5 h-5" />];
+                return (
+                  <div key={addon.key} className="bg-white rounded-2xl border border-gray-200 hover:border-[#0D3B6E]/30 hover:shadow-lg p-0 flex flex-col overflow-hidden transition-all">
+                    {/* Card header */}
+                    <div className="bg-blue-50 px-6 pt-6 pb-5 border-b border-blue-100">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 bg-[#0D3B6E] rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-sm">
+                            {addonIcons[ai]}
+                          </div>
+                          <div>
+                            <div className="font-extrabold text-gray-900 text-base">{addon.title}</div>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-[#0D3B6E] mt-1 inline-block">Optional Add-On</span>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-2xl font-extrabold text-[#0D3B6E]">GH₵ {addon.price}</div>
+                          <div className="text-xs text-gray-400">per month</div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Card body */}
+                    <div className="px-6 py-5 flex flex-col gap-4 flex-1">
+                      <p className="text-sm text-gray-500 leading-relaxed">{addon.desc}</p>
+                      <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
+                        {addon.bullets.map(b => (
+                          <li key={b} className="flex items-start gap-2 text-xs text-gray-600">
+                            <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-green-500" /> {b}
+                          </li>
+                        ))}
+                      </ul>
+                      <Link href="/register"
+                        className="mt-auto w-full text-center bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-sm shadow-blue-200">
+                        Add to my plan →
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── SERVICES ── */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Professional Services</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">We don&apos;t just hand you software.</h2>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">From building a system tailored to your exact workflow, to setting it up and keeping it running — we&apos;re with you every step of the way.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+
+            {/* Custom Build */}
+            <div className="relative bg-gradient-to-br from-[#0D3B6E] to-[#1A5294] rounded-2xl p-8 text-white overflow-hidden flex flex-col">
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full" />
+              <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-yellow-400/10 rounded-full" />
+              <div className="relative z-10 flex flex-col flex-1">
+                <div className="w-12 h-12 bg-yellow-400/20 border border-yellow-400/30 rounded-xl flex items-center justify-center mb-5">
+                  <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div className="text-xs font-bold uppercase tracking-widest text-yellow-400 mb-2">Custom Build</div>
+                <h3 className="text-2xl font-extrabold mb-3">A system built around your business.</h3>
+                <p className="text-blue-200 text-sm leading-relaxed mb-6">Every business is different. If the standard modules don&apos;t fully match your workflow, we&apos;ll design and build a version of GEMS that fits you perfectly — your processes, your terminology, your rules.</p>
+                <ul className="space-y-2.5 mb-8 flex-1">
+                  {['Custom modules & workflows', 'Tailored dashboards & reports', 'Business-specific integrations', 'Dedicated project team', 'Full handover & documentation'].map(b => (
+                    <li key={b} className="flex items-center gap-2.5 text-sm text-blue-100">
+                      <CheckCircle className="w-4 h-4 text-yellow-400 flex-shrink-0" /> {b}
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href="https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27m%20interested%20in%20a%20custom%20build%20for%20my%20business."
+                  target="_blank" rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-extrabold py-3.5 rounded-xl text-sm transition-colors shadow-lg"
+                >
+                  <MessageSquare className="w-4 h-4" /> Let&apos;s Talk About Your Build
+                </a>
+              </div>
+            </div>
+
+            {/* Setup & Maintenance */}
+            <div className="bg-gray-50 border-2 border-gray-200 hover:border-[#0D3B6E]/30 rounded-2xl p-8 flex flex-col transition-colors">
+              <div className="w-12 h-12 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center mb-5">
+                <svg className="w-6 h-6 text-[#0D3B6E]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <div className="text-xs font-bold uppercase tracking-widest text-[#0D3B6E] mb-2">Setup & Maintenance</div>
+              <h3 className="text-2xl font-extrabold text-gray-900 mb-3">We handle everything. You focus on your business.</h3>
+              <p className="text-gray-500 text-sm leading-relaxed mb-6">Getting started is the hardest part. We&apos;ll set up your entire system, migrate your existing data, train your team, and stay on hand for ongoing support and maintenance — so you never have to figure it out alone.</p>
+              <ul className="space-y-2.5 mb-8 flex-1">
+                {['Full system setup & configuration', 'Data migration from existing tools', 'Staff training & onboarding', 'Ongoing maintenance & updates', 'Priority support & response SLA'].map(b => (
+                  <li key={b} className="flex items-center gap-2.5 text-sm text-gray-600">
+                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> {b}
+                  </li>
+                ))}
+              </ul>
+              <a
+                href="https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27m%20interested%20in%20setup%20and%20maintenance%20support."
+                target="_blank" rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-extrabold py-3.5 rounded-xl text-sm transition-colors shadow-lg shadow-blue-200"
+              >
+                <MessageSquare className="w-4 h-4" /> Get a Quote
+              </a>
+            </div>
+
+          </div>
+
+          <p className="text-center text-sm text-gray-400 mt-10">
+            Pricing for professional services is tailored to your business.{' '}
+            <a href="https://wa.me/233241550366" target="_blank" rel="noreferrer" className="text-[#0D3B6E] font-semibold hover:underline">Reach out to discuss your needs →</a>
+          </p>
         </div>
       </section>
 
@@ -1542,12 +1669,12 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Testimonials</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Trusted by businesses worldwide</h2>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Trusted by businesses across Ghana</h2>
             <p className="text-gray-500 text-lg">See what our customers say about running their business on GEMS.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {TESTIMONIALS.map((t, i) => (
-              <div key={t.name} className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow flex flex-col">
+              <div key={t.name} className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow flex flex-col h-full">
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />)}
                 </div>
@@ -1619,7 +1746,7 @@ export default function LandingPage() {
                 { icon: Phone,         label: 'Call Us',       value: '+233 241 550 366',        sub: '+233 256 791 600 · +233 303 957 042', color: 'bg-blue-50 text-blue-600',       href: 'tel:+233241550366' },
                 { icon: MessageCircle, label: 'SMS',           value: '+233 241 550 366',        sub: 'Text us anytime',                    color: 'bg-green-50 text-green-600',     href: 'sms:+233241550366' },
                 { icon: MessageSquare, label: 'WhatsApp',      value: '+233 241 550 366',        sub: 'Quick responses guaranteed',         color: 'bg-emerald-50 text-emerald-600', href: 'https://wa.me/233241550366' },
-                { icon: Mail,          label: 'Email',         value: 'support@gthink.com',      sub: 'We reply within 24 hours',           color: 'bg-purple-50 text-purple-600',   href: 'mailto:support@gthink.com' },
+                { icon: Mail,          label: 'Email',         value: 'gthinkcompanylimited@gmail.com',      sub: 'We reply within 24 hours',           color: 'bg-purple-50 text-purple-600',   href: 'mailto:gthinkcompanylimited@gmail.com' },
               ].map(({ icon: Icon, label, value, sub, color, href }) => (
                 <a key={label} href={href} target="_blank" rel="noreferrer"
                   className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-gray-200 transition-all group">
@@ -1701,7 +1828,7 @@ export default function LandingPage() {
                   onClick={() => {
                     if (!contactMsg.name || !contactMsg.contact || !contactMsg.message) return;
                     if (contactChannel === 'email') {
-                      window.location.href = `mailto:support@gthink.com?subject=${encodeURIComponent(contactMsg.subject||'Contact from '+contactMsg.name)}&body=${encodeURIComponent(contactMsg.message)}`;
+                      window.location.href = `mailto:gthinkcompanylimited@gmail.com?subject=${encodeURIComponent(contactMsg.subject||'Contact from '+contactMsg.name)}&body=${encodeURIComponent(contactMsg.message)}`;
                     } else if (contactChannel === 'whatsapp') {
                       window.open(`https://wa.me/233241550366?text=${encodeURIComponent(contactMsg.message)}`, '_blank');
                     } else {
@@ -1724,22 +1851,22 @@ export default function LandingPage() {
 
         {/* Trust bar */}
         <div className="bg-gray-800 border-b border-gray-700">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="max-w-7xl mx-auto px-6 py-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: Shield, title: 'Enterprise Security', sub: 'SOC 2 compliant, 256-bit SSL' },
-              { icon: Zap, title: '99.9% Uptime', sub: 'Guaranteed SLA for all plans' },
-              { icon: Globe, title: 'Works Everywhere', sub: 'Multi-currency, multi-branch' },
-              { icon: BarChart2, title: 'Real-Time Data', sub: 'Live dashboards & reports' },
+              { icon: Shield,    title: 'SSL Encrypted',        sub: 'Secure data transmission' },
+              { icon: Zap,       title: 'Built for Reliability', sub: 'High availability infrastructure' },
+              { icon: Globe,     title: 'Works Everywhere',    sub: 'Multi-currency, multi-branch' },
+              { icon: BarChart2, title: 'Real-Time Data',      sub: 'Live dashboards & reports' },
             ].map(b => {
               const Icon = b.icon;
               return (
-                <div key={b.title} className="flex items-center gap-2.5 sm:gap-3">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-yellow-400/10 flex items-center justify-center text-yellow-400 flex-shrink-0">
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <div key={b.title} className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-yellow-400/10 flex items-center justify-center text-yellow-400 flex-shrink-0">
+                    <Icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-xs sm:text-sm font-semibold text-white">{b.title}</div>
-                    <div className="text-[10px] sm:text-xs text-gray-400 mt-0.5">{b.sub}</div>
+                    <div className="text-sm font-semibold text-white">{b.title}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{b.sub}</div>
                   </div>
                 </div>
               );
@@ -1748,42 +1875,24 @@ export default function LandingPage() {
         </div>
 
         {/* Main columns */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 sm:gap-10">
+        <div className="max-w-7xl mx-auto px-6 py-14">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
 
-            {/* Brand */}
-            <div className="md:col-span-4 pb-8 md:pb-0 border-b md:border-b-0 border-gray-800">
-              <div className="flex items-center gap-3 mb-4">
-                <img src="/ag.png" alt="GEMS Logo" className="h-16 sm:h-20 md:h-24 w-auto object-contain" />
-              </div>
-              <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-6">
-                The all-in-one business management platform for growing companies. Stocks, Inventory, Sales, eCommerce, Payments, Procurement, Finance, Accounting, HR, CRM, and More — all connected in real time.
+            {/* Brand — col 1 */}
+            <div className="md:col-span-4">
+              <img src="/ag.png" alt="GEMS Logo" className="h-20 w-auto object-contain mb-4" />
+              <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                The all-in-one business management platform for growing companies in Africa. Stocks, Sales, Finance, HR, Procurement and CRM — all connected in real time.
               </p>
-
-              {/* Newsletter */}
-              <p className="text-[10px] sm:text-xs font-semibold text-gray-300 uppercase tracking-wide mb-2">Get product updates</p>
-              <div className="flex mb-6">
-                <input
-                  type="email"
-                  placeholder="your@company.com"
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-l-lg px-2.5 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400 transition-colors"
-                />
-                <button className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-[10px] sm:text-xs px-3 sm:px-4 rounded-r-lg transition-colors flex-shrink-0">
-                  Subscribe
-                </button>
-              </div>
-
-              {/* Social */}
               <div className="flex gap-2">
                 {[
-                  { label: 'Facebook',  href: 'https://www.facebook.com/share/1DkjiyTDzC/',      path: 'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z' },
-                  { label: 'Instagram', href: 'https://www.instagram.com/gthink_company_ltd',    path: 'M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01M6.5 19.5h11a3 3 0 003-3v-11a3 3 0 00-3-3h-11a3 3 0 00-3 3v11a3 3 0 003 3z' },
-                  { label: 'WhatsApp',  href: 'https://wa.me/233241550366',                      path: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z' },
+                  { label: 'Facebook',  href: 'https://www.facebook.com/share/1DkjiyTDzC/',   path: 'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z' },
+                  { label: 'Instagram', href: 'https://www.instagram.com/gthink_company_ltd', path: 'M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01M6.5 19.5h11a3 3 0 003-3v-11a3 3 0 00-3-3h-11a3 3 0 00-3 3v11a3 3 0 003 3z' },
+                  { label: 'WhatsApp',  href: 'https://wa.me/233241550366',                   path: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z' },
                 ].map(s => (
                   <a key={s.label} href={s.href} target="_blank" rel="noreferrer" aria-label={s.label}
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gray-800 hover:bg-yellow-400 text-gray-400 hover:text-gray-900 border border-gray-700 hover:border-yellow-400 flex items-center justify-center transition-all"
-                  >
-                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-yellow-400 text-gray-400 hover:text-gray-900 border border-gray-700 hover:border-yellow-400 flex items-center justify-center transition-all">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d={s.path} />
                     </svg>
                   </a>
@@ -1791,62 +1900,61 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Product */}
-            <div className="md:col-span-2 pb-8 md:pb-0 border-b md:border-b-0 border-gray-800">
-              <h4 className="text-xs sm:text-sm font-bold text-white uppercase tracking-widest mb-4 sm:mb-5 pb-2 sm:pb-3 border-b border-gray-700">Product</h4>
-              <ul className="space-y-2 sm:space-y-3">
+            {/* Platform — col 2 */}
+            <div className="md:col-span-2">
+              <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-5 pb-3 border-b border-gray-700">Platform</h4>
+              <ul className="space-y-3">
                 {[
-                  { label: 'Features', href: '#features' },
-                  { label: 'Pricing', href: '#pricing' },
-                  { label: 'How it works', href: '#how-it-works' },
-                  { label: 'Demo Store', href: '/store/gems-store' },
-                  { label: 'Changelog', href: '#' },
-                  { label: 'Roadmap', href: '#' },
+                  { label: 'Features',     href: '#features' },
+                  { label: 'How it Works', href: '#how-it-works' },
+                  { label: 'Pricing',      href: '#pricing' },
+                  { label: 'Demo Store',   href: '/store/gems-store' },
+                  { label: 'Get Started',  href: '/register' },
+                  { label: 'Log In',       href: '/login' },
                 ].map(l => (
                   <li key={l.label}>
-                    <a href={l.href} className="text-gray-400 hover:text-yellow-400 text-xs sm:text-sm transition-colors">{l.label}</a>
+                    <a href={l.href} className="text-gray-400 hover:text-yellow-400 text-sm transition-colors">{l.label}</a>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Company */}
-            <div className="md:col-span-2 pb-8 md:pb-0 border-b md:border-b-0 border-gray-800">
-              <h4 className="text-xs sm:text-sm font-bold text-white uppercase tracking-widest mb-4 sm:mb-5 pb-2 sm:pb-3 border-b border-gray-700">Company</h4>
-              <ul className="space-y-2 sm:space-y-3">
-                {['About Us', 'Blog', 'Careers', 'Press', 'Partners', 'Contact'].map(l => (
-                  <li key={l}>
-                    <a href="#" className="text-gray-400 hover:text-yellow-400 text-xs sm:text-sm transition-colors">{l}</a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Support + Legal */}
-            <div className="md:col-span-4">
-              <h4 className="text-xs sm:text-sm font-bold text-white uppercase tracking-widest mb-4 sm:mb-5 pb-2 sm:pb-3 border-b border-gray-700">Support</h4>
-              <ul className="space-y-2.5 sm:space-y-3 mb-6 sm:mb-8">
+            {/* Legal — col 3 */}
+            <div className="md:col-span-2">
+              <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-5 pb-3 border-b border-gray-700">Legal</h4>
+              <ul className="space-y-3">
                 {[
-                  { icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', text: 'support@gems-erp.com' },
-                  { icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', text: '+1 (800) GEMS-ERP' },
-                  { icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', text: 'Mon – Fri, 9am – 6pm UTC' },
+                  { label: 'Privacy Policy',   href: '/privacy' },
+                  { label: 'Terms of Service', href: '/terms' },
+                  { label: 'Cookie Policy',    href: '/cookies' },
+                ].map(l => (
+                  <li key={l.label}>
+                    <a href={l.href} className="text-gray-400 hover:text-yellow-400 text-sm transition-colors">{l.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Contact — col 4 */}
+            <div className="md:col-span-4">
+              <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-5 pb-3 border-b border-gray-700">Contact Us</h4>
+              <ul className="space-y-4">
+                {[
+                  { icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', text: 'gthinkcompanylimited@gmail.com', href: 'mailto:gthinkcompanylimited@gmail.com' },
+                  { icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', text: '+233 241 550 366 · +233 256 791 600', href: 'tel:+233241550366' },
+                  { icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', text: 'Mon – Fri, 8am – 6pm GMT', href: null },
+                  { icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z', text: 'Accra, Ghana', href: null },
                 ].map((item, i) => (
-                  <li key={i} className="flex items-center gap-2.5 sm:gap-3">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 flex-shrink-0">
-                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <li key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-yellow-400 flex-shrink-0">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                       </svg>
                     </div>
-                    <span className="text-gray-400 text-xs sm:text-sm">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <h4 className="text-xs sm:text-sm font-bold text-white uppercase tracking-widest mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-gray-700">Legal</h4>
-              <ul className="space-y-2 sm:space-y-3">
-                {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'GDPR'].map(l => (
-                  <li key={l}>
-                    <a href="#" className="text-gray-400 hover:text-yellow-400 text-xs sm:text-sm transition-colors">{l}</a>
+                    {item.href
+                      ? <a href={item.href} className="text-gray-400 hover:text-yellow-400 text-sm transition-colors break-all">{item.text}</a>
+                      : <span className="text-gray-400 text-sm">{item.text}</span>
+                    }
                   </li>
                 ))}
               </ul>
@@ -1857,13 +1965,27 @@ export default function LandingPage() {
 
         {/* Bottom bar */}
         <div className="border-t border-gray-800 bg-gray-950">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
-            <p className="text-gray-500 text-[10px] sm:text-xs text-center sm:text-left">Copyright &copy; 2026 GTHINK Company Limited &mdash; All rights reserved</p>
-            <p className="text-gray-500 text-[10px] sm:text-xs text-center sm:text-right">GEMS &mdash; GTHINK Enterprise Management System</p>
+          <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-gray-500 text-xs">© 2026 GTHINK Company Limited. All rights reserved.</p>
+            <p className="text-gray-500 text-xs">GEMS — GTHINK Enterprise Management System</p>
           </div>
         </div>
 
       </footer>
+
+      {/* Call Floating Action Button */}
+      <a
+        href="tel:+233241550366"
+        className="fixed bottom-24 right-6 z-50 flex items-center gap-3 group"
+        aria-label="Call Us"
+      >
+        <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg">
+          Call us · +233 241 550 366
+        </span>
+        <div className="relative flex items-center justify-center w-14 h-14 rounded-full shadow-lg shadow-blue-400/40 bg-[#0D3B6E] hover:bg-[#1A5294] transition-colors">
+          <Phone className="w-6 h-6 text-white" />
+        </div>
+      </a>
 
       {/* WhatsApp Floating Action Button */}
       <a
@@ -1873,13 +1995,10 @@ export default function LandingPage() {
         className="fixed bottom-6 right-6 z-50 flex items-center gap-3 group"
         aria-label="Chat on WhatsApp"
       >
-        {/* Tooltip */}
         <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg">
           Chat with us · Schedule a demo
         </span>
-        {/* Button */}
         <div className="relative flex items-center justify-center w-14 h-14 rounded-full shadow-lg shadow-green-400/40 bg-[#25D366] hover:bg-[#20bd5a] transition-colors">
-          {/* Pulse ring */}
           <span className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-30" />
           <svg viewBox="0 0 24 24" fill="white" className="w-7 h-7 relative z-10">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />

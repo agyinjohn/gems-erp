@@ -269,8 +269,8 @@ export default function DashboardPage() {
       {/* ── ROW 1: KPIs visible to admin + relevant roles ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
 
-        {/* Revenue — admin, accountant, sales */}
-        {can('super_admin','business_owner','branch_manager','accountant','sales_staff') && (
+        {/* Revenue — admin, sales (accountant has own dashboard) */}
+        {can('super_admin','business_owner','branch_manager','sales_staff') && (
           <StatCard label="Total Revenue" value={fmt(kpis.total_revenue)} icon={<DollarSign className="w-6 h-6 text-green-600" />} color="bg-green-50" sub="All time paid orders" />
         )}
 
@@ -294,8 +294,8 @@ export default function DashboardPage() {
           <StatCard label="Employees" value={kpis.total_employees} icon={<Users className="w-6 h-6 text-indigo-600" />} color="bg-indigo-50" sub="Active staff" />
         )}
 
-        {/* Monthly Expenses — admin, accountant */}
-        {can('super_admin','business_owner','branch_manager','accountant') && (
+        {/* Monthly Expenses — admin only (accountant has own dashboard) */}
+        {can('super_admin','business_owner','branch_manager') && (
           <StatCard label="Monthly Expenses" value={fmt(kpis.monthly_expenses)} icon={<Receipt className="w-6 h-6 text-red-600" />} color="bg-red-50" sub="This month" />
         )}
 
@@ -328,8 +328,107 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* ── CHARTS — admin, sales, accountant ── */}
-      {can('super_admin','business_owner','branch_manager','sales_staff','accountant') && (
+      {/* ── ACCOUNTANT DASHBOARD ── */}
+      {can('accountant') && (
+        <>
+          {/* KPI row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <StatCard label="Total Revenue"    value={fmt(data?.kpis?.total_revenue  || 0)} icon={<TrendingUp className="w-6 h-6 text-green-600"/>}  color="bg-green-50"  sub="All paid orders" />
+            <StatCard label="Total Expenses"   value={fmt(data?.kpis?.total_expenses || 0)} icon={<Receipt className="w-6 h-6 text-red-600"/>}      color="bg-red-50"    sub="All time" />
+            <StatCard label="Net Profit"       value={fmt(data?.kpis?.net_profit     || 0)} icon={<DollarSign className="w-6 h-6 text-blue-600"/>}  color="bg-blue-50"   sub="Revenue minus expenses" />
+            <StatCard label="This Month Spend" value={fmt(data?.kpis?.month_expenses || 0)} icon={<Receipt className="w-6 h-6 text-orange-600"/>}   color="bg-orange-50" sub="Current month" />
+          </div>
+
+          {/* Revenue chart + Expenses by category */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+            <div className="card">
+              <h3 className="font-semibold text-gray-800 mb-4">Revenue — Last 6 Months</h3>
+              {data?.monthly_revenue?.length ? (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={data.monthly_revenue}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v: any) => [`GH₵ ${Number(v).toLocaleString()}`, 'Revenue']} />
+                    <Bar dataKey="revenue" fill="#1A6BB5" radius={[4,4,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : <div className="h-48 flex items-center justify-center text-gray-400 text-sm">No revenue data yet</div>}
+            </div>
+
+            <div className="card">
+              <h3 className="font-semibold text-gray-800 mb-4">Expenses by Category</h3>
+              {data?.expenses_by_category?.length ? (() => {
+                const max = Math.max(...data.expenses_by_category.map((c: any) => c.total));
+                const total = data.expenses_by_category.reduce((s: number, c: any) => s + c.total, 0);
+                return (
+                  <div className="space-y-3">
+                    {data.expenses_by_category.map((c: any) => {
+                      const pct = max > 0 ? Math.round((c.total / max) * 100) : 0;
+                      const share = total > 0 ? ((c.total / total) * 100).toFixed(1) : '0';
+                      return (
+                        <div key={c.category}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-700 font-medium">{c.category}</span>
+                            <span className="text-gray-900 font-semibold">{fmt(c.total)} <span className="text-gray-400 font-normal text-xs">({share}%)</span></span>
+                          </div>
+                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-red-400 rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })() : <p className="text-gray-400 text-sm text-center py-8">No expense data yet</p>}
+            </div>
+          </div>
+
+          {/* Recent expenses + Quick links */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+            <div className="card">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Recent Expenses</h3>
+                <a href="/accounting" className="text-xs text-blue-600 hover:underline">View all →</a>
+              </div>
+              {data?.recent_expenses?.length ? (
+                <div className="space-y-2">
+                  {data.recent_expenses.map((e: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{e.title}</div>
+                        <div className="text-xs text-gray-400">{e.category || 'Uncategorized'} · {new Date(e.expense_date).toLocaleDateString()}</div>
+                      </div>
+                      <span className="text-sm font-semibold text-red-600">GH₵ {parseFloat(e.amount).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-gray-400 text-sm text-center py-8">No expenses recorded</p>}
+            </div>
+
+            <div className="card">
+              <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Record Expense',  href: '/accounting',  color: 'bg-red-50 text-red-700' },
+                  { label: 'Journal Entry',   href: '/accounting',  color: 'bg-purple-50 text-purple-700' },
+                  { label: 'Balance Sheet',   href: '/accounting',  color: 'bg-green-50 text-green-700' },
+                  { label: 'P&L Report',      href: '/accounting',  color: 'bg-blue-50 text-blue-700' },
+                  { label: 'Trial Balance',   href: '/accounting',  color: 'bg-indigo-50 text-indigo-700' },
+                  { label: 'Approvals',       href: '/approvals',   color: 'bg-orange-50 text-orange-700' },
+                ].map(a => (
+                  <a key={a.label} href={a.href} className={`flex items-center justify-between px-3 py-3 rounded-xl text-sm font-medium ${a.color} hover:opacity-80 transition-opacity`}>
+                    {a.label} <span className="text-xs">→</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── CHARTS — admin, sales only (not accountant — has own section above) ── */}
+      {can('super_admin','business_owner','branch_manager','sales_staff') && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
           <div className="card">
             <h3 className="font-semibold text-gray-800 mb-4">Monthly Revenue</h3>
@@ -453,24 +552,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Accountant: recent expenses */}
-        {can('accountant') && (
-          <div className="card">
-            <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              {[
-                { label: 'View Expenses', href: '/accounting', color: 'bg-red-50 text-red-700' },
-                { label: 'Journal Entries', href: '/accounting', color: 'bg-purple-50 text-purple-700' },
-                { label: 'Balance Sheet', href: '/accounting', color: 'bg-green-50 text-green-700' },
-                { label: 'P&L Report', href: '/reports', color: 'bg-blue-50 text-blue-700' },
-              ].map(a => (
-                <a key={a.label} href={a.href} className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium ${a.color} hover:opacity-80 transition-opacity`}>
-                  {a.label} <span>→</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         {/* Procurement: quick actions */}
         {can('procurement_officer') && (

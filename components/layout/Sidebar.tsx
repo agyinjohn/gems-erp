@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
-  X, Monitor, TrendingUp, CreditCard, ChevronDown, MessageCircle,
+  X, Monitor, TrendingUp, CreditCard, ChevronDown, MessageCircle, CheckSquare,
 } from 'lucide-react';
 
 const navGroups = [
@@ -59,6 +59,12 @@ const navGroups = [
     items: [
       { href: '/accounting',   label: 'Accounting', icon: Calculator, roles: ['business_owner','accountant'] },
       { href: '/payment-logs', label: 'Payments',   icon: CreditCard, roles: ['business_owner','accountant'] },
+    ],
+  },
+  {
+    label: 'Approvals',
+    items: [
+      { href: '/approvals', label: 'Approvals', icon: CheckSquare, roles: ['business_owner','accountant','hr_manager'] },
     ],
   },
   {
@@ -139,64 +145,102 @@ export default function Sidebar({ open, onClose }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        {navGroups.map((group, gi) => {
-          const visibleItems = group.items.filter(item => user && item.roles.includes(user.role));
-          if (!visibleItems.length) return null;
+        {(() => {
+          const isAdminOrOwner = user?.role === 'platform_admin' || user?.role === 'business_owner';
 
-          // Groups without a label render flat (no collapse)
-          if (!group.label) {
-            return (
-              <div key={gi} className="mb-1">
-                {visibleItems.map(item => {
-                  const Icon = item.icon;
-                  const isActive = pathname === item.href || (item.href !== '/platform' && item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
-                  return (
-                    <Link key={item.href} href={item.href} onClick={onClose}
-                      className={`sidebar-link ${isActive ? 'active' : 'inactive'}`}>
-                      <Icon className="w-4 h-4 flex-shrink-0" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            );
+          if (isAdminOrOwner) {
+            // Full grouped nav with labels
+            return navGroups.map((group, gi) => {
+              const visibleItems = group.items.filter(item => user && item.roles.includes(user.role));
+              if (!visibleItems.length) return null;
+
+              if (!group.label) {
+                return (
+                  <div key={gi} className="mb-1">
+                    {visibleItems.map(item => {
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href || (item.href !== '/platform' && item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
+                      return (
+                        <Link key={item.href} href={item.href} onClick={onClose}
+                          className={`sidebar-link ${isActive ? 'active' : 'inactive'}`}>
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                );
+              }
+
+              const isExpanded = !!openGroups[gi];
+
+              return (
+                <div key={gi} className="mb-1">
+                  <button
+                    onClick={() => toggle(gi)}
+                    className="w-full flex items-center justify-between px-3 py-1.5 mt-3 mb-1 rounded-lg text-[10px] font-bold uppercase tracking-widest text-blue-100/70 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <span>{group.label}</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isExpanded && (
+                    <div className="mt-0.5 space-y-0.5">
+                      {visibleItems.map(item => {
+                        const Icon = item.icon;
+                        const isActive = pathname === item.href || (item.href !== '/platform' && item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
+                        return (
+                          <Link key={item.href} href={item.href} onClick={onClose}
+                            className={`sidebar-link ${isActive ? 'active' : 'inactive'}`}>
+                            <Icon className="w-4 h-4 flex-shrink-0" />
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            });
           }
 
-          const isExpanded = !!openGroups[gi];
-          const hasActiveChild = visibleItems.some(item =>
-            pathname === item.href || pathname.startsWith(item.href + '/')
-          );
+          // Non-admin/owner: flat list, no labels, My Portal always last
+          const allItems = navGroups.flatMap(g => g.items);
+          const seen = new Set<string>();
+          const flat = allItems.filter(item => {
+            if (!user || !item.roles.includes(user.role)) return false;
+            if (item.href === '/ess') return false; // handled separately at end
+            if (seen.has(item.href)) return false;
+            seen.add(item.href);
+            return true;
+          });
+          const myPortal = allItems.find(item => item.href === '/ess' && item.roles.includes(user?.role || ''));
 
           return (
-            <div key={gi} className="mb-1">
-              {/* Collapsible header */}
-              <button
-                onClick={() => toggle(gi)}
-                className="w-full flex items-center justify-between px-3 py-1.5 mt-3 mb-1 rounded-lg text-[10px] font-bold uppercase tracking-widest text-blue-100/70 hover:text-white hover:bg-white/5 transition-colors"
-              >
-                <span>{group.label}</span>
-                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Items */}
-              {isExpanded && (
-                <div className="mt-0.5 space-y-0.5">
-                  {visibleItems.map(item => {
-                    const Icon = item.icon;
-                    const isActive = pathname === item.href || (item.href !== '/platform' && item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
-                    return (
-                      <Link key={item.href} href={item.href} onClick={onClose}
-                        className={`sidebar-link ${isActive ? 'active' : 'inactive'}`}>
-                        <Icon className="w-4 h-4 flex-shrink-0" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </div>
+            <div className="space-y-0.5">
+              {flat.map(item => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
+                return (
+                  <Link key={item.href} href={item.href} onClick={onClose}
+                    className={`sidebar-link ${isActive ? 'active' : 'inactive'}`}>
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+              {myPortal && (
+                <>
+                  <div className="my-2 border-t border-white/10" />
+                  <Link href="/ess" onClick={onClose}
+                    className={`sidebar-link ${pathname === '/ess' || pathname.startsWith('/ess/') ? 'active' : 'inactive'}`}>
+                    <UserCircle className="w-4 h-4 flex-shrink-0" />
+                    My Portal
+                  </Link>
+                </>
               )}
             </div>
           );
-        })}
+        })()}
       </nav>
 
       {/* GEMS Store */}

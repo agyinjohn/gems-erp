@@ -1,12 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/auth';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
-import { Plus, Search, Eye, CheckCircle, Truck, ClipboardList, Building2 } from 'lucide-react';
+import { Plus, Search, Eye, CheckCircle, Truck, ClipboardList, Building2, Edit2, Trash2, Send, CreditCard } from 'lucide-react';
 import api from '@/lib/api';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
 
 export default function ProcurementPage() {
+  const { user } = useAuth();
+  const canApprove = user?.role === 'business_owner' || user?.role === 'accountant';
   const [pos, setPOs] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -17,10 +20,15 @@ export default function ProcurementPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const [poForm, setPoForm] = useState({ supplier_id:'', expected_date:'', notes:'', items:[{product_id:'',quantity_ordered:1,unit_cost:''}] });
   const [supForm, setSupForm] = useState({ name:'', email:'', phone:'', address:'', payment_terms:'Net 30', notes:'' });
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [receiveItems, setReceiveItems] = useState<any[]>([]);
+  const [poPayModal, setPoPayModal] = useState<any>(null);
+  const [poPayForm, setPoPayForm] = useState({ amount:'', method:'bank_transfer', reference:'', note:'' });
+  const [poPaySaving, setPoPaySaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -52,9 +60,20 @@ export default function ProcurementPage() {
 
   const createSupplier = async () => {
     setSaving(true); setError('');
-    try { await api.post('/suppliers', supForm); setModal(null); load(); }
+    try {
+      if (selectedSupplier) await api.put(`/suppliers/${selectedSupplier.id}`, supForm);
+      else await api.post('/suppliers', supForm);
+      setModal(null); load();
+    }
     catch(e:any) { setError(e.response?.data?.message || 'Error'); }
     finally { setSaving(false); }
+  };
+
+  const deleteSupplier = async (id: string) => {
+    if (!confirm('Deactivate this supplier?')) return;
+    await api.delete(`/suppliers/${id}`).catch(()=>{});
+    toast.success('Supplier deactivated');
+    load();
   };
 
   const openView = async (po: any) => {
@@ -79,11 +98,36 @@ export default function ProcurementPage() {
 
   const approvePO = async (id: number) => {
     await api.patch(`/purchase-orders/${id}/approve`).catch(()=>{});
-    toast.success('Updated successfully');
+    toast.success('PO approved');
     load();
   };
 
-  const filtered = pos.filter(p => !search || p.po_number?.toLowerCase().includes(search.toLowerCase()));
+  const sendPO = async (id: number) => {
+    try {
+      await api.patch(`/purchase-orders/${id}/send`);
+      toast.success('PO marked as sent to supplier');
+      load();
+    } catch(e:any) { toast.error(e.response?.data?.message || 'Failed'); }
+  };
+
+  const recordPoPayment = async () => {
+    if (!poPayModal) return;
+    setPoPaySaving(true);
+    try {
+      const res = await api.patch(`/purchase-orders/${poPayModal.id}/pay`, poPayForm);
+      const { paid, outstanding } = res.data;
+      toast.success(`GHS ${parseFloat(paid).toFixed(2)} paid${ outstanding > 0 ? ` — GHS ${parseFloat(outstanding).toFixed(2)} still outstanding` : ' — fully cleared' }`);
+      setPoPayModal(null);
+      setPoPayForm({ amount:'', method:'bank_transfer', reference:'', note:'' });
+      load();
+    } catch(e:any) { toast.error(e.response?.data?.message || 'Payment failed'); }
+    finally { setPoPaySaving(false); }
+  };
+
+  const filtered = pos.filter(p =>
+    (!search || p.po_number?.toLowerCase().includes(search.toLowerCase())) &&
+    (!statusFilter || p.status === statusFilter)
+  );
 
   return (
     <AppLayout title="Procurement" subtitle="Purchase orders, suppliers and goods receipt" allowedRoles={['business_owner','procurement_officer']}>
@@ -94,31 +138,64 @@ export default function ProcurementPage() {
         ))}
         <div className="sm:ml-auto flex gap-2 w-full sm:w-auto">
           {tab === 'pos' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setPoForm({ supplier_id:'',expected_date:'',notes:'',items:[{product_id:'',quantity_ordered:1,unit_cost:''}] }); setError(''); setModal('add_po'); }}><Plus className="w-4 h-4" />New PO</button>}
-          {tab === 'suppliers' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setSupForm({ name:'',email:'',phone:'',address:'',payment_terms:'Net 30',notes:'' }); setError(''); setModal('add_supplier'); }}><Plus className="w-4 h-4" />Add Supplier</button>}
+          {tab === 'suppliers' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setSelectedSupplier(null); setSupForm({ name:'',email:'',phone:'',address:'',payment_terms:'Net 30',notes:'' }); setError(''); setModal('add_supplier'); }}><Plus className="w-4 h-4" />Add Supplier</button>}
         </div>
       </div>
 
       {tab === 'pos' && (
         <>
-          <div className="relative mb-4">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input className="form-input pl-9" placeholder="Search PO number…" value={search} onChange={e => setSearch(e.target.value)} />
+          <div className="flex gap-3 mb-4">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input className="form-input pl-9" placeholder="Search PO number…" value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            <select className="form-input w-48" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="">All Statuses</option>
+              {['draft','pending_approval','approved','sent','partially_received','completed','cancelled'].map(s => (
+                <option key={s} value={s}>{s.replace(/_/g,' ')}</option>
+              ))}
+            </select>
+            {(search || statusFilter) && (
+              <button className="btn-secondary" onClick={() => { setSearch(''); setStatusFilter(''); }}>Clear</button>
+            )}
           </div>
           <div className="card p-0 overflow-hidden">
-            {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No purchase orders yet" icon={<ClipboardList className="w-8 h-8 text-gray-300"/>} /> : (
+            {loading ? <Spinner /> : filtered.length === 0
+              ? <EmptyState message={search || statusFilter ? 'No POs match your filter' : 'No purchase orders yet'} icon={<ClipboardList className="w-8 h-8 text-gray-300"/>} />
+              : (
               <ResponsiveTable
-                headers={['PO Number','Supplier','Total Cost','Status','Expected','Actions']}
+                headers={['PO Number','Supplier','Total Cost','Status','Payment','Expected','Actions']}
                 data={filtered}
                 renderRow={(po) => [
                   <span className="font-mono text-xs font-medium text-blue-700">{po.po_number}</span>,
-                  <span className="font-medium">{po.supplier_name || '—'}</span>,
-                  <span className="font-semibold">GH₵ {parseFloat(po.total_cost||0).toFixed(2)}</span>,
+                  <span className="font-medium">{po.supplier_name || po.supplier_id?.name || '—'}</span>,
+                  <div>
+                    <div className="font-semibold">GH₵ {parseFloat(po.total_cost||0).toFixed(2)}</div>
+                    {po.amount_paid > 0 && <div className="text-xs text-green-600">Paid: GH₵ {parseFloat(po.amount_paid||0).toFixed(2)}</div>}
+                  </div>,
                   <Badge status={po.status} />,
+                  <span className={`badge ${
+                    po.payment_status === 'paid'    ? 'bg-green-100 text-green-700' :
+                    po.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-gray-100 text-gray-500'
+                  }`}>{po.payment_status || 'unpaid'}</span>,
                   <span className="text-gray-500 text-xs">{po.expected_date ? new Date(po.expected_date).toLocaleDateString() : '—'}</span>,
                   <div className="flex gap-2">
                     <button onClick={() => openView(po)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Eye className="w-4 h-4" /></button>
-                    {po.status === 'draft' && <button onClick={() => approvePO(po.id)} title="Approve" className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4" /></button>}
+                    {po.status === 'draft' && canApprove && <button onClick={() => approvePO(po.id)} title="Approve PO" className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4" /></button>}
+                    {po.status === 'approved' && <button onClick={() => sendPO(po.id)} title="Mark as Sent to Supplier" className="p-1.5 hover:bg-purple-50 rounded text-purple-600"><Send className="w-4 h-4" /></button>}
                     {['approved','sent','partially_received'].includes(po.status) && <button onClick={() => openReceive(po)} title="Receive Goods" className="p-1.5 hover:bg-yellow-50 rounded text-yellow-600"><Truck className="w-4 h-4" /></button>}
+                    {['sent','partially_received','completed'].includes(po.status) && po.payment_status !== 'paid' && (
+                      <button
+                        onClick={() => {
+                          const outstanding = parseFloat(po.total_cost||0) - parseFloat(po.amount_paid||0);
+                          setPoPayModal({ ...po, outstanding });
+                          setPoPayForm({ amount: outstanding.toFixed(2), method:'bank_transfer', reference:'', note:'' });
+                        }}
+                        title="Record Payment"
+                        className="p-1.5 hover:bg-green-50 rounded text-green-600"
+                      ><CreditCard className="w-4 h-4" /></button>
+                    )}
                   </div>
                 ]}
               />
@@ -131,14 +208,18 @@ export default function ProcurementPage() {
         <div className="card p-0 overflow-hidden">
           {loading ? <Spinner /> : suppliers.length === 0 ? <EmptyState message="No suppliers yet" icon={<Building2 className="w-8 h-8 text-gray-300"/>} /> : (
             <ResponsiveTable
-              headers={['Supplier','Email','Phone','Payment Terms','Status']}
+              headers={['Supplier','Email','Phone','Payment Terms','Status','']}
               data={suppliers}
               renderRow={(s) => [
                 <span className="font-medium">{s.name}</span>,
                 <span className="text-gray-500">{s.email||'—'}</span>,
                 <span className="text-gray-500">{s.phone||'—'}</span>,
                 <span className="text-gray-500">{s.payment_terms||'—'}</span>,
-                <Badge status={s.is_active ? 'active':'inactive'} />
+                <Badge status={s.is_active ? 'active':'inactive'} />,
+                <div className="flex gap-1">
+                  <button onClick={() => { setSelectedSupplier(s); setSupForm({ name:s.name, email:s.email||'', phone:s.phone||'', address:s.address||'', payment_terms:s.payment_terms||'Net 30', notes:s.notes||'' }); setError(''); setModal('add_supplier'); }} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-4 h-4" /></button>
+                  <button onClick={() => deleteSupplier(s.id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-4 h-4" /></button>
+                </div>
               ]}
             />
           )}
@@ -185,7 +266,7 @@ export default function ProcurementPage() {
       </Modal>
 
       {/* Add Supplier Modal */}
-      <Modal open={modal==='add_supplier'} onClose={() => setModal(null)} title="Add Supplier" size="md">
+      <Modal open={modal==='add_supplier'} onClose={() => setModal(null)} title={selectedSupplier ? 'Edit Supplier' : 'Add Supplier'} size="md">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="space-y-3">
           <div><label className="form-label">Name *</label><input className="form-input" value={supForm.name} onChange={e => setSupForm({...supForm,name:e.target.value})} /></div>
@@ -198,7 +279,45 @@ export default function ProcurementPage() {
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={createSupplier} disabled={saving}>{saving?'Saving…':'Save Supplier'}</button>
+          <button className="btn-primary" onClick={createSupplier} disabled={saving}>{saving ? 'Saving…' : selectedSupplier ? 'Update Supplier' : 'Save Supplier'}</button>
+        </div>
+      </Modal>
+
+      {/* View PO Modal */}
+      <Modal open={modal==='view_po'} onClose={() => setModal(null)} title={`PO — ${selected?.po_number}`} size="lg">
+        {selected && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><span className="text-gray-500">Supplier</span><div className="font-medium">{selected.supplier_id?.name || '—'}</div></div>
+              <div><span className="text-gray-500">Status</span><div><Badge status={selected.status} /></div></div>
+              <div><span className="text-gray-500">Total Cost</span><div className="font-semibold">GH₵ {parseFloat(selected.total_cost||0).toFixed(2)}</div></div>
+              <div><span className="text-gray-500">Payment</span><div><Badge status={selected.payment_status || 'unpaid'} /></div></div>
+              {selected.expected_date && <div><span className="text-gray-500">Expected</span><div>{new Date(selected.expected_date).toLocaleDateString()}</div></div>}
+              {selected.notes && <div className="col-span-2"><span className="text-gray-500">Notes</span><div>{selected.notes}</div></div>}
+            </div>
+            <div className="border-t pt-3">
+              <h4 className="font-medium text-sm mb-2">Items</h4>
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="table-header"><tr>{['Product','Ordered','Received','Unit Cost','Total'].map(h=><th key={h} className="px-3 py-2 text-left">{h}</th>)}</tr></thead>
+                <tbody className="divide-y divide-gray-50">
+                  {(selected.items||[]).map((item:any,i:number) => (
+                    <tr key={i} className="hover:bg-gray-50">
+                      <td className="px-3 py-2 font-medium">{item.product_name}</td>
+                      <td className="px-3 py-2">{item.quantity_ordered}</td>
+                      <td className="px-3 py-2">{item.quantity_received}</td>
+                      <td className="px-3 py-2">GH₵ {parseFloat(item.unit_cost||0).toFixed(2)}</td>
+                      <td className="px-3 py-2 font-semibold">GH₵ {parseFloat(item.total||0).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            </div>
+          </div>
+        )}
+        <div className="flex justify-end mt-6">
+          <button className="btn-secondary" onClick={() => setModal(null)}>Close</button>
         </div>
       </Modal>
 
@@ -218,6 +337,72 @@ export default function ProcurementPage() {
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
           <button className="btn-primary" onClick={doReceive} disabled={saving}>{saving?'Saving…':'Confirm Receipt'}</button>
+        </div>
+      </Modal>
+      {/* Supplier Payment Modal */}
+      <Modal open={!!poPayModal} onClose={() => setPoPayModal(null)} title={`Pay Supplier — ${poPayModal?.po_number}`} size="sm">
+        {poPayModal && (
+          <div className="space-y-3">
+            <div className="bg-gray-50 rounded-xl px-4 py-3 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Supplier</span>
+                <span className="font-medium">{poPayModal.supplier_id?.name || poPayModal.supplier_name || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">PO Total</span>
+                <span className="font-medium">GHS {parseFloat(poPayModal.total_cost||0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Already Paid</span>
+                <span className="font-medium text-green-600">GHS {parseFloat(poPayModal.amount_paid||0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between border-t pt-1">
+                <span className="text-gray-500 font-semibold">Outstanding</span>
+                <span className="font-bold text-red-600">GHS {poPayModal.outstanding.toFixed(2)}</span>
+              </div>
+            </div>
+            <div>
+              <label className="form-label">Amount Paying (GHS) *</label>
+              <input
+                type="number" className="form-input"
+                value={poPayForm.amount}
+                onChange={e => setPoPayForm({...poPayForm, amount: e.target.value})}
+                max={poPayModal.outstanding}
+              />
+              {parseFloat(poPayForm.amount||'0') > 0 && parseFloat(poPayForm.amount||'0') < poPayModal.outstanding && (
+                <p className="text-xs text-yellow-600 mt-1">Partial payment — GHS {(poPayModal.outstanding - parseFloat(poPayForm.amount)).toFixed(2)} will remain outstanding.</p>
+              )}
+              {parseFloat(poPayForm.amount||'0') >= poPayModal.outstanding && (
+                <p className="text-xs text-green-600 mt-1">✓ Full payment — payable will be cleared.</p>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="form-label">Method</label>
+                <select className="form-input" value={poPayForm.method} onChange={e => setPoPayForm({...poPayForm, method: e.target.value})}>
+                  {['bank_transfer','cash','cheque','mobile_money','card'].map(m => (
+                    <option key={m} value={m}>{m.replace('_',' ')}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="form-label">Reference</label>
+                <input className="form-input" value={poPayForm.reference} onChange={e => setPoPayForm({...poPayForm, reference: e.target.value})} placeholder="e.g. TXN-001" />
+              </div>
+            </div>
+            <div>
+              <label className="form-label">Note</label>
+              <input className="form-input" value={poPayForm.note} onChange={e => setPoPayForm({...poPayForm, note: e.target.value})} placeholder="Optional" />
+            </div>
+          </div>
+        )}
+        <div className="flex gap-3 justify-end mt-6">
+          <button className="btn-secondary" onClick={() => setPoPayModal(null)}>Cancel</button>
+          <button
+            className="btn-primary"
+            disabled={poPaySaving || !parseFloat(poPayForm.amount||'0')}
+            onClick={recordPoPayment}
+          >{poPaySaving ? 'Processing…' : 'Record Payment'}</button>
         </div>
       </Modal>
     </AppLayout>

@@ -325,7 +325,7 @@ export default function HRPage() {
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="form-label">Date</label><input type="date" className="form-input" value={attendanceForm.date} onChange={e => setAttendanceForm({...attendanceForm,date:e.target.value})} /></div>
             <div><label className="form-label">Status</label>
               <select className="form-input" value={attendanceForm.status} onChange={e => setAttendanceForm({...attendanceForm,status:e.target.value})}>
@@ -356,7 +356,7 @@ export default function HRPage() {
               {['annual','sick','maternity','paternity','unpaid','other'].map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="form-label">Start Date *</label><input type="date" className="form-input" value={leaveForm.start_date} onChange={e => setLeaveForm({...leaveForm,start_date:e.target.value})} /></div>
             <div><label className="form-label">End Date *</label><input type="date" className="form-input" value={leaveForm.end_date} onChange={e => setLeaveForm({...leaveForm,end_date:e.target.value})} /></div>
           </div>
@@ -410,7 +410,7 @@ export default function HRPage() {
               </div>
             </div>
             <div><label className="form-label">Full Name *</label><input className="form-input" value={empForm.name} onChange={e => setEmpForm({...empForm,name:e.target.value})} placeholder="e.g. Kofi Mensah" /></div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><label className="form-label">Date of Birth</label><input type="date" className="form-input" value={empForm.date_of_birth} onChange={e => setEmpForm({...empForm,date_of_birth:e.target.value})} /></div>
               <div><label className="form-label">Gender</label>
                 <select className="form-input" value={empForm.gender} onChange={e => setEmpForm({...empForm,gender:e.target.value})}>
@@ -438,14 +438,14 @@ export default function HRPage() {
         {/* Step 2 — Contact */}
         {empStep === 2 && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><label className="form-label">Email</label><input type="email" className="form-input" value={empForm.email} onChange={e => setEmpForm({...empForm,email:e.target.value})} /></div>
               <div><label className="form-label">Phone</label><input className="form-input" value={empForm.phone} onChange={e => setEmpForm({...empForm,phone:e.target.value})} placeholder="+233 XX XXX XXXX" /></div>
             </div>
             <div><label className="form-label">Residential Address</label><textarea className="form-input" rows={2} value={empForm.address} onChange={e => setEmpForm({...empForm,address:e.target.value})} placeholder="Street, City, Region" /></div>
             <div className="border-t border-gray-100 pt-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Emergency Contact</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div><label className="form-label">Full Name</label><input className="form-input" value={empForm.emergency_name} onChange={e => setEmpForm({...empForm,emergency_name:e.target.value})} /></div>
                 <div><label className="form-label">Phone</label><input className="form-input" value={empForm.emergency_phone} onChange={e => setEmpForm({...empForm,emergency_phone:e.target.value})} /></div>
                 <div className="col-span-2"><label className="form-label">Relationship</label><input className="form-input" value={empForm.emergency_relation} onChange={e => setEmpForm({...empForm,emergency_relation:e.target.value})} placeholder="e.g. Spouse, Parent, Sibling" /></div>
@@ -456,7 +456,7 @@ export default function HRPage() {
 
         {/* Step 3 — Employment */}
         {empStep === 3 && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="form-label">Employee Code</label><input className="form-input" value={empForm.employee_code} onChange={e => setEmpForm({...empForm,employee_code:e.target.value})} /></div>
             <div><label className="form-label">Job Title</label><input className="form-input" value={empForm.job_title} onChange={e => setEmpForm({...empForm,job_title:e.target.value})} /></div>
             <div><label className="form-label">Department</label>
@@ -499,7 +499,7 @@ export default function HRPage() {
               {employees.map(e => <option key={e.id} value={e.id}>{e.name} — GH₵ {e.gross_salary}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="form-label">Month</label>
               <select className="form-input" value={payForm.month} onChange={e => setPayForm({...payForm,month:parseInt(e.target.value)})}>
                 {months.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
@@ -507,7 +507,7 @@ export default function HRPage() {
             </div>
             <div><label className="form-label">Year</label><input type="number" className="form-input" value={payForm.year} onChange={e => setPayForm({...payForm,year:parseInt(e.target.value)})} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="form-label">Allowances (GH₵)</label><input type="number" className="form-input" value={payForm.allowances} onChange={e => setPayForm({...payForm,allowances:e.target.value})} /></div>
             <div><label className="form-label">Deductions (GH₵)</label><input type="number" className="form-input" value={payForm.deductions} onChange={e => setPayForm({...payForm,deductions:e.target.value})} /></div>
           </div>

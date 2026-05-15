@@ -147,7 +147,7 @@ export default function BranchesPage() {
             <label className="form-label">Address</label>
             <input {...inp('address')} placeholder="e.g. 12 Ring Road, Accra" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">Phone</label>
               <input {...inp('phone')} placeholder="+233 XX XXX XXXX" />
