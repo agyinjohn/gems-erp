@@ -129,8 +129,54 @@ export default function ProcurementPage() {
     (!statusFilter || p.status === statusFilter)
   );
 
+  const totalSpend = pos.reduce((s, p) => s + parseFloat(p.total_cost || 0), 0);
+  const pendingApproval = pos.filter(p => p.status === 'draft').length;
+  const pendingReceipt = pos.filter(p => ['approved','sent','partially_received'].includes(p.status)).length;
+  const unpaidAmount = pos.reduce((s, p) => s + (parseFloat(p.total_cost || 0) - parseFloat(p.amount_paid || 0)), 0);
+
   return (
     <AppLayout title="Procurement" subtitle="Purchase orders, suppliers and goods receipt" allowedRoles={['business_owner','procurement_officer']}>
+
+      {/* ── KPI Cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
+        <div className="card flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <ClipboardList className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <div className="text-2xl font-extrabold text-gray-900">{loading ? '—' : pos.length}</div>
+            <div className="text-xs text-gray-400">Total POs</div>
+          </div>
+        </div>
+        <div className="card flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-yellow-50 flex items-center justify-center flex-shrink-0">
+            <CheckCircle className="w-5 h-5 text-yellow-600" />
+          </div>
+          <div>
+            <div className="text-2xl font-extrabold text-gray-900">{loading ? '—' : pendingApproval}</div>
+            <div className="text-xs text-gray-400">Awaiting Approval</div>
+          </div>
+        </div>
+        <div className="card flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-cyan-50 flex items-center justify-center flex-shrink-0">
+            <Truck className="w-5 h-5 text-cyan-600" />
+          </div>
+          <div>
+            <div className="text-2xl font-extrabold text-gray-900">{loading ? '—' : pendingReceipt}</div>
+            <div className="text-xs text-gray-400">Pending Receipt</div>
+          </div>
+        </div>
+        <div className="card flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+            <CreditCard className="w-5 h-5 text-red-500" />
+          </div>
+          <div>
+            <div className="text-2xl font-extrabold text-gray-900">{loading ? '—' : `GH₵ ${unpaidAmount.toLocaleString('en-GH', { minimumFractionDigits: 0 })}`}</div>
+            <div className="text-xs text-gray-400">Outstanding Payables</div>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex flex-col sm:flex-row gap-2 mb-5">
         {([{t:'pos',l:'Purchase Orders',icon:<ClipboardList className="w-4 h-4"/>},{t:'suppliers',l:'Suppliers',icon:<Building2 className="w-4 h-4"/>}]).map(({t,l,icon}) => (

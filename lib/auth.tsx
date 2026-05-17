@@ -79,8 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sales_staff:          '/pos',
       warehouse_staff:      '/inventory',
       accountant:           '/accounting',
-      hr_manager:           '/hr',
-      procurement_officer:  '/procurement',
+      hr_manager:           '/dashboard',
+      procurement_officer:  '/dashboard',
     };
     router.push(roleRedirects[user.role] ?? '/dashboard');
   };

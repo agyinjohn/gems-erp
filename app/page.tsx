@@ -916,8 +916,8 @@ const TESTIMONIALS = [
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
-  const [contactChannel, setContactChannel] = useState<'email'|'sms'|'whatsapp'>('email');
-  const [contactMsg, setContactMsg] = useState({ name:'', contact:'', subject:'', message:'' });
+  const [contactChannel, setContactChannel] = useState<'email' | 'sms' | 'whatsapp'>('email');
+  const [contactMsg, setContactMsg] = useState({ name: '', contact: '', subject: '', message: '' });
   const [heroVisible, setHeroVisible] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -1332,23 +1332,23 @@ export default function LandingPage() {
                 if (activeFeature !== i) return null;
                 const PATHS: Record<string, { area: string, line: string, dots: number[][] }> = {
                   inventory: { area: 'M0,50 C40,44 80,30 120,24 C160,18 200,32 240,18 C270,8 300,10 320,5 L320,72 L0,72 Z', line: 'M0,50 C40,44 80,30 120,24 C160,18 200,32 240,18 C270,8 300,10 320,5', dots: [[0, 50], [120, 24], [240, 18], [320, 5]] },
-                  sales:      { area: 'M0,56 C40,48 80,38 120,30 C160,22 200,36 240,22 C270,10 300,14 320,7 L320,72 L0,72 Z', line: 'M0,56 C40,48 80,38 120,30 C160,22 200,36 240,22 C270,10 300,14 320,7', dots: [[0, 56], [120, 30], [240, 22], [320, 7]] },
+                  sales: { area: 'M0,56 C40,48 80,38 120,30 C160,22 200,36 240,22 C270,10 300,14 320,7 L320,72 L0,72 Z', line: 'M0,56 C40,48 80,38 120,30 C160,22 200,36 240,22 C270,10 300,14 320,7', dots: [[0, 56], [120, 30], [240, 22], [320, 7]] },
                   accounting: { area: 'M0,44 C40,40 80,34 120,28 C160,22 200,28 240,20 C270,14 300,16 320,10 L320,72 L0,72 Z', line: 'M0,44 C40,40 80,34 120,28 C160,22 200,28 240,20 C270,14 300,16 320,10', dots: [[0, 44], [120, 28], [240, 20], [320, 10]] },
                   payment: { area: 'M0,54 C40,46 80,36 120,28 C160,20 200,30 240,16 C270,8 300,10 320,5 L320,72 L0,72 Z', line: 'M0,54 C40,46 80,36 120,28 C160,20 200,30 240,16 C270,8 300,10 320,5', dots: [[0, 54], [120, 28], [240, 16], [320, 5]] },
                   procurement: { area: 'M0,52 C40,48 80,42 120,36 C160,30 200,36 240,28 C270,20 300,22 320,14 L320,72 L0,72 Z', line: 'M0,52 C40,48 80,42 120,36 C160,30 200,36 240,28 C270,20 300,22 320,14', dots: [[0, 52], [120, 36], [240, 28], [320, 14]] },
                   hr: { area: 'M0,50 C40,46 80,40 120,34 C160,28 200,34 240,24 C270,16 300,18 320,12 L320,72 L0,72 Z', line: 'M0,50 C40,46 80,40 120,34 C160,28 200,34 240,24 C270,16 300,18 320,12', dots: [[0, 50], [120, 34], [240, 24], [320, 12]] },
                   crm: { area: 'M0,58 C40,52 80,44 120,36 C160,28 200,40 240,26 C270,14 300,16 320,8 L320,72 L0,72 Z', line: 'M0,58 C40,52 80,44 120,36 C160,28 200,40 240,26 C270,14 300,16 320,8', dots: [[0, 58], [120, 36], [240, 26], [320, 8]] },
-                  pos:  { area: 'M0,60 C40,52 80,42 120,32 C160,22 200,34 240,18 C270,8 300,10 320,4 L320,72 L0,72 Z',  line: 'M0,60 C40,52 80,42 120,32 C160,22 200,34 240,18 C270,8 300,10 320,4',  dots: [[0, 60], [120, 32], [240, 18], [320, 4]] },
+                  pos: { area: 'M0,60 C40,52 80,42 120,32 C160,22 200,34 240,18 C270,8 300,10 320,4 L320,72 L0,72 Z', line: 'M0,60 C40,52 80,42 120,32 C160,22 200,34 240,18 C270,8 300,10 320,4', dots: [[0, 60], [120, 32], [240, 18], [320, 4]] },
                 };
                 const STATS: Record<string, { l: string, v: string }[]> = {
                   inventory: [{ l: 'Products', v: '342' }, { l: 'Low Stock', v: '18' }, { l: 'Turnover', v: '94%' }],
-                  sales:      [{ l: 'Orders', v: '1,284' }, { l: 'Revenue', v: 'GH₵ 124k' }, { l: 'Avg Order', v: 'GH₵ 97' }],
+                  sales: [{ l: 'Orders', v: '1,284' }, { l: 'Revenue', v: 'GH₵ 124k' }, { l: 'Avg Order', v: 'GH₵ 97' }],
                   accounting: [{ l: 'Expenses', v: 'GH₵ 42k' }, { l: 'Net Profit', v: 'GH₵ 82k' }, { l: 'Entries', v: '156' }],
                   payment: [{ l: 'Transactions', v: '3,842' }, { l: 'Success Rate', v: '99.9%' }, { l: 'Avg Value', v: 'GH₵ 210' }],
                   procurement: [{ l: 'POs', v: '48' }, { l: 'Suppliers', v: '12' }, { l: 'On Time', v: '91%' }],
                   hr: [{ l: 'Employees', v: '24' }, { l: 'On Leave', v: '2' }, { l: 'Attendance', v: '97%' }],
                   crm: [{ l: 'Customers', v: '891' }, { l: 'Leads', v: '64' }, { l: 'Won', v: '38%' }],
-                  pos:  [{ l: 'Sales Today', v: '84' }, { l: 'Revenue', v: 'GH₵ 12k' }, { l: 'Avg Sale', v: 'GH₵ 143' }],
+                  pos: [{ l: 'Sales Today', v: '84' }, { l: 'Revenue', v: 'GH₵ 12k' }, { l: 'Avg Sale', v: 'GH₵ 143' }],
                 };
                 const p = PATHS[f.preview];
                 const s = STATS[f.preview];
@@ -1498,9 +1498,8 @@ export default function LandingPage() {
           {/* Plan cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mb-6">
             {PLANS.map(p => (
-              <div key={p.key} className={`relative bg-white rounded-2xl border-2 p-7 flex flex-col ${
-                p.popular ? 'border-[#0D3B6E] shadow-2xl shadow-blue-100' : 'border-gray-200'
-              }`}>
+              <div key={p.key} className={`relative bg-white rounded-2xl border-2 p-7 flex flex-col ${p.popular ? 'border-[#0D3B6E] shadow-2xl shadow-blue-100' : 'border-gray-200'
+                }`}>
                 {p.popular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0D3B6E] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
                     Most Popular
@@ -1520,11 +1519,10 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link href="/register"
-                  className={`w-full text-center font-bold py-3 rounded-xl text-sm transition-colors ${
-                    p.popular
-                      ? 'bg-[#0D3B6E] hover:bg-[#1A5294] text-white shadow-lg shadow-blue-200'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
-                  }`}>
+                  className={`w-full text-center font-bold py-3 rounded-xl text-sm transition-colors ${p.popular
+                    ? 'bg-[#0D3B6E] hover:bg-[#1A5294] text-white shadow-lg shadow-blue-200'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                    }`}>
                   Start free trial
                 </Link>
               </div>
@@ -1743,10 +1741,10 @@ export default function LandingPage() {
             {/* Left — contact info cards */}
             <div className="space-y-4">
               {[
-                { icon: Phone,         label: 'Call Us',       value: '+233 241 550 366',        sub: '+233 256 791 600 · +233 303 957 042', color: 'bg-blue-50 text-blue-600',       href: 'tel:+233241550366' },
-                { icon: MessageCircle, label: 'SMS',           value: '+233 241 550 366',        sub: 'Text us anytime',                    color: 'bg-green-50 text-green-600',     href: 'sms:+233241550366' },
-                { icon: MessageSquare, label: 'WhatsApp',      value: '+233 241 550 366',        sub: 'Quick responses guaranteed',         color: 'bg-emerald-50 text-emerald-600', href: 'https://wa.me/233241550366' },
-                { icon: Mail,          label: 'Email',         value: 'gthinkcompanylimited@gmail.com',      sub: 'We reply within 24 hours',           color: 'bg-purple-50 text-purple-600',   href: 'mailto:gthinkcompanylimited@gmail.com' },
+                { icon: Phone, label: 'Call Us', value: '+233 241 550 366', sub: '+233 256 791 600 · +233 303 957 042', color: 'bg-blue-50 text-blue-600', href: 'tel:+233241550366' },
+                { icon: MessageCircle, label: 'SMS', value: '+233 241 550 366', sub: 'Text us anytime', color: 'bg-green-50 text-green-600', href: 'sms:+233241550366' },
+                { icon: MessageSquare, label: 'WhatsApp', value: '+233 241 550 366', sub: 'Quick responses guaranteed', color: 'bg-emerald-50 text-emerald-600', href: 'https://wa.me/233241550366' },
+                { icon: Mail, label: 'Email', value: 'gthinkcompanylimited@gmail.com', sub: 'We reply within 24 hours', color: 'bg-purple-50 text-purple-600', href: 'mailto:gthinkcompanylimited@gmail.com' },
               ].map(({ icon: Icon, label, value, sub, color, href }) => (
                 <a key={label} href={href} target="_blank" rel="noreferrer"
                   className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-gray-200 transition-all group">
@@ -1770,15 +1768,14 @@ export default function LandingPage() {
               {/* Channel tabs */}
               <div className="grid grid-cols-3 gap-2 mb-5">
                 {([
-                  { type: 'email',    icon: Mail,          label: 'Email',    color: 'text-purple-600 bg-purple-50 border-purple-200' },
-                  { type: 'sms',     icon: MessageCircle, label: 'SMS',      color: 'text-green-600 bg-green-50 border-green-200' },
-                  { type: 'whatsapp',icon: MessageSquare, label: 'WhatsApp', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+                  { type: 'email', icon: Mail, label: 'Email', color: 'text-purple-600 bg-purple-50 border-purple-200' },
+                  { type: 'sms', icon: MessageCircle, label: 'SMS', color: 'text-green-600 bg-green-50 border-green-200' },
+                  { type: 'whatsapp', icon: MessageSquare, label: 'WhatsApp', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
                 ] as const).map(({ type, icon: Icon, label, color }) => (
                   <button key={type} type="button"
                     onClick={() => setContactChannel(type)}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
-                      contactChannel === type ? color + ' border-current' : 'border-gray-200 text-gray-400 hover:border-gray-300'
-                    }`}>
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${contactChannel === type ? color + ' border-current' : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                      }`}>
                     <Icon className="w-4 h-4" /> {label}
                   </button>
                 ))}
@@ -1788,14 +1785,14 @@ export default function LandingPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="form-label">Name *</label>
-                    <input className="form-input" placeholder="Your name" value={contactMsg.name} onChange={e => setContactMsg(m => ({...m, name: e.target.value}))} />
+                    <input className="form-input" placeholder="Your name" value={contactMsg.name} onChange={e => setContactMsg(m => ({ ...m, name: e.target.value }))} />
                   </div>
                   <div>
                     <label className="form-label">{contactChannel === 'email' ? 'Email *' : 'Phone *'}</label>
                     <input className="form-input"
                       placeholder={contactChannel === 'email' ? 'you@company.com' : '+233 XX XXX XXXX'}
                       value={contactMsg.contact}
-                      onChange={e => setContactMsg(m => ({...m, contact: e.target.value}))} />
+                      onChange={e => setContactMsg(m => ({ ...m, contact: e.target.value }))} />
                   </div>
                 </div>
 
@@ -1803,7 +1800,7 @@ export default function LandingPage() {
                   <div>
                     <label className="form-label">Subject</label>
                     <input className="form-input" placeholder="e.g. Question about pricing"
-                      value={contactMsg.subject} onChange={e => setContactMsg(m => ({...m, subject: e.target.value}))} />
+                      value={contactMsg.subject} onChange={e => setContactMsg(m => ({ ...m, subject: e.target.value }))} />
                   </div>
                 )}
 
@@ -1812,11 +1809,11 @@ export default function LandingPage() {
                   <textarea className="form-input" rows={4}
                     placeholder={
                       contactChannel === 'email' ? 'Write your message here…' :
-                      contactChannel === 'sms' ? 'Keep it short — 160 characters max' :
-                      'Write your WhatsApp message…'
+                        contactChannel === 'sms' ? 'Keep it short — 160 characters max' :
+                          'Write your WhatsApp message…'
                     }
                     value={contactMsg.message}
-                    onChange={e => setContactMsg(m => ({...m, message: e.target.value}))} />
+                    onChange={e => setContactMsg(m => ({ ...m, message: e.target.value }))} />
                   {contactChannel === 'sms' && (
                     <p className={`text-xs mt-1 text-right ${contactMsg.message.length > 160 ? 'text-red-500' : 'text-gray-400'}`}>
                       {contactMsg.message.length}/160
@@ -1828,7 +1825,7 @@ export default function LandingPage() {
                   onClick={() => {
                     if (!contactMsg.name || !contactMsg.contact || !contactMsg.message) return;
                     if (contactChannel === 'email') {
-                      window.location.href = `mailto:gthinkcompanylimited@gmail.com?subject=${encodeURIComponent(contactMsg.subject||'Contact from '+contactMsg.name)}&body=${encodeURIComponent(contactMsg.message)}`;
+                      window.location.href = `mailto:gthinkcompanylimited@gmail.com?subject=${encodeURIComponent(contactMsg.subject || 'Contact from ' + contactMsg.name)}&body=${encodeURIComponent(contactMsg.message)}`;
                     } else if (contactChannel === 'whatsapp') {
                       window.open(`https://wa.me/233241550366?text=${encodeURIComponent(contactMsg.message)}`, '_blank');
                     } else {
@@ -1853,10 +1850,10 @@ export default function LandingPage() {
         <div className="bg-gray-800 border-b border-gray-700">
           <div className="max-w-7xl mx-auto px-6 py-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: Shield,    title: 'SSL Encrypted',        sub: 'Secure data transmission' },
-              { icon: Zap,       title: 'Built for Reliability', sub: 'High availability infrastructure' },
-              { icon: Globe,     title: 'Works Everywhere',    sub: 'Multi-currency, multi-branch' },
-              { icon: BarChart2, title: 'Real-Time Data',      sub: 'Live dashboards & reports' },
+              { icon: Shield, title: 'SSL Encrypted', sub: 'Secure data transmission' },
+              { icon: Zap, title: 'Built for Reliability', sub: 'High availability infrastructure' },
+              { icon: Globe, title: 'Works Everywhere', sub: 'Multi-currency, multi-branch' },
+              { icon: BarChart2, title: 'Real-Time Data', sub: 'Live dashboards & reports' },
             ].map(b => {
               const Icon = b.icon;
               return (
@@ -1886,9 +1883,9 @@ export default function LandingPage() {
               </p>
               <div className="flex gap-2">
                 {[
-                  { label: 'Facebook',  href: 'https://www.facebook.com/share/1DkjiyTDzC/',   path: 'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z' },
+                  { label: 'Facebook', href: 'https://www.facebook.com/share/1DkjiyTDzC/', path: 'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z' },
                   { label: 'Instagram', href: 'https://www.instagram.com/gthink_company_ltd', path: 'M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01M6.5 19.5h11a3 3 0 003-3v-11a3 3 0 00-3-3h-11a3 3 0 00-3 3v11a3 3 0 003 3z' },
-                  { label: 'WhatsApp',  href: 'https://wa.me/233241550366',                   path: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z' },
+                  { label: 'WhatsApp', href: 'https://wa.me/233241550366', path: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z' },
                 ].map(s => (
                   <a key={s.label} href={s.href} target="_blank" rel="noreferrer" aria-label={s.label}
                     className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-yellow-400 text-gray-400 hover:text-gray-900 border border-gray-700 hover:border-yellow-400 flex items-center justify-center transition-all">
@@ -1905,12 +1902,12 @@ export default function LandingPage() {
               <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-5 pb-3 border-b border-gray-700">Platform</h4>
               <ul className="space-y-3">
                 {[
-                  { label: 'Features',     href: '#features' },
+                  { label: 'Features', href: '#features' },
                   { label: 'How it Works', href: '#how-it-works' },
-                  { label: 'Pricing',      href: '#pricing' },
-                  { label: 'Demo Store',   href: '/store/gems-store' },
-                  { label: 'Get Started',  href: '/register' },
-                  { label: 'Log In',       href: '/login' },
+                  { label: 'Pricing', href: '#pricing' },
+                  { label: 'Demo Store', href: '/store/gems-store' },
+                  { label: 'Get Started', href: '/register' },
+                  { label: 'Log In', href: '/login' },
                 ].map(l => (
                   <li key={l.label}>
                     <a href={l.href} className="text-gray-400 hover:text-yellow-400 text-sm transition-colors">{l.label}</a>
@@ -1924,9 +1921,9 @@ export default function LandingPage() {
               <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-5 pb-3 border-b border-gray-700">Legal</h4>
               <ul className="space-y-3">
                 {[
-                  { label: 'Privacy Policy',   href: '/privacy' },
+                  { label: 'Privacy Policy', href: '/privacy' },
                   { label: 'Terms of Service', href: '/terms' },
-                  { label: 'Cookie Policy',    href: '/cookies' },
+                  { label: 'Cookie Policy', href: '/cookies' },
                 ].map(l => (
                   <li key={l.label}>
                     <a href={l.href} className="text-gray-400 hover:text-yellow-400 text-sm transition-colors">{l.label}</a>
@@ -1967,6 +1964,7 @@ export default function LandingPage() {
         <div className="border-t border-gray-800 bg-gray-950">
           <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-gray-500 text-xs">© 2026 GTHINK Company Limited. All rights reserved.</p>
+            <p className="text-gray-500 text-xs">Built with ❤️ for African businesses</p>
             <p className="text-gray-500 text-xs">GEMS — GTHINK Enterprise Management System</p>
           </div>
         </div>

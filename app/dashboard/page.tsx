@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, Badge, Spinner } from '@/components/ui';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Package, ShoppingCart, Users, DollarSign, AlertTriangle, TrendingUp, UserCheck, Receipt, Truck, ClipboardList, ArrowDown, ArrowUp, RefreshCw } from 'lucide-react';
+import { Package, ShoppingCart, Users, DollarSign, AlertTriangle, TrendingUp, UserCheck, Receipt, Truck, ClipboardList, ArrowDown, ArrowUp, RefreshCw, Building2, CreditCard } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -312,18 +312,19 @@ export default function DashboardPage() {
         {/* Procurement KPIs */}
         {can('procurement_officer') && (
           <>
-            <StatCard label="Total Orders" value={kpis.total_orders} icon={<ShoppingCart className="w-6 h-6 text-blue-600" />} color="bg-blue-50" sub="Paid orders" />
-            <StatCard label="Products" value={kpis.total_products} icon={<Package className="w-6 h-6 text-purple-600" />} color="bg-purple-50" sub="Active products" />
-            <StatCard label="Low Stock" value={kpis.low_stock_items} icon={<AlertTriangle className="w-6 h-6 text-yellow-600" />} color="bg-yellow-50" sub="Need reorder" />
-            <StatCard label="Monthly Expenses" value={fmt(kpis.monthly_expenses)} icon={<Truck className="w-6 h-6 text-cyan-600" />} color="bg-cyan-50" sub="This month" />
+            <StatCard label="Total POs"           value={kpis.total_pos       ?? '—'} icon={<ClipboardList className="w-6 h-6 text-blue-600" />}   color="bg-blue-50"   sub="All purchase orders" />
+            <StatCard label="Pending Action"       value={kpis.pending_pos     ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-yellow-600" />} color="bg-yellow-50" sub="Draft, approved & sent" />
+            <StatCard label="Active Suppliers"     value={kpis.total_suppliers ?? '—'} icon={<Building2 className="w-6 h-6 text-cyan-600" />}      color="bg-cyan-50"   sub="Registered suppliers" />
+            <StatCard label="Total Spend"          value={fmt(kpis.total_spend || 0)}  icon={<CreditCard className="w-6 h-6 text-green-600" />}    color="bg-green-50"  sub="Completed POs" />
           </>
         )}
 
         {/* HR-only KPIs */}
         {can('hr_manager') && (
           <>
-            <StatCard label="Active Leads" value={kpis.active_leads} icon={<ClipboardList className="w-6 h-6 text-teal-600" />} color="bg-teal-50" sub="In pipeline" />
-            <StatCard label="Monthly Expenses" value={fmt(kpis.monthly_expenses)} icon={<Receipt className="w-6 h-6 text-red-600" />} color="bg-red-50" sub="This month" />
+            <StatCard label="Total Employees"  value={kpis.total_employees ?? '—'} icon={<Users className="w-6 h-6 text-indigo-600" />}      color="bg-indigo-50" sub="Active staff" />
+            <StatCard label="On Leave"         value={kpis.on_leave        ?? '—'} icon={<Receipt className="w-6 h-6 text-yellow-600" />}    color="bg-yellow-50" sub="Currently away" />
+            <StatCard label="Pending Leave"    value={kpis.pending_leave   ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-red-500" />} color="bg-red-50"    sub="Awaiting approval" />
           </>
         )}
       </div>
@@ -533,44 +534,95 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* HR: show a welcome card for hr_manager with quick links */}
+        {/* HR: recent leave requests + quick actions */}
         {can('hr_manager') && (
-          <div className="card">
-            <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              {[
-                { label: 'Manage Employees', href: '/hr', color: 'bg-indigo-50 text-indigo-700' },
-                { label: 'Review Leave Requests', href: '/hr', color: 'bg-yellow-50 text-yellow-700' },
-                { label: 'Run Payroll', href: '/hr', color: 'bg-green-50 text-green-700' },
-                { label: 'Mark Attendance', href: '/hr', color: 'bg-blue-50 text-blue-700' },
-              ].map(a => (
-                <a key={a.label} href={a.href} className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium ${a.color} hover:opacity-80 transition-opacity`}>
-                  {a.label} <span>→</span>
-                </a>
-              ))}
+          <>
+            <div className="card">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Recent Leave Requests</h3>
+                <a href="/hr" className="text-xs text-blue-600 hover:underline">View all →</a>
+              </div>
+              {data?.recent_leave?.length ? (
+                <div className="space-y-2">
+                  {data.recent_leave.map((l: any) => (
+                    <div key={l._id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{l.employee_name}</div>
+                        <div className="text-xs text-gray-400 capitalize">{l.leave_type} · {new Date(l.start_date).toLocaleDateString()} – {new Date(l.end_date).toLocaleDateString()}</div>
+                      </div>
+                      <Badge status={l.status} />
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-gray-400 text-sm text-center py-8">No leave requests yet</p>}
             </div>
-          </div>
+            <div className="card">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Quick Actions</h3>
+                <div className="text-right">
+                  <div className="text-lg font-extrabold text-gray-900">{fmt(kpis.month_payroll || 0)}</div>
+                  <div className="text-xs text-gray-400">Payroll this month</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Manage Employees',    href: '/hr', color: 'bg-indigo-50 text-indigo-700', icon: <Users className="w-5 h-5" /> },
+                  { label: 'Leave Requests',      href: '/hr', color: 'bg-yellow-50 text-yellow-700', icon: <ClipboardList className="w-5 h-5" /> },
+                  { label: 'Run Payroll',         href: '/hr', color: 'bg-green-50 text-green-700',   icon: <DollarSign className="w-5 h-5" /> },
+                  { label: 'Mark Attendance',     href: '/hr', color: 'bg-blue-50 text-blue-700',     icon: <UserCheck className="w-5 h-5" /> },
+                ].map(a => (
+                  <a key={a.label} href={a.href} className={`flex flex-col items-center gap-2 px-4 py-5 rounded-xl text-sm font-medium text-center ${a.color} hover:opacity-80 transition-opacity`}>
+                    {a.icon}{a.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </>
         )}
 
 
 
-        {/* Procurement: quick actions */}
+        {/* Procurement: recent POs + quick actions */}
         {can('procurement_officer') && (
-          <div className="card">
-            <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              {[
-                { label: 'Create Purchase Order', href: '/procurement', color: 'bg-blue-50 text-blue-700' },
-                { label: 'View Suppliers', href: '/procurement', color: 'bg-cyan-50 text-cyan-700' },
-                { label: 'Pending Approvals', href: '/procurement', color: 'bg-yellow-50 text-yellow-700' },
-                { label: 'Receive Goods', href: '/procurement', color: 'bg-green-50 text-green-700' },
-              ].map(a => (
-                <a key={a.label} href={a.href} className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium ${a.color} hover:opacity-80 transition-opacity`}>
-                  {a.label} <span>→</span>
-                </a>
-              ))}
+          <>
+            <div className="card">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Recent Purchase Orders</h3>
+                <a href="/procurement" className="text-xs text-blue-600 hover:underline">View all →</a>
+              </div>
+              {data?.recent_pos?.length ? (
+                <div className="space-y-2">
+                  {data.recent_pos.map((po: any) => (
+                    <div key={po.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 font-mono">{po.po_number}</div>
+                        <div className="text-xs text-gray-400">{po.supplier_name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-gray-900">GH₵ {parseFloat(po.total_cost || 0).toFixed(2)}</div>
+                        <Badge status={po.status} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-gray-400 text-sm text-center py-8">No purchase orders yet</p>}
             </div>
-          </div>
+            <div className="card">
+              <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'New Purchase Order', href: '/procurement', color: 'bg-blue-50 text-blue-700',   icon: <ClipboardList className="w-5 h-5" /> },
+                  { label: 'View Suppliers',      href: '/procurement', color: 'bg-cyan-50 text-cyan-700',   icon: <Building2 className="w-5 h-5" /> },
+                  { label: 'Receive Goods',       href: '/procurement', color: 'bg-green-50 text-green-700', icon: <Truck className="w-5 h-5" /> },
+                  { label: 'Pending Approvals',   href: '/procurement', color: 'bg-yellow-50 text-yellow-700', icon: <AlertTriangle className="w-5 h-5" /> },
+                ].map(a => (
+                  <a key={a.label} href={a.href} className={`flex flex-col items-center gap-2 px-4 py-5 rounded-xl text-sm font-medium text-center ${a.color} hover:opacity-80 transition-opacity`}>
+                    {a.icon}{a.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </>
         )}
 
       </div>
