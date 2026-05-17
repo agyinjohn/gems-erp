@@ -9,18 +9,18 @@ import {
 import api from '@/lib/api';
 
 const PERKS = [
-  { icon: Zap,    text: 'Up and running in minutes' },
+  { icon: Zap, text: 'Up and running in minutes' },
   { icon: Shield, text: '14-day free trial, subscribe to continue' },
-  { icon: Globe,  text: 'Your own branded eCommerce store' },
-  { icon: Users,  text: 'Invite your whole team' },
+  { icon: Globe, text: 'Your own branded eCommerce store' },
+  { icon: Users, text: 'Invite your whole team' },
 ];
 
 export default function RegisterPage() {
-  const [step, setStep]       = useState(1); // 1=business, 2=account, 3=card, 4=success
+  const [step, setStep] = useState(1); // 1=business, 2=account, 3=card, 4=success
   const [loading, setLoading] = useState(false);
   const [cardLoading, setCardLoading] = useState(false);
-  const [error, setError]     = useState('');
-  const [showPw, setShowPw]   = useState(false);
+  const [error, setError] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [createdBusiness, setCreatedBusiness] = useState('');
   const [authToken, setAuthToken] = useState(''); // JWT after registration
@@ -36,9 +36,9 @@ export default function RegisterPage() {
 
   const pwChecks = [
     { label: '8+ characters', ok: form.password.length >= 8 },
-    { label: 'Uppercase',     ok: /[A-Z]/.test(form.password) },
-    { label: 'Number',        ok: /[0-9]/.test(form.password) },
-    { label: 'Special char',  ok: /[^A-Za-z0-9]/.test(form.password) },
+    { label: 'Uppercase', ok: /[A-Z]/.test(form.password) },
+    { label: 'Number', ok: /[0-9]/.test(form.password) },
+    { label: 'Special char', ok: /[^A-Za-z0-9]/.test(form.password) },
   ];
   const pwValid = pwChecks.every(c => c.ok);
 
@@ -65,20 +65,20 @@ export default function RegisterPage() {
     try {
       await api.post('/tenants/register', {
         business_name: form.business_name.trim(),
-        email:         form.email.toLowerCase().trim(),
-        password:      form.password,
-        phone:         form.phone.trim(),
-        address:       form.address.trim(),
+        email: form.email.toLowerCase().trim(),
+        password: form.password,
+        phone: form.phone.trim(),
+        address: form.address.trim(),
       });
       // Auto-login to get token for card authorization
       const loginRes = await api.post('/auth/login', {
-        email:    form.email.toLowerCase().trim(),
+        email: form.email.toLowerCase().trim(),
         password: form.password,
       });
       setAuthToken(loginRes.data.data.token);
       setCreatedBusiness(form.business_name.trim());
       setStep(3);
-    } catch(e: any) {
+    } catch (e: any) {
       setError(e.response?.data?.message || 'Registration failed. Please try again.');
     } finally { setLoading(false); }
   };
@@ -92,7 +92,7 @@ export default function RegisterPage() {
       const { authorization_url } = r.data.data;
       // Redirect to Paystack to collect card
       window.location.href = authorization_url;
-    } catch(e: any) {
+    } catch (e: any) {
       setError(e.response?.data?.message || 'Failed to initialize card. Please try again.');
     } finally { setCardLoading(false); }
   };
@@ -127,7 +127,7 @@ export default function RegisterPage() {
         <div className="relative z-10">
           <div className="mb-8">
             <p className="text-blue-200 text-base leading-relaxed">
-              All-in-one platform for Inventory, Sales, Payments, Procurement, Finance, HR, CRM, and More — all connected, all in real time.
+              All-in-one platform for Stocks, Inventory, Sales, eCommerce, Payments, Procurement, Finance, HR, CRM, POS and More — all connected, all in real time.
             </p>
           </div>
 
@@ -208,11 +208,10 @@ export default function RegisterPage() {
                 {[1, 2, 3].map((n, i) => (
                   <div key={n} className="flex items-center flex-1">
                     <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2.5 flex-1">
-                      <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all ${
-                        step > n ? 'bg-green-500 text-white' :
+                      <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all ${step > n ? 'bg-green-500 text-white' :
                         step === n ? 'bg-[#0D3B6E] text-white shadow-lg shadow-blue-200' :
-                        'bg-gray-200 text-gray-400'
-                      }`}>
+                          'bg-gray-200 text-gray-400'
+                        }`}>
                         {step > n ? <CheckCircle className="w-4 h-4 sm:w-4.5 sm:h-4.5" /> : n}
                       </div>
                       <span className={`text-[10px] sm:text-xs font-semibold text-center sm:text-left ${step === n ? 'text-[#0D3B6E]' : 'text-gray-400'}`}>
@@ -446,10 +445,10 @@ export default function RegisterPage() {
                   <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">What happens next</p>
                   <div className="space-y-0">
                     {[
-                      { dot: 'bg-green-500',  day: 'Today',    text: 'Card saved — GH₵ 0 charged now' },
-                      { dot: 'bg-blue-400',   day: 'Days 1–13', text: 'Full access to every module, free' },
-                      { dot: 'bg-yellow-400', day: 'Day 13',   text: 'We remind you before any charge' },
-                      { dot: 'bg-[#0D3B6E]', day: 'Day 14',   text: 'Auto-billed only if you keep access' },
+                      { dot: 'bg-green-500', day: 'Today', text: 'Card saved — GH₵ 0 charged now' },
+                      { dot: 'bg-blue-400', day: 'Days 1–13', text: 'Full access to every module, free' },
+                      { dot: 'bg-yellow-400', day: 'Day 13', text: 'We remind you before any charge' },
+                      { dot: 'bg-[#0D3B6E]', day: 'Day 14', text: 'Auto-billed only if you keep access' },
                     ].map((item, i, arr) => (
                       <div key={item.day} className="flex gap-3">
                         <div className="flex flex-col items-center">
@@ -469,8 +468,8 @@ export default function RegisterPage() {
                 <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 mb-4 sm:mb-5">
                   {[
                     { icon: Shield, text: 'SSL Secured' },
-                    { icon: Lock,   text: 'PCI Compliant' },
-                    { icon: Zap,    text: 'Subscribe to continue' },
+                    { icon: Lock, text: 'PCI Compliant' },
+                    { icon: Zap, text: 'Subscribe to continue' },
                   ].map(({ icon: Icon, text }) => (
                     <div key={text} className="flex items-center gap-1.5 text-xs text-gray-400">
                       <Icon className="w-3.5 h-3.5 text-gray-300" />
@@ -522,9 +521,9 @@ export default function RegisterPage() {
                   <div className="space-y-3">
                     {[
                       { step: '1', text: 'Add your products to inventory', color: 'bg-blue-500' },
-                      { step: '2', text: 'Invite your staff members',      color: 'bg-purple-500' },
-                      { step: '3', text: 'Set up your online eCommerce store',  color: 'bg-green-500' },
-                      { step: '4', text: 'Configure your branches',        color: 'bg-orange-500' },
+                      { step: '2', text: 'Invite your staff members', color: 'bg-purple-500' },
+                      { step: '3', text: 'Set up your online eCommerce store', color: 'bg-green-500' },
+                      { step: '4', text: 'Configure your branches', color: 'bg-orange-500' },
                     ].map(item => (
                       <div key={item.step} className="flex items-center gap-3">
                         <div className={`w-6 h-6 rounded-full ${item.color} text-white text-xs font-bold flex items-center justify-center flex-shrink-0`}>{item.step}</div>

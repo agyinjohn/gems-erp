@@ -66,7 +66,7 @@ export default function LoginPage() {
             Your Business. One System.<br /><span className="text-yellow-400">Smart Workplace.</span>
           </h2>
           <p className="text-blue-200 text-lg max-w-md">
-            All-in-one platform for Inventory, Sales, Payments, Procurement, Finance, HR, CRM, and More — all connected, all in real time.
+            All-in-one platform for Stocks, Inventory, Sales, eCommerce, Payments, Procurement, Finance, HR, CRM, POS and More — all connected, all in real time.
           </p>
           <div className="mt-10 grid grid-cols-2 gap-4 max-w-sm">
             {[' Inventory & Payment', 'POS, Sales & eCommerce', 'HR & Payroll', 'Accounting & Finance'].map(m => (

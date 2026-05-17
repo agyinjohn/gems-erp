@@ -1879,7 +1879,7 @@ export default function LandingPage() {
             <div className="md:col-span-4">
               <img src="/ag.png" alt="GEMS Logo" className="h-20 w-auto object-contain mb-4" />
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                The all-in-one business management platform for growing companies in Africa. Stocks,Inventory, Sales, eCommerce, Payments, Procurement, Finance, HR,CRM,POS and More  — all connected in real time.
+                The all-in-one business management platform for growing companies in Africa. Stocks, Inventory, Sales, eCommerce, Payments, Procurement, Finance, HR, CRM, POS and More  — all connected in real time.
               </p>
               <div className="flex gap-2">
                 {[
