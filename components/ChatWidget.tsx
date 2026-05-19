@@ -141,9 +141,9 @@ export default function ChatWidget() {
 
   // Drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!(e.target as HTMLElement).closest('button[type="button"]') || 
-        (e.target as HTMLElement).closest('.drag-handle') ||
-        !open) {
+    const target = e.target as HTMLElement;
+    if (target.closest('input') || target.closest('button:not(.drag-handle)') || target.closest('textarea')) return;
+    if (target.closest('.drag-handle') || !open) {
       e.preventDefault();
       setIsDragging(true);
       setHasDragged(false);
@@ -156,9 +156,9 @@ export default function ChatWidget() {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!(e.target as HTMLElement).closest('button[type="button"]') || 
-        (e.target as HTMLElement).closest('.drag-handle') ||
-        !open) {
+    const target = e.target as HTMLElement;
+    if (target.closest('input') || target.closest('button:not(.drag-handle)') || target.closest('textarea')) return;
+    if (target.closest('.drag-handle') || !open) {
       const touch = e.touches[0];
       setIsDragging(true);
       setHasDragged(false);

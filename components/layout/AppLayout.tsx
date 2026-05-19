@@ -6,7 +6,6 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { ToastContainer } from '@/components/ui';
 import ChatWidget from '@/components/ChatWidget';
-import Footer from './Footer';
 
 interface Props {
   children: React.ReactNode;
@@ -48,7 +47,7 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
         <Header title={title} subtitle={subtitle} onMenuClick={() => setSidebarOpen(true)} />
         <main className="flex-1 overflow-auto p-4 sm:p-6">
           {/* Subscription expiry banner */}
@@ -69,7 +68,6 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
           )}
           {children}
         </main>
-        <Footer />
         <ToastContainer />
       </div>
       <ChatWidget />

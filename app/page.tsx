@@ -1070,7 +1070,7 @@ export default function LandingPage() {
               </div>
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '300ms' }}>
                 <p className="text-lg text-blue-200 mb-8 leading-relaxed max-w-lg">
-                  All-in-one platform for Stocks, Inventory, Sales, eCommerce, Payments, Procurement, Finance, Accounting, HR, CRM,POS and More — all connected, all in real time.
+                  All-in-one platform for Stocks, Inventory, Sales, POS, eCommerce, Payments, Procurement, Finance, Accounting, HR, CRM and More — all connected, all in real time.
                 </p>
               </div>
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '450ms' }}>

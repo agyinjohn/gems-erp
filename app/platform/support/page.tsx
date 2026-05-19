@@ -103,7 +103,7 @@ export default function SupportPage() {
 
   return (
     <AppLayout title="Support Chat" subtitle="Respond to client messages" allowedRoles={['platform_admin']}>
-      <div className="flex gap-4 h-[calc(100vh-160px)]">
+      <div className="flex gap-4 h-[calc(100vh-130px)]">
 
         {/* Conversation list */}
         <div className="w-72 flex-shrink-0 bg-white rounded-xl border border-gray-100 flex flex-col overflow-hidden">
