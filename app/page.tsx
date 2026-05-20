@@ -748,9 +748,9 @@ const FEATURES = [
   },
   {
     icon: ShoppingCart,
-    title: 'Sales & eCommerce',
+    title: 'Sales, POS & eCommerce',
     tagline: 'Sell everywhere, manage from one place',
-    desc: 'Process walk-in sales via POS, manage online orders from your branded storefront, and track every transaction in real time.',
+    desc: 'Process walk-in sales via a touch-friendly POS terminal, manage online orders from your branded storefront, and track every transaction in real time — all from one place.',
     color: 'bg-purple-50 text-purple-600',
     accent: '#9333ea',
     stat: { value: '3x', label: 'Faster checkout' },
@@ -811,17 +811,6 @@ const FEATURES = [
     stat: { value: '2x', label: 'More conversions' },
     bullets: ['Customer database', 'Lead pipeline', 'Interaction history', 'Follow-up reminders'],
     preview: 'crm',
-  },
-  {
-    icon: ShoppingCart,
-    title: 'POS Terminal',
-    tagline: 'Fast, reliable point of sale',
-    desc: 'Process walk-in sales instantly with a touch-friendly POS terminal. Accept cash and mobile money, print receipts, track every transaction and sync stock in real time.',
-    color: 'bg-indigo-50 text-indigo-600',
-    accent: '#4f46e5',
-    stat: { value: '3s', label: 'Avg checkout time' },
-    bullets: ['Touch-friendly interface', 'Cash & mobile money', 'Instant receipt printing', 'Real-time stock sync'],
-    preview: 'pos',
   },
 ];
 
@@ -892,7 +881,7 @@ const ADDONS = [
     key: 'storefront',
     icon: '🛍️',
     title: 'Online Storefront',
-    price: 100,
+    price: 150,
     desc: 'Launch a branded online store with your own URL. Accept orders, showcase products and collect payments online via Paystack.',
     bullets: ['Custom branded storefront URL', 'Online product catalogue', 'Paystack checkout integration', 'Order management from dashboard'],
   },
@@ -900,7 +889,7 @@ const ADDONS = [
     key: 'accounting',
     icon: '📊',
     title: 'Advanced Accounting',
-    price: 150,
+    price: 500,
     desc: 'Full double-entry bookkeeping, P&L statements, balance sheets, bank reconciliation and audit-ready financial reports.',
     bullets: ['Double-entry bookkeeping', 'P&L & balance sheet reports', 'Bank reconciliation', 'Audit trail & journal entries'],
   },
@@ -1879,13 +1868,14 @@ export default function LandingPage() {
             <div className="md:col-span-4">
               <img src="/ag.png" alt="GEMS Logo" className="h-20 w-auto object-contain mb-4" />
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                The all-in-one business management platform for growing companies in Africa. Stocks, Inventory, Sales, eCommerce, Payments, Procurement, Finance, HR, CRM, POS and More  — all connected in real time.
+                The all-in-one business management platform for growing companies in Africa. Stocks, Inventory, Sales, POS, eCommerce, Payments, Procurement, Finance, HR, CRM and More  — all connected in real time.
               </p>
               <div className="flex gap-2">
                 {[
                   { label: 'Facebook', href: 'https://www.facebook.com/share/1DkjiyTDzC/', path: 'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z' },
                   { label: 'Instagram', href: 'https://www.instagram.com/gthink_company_ltd', path: 'M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01M6.5 19.5h11a3 3 0 003-3v-11a3 3 0 00-3-3h-11a3 3 0 00-3 3v11a3 3 0 003 3z' },
                   { label: 'WhatsApp', href: 'https://wa.me/233241550366', path: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z' },
+                  { label: 'Website', href: 'https://gthink-a.vercel.app/', path: 'M12 2a10 10 0 100 20A10 10 0 0012 2zm0 0c-2.5 2.5-4 6-4 10s1.5 7.5 4 10m0-20c2.5 2.5 4 6 4 10s-1.5 7.5-4 10M2 12h20' },
                 ].map(s => (
                   <a key={s.label} href={s.href} target="_blank" rel="noreferrer" aria-label={s.label}
                     className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-yellow-400 text-gray-400 hover:text-gray-900 border border-gray-700 hover:border-yellow-400 flex items-center justify-center transition-all">

@@ -49,16 +49,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const storedUser   = localStorage.getItem('gems_user');
-    const storedTenant = localStorage.getItem('gems_tenant');
-    const storedBranch = localStorage.getItem('gems_branch');
-    const token        = localStorage.getItem('gems_token');
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-      if (storedTenant) setTenant(JSON.parse(storedTenant));
-      if (storedBranch) setBranch(JSON.parse(storedBranch));
+    try {
+      const storedUser   = localStorage.getItem('gems_user');
+      const storedTenant = localStorage.getItem('gems_tenant');
+      const storedBranch = localStorage.getItem('gems_branch');
+      const token        = localStorage.getItem('gems_token');
+      if (storedUser && token) {
+        setUser(JSON.parse(storedUser));
+        if (storedTenant) setTenant(JSON.parse(storedTenant));
+        if (storedBranch) setBranch(JSON.parse(storedBranch));
+      }
+    } catch {
+      localStorage.removeItem('gems_token');
+      localStorage.removeItem('gems_user');
+      localStorage.removeItem('gems_tenant');
+      localStorage.removeItem('gems_branch');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
