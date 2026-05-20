@@ -8,6 +8,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  permissions: string[];
   tenant_id: string | null;
   branch_id: string | null;
   is_active: boolean;
@@ -64,10 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await api.post('/auth/login', { email, password });
     const { token, user, tenant, branch } = res.data.data;
     localStorage.setItem('gems_token', token);
-    localStorage.setItem('gems_user', JSON.stringify(user));
+    localStorage.setItem('gems_user', JSON.stringify({ ...user, permissions: user.permissions || [] }));
     if (tenant) localStorage.setItem('gems_tenant', JSON.stringify(tenant));
     if (branch) localStorage.setItem('gems_branch', JSON.stringify(branch));
-    setUser(user);
+    setUser({ ...user, permissions: user.permissions || [] });
     setTenant(tenant || null);
     setBranch(branch || null);
     const roleRedirects: Record<string, string> = {
@@ -81,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       accountant:           '/accounting',
       hr_manager:           '/dashboard',
       procurement_officer:  '/dashboard',
+      custom:               '/dashboard',
     };
     router.push(roleRedirects[user.role] ?? '/dashboard');
   };

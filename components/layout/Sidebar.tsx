@@ -13,78 +13,78 @@ const navGroups = [
   {
     label: null,
     items: [
-      { href: '/platform',               label: 'Dashboard',     icon: LayoutDashboard, roles: ['platform_admin'] },
-      { href: '/platform/tenants',       label: 'Businesses',    icon: Building2,       roles: ['platform_admin'] },
-      { href: '/platform/subscriptions', label: 'Subscriptions', icon: Calculator,      roles: ['platform_admin'] },
-      { href: '/platform/revenue',       label: 'Revenue',       icon: TrendingUp,      roles: ['platform_admin'] },
-      { href: '/platform/activity',      label: 'Activity',      icon: BarChart2,       roles: ['platform_admin'] },
-      { href: '/platform/settings',      label: 'Settings',      icon: Settings,        roles: ['platform_admin'] },
-      { href: '/platform/support',        label: 'Support Chat',  icon: MessageCircle,   roles: ['platform_admin'] },
-      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['business_owner','branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer'] },
-      { href: '/ess',       label: 'My Portal', icon: UserCircle,      roles: ['branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer','employee'] },
+      { href: '/platform',               label: 'Dashboard',     icon: LayoutDashboard, roles: ['platform_admin'],                                          permission: null },
+      { href: '/platform/tenants',       label: 'Businesses',    icon: Building2,       roles: ['platform_admin'],                                          permission: null },
+      { href: '/platform/subscriptions', label: 'Subscriptions', icon: Calculator,      roles: ['platform_admin'],                                          permission: null },
+      { href: '/platform/revenue',       label: 'Revenue',       icon: TrendingUp,      roles: ['platform_admin'],                                          permission: null },
+      { href: '/platform/activity',      label: 'Activity',      icon: BarChart2,       roles: ['platform_admin'],                                          permission: null },
+      { href: '/platform/settings',      label: 'Settings',      icon: Settings,        roles: ['platform_admin'],                                          permission: null },
+      { href: '/platform/support',       label: 'Support Chat',  icon: MessageCircle,   roles: ['platform_admin'],                                          permission: null },
+      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['business_owner','branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer'], permission: 'dashboard.view' },
+      { href: '/ess',       label: 'My Portal', icon: UserCircle,      roles: ['branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer','employee'],      permission: 'ess.view' },
     ],
   },
   {
     label: 'Sales',
     items: [
-      { href: '/pos',    label: 'POS Terminal', icon: Monitor,      roles: ['sales_staff'] },
-      { href: '/orders', label: 'Orders',       icon: ShoppingCart, roles: ['sales_staff'] },
-      { href: '/crm',    label: 'Customers',    icon: UserCheck,    roles: ['sales_staff'] },
+      { href: '/pos',    label: 'POS Terminal', icon: Monitor,      roles: ['sales_staff'], permission: 'pos.view' },
+      { href: '/orders', label: 'Orders',       icon: ShoppingCart, roles: ['sales_staff'], permission: 'orders.view' },
+      { href: '/crm',    label: 'Customers',    icon: UserCheck,    roles: ['sales_staff'], permission: 'crm.view' },
     ],
   },
   {
     label: null,
     items: [
-      { href: '/ess', label: 'My Portal', icon: UserCircle, roles: ['sales_staff'] },
+      { href: '/ess', label: 'My Portal', icon: UserCircle, roles: ['sales_staff'], permission: 'ess.view' },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { href: '/pos',         label: 'POS',         icon: Monitor,      roles: ['business_owner','branch_manager'] },
-      { href: '/orders',      label: 'Sales',       icon: ShoppingCart, roles: ['business_owner','branch_manager'] },
-      { href: '/inventory',   label: 'Inventory',   icon: Package,      roles: ['business_owner','branch_manager','warehouse_staff'] },
-      { href: '/procurement', label: 'Procurement', icon: Truck,        roles: ['business_owner','procurement_officer'] },
+      { href: '/pos',         label: 'POS',         icon: Monitor,      roles: ['business_owner','branch_manager'],                    permission: 'pos.view' },
+      { href: '/orders',      label: 'Sales',       icon: ShoppingCart, roles: ['business_owner','branch_manager'],                    permission: 'orders.view' },
+      { href: '/inventory',   label: 'Inventory',   icon: Package,      roles: ['business_owner','branch_manager','warehouse_staff'],  permission: 'inventory.view' },
+      { href: '/procurement', label: 'Procurement', icon: Truck,        roles: ['business_owner','procurement_officer'],               permission: 'procurement.view' },
     ],
   },
   {
     label: 'People',
     items: [
-      { href: '/hr',          label: 'HR & Payroll', icon: Users,     roles: ['business_owner','hr_manager'] },
-      { href: '/departments', label: 'Departments',  icon: Building2, roles: ['business_owner','hr_manager'] },
+      { href: '/hr',          label: 'HR & Payroll', icon: Users,     roles: ['business_owner','hr_manager'], permission: 'hr.view' },
+      { href: '/departments', label: 'Departments',  icon: Building2, roles: ['business_owner','hr_manager'], permission: 'hr.view' },
     ],
   },
   {
     label: 'Finance',
     items: [
-      { href: '/accounting',   label: 'Accounting', icon: Calculator, roles: ['business_owner','accountant'] },
-      { href: '/payment-logs', label: 'Payments',   icon: CreditCard, roles: ['business_owner','accountant'] },
+      { href: '/accounting',   label: 'Accounting', icon: Calculator, roles: ['business_owner','accountant'], permission: 'accounting.view' },
+      { href: '/payment-logs', label: 'Payments',   icon: CreditCard, roles: ['business_owner','accountant'], permission: 'accounting.view' },
     ],
   },
   {
     label: 'Approvals',
     items: [
-      { href: '/approvals', label: 'Approvals', icon: CheckSquare, roles: ['business_owner','accountant','hr_manager'] },
+      { href: '/approvals', label: 'Approvals', icon: CheckSquare, roles: ['business_owner','accountant','hr_manager'], permission: 'accounting.view' },
     ],
   },
   {
     label: 'Reports',
     items: [
-      { href: '/reports', label: 'Reports', icon: BarChart2, roles: ['business_owner','accountant','hr_manager'] },
+      { href: '/reports', label: 'Reports', icon: BarChart2, roles: ['business_owner','accountant','hr_manager'], permission: 'reports.view' },
     ],
   },
   {
     label: 'Customers',
     items: [
-      { href: '/crm', label: 'CRM', icon: UserCheck, roles: ['business_owner','branch_manager'] },
+      { href: '/crm', label: 'CRM', icon: UserCheck, roles: ['business_owner','branch_manager'], permission: 'crm.view' },
     ],
   },
   {
     label: 'Settings',
     items: [
-      { href: '/branches', label: 'Branches', icon: Store,      roles: ['business_owner'] },
-      { href: '/users',    label: 'Users',    icon: Settings,   roles: ['business_owner'] },
-      { href: '/billing',  label: 'Billing',  icon: Calculator, roles: ['business_owner'] },
+      { href: '/branches', label: 'Branches', icon: Store,      roles: ['business_owner'], permission: 'branches.manage' },
+      { href: '/users',    label: 'Users',    icon: Settings,   roles: ['business_owner'], permission: 'users.manage' },
+      { href: '/billing',  label: 'Billing',  icon: Calculator, roles: ['business_owner'], permission: 'billing.view' },
     ],
   },
 ];
@@ -106,6 +106,17 @@ export default function Sidebar({ open, onClose }: Props) {
   };
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(getInitialOpen);
+
+  // Save & restore sidebar scroll position across navigations
+  useEffect(() => {
+    const nav = document.getElementById('sidebar-nav');
+    if (!nav) return;
+    const saved = sessionStorage.getItem('sidebar-scroll');
+    if (saved) nav.scrollTop = parseInt(saved);
+    const onScroll = () => sessionStorage.setItem('sidebar-scroll', String(nav.scrollTop));
+    nav.addEventListener('scroll', onScroll);
+    return () => nav.removeEventListener('scroll', onScroll);
+  }, [pathname]);
 
   // Re-evaluate when pathname changes
   useEffect(() => {
@@ -144,10 +155,52 @@ export default function Sidebar({ open, onClose }: Props) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+      <nav id="sidebar-nav" className="flex-1 px-3 py-4 overflow-y-auto">
         {(() => {
           const isAdminOrOwner = user?.role === 'platform_admin' || user?.role === 'business_owner';
+          const isCustom = user?.role === 'custom';
+          const perms: string[] = (user as any)?.permissions || [];
 
+          // ── Custom role: flat list driven purely by permissions ──
+          if (isCustom) {
+            const seen = new Set<string>();
+            const items = navGroups.flatMap(g => g.items).filter(item => {
+              if (!item.permission) return false;
+              if (seen.has(item.href)) return false;
+              if (!perms.includes(item.permission)) return false;
+              seen.add(item.href);
+              return true;
+            });
+            const main = items.filter(i => i.href !== '/ess');
+            const ess  = items.find(i => i.href === '/ess');
+            return (
+              <div className="space-y-0.5">
+                {main.map(item => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
+                  return (
+                    <Link key={item.href} href={item.href} onClick={onClose}
+                      className={`sidebar-link ${isActive ? 'active' : 'inactive'}`}>
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+                {ess && (
+                  <>
+                    <div className="my-2 border-t border-white/10" />
+                    <Link href="/ess" onClick={onClose}
+                      className={`sidebar-link ${pathname === '/ess' ? 'active' : 'inactive'}`}>
+                      <UserCircle className="w-4 h-4 flex-shrink-0" />
+                      My Portal
+                    </Link>
+                  </>
+                )}
+              </div>
+            );
+          }
+
+          // ── Business owner / platform admin: full grouped nav ──
           if (isAdminOrOwner) {
             // Full grouped nav with labels
             return navGroups.map((group, gi) => {
@@ -203,6 +256,7 @@ export default function Sidebar({ open, onClose }: Props) {
             });
           }
 
+          // ── Other roles: flat list ──
           // Non-admin/owner: flat list, no labels, My Portal always last
           const allItems = navGroups.flatMap(g => g.items);
           const seen = new Set<string>();
