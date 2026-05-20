@@ -1625,7 +1625,7 @@ export default function LandingPage() {
               </div>
               <div className="text-xs font-bold uppercase tracking-widest text-[#0D3B6E] mb-2">Setup & Maintenance</div>
               <h3 className="text-2xl font-extrabold text-gray-900 mb-3">We handle everything. You focus on your business.</h3>
-              <p className="text-gray-500 text-sm leading-relaxed mb-6">Getting started is the hardest part. We&apos;ll set up your entire system, migrate your existing data, train your team, and stay on hand for ongoing support and maintenance — so you never have to figure it out alone.</p>
+              <p className="text-gray-500 text-sm leading-relaxed mb-6">From day one, our team works alongside yours. We handle the full setup, migrate your existing data seamlessly, train your staff, and provide ongoing support — so you can focus on running your business while we take care of the rest.</p>
               <ul className="space-y-2.5 mb-8 flex-1">
                 {['Full system setup & configuration', 'Data migration from existing tools', 'Staff training & onboarding', 'Ongoing maintenance & updates', 'Priority support & response SLA'].map(b => (
                   <li key={b} className="flex items-center gap-2.5 text-sm text-gray-600">

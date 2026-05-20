@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast, ResponsiveTable } from '@/components/ui';
-import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen, X, ChevronDown } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen, X, ChevronDown, MapPin } from 'lucide-react';
 import api from '@/lib/api';
 
 // ── Category field templates ──────────────────────────────────────────────────
@@ -392,17 +392,21 @@ const CATEGORY_TEMPLATES: Record<string, Template> = {
 const BLANK_FIELD: FieldDef = { label: '', key: '', type: 'text', options: [], required: false };
 
 export default function InventoryPage() {
-  const [tab, setTab] = useState<'products'|'categories'>('products');
+  const [tab, setTab] = useState<'products'|'categories'|'locations'>('products');
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
-  const [modal, setModal] = useState<'add'|'edit'|'adjust'|'cat-add'|'cat-edit'|null>(null);
+  const [modal, setModal] = useState<'add'|'edit'|'adjust'|'cat-add'|'cat-edit'|'loc-add'|'loc-edit'|null>(null);
   const [selected, setSelected] = useState<any>(null);
   const [selectedCat, setSelectedCat] = useState<any>(null);
+  const [selectedLoc, setSelectedLoc] = useState<any>(null);
   const [confirm, setConfirm] = useState<any>(null);
   const [catConfirm, setCatConfirm] = useState<any>(null);
+  const [locConfirm, setLocConfirm] = useState<any>(null);
+  const [locForm, setLocForm] = useState({ name:'', code:'', type:'shelf', description:'' });
   const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', images:'', attributes: {} as Record<string,any> });
   const [catForm, setCatForm] = useState({ name:'', description:'', custom_fields: [] as FieldDef[] });
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
@@ -433,9 +437,14 @@ export default function InventoryPage() {
 
   const load = async () => {
     setLoading(true);
-    const [p, c] = await Promise.all([api.get('/products'), api.get('/categories')]);
+    const [p, c, l] = await Promise.all([
+      api.get('/products'),
+      api.get('/categories'),
+      api.get('/locations').catch(() => ({ data: { data: [] } })),
+    ]);
     setProducts(p.data.data);
     setCategories(c.data.data);
+    setLocations(l.data.data);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -533,6 +542,24 @@ export default function InventoryPage() {
     } catch(e: any) { toast.error(e.response?.data?.message || 'Cannot delete — category may be in use'); }
   };
 
+  const saveLoc = async () => {
+    if (!locForm.name.trim()) { toast.error('Location name is required'); return; }
+    setSaving(true);
+    try {
+      if (selectedLoc) await api.put(`/locations/${selectedLoc.id}`, locForm);
+      else await api.post('/locations', locForm);
+      toast.success('Location saved'); setModal(null); load();
+    } catch(e: any) { toast.error(e.response?.data?.message || 'Error saving location'); }
+    finally { setSaving(false); }
+  };
+
+  const deleteLoc = async (id: string) => {
+    try {
+      await api.delete(`/locations/${id}`);
+      toast.success('Location deleted'); load();
+    } catch(e: any) { toast.error(e.response?.data?.message || 'Cannot delete — location may be in use'); }
+  };
+
   const inputProps = (key: string) => ({ value: (form as any)[key], onChange: (e: any) => setForm({...form, [key]: e.target.value}), className: 'form-input' });
 
   return (
@@ -547,6 +574,10 @@ export default function InventoryPage() {
         <button onClick={() => setTab('categories')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='categories' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
           <FolderOpen className="w-4 h-4" /> Categories
           <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${ tab==='categories' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }`}>{categories.length}</span>
+        </button>
+        <button onClick={() => setTab('locations')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='locations' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
+          <MapPin className="w-4 h-4" /> Locations
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${ tab==='locations' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }`}>{locations.length}</span>
         </button>
       </div>
 
@@ -880,7 +911,54 @@ export default function InventoryPage() {
       )}
 
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} onConfirm={() => doDelete(confirm?.id)} title="Delete Product" message={`Are you sure you want to deactivate "${confirm?.name}"? It will be hidden from the storefront.`} danger />
+
+      {/* ── LOCATIONS TAB ── */}
+      {tab === 'locations' && (
+        <div>
+          <div className="flex justify-end mb-4">
+            <button className="btn-primary" onClick={() => { setSelectedLoc(null); setLocForm({ name:'', code:'', type:'shelf', description:'' }); setModal('loc-add'); }}>
+              <Plus className="w-4 h-4" /> Add Location
+            </button>
+          </div>
+          <div className="card p-0 overflow-hidden">
+            {loading ? <Spinner /> : locations.length === 0
+              ? <EmptyState message="No locations yet" description="Add shelves, zones or bins to track where products are stored." icon={<MapPin className="w-8 h-8 text-gray-300" />} action={{ label: '+ Add Location', onClick: () => { setSelectedLoc(null); setLocForm({ name:'', code:'', type:'shelf', description:'' }); setModal('loc-add'); } }} />
+              : (
+              <table className="w-full text-sm">
+                <thead className="table-header">
+                  <tr>{['Name','Code','Type','Description','Products',''].map(h => <th key={h} className="px-5 py-3 text-left">{h}</th>)}</tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {locations.map(l => {
+                    const count = products.filter(p => p.location_id === l.id || p.location_id?._id === l.id).length;
+                    return (
+                      <tr key={l.id} className="hover:bg-gray-50">
+                        <td className="px-5 py-3.5">
+                          <span className="flex items-center gap-2 font-medium text-gray-900">
+                            <MapPin className="w-3.5 h-3.5 text-gray-400" /> {l.name}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5"><span className="font-mono text-xs text-gray-500">{l.code || '—'}</span></td>
+                        <td className="px-5 py-3.5"><span className="badge badge-blue capitalize">{l.type}</span></td>
+                        <td className="px-5 py-3.5 text-gray-400 text-xs">{l.description || '—'}</td>
+                        <td className="px-5 py-3.5"><span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{count} product{count !== 1 ? 's' : ''}</span></td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center justify-end gap-1">
+                            <button onClick={() => { setSelectedLoc(l); setLocForm({ name:l.name, code:l.code||'', type:l.type, description:l.description||'' }); setModal('loc-edit'); }} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500"><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={() => setLocConfirm(l)} className="p-1.5 hover:bg-red-50 rounded-lg text-red-400"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
       <ConfirmDialog open={!!catConfirm} onClose={() => setCatConfirm(null)} onConfirm={() => { deleteCat(catConfirm?.id); setCatConfirm(null); }} title="Delete Category" message={`Delete "${catConfirm?.name}"? Products in this category will become uncategorised.`} danger />
+      <ConfirmDialog open={!!locConfirm} onClose={() => setLocConfirm(null)} onConfirm={() => { deleteLoc(locConfirm?.id); setLocConfirm(null); }} title="Delete Location" message={`Delete "${locConfirm?.name}"? Products assigned here will lose their location.`} danger />
 
       {/* Print Label Modal */}
       {labelProduct && (
@@ -1082,6 +1160,36 @@ export default function InventoryPage() {
         <div className="flex gap-3 justify-end mt-5">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
           <button className="btn-primary" onClick={saveCat} disabled={saving}>{saving ? 'Saving…' : modal === 'cat-edit' ? 'Update' : 'Add Category'}</button>
+        </div>
+      </Modal>
+
+      {/* Location Add/Edit Modal */}
+      <Modal open={modal === 'loc-add' || modal === 'loc-edit'} onClose={() => setModal(null)} title={modal === 'loc-edit' ? 'Edit Location' : 'Add Location'} size="sm">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">Name *</label>
+              <input className="form-input" value={locForm.name} onChange={e => setLocForm({...locForm, name: e.target.value})} placeholder="e.g. Shelf A1" autoFocus />
+            </div>
+            <div>
+              <label className="form-label">Code</label>
+              <input className="form-input" value={locForm.code} onChange={e => setLocForm({...locForm, code: e.target.value})} placeholder="e.g. A1" />
+            </div>
+          </div>
+          <div>
+            <label className="form-label">Type</label>
+            <select className="form-input" value={locForm.type} onChange={e => setLocForm({...locForm, type: e.target.value})}>
+              {['warehouse','zone','shelf','bin','room','other'].map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Description</label>
+            <textarea className="form-input" rows={2} value={locForm.description} onChange={e => setLocForm({...locForm, description: e.target.value})} placeholder="Optional notes about this location" />
+          </div>
+        </div>
+        <div className="flex gap-3 justify-end mt-5">
+          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+          <button className="btn-primary" onClick={saveLoc} disabled={saving}>{saving ? 'Saving…' : modal === 'loc-edit' ? 'Update' : 'Add Location'}</button>
         </div>
       </Modal>
 

@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
-  X, Monitor, TrendingUp, CreditCard, ChevronDown, MessageCircle, CheckSquare,
+  X, Monitor, TrendingUp, CreditCard, ChevronDown, MessageCircle, CheckSquare, Wrench,
 } from 'lucide-react';
 
 const navGroups = [
@@ -44,6 +44,7 @@ const navGroups = [
       { href: '/pos',         label: 'POS',         icon: Monitor,      roles: ['business_owner','branch_manager'],                    permission: 'pos.view' },
       { href: '/orders',      label: 'Sales',       icon: ShoppingCart, roles: ['business_owner','branch_manager'],                    permission: 'orders.view' },
       { href: '/inventory',   label: 'Inventory',   icon: Package,      roles: ['business_owner','branch_manager','warehouse_staff'],  permission: 'inventory.view' },
+      { href: '/assets',      label: 'Assets',      icon: Wrench,       roles: ['business_owner','branch_manager','warehouse_staff'],  permission: 'inventory.view' },
       { href: '/procurement', label: 'Procurement', icon: Truck,        roles: ['business_owner','procurement_officer'],               permission: 'procurement.view' },
     ],
   },
