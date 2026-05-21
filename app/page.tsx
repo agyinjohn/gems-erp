@@ -861,7 +861,7 @@ const PLANS = [
   {
     key: 'enterprise',
     label: 'Enterprise',
-    price: 2000,
+    price: 2050,
     desc: 'For large operations that need everything.',
     color: 'border-gray-200',
     badge: 'bg-orange-100 text-orange-700',
@@ -1866,7 +1866,9 @@ export default function LandingPage() {
 
             {/* Brand — col 1 */}
             <div className="md:col-span-4">
-              <img src="/ag.png" alt="GEMS Logo" className="h-20 w-auto object-contain mb-4" />
+              <Link href="/https://gthink-a.vercel.app">
+                <img src="/ag.png" alt="GEMS Logo" className="h-20 w-auto object-contain mb-4" />
+              </Link>
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
                 The all-in-one business management platform for growing companies in Africa. Stocks, Inventory, Sales, POS, eCommerce, Payments, Procurement, Finance, HR, CRM and More  — all connected in real time.
               </p>
