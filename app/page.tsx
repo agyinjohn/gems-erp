@@ -1866,7 +1866,7 @@ export default function LandingPage() {
 
             {/* Brand — col 1 */}
             <div className="md:col-span-4">
-              <Link href="/https://gthink-a.vercel.app">
+              <Link href="https://gthink-a.vercel.app">
                 <img src="/ag.png" alt="GEMS Logo" className="h-20 w-auto object-contain mb-4" />
               </Link>
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
