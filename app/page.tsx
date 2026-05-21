@@ -1279,7 +1279,7 @@ export default function LandingPage() {
           <div className="text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Everything you need</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">One System. Every Module.</h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">GEMS gives you Inventory, Sales, Payments, Procurement, Finance, HR, CRM, and More — all connected, all in real time.</p>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">GEMS gives you Stocks, Inventory, Sales, POS, eCommerce, Payments, Procurement, Finance, Accounting, HR, CRM and More — all connected, all in real time.</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
