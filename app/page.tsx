@@ -836,7 +836,7 @@ const PLANS = [
       'Stocks & Inventory',
       'Sales & Orders',
       'POS Terminal',
-      'Basic Reports',
+      'Basic Financial Reports',
     ],
   },
   {
@@ -854,7 +854,7 @@ const PLANS = [
       'Procurement',
       'HR & Payroll',
       'CRM',
-      'Advanced Reports',
+      'Advanced Reports & Financial Analytics',
       'Priority Support',
     ],
   },
