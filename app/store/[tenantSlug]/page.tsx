@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { publicApi } from '@/lib/api';
@@ -9,7 +9,10 @@ import StoreFilters from '@/components/store/StoreFilters';
 import StoreFooter from '@/components/store/StoreFooter';
 import MobileBottomBar from '@/components/store/MobileBottomBar';
 import ProductImageGallery from '@/components/store/ProductImageGallery';
+import ProductCardSkeleton from '@/components/store/ProductCardSkeleton';
 import { categoryGradient, categoryIconColor, formatGhs } from '@/components/store/theme';
+import { useStoreProductFeed } from '@/hooks/useStoreProductFeed';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 interface CartItem { product: any; quantity: number; branch_id: string; branch_name: string; }
 
@@ -39,7 +42,6 @@ export default function TenantStorefrontPage() {
   const [branches, setBranches] = useState<any[]>([]);
   const [activeBranch, setActiveBranch] = useState<any>(null); // null = all branches
   const [showBranchMenu, setShowBranchMenu] = useState(false);
-  const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartId, setCartId] = useState<string>('');
@@ -49,18 +51,12 @@ export default function TenantStorefrontPage() {
   const [showCart, setShowCart] = useState(false);
   const [step, setStep] = useState<'shop'|'detail'|'checkout'|'success'|'track'>('shop');
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [orderId, setOrderId] = useState<number|null>(null);
   const [orderNumber, setOrderNumber] = useState('');
   const [form, setForm] = useState({ customer_name:'', customer_email:'', customer_phone:'', delivery_address:'' });
   const [error, setError] = useState('');
   const [detailQty, setDetailQty] = useState(1);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const ITEMS_PER_PAGE = 12;
   const [completedCart, setCompletedCart] = useState<CartItem[]>([]);
   const [completedTotal, setCompletedTotal] = useState(0);
   const [deliveryLocation, setDeliveryLocation] = useState('');
@@ -78,25 +74,24 @@ export default function TenantStorefrontPage() {
   const [openSections, setOpenSections] = useState<Record<string,boolean>>({ categories: true, price: true, availability: true, sort: true });
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const toggleSection = (key: string) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
+
+  const {
+    products,
+    hasMore,
+    loadingInitial,
+    loadingMore,
+    refreshing,
+    loadMore,
+    itemsPerPage,
+  } = useStoreProductFeed({
+    tenantSlug,
+    search,
+    filterCat,
+    branchSlug: activeBranch?.slug,
+  });
+
   const maxProductPrice = Math.ceil(Math.max(0, ...products.map(p => parseFloat(p.price) || 0)) / 100) * 100 || 5000;
   const activeFilterCount = [filterCat, inStockOnly, priceMax !== '' || priceMin > 0].filter(Boolean).length;
-
-  const loadProducts = useCallback(async (pageNum: number, replace: boolean) => {
-    if (pageNum === 1) setLoading(true); else setLoadingMore(true);
-    try {
-      const params: any = { page: pageNum, limit: ITEMS_PER_PAGE, tenant_slug: tenantSlug };
-      if (search) params.search = search;
-      if (filterCat) params.category = filterCat;
-      if (activeBranch) params.branch_slug = activeBranch.slug;
-      const r = await publicApi.get('/storefront/products', { params });
-      const newProds = r.data.data;
-      setProducts(prev => replace ? newProds : [...prev, ...newProds]);
-      setHasMore(r.data.hasMore);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [search, filterCat, tenantSlug, activeBranch]);
 
   // Load tenant + branches on mount
   useEffect(() => {
@@ -107,8 +102,6 @@ export default function TenantStorefrontPage() {
   }, [tenantSlug]);
 
   useEffect(() => {
-    setPage(1);
-    loadProducts(1, true);
     publicApi.get('/categories', { params: { tenant_slug: tenantSlug } }).then(c => setCategories(c.data.data)).catch(() => {});
     const savedId = localStorage.getItem(CART_ID_KEY) || '';
     setCartId(savedId);
@@ -117,24 +110,7 @@ export default function TenantStorefrontPage() {
         setCart(r.data.data.items.map(toCartItem));
       }).catch(() => {});
     }
-  }, [search, filterCat, activeBranch, tenantSlug]);
-
-  useEffect(() => {
-    if (page === 1) return;
-    loadProducts(page, false);
-  }, [page]);
-
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-        setPage(p => p + 1);
-      }
-    }, { threshold: 0.1 });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasMore, loadingMore, loading]);
+  }, [tenantSlug]);
 
   // Close branch menu on outside click
   useEffect(() => {
@@ -209,7 +185,11 @@ export default function TenantStorefrontPage() {
     if (sortBy === 'name') return a.name.localeCompare(b.name);
     return 0;
   });
-  const resetPage = () => setPage(1);
+  const sentinelRef = useInfiniteScroll(loadMore, {
+    enabled: step === 'shop' && hasMore && !loadingInitial && !loadingMore && !refreshing,
+    watchKey: `${filtered.length}-${hasMore}-${loadingInitial}`,
+  });
+  const resetPage = () => { /* client-only filters; server feed resets via hook queryKey */ };
   const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
   const deliveryFee = cartTotal >= 500 ? 0 : 30;
@@ -456,30 +436,25 @@ export default function TenantStorefrontPage() {
             </div>
           )}
 
-          {loading ? (
-            /* Skeleton Cards */
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-              {[...Array(8)].map((_,i) => (
-                <div key={i} className="bg-white rounded-xl overflow-hidden border border-gray-100">
-                  <div className="aspect-[4/3] sm:aspect-[3/2] bg-gray-200 animate-pulse" />
-                  <div className="p-3 space-y-2">
-                    <div className="h-2.5 bg-gray-200 rounded animate-pulse w-1/3" />
-                    <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4" />
-                    <div className="h-5 bg-gray-200 rounded animate-pulse w-1/2 mt-1" />
-                    <div className="h-8 bg-gray-200 rounded-lg animate-pulse w-full mt-2" />
-                  </div>
-                </div>
+          {refreshing && products.length > 0 && (
+            <div className="h-0.5 bg-gray-200 rounded-full mb-4 overflow-hidden">
+              <div className="h-full w-2/5 bg-[#0D3B6E] rounded-full animate-pulse" />
+            </div>
+          )}
+
+          {loadingInitial && products.length === 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
+              {[...Array(itemsPerPage)].map((_, i) => (
+                <ProductCardSkeleton key={i} />
               ))}
             </div>
           ) : (
             <>
-              {/* Section heading + sort (mobile) */}
-              <div className="flex items-center justify-between mb-4">
+              <div className={`flex items-center justify-between mb-4 transition-opacity ${refreshing ? 'opacity-60' : ''}`}>
                 <h2 className="text-base font-bold text-gray-800">
                   {filterCat ? filterCat : 'All Products'}
                   <span className="ml-2 text-sm font-normal text-gray-400">({filtered.length} items)</span>
                 </h2>
-                {/* Mobile sort */}
                 <select
                   className="lg:hidden text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none"
                   value={sortBy}
@@ -500,7 +475,7 @@ export default function TenantStorefrontPage() {
                   <button onClick={() => { setSearch(''); setFilterCat(''); setInStockOnly(false); setPriceMin(0); setPriceMax(''); setSortBy('default'); resetPage(); }} className="mt-4 text-sm text-blue-600 hover:underline">Clear filters</button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
+                <div className={`grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 transition-opacity ${refreshing ? 'opacity-60 pointer-events-none' : ''}`}>
                   {filtered.map(p => {
                     const inCart = cart.find(i => i.product.id === p.id);
                     return (
@@ -515,30 +490,21 @@ export default function TenantStorefrontPage() {
                       />
                     );
                   })}
-                </div>
-              )}
-
-              {/* Pagination */}
-              {/* Infinite scroll sentinel */}
-              <div ref={sentinelRef} className="h-4" />
-              {loadingMore && (
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 mt-2">
-                  {[...Array(4)].map((_,i) => (
-                    <div key={i} className="bg-white rounded-xl overflow-hidden border border-gray-100">
-                      <div className="aspect-[3/2] bg-gray-200 animate-pulse" />
-                      <div className="p-3 space-y-2">
-                        <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4" />
-                        <div className="h-5 bg-gray-200 rounded animate-pulse w-1/2" />
-                        <div className="h-8 bg-gray-200 rounded-lg animate-pulse w-full" />
-                      </div>
-                    </div>
+                  {loadingMore && [...Array(Math.min(8, itemsPerPage))].map((_, i) => (
+                    <ProductCardSkeleton key={`more-${i}`} />
                   ))}
                 </div>
               )}
-              {!hasMore && filtered.length > 0 && (
-                <p className="text-center text-xs text-gray-400 mt-6 pb-2">You&apos;ve seen all {filtered.length} products</p>
+
+              {!hasMore && filtered.length > 0 && !loadingMore && (
+                <p className="text-center text-xs text-gray-400 mt-2 pb-2">You&apos;ve seen all {filtered.length} products</p>
               )}
             </>
+          )}
+
+          <div ref={sentinelRef} className="h-px w-full shrink-0" aria-hidden />
+          {loadingMore && products.length > 0 && (
+            <p className="text-center text-xs text-gray-400 py-3">Loading more products…</p>
           )}
 
           </div>
