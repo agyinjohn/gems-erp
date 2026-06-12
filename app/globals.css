@@ -75,6 +75,110 @@
   .btn-shine:hover::after { animation: none; }
 }
 
+/* ── Storefront (eCommerce) ── */
+.store-shell { background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 40%, #eef2f7 100%); min-height: 100vh; }
+
+.store-nav-bar {
+  background: linear-gradient(135deg, #0D3B6E 0%, #1A5294 55%, #0f4c8a 100%);
+  box-shadow: 0 4px 24px rgba(13, 59, 110, 0.25);
+}
+.store-nav-categories { background: rgba(13, 59, 110, 0.97); backdrop-filter: blur(8px); }
+
+.store-search {
+  @apply flex items-center gap-2 bg-white rounded-xl px-3 h-11 shadow-sm ring-2 ring-transparent focus-within:ring-amber-400/80 transition-all;
+}
+.store-search-input {
+  @apply flex-1 min-w-0 h-full bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none;
+}
+
+.store-pill {
+  @apply px-3.5 py-1.5 rounded-full text-xs font-medium text-blue-100/90 hover:text-white hover:bg-white/10 transition-all;
+}
+.store-pill-active {
+  @apply bg-amber-400 text-gray-900 font-semibold shadow-sm hover:bg-amber-400 hover:text-gray-900;
+}
+
+.store-hero { @apply border border-white/10 shadow-xl; }
+.store-hero-bg {
+  background: linear-gradient(135deg, #0D3B6E 0%, #1A5294 50%, #2563eb 100%);
+}
+.store-hero-stat {
+  @apply rounded-xl bg-white/10 backdrop-blur-sm p-4 ring-1 ring-white/10;
+}
+
+.store-product-card {
+  @apply bg-white rounded-xl overflow-hidden border border-gray-100/80 shadow-sm hover:shadow-md hover:border-gray-200/80 transition-all duration-200 hover:-translate-y-0.5;
+}
+
+.store-badge {
+  @apply inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full;
+}
+.store-badge-warn { @apply bg-orange-500 text-white shadow; }
+.store-badge-dark { @apply bg-black/55 text-white backdrop-blur-sm; }
+
+.store-btn {
+  @apply font-bold text-sm py-2.5 rounded-xl transition-all duration-200 active:scale-[0.98];
+}
+.store-btn-primary {
+  @apply bg-[#0D3B6E] hover:bg-[#1A5294] text-white shadow-md shadow-blue-900/10 hover:shadow-lg;
+}
+.store-btn-sm {
+  @apply text-xs py-2 rounded-lg;
+}
+.store-btn-muted { @apply bg-gray-100 text-gray-400 font-medium; }
+.store-btn-hero {
+  @apply bg-amber-400 hover:bg-amber-300 text-gray-900 px-6 py-3 rounded-xl shadow-lg shadow-amber-900/20 font-bold;
+}
+
+.store-qty-btn {
+  @apply w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 shadow-sm transition-colors;
+}
+.store-qty-btn-primary {
+  @apply bg-[#0D3B6E] text-white border-[#0D3B6E] hover:bg-[#1A5294];
+}
+
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+.store-filter-panel { @apply bg-white rounded-2xl border border-gray-100 shadow-sm; }
+.store-filter-section-title { @apply text-sm font-semibold text-gray-800; }
+
+.store-mobile-bar {
+  @apply fixed bottom-0 inset-x-0 z-30 lg:hidden bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-2 flex items-center justify-around;
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* Product image gallery (detail + future carousel) */
+.store-image-gallery { @apply flex flex-col gap-3; }
+.store-image-gallery-main {
+  @apply aspect-square max-h-96 lg:max-h-none lg:min-h-[320px] w-full;
+}
+.store-image-gallery-nav {
+  @apply absolute top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-gray-800 shadow-md
+    flex items-center justify-center hover:bg-white transition-colors border border-gray-100/80;
+}
+.store-image-gallery-nav-prev { @apply left-2; }
+.store-image-gallery-nav-next { @apply right-2; }
+.store-image-gallery-counter {
+  @apply absolute bottom-3 right-3 inline-flex items-center gap-1 text-[10px] font-semibold
+    text-white bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full;
+}
+.store-image-gallery-thumbs {
+  @apply flex gap-2 overflow-x-auto pb-1 scrollbar-hide;
+}
+.store-image-gallery-thumb {
+  @apply flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden ring-2 ring-transparent
+    border border-gray-200 opacity-70 hover:opacity-100 transition-all focus:outline-none focus-visible:ring-[#0D3B6E];
+}
+.store-image-gallery-thumb-active {
+  @apply ring-[#0D3B6E] opacity-100 border-[#0D3B6E];
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .store-product-card { transition: none; }
+  .store-product-card:hover { transform: none; }
+}
+
 @layer components {
 
   /* ── Layout ── */
