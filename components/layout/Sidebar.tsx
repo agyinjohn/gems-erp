@@ -2,12 +2,32 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentType } from 'react';
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
-  X, Monitor, TrendingUp, CreditCard, ChevronDown, MessageCircle, CheckSquare, Wrench,
+  X, Monitor, TrendingUp, CreditCard, ChevronDown,
+  MessageCircle, CheckSquare, Wrench,
 } from 'lucide-react';
+
+function SidebarLink({
+  href, label, icon: Icon, isActive, collapsed, onNavigate,
+}: {
+  href: string; label: string; icon: ComponentType<{ className?: string }>;
+  isActive: boolean; collapsed: boolean; onNavigate: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      title={collapsed ? label : undefined}
+      className={`sidebar-link ${isActive ? 'active' : 'inactive'} ${collapsed ? 'justify-center !px-2 !gap-0' : ''}`}
+    >
+      <Icon className="w-4 h-4 flex-shrink-0" />
+      {!collapsed && <span className="truncate">{label}</span>}
+    </Link>
+  );
+}
 
 const navGroups = [
   {
@@ -90,9 +110,13 @@ const navGroups = [
   },
 ];
 
-interface Props { open: boolean; onClose: () => void; }
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  collapsed: boolean;
+}
 
-export default function Sidebar({ open, onClose }: Props) {
+export default function Sidebar({ open, onClose, collapsed }: Props) {
   const pathname = usePathname();
   const { user, tenant } = useAuth();
 
@@ -136,27 +160,37 @@ export default function Sidebar({ open, onClose }: Props) {
 
   const toggle = (gi: number) => setOpenGroups(prev => ({ ...prev, [gi]: !prev[gi] }));
 
-  const inner = (
-    <aside className="h-full w-64 flex flex-col" style={{ background: 'linear-gradient(180deg, #0D3B6E 0%, #1A5294 100%)' }}>
+  const renderContent = (isCollapsed: boolean) => (
+    <aside className="h-full w-full flex flex-col" style={{ background: 'linear-gradient(180deg, #0D3B6E 0%, #1A5294 100%)' }}>
 
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center">
+      <div className={`border-b border-white/10 flex items-center shrink-0 ${
+        isCollapsed ? 'justify-center px-2 py-4' : 'px-4 py-4 justify-between gap-2'
+      }`}>
+        {isCollapsed ? (
+          <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center" title="GEMS">
             <Building2 className="w-5 h-5 text-blue-900" />
           </div>
-          <div>
-            <div className="text-white font-bold text-lg leading-tight">GEMS</div>
-            <div className="text-blue-200 text-xs truncate uppercase">{tenant?.business_name || 'Business Portal'}</div>
-          </div>
-        </div>
-        <button onClick={onClose} className="lg:hidden text-white/60 hover:text-white p-1">
-          <X className="w-5 h-5" />
-        </button>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shrink-0">
+                <Building2 className="w-5 h-5 text-blue-900" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-white font-bold text-lg leading-tight">GEMS</div>
+                <div className="text-blue-200 text-xs truncate uppercase">{tenant?.business_name || 'Business Portal'}</div>
+              </div>
+            </div>
+            <button onClick={onClose} className="lg:hidden text-white/60 hover:text-white p-1.5 rounded-lg hover:bg-white/10 shrink-0" aria-label="Close menu">
+              <X className="w-5 h-5" />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Nav */}
-      <nav id="sidebar-nav" className="flex-1 px-3 py-4 overflow-y-auto">
+      <nav id="sidebar-nav" className={`flex-1 py-4 overflow-y-auto overflow-x-hidden ${isCollapsed ? 'px-2' : 'px-3'}`}>
         {(() => {
           const isAdminOrOwner = user?.role === 'platform_admin' || user?.role === 'business_owner';
           const isCustom = user?.role === 'custom';
@@ -177,24 +211,17 @@ export default function Sidebar({ open, onClose }: Props) {
             return (
               <div className="space-y-0.5">
                 {main.map(item => {
-                  const Icon = item.icon;
                   const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
                   return (
-                    <Link key={item.href} href={item.href} onClick={onClose}
-                      className={`sidebar-link ${isActive ? 'active' : 'inactive'}`}>
-                      <Icon className="w-4 h-4 flex-shrink-0" />
-                      {item.label}
-                    </Link>
+                    <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon}
+                      isActive={isActive} collapsed={isCollapsed} onNavigate={onClose} />
                   );
                 })}
                 {ess && (
                   <>
                     <div className="my-2 border-t border-white/10" />
-                    <Link href="/ess" onClick={onClose}
-                      className={`sidebar-link ${pathname === '/ess' ? 'active' : 'inactive'}`}>
-                      <UserCircle className="w-4 h-4 flex-shrink-0" />
-                      My Portal
-                    </Link>
+                    <SidebarLink href="/ess" label="My Portal" icon={UserCircle}
+                      isActive={pathname === '/ess'} collapsed={isCollapsed} onNavigate={onClose} />
                   </>
                 )}
               </div>
@@ -212,42 +239,37 @@ export default function Sidebar({ open, onClose }: Props) {
                 return (
                   <div key={gi} className="mb-1">
                     {visibleItems.map(item => {
-                      const Icon = item.icon;
                       const isActive = pathname === item.href || (item.href !== '/platform' && item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
                       return (
-                        <Link key={item.href} href={item.href} onClick={onClose}
-                          className={`sidebar-link ${isActive ? 'active' : 'inactive'}`}>
-                          <Icon className="w-4 h-4 flex-shrink-0" />
-                          {item.label}
-                        </Link>
+                        <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon}
+                          isActive={isActive} collapsed={isCollapsed} onNavigate={onClose} />
                       );
                     })}
                   </div>
                 );
               }
 
-              const isExpanded = !!openGroups[gi];
+              const isExpanded = isCollapsed || !!openGroups[gi];
 
               return (
                 <div key={gi} className="mb-1">
-                  <button
-                    onClick={() => toggle(gi)}
-                    className="w-full flex items-center justify-between px-3 py-1.5 mt-3 mb-1 rounded-lg text-[10px] font-bold uppercase tracking-widest text-blue-100/70 hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    <span>{group.label}</span>
-                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                  </button>
+                  {!isCollapsed && (
+                    <button
+                      onClick={() => toggle(gi)}
+                      className="w-full flex items-center justify-between px-3 py-1.5 mt-3 mb-1 rounded-lg text-[10px] font-bold uppercase tracking-widest text-blue-100/70 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      <span>{group.label}</span>
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                  )}
+                  {isCollapsed && <div className="my-2 border-t border-white/10 first:mt-0" />}
                   {isExpanded && (
-                    <div className="mt-0.5 space-y-0.5">
+                    <div className={`space-y-0.5 ${isCollapsed ? '' : 'mt-0.5'}`}>
                       {visibleItems.map(item => {
-                        const Icon = item.icon;
                         const isActive = pathname === item.href || (item.href !== '/platform' && item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
                         return (
-                          <Link key={item.href} href={item.href} onClick={onClose}
-                            className={`sidebar-link ${isActive ? 'active' : 'inactive'}`}>
-                            <Icon className="w-4 h-4 flex-shrink-0" />
-                            {item.label}
-                          </Link>
+                          <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon}
+                            isActive={isActive} collapsed={isCollapsed} onNavigate={onClose} />
                         );
                       })}
                     </div>
@@ -273,24 +295,18 @@ export default function Sidebar({ open, onClose }: Props) {
           return (
             <div className="space-y-0.5">
               {flat.map(item => {
-                const Icon = item.icon;
                 const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
                 return (
-                  <Link key={item.href} href={item.href} onClick={onClose}
-                    className={`sidebar-link ${isActive ? 'active' : 'inactive'}`}>
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    {item.label}
-                  </Link>
+                  <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon}
+                    isActive={isActive} collapsed={isCollapsed} onNavigate={onClose} />
                 );
               })}
               {myPortal && (
                 <>
                   <div className="my-2 border-t border-white/10" />
-                  <Link href="/ess" onClick={onClose}
-                    className={`sidebar-link ${pathname === '/ess' || pathname.startsWith('/ess/') ? 'active' : 'inactive'}`}>
-                    <UserCircle className="w-4 h-4 flex-shrink-0" />
-                    My Portal
-                  </Link>
+                  <SidebarLink href="/ess" label="My Portal" icon={UserCircle}
+                    isActive={pathname === '/ess' || pathname.startsWith('/ess/')}
+                    collapsed={isCollapsed} onNavigate={onClose} />
                 </>
               )}
             </div>
@@ -300,26 +316,40 @@ export default function Sidebar({ open, onClose }: Props) {
 
       {/* GEMS Store */}
       {tenant?.slug && user?.role !== 'platform_admin' && (
-        <div className="px-3 pb-3">
+        <div className={isCollapsed ? 'px-2 pb-2' : 'px-3 pb-3'}>
           <a
             href={`/store/${tenant.slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white bg-white/10 hover:bg-white/20 transition-colors"
+            title={isCollapsed ? 'GEMS Store' : undefined}
+            className={`flex items-center rounded-lg text-sm font-medium text-white bg-white/10 hover:bg-white/20 transition-colors ${
+              isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
+            }`}
           >
             <Store className="w-4 h-4 flex-shrink-0" />
-            GEMS Store
+            {!isCollapsed && 'GEMS Store'}
           </a>
         </div>
       )}
 
       {/* User Info */}
-      <div className="px-3 py-4 border-t border-white/10">
-        <div className="px-4 py-3 rounded-lg bg-white/10">
-          <div className="text-white text-sm font-medium truncate">{user?.name}</div>
-          <div className="text-blue-200 text-xs truncate">{user?.email}</div>
-        </div>
-        <div className="text-blue-300 text-[10px] mt-2 text-center truncate uppercase">GTHINK Enterprise Management System</div>
+      <div className={`border-t border-white/10 ${isCollapsed ? 'px-2 py-3' : 'px-3 py-4'}`}>
+        {isCollapsed ? (
+          <div
+            className="w-10 h-10 mx-auto rounded-full bg-white/20 flex items-center justify-center text-white text-sm font-bold"
+            title={`${user?.name}\n${user?.email}`}
+          >
+            {user?.name?.charAt(0).toUpperCase()}
+          </div>
+        ) : (
+          <>
+            <div className="px-4 py-3 rounded-lg bg-white/10">
+              <div className="text-white text-sm font-medium truncate">{user?.name}</div>
+              <div className="text-blue-200 text-xs truncate">{user?.email}</div>
+            </div>
+            <div className="text-blue-300 text-[10px] mt-2 text-center truncate uppercase">GTHINK Enterprise Management System</div>
+          </>
+        )}
       </div>
     </aside>
   );
@@ -327,16 +357,20 @@ export default function Sidebar({ open, onClose }: Props) {
   return (
     <>
       {/* Desktop: fixed sidebar */}
-      <div className="hidden lg:block fixed left-0 top-0 h-screen w-64 z-30">
-        {inner}
+      <div
+        className={`hidden lg:block fixed left-0 top-0 h-dvh z-30 transition-[width] duration-300 ease-in-out ${
+          collapsed ? 'w-[72px]' : 'w-64'
+        }`}
+      >
+        {renderContent(collapsed)}
       </div>
 
-      {/* Mobile: overlay drawer */}
+      {/* Mobile: overlay drawer — always expanded */}
       {open && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-          <div className="relative w-64 h-full shadow-2xl">
-            {inner}
+          <div className="relative w-64 max-w-[85vw] h-full shadow-2xl">
+            {renderContent(false)}
           </div>
         </div>
       )}

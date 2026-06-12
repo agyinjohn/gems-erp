@@ -901,6 +901,49 @@ const TESTIMONIALS = [
   { name: 'Kofi Boateng', role: 'CFO, ProTools Ltd', text: 'Finally an ERP that just works. The Paystack integration, real-time reports and role-based access made all the difference.', avatar: 'K' },
 ];
 
+/** Scroll-reveal wrapper — fades/slides children in when they enter the viewport. */
+function Reveal({
+  children,
+  className = '',
+  variant = 'up',
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  variant?: 'up' | 'left' | 'right' | 'scale';
+  delay?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -48px 0px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const variantClass = variant === 'left' ? 'reveal-left' : variant === 'right' ? 'reveal-right' : variant === 'scale' ? 'reveal-scale' : '';
+
+  return (
+    <div
+      ref={ref}
+      className={`reveal ${variantClass} ${visible ? 'is-visible' : ''} ${className}`}
+      style={delay ? { transitionDelay: `${delay}ms` } : undefined}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1035,9 +1078,9 @@ export default function LandingPage() {
       {/* ── HERO ── */}
       <section className="bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0D3B6E] text-white py-20 px-6 overflow-hidden relative">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/5 rounded-full" />
-          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-yellow-400/10 rounded-full" />
-          <div className="absolute top-1/2 left-1/4 w-72 h-72 bg-white/3 rounded-full -translate-y-1/2" />
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/5 rounded-full blur-sm animate-float-slow" />
+          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-yellow-400/10 rounded-full blur-sm animate-float-slower" />
+          <div className="absolute top-1/2 left-1/4 w-72 h-72 bg-white/3 rounded-full animate-drift" />
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10">
@@ -1254,18 +1297,20 @@ export default function LandingPage() {
               { value: '10+', label: 'Modules', icon: Package, color: 'bg-purple-50 text-purple-600' },
               { value: '99.9%', label: 'Uptime', icon: Zap, color: 'bg-yellow-50 text-yellow-600' },
               { value: '24/7', label: 'Support', icon: Shield, color: 'bg-green-50 text-green-600' },
-            ].map(s => {
+            ].map((s, i) => {
               const Icon = s.icon;
               return (
-                <div key={s.label} className="flex items-center gap-4 p-5 rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${s.color}`}>
-                    <Icon className="w-5 h-5" />
+                <Reveal key={s.label} delay={i * 100}>
+                  <div className="flex items-center gap-4 p-5 rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-md card-lift group">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 ${s.color}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-2xl font-extrabold text-gray-900">{s.value}</div>
+                      <div className="text-sm text-gray-400">{s.label}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-2xl font-extrabold text-gray-900">{s.value}</div>
-                    <div className="text-sm text-gray-400">{s.label}</div>
-                  </div>
-                </div>
+                </Reveal>
               );
             })}
           </div>
@@ -1276,11 +1321,11 @@ export default function LandingPage() {
       <section id="features" className="py-24 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
 
-          <div className="text-center mb-14">
+          <Reveal className="text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Everything you need</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">One System. Every Module.</h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">GEMS gives you Stocks, Inventory, Sales, POS, eCommerce, Payments, Procurement, Finance, Accounting, HR, CRM and More — all connected, all in real time.</p>
-          </div>
+          </Reveal>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
 
@@ -1290,8 +1335,9 @@ export default function LandingPage() {
                 const Icon = f.icon;
                 const isActive = activeFeature === i;
                 return (
-                  <button key={f.title} onClick={() => setActiveFeature(i)}
-                    className="w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-200"
+                  <Reveal key={f.title} variant="left" delay={i * 60}>
+                  <button onClick={() => setActiveFeature(i)}
+                    className="w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5"
                     style={{
                       background: isActive ? `linear-gradient(135deg, ${f.accent}12, ${f.accent}06)` : '#f9fafb',
                       borderColor: isActive ? f.accent + '50' : '#e5e7eb',
@@ -1310,6 +1356,7 @@ export default function LandingPage() {
                         style={{ backgroundColor: isActive ? f.accent : 'transparent' }} />
                     </div>
                   </button>
+                  </Reveal>
                 );
               })}
             </div>
@@ -1342,7 +1389,7 @@ export default function LandingPage() {
                 const p = PATHS[f.preview];
                 const s = STATS[f.preview];
                 return (
-                  <div key={f.title} className="rounded-2xl overflow-hidden"
+                  <div key={f.title} className="rounded-2xl overflow-hidden animate-panel-in"
                     style={{ background: `linear-gradient(145deg, ${f.accent}08 0%, #f8faff 60%, #ffffff 100%)`, border: `1px solid ${f.accent}25` }}>
 
                     {/* Header */}
@@ -1370,8 +1417,8 @@ export default function LandingPage() {
                       {/* Bullets */}
                       <div className="grid grid-cols-2 gap-2 mb-5">
                         {f.bullets.map((b, bi) => (
-                          <div key={b} className="flex items-center gap-2"
-                            style={{ opacity: 1, transform: 'translateX(0)', transition: `opacity 0.4s ease ${bi * 0.07}s, transform 0.4s ease ${bi * 0.07}s` }}>
+                          <div key={b} className="flex items-center gap-2 animate-panel-in"
+                            style={{ animationDelay: `${0.15 + bi * 0.08}s` }}>
                             <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: f.accent }} />
                             <span className="text-xs text-gray-600">{b}</span>
                           </div>
@@ -1441,10 +1488,12 @@ export default function LandingPage() {
           {/* More modules */}
           <div className="flex flex-wrap items-center justify-center gap-1.5 mt-12">
             <span className="text-xs text-gray-400 mr-1 whitespace-nowrap">Also includes:</span>
-            {MORE_MODULES.map(m => (
-              <span key={m} className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 px-2 py-1 rounded-full transition-colors whitespace-nowrap">
-                <CheckCircle className="w-2.5 h-2.5 text-green-500 flex-shrink-0" /> {m}
-              </span>
+            {MORE_MODULES.map((m, mi) => (
+              <Reveal key={m} variant="scale" delay={mi * 50} className="inline-flex">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 px-2 py-1 rounded-full transition-all hover:scale-105 whitespace-nowrap">
+                  <CheckCircle className="w-2.5 h-2.5 text-green-500 flex-shrink-0" /> {m}
+                </span>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -1453,22 +1502,22 @@ export default function LandingPage() {
       {/* ── HOW IT WORKS ── */}
       <section id="how-it-works" className="bg-gray-50 py-24 px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
+          <Reveal className="text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Simple setup</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Up and running in minutes</h2>
             <p className="text-gray-500 text-lg">No IT team needed. No complex setup. Just sign up and go.</p>
-          </div>
+          </Reveal>
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Connector line — sits behind the step numbers */}
             <div className="hidden md:block absolute top-8 left-[calc(16.67%+16px)] right-[calc(16.67%+16px)] h-0.5 bg-gray-200" />
             {STEPS.map((s, i) => (
-              <div key={s.step} className="relative text-center">
-                <div className="relative z-10 inline-flex w-16 h-16 rounded-2xl bg-[#0D3B6E] text-white items-center justify-center text-xl font-extrabold mb-5 shadow-lg shadow-blue-200">
+              <Reveal key={s.step} delay={i * 180} className="relative text-center">
+                <div className="relative z-10 inline-flex w-16 h-16 rounded-2xl bg-[#0D3B6E] text-white items-center justify-center text-xl font-extrabold mb-5 shadow-lg shadow-blue-200 transition-transform duration-300 hover:scale-110 hover:rotate-3">
                   {s.step}
                 </div>
                 <h3 className="font-bold text-gray-900 text-lg mb-2">{s.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -1478,16 +1527,17 @@ export default function LandingPage() {
       {/* ── PRICING ── */}
       <section id="pricing" className="py-24 px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-14">
+          <Reveal className="text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Pricing</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Simple, transparent pricing</h2>
             <p className="text-gray-500 text-lg">Start free for 14 days. Not charged until day 14. Subscribe to continue.</p>
-          </div>
+          </Reveal>
 
           {/* Plan cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mb-6">
-            {PLANS.map(p => (
-              <div key={p.key} className={`relative bg-white rounded-2xl border-2 p-7 flex flex-col ${p.popular ? 'border-[#0D3B6E] shadow-2xl shadow-blue-100' : 'border-gray-200'
+            {PLANS.map((p, pi) => (
+              <Reveal key={p.key} delay={pi * 140} variant={p.popular ? 'scale' : 'up'}>
+              <div className={`relative bg-white rounded-2xl border-2 p-7 flex flex-col card-lift hover:shadow-2xl ${p.popular ? 'border-[#0D3B6E] shadow-2xl shadow-blue-100 hover:shadow-blue-200' : 'border-gray-200 hover:border-[#0D3B6E]/40 hover:shadow-blue-50'
                 }`}>
                 {p.popular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0D3B6E] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
@@ -1508,13 +1558,14 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link href="/register"
-                  className={`w-full text-center font-bold py-3 rounded-xl text-sm transition-colors ${p.popular
+                  className={`w-full text-center font-bold py-3 rounded-xl text-sm transition-colors btn-shine ${p.popular
                     ? 'bg-[#0D3B6E] hover:bg-[#1A5294] text-white shadow-lg shadow-blue-200'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
                     }`}>
                   Start free trial
                 </Link>
               </div>
+              </Reveal>
             ))}
           </div>
 
@@ -1522,16 +1573,17 @@ export default function LandingPage() {
 
           {/* Add-ons */}
           <div className="mb-4">
-            <div className="text-center mb-10">
+            <Reveal className="text-center mb-10">
               <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-3">Add-Ons</span>
               <h3 className="text-2xl font-extrabold text-gray-900 mb-2">Extend your plan</h3>
               <p className="text-gray-500">Add only what your business needs. Available on any plan.</p>
-            </div>
+            </Reveal>
             <div className="grid md:grid-cols-2 gap-6">
               {ADDONS.map((addon, ai) => {
                 const addonIcons = [<Store className="w-5 h-5" />, <Calculator className="w-5 h-5" />];
                 return (
-                  <div key={addon.key} className="bg-white rounded-2xl border border-gray-200 hover:border-[#0D3B6E]/30 hover:shadow-lg p-0 flex flex-col overflow-hidden transition-all">
+                  <Reveal key={addon.key} variant={ai === 0 ? 'left' : 'right'} delay={ai * 100} className="h-full">
+                  <div className="bg-white rounded-2xl border border-gray-200 hover:border-[#0D3B6E]/30 hover:shadow-xl p-0 flex flex-col overflow-hidden card-lift h-full">
                     {/* Card header */}
                     <div className="bg-blue-50 px-6 pt-6 pb-5 border-b border-blue-100">
                       <div className="flex items-start justify-between gap-4">
@@ -1561,11 +1613,12 @@ export default function LandingPage() {
                         ))}
                       </ul>
                       <Link href="/register"
-                        className="mt-auto w-full text-center bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-sm shadow-blue-200">
+                        className="mt-auto w-full text-center bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-sm shadow-blue-200 btn-shine">
                         Add to my plan →
                       </Link>
                     </div>
                   </div>
+                  </Reveal>
                 );
               })}
             </div>
@@ -1577,18 +1630,19 @@ export default function LandingPage() {
       {/* ── SERVICES ── */}
       <section className="py-24 px-6 bg-white">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
+          <Reveal className="text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Professional Services</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">We don&apos;t just hand you software.</h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">From building a system tailored to your exact workflow, to setting it up and keeping it running — we&apos;re with you every step of the way.</p>
-          </div>
+          </Reveal>
 
           <div className="grid md:grid-cols-2 gap-8">
 
             {/* Custom Build */}
-            <div className="relative bg-gradient-to-br from-[#0D3B6E] to-[#1A5294] rounded-2xl p-8 text-white overflow-hidden flex flex-col">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full" />
-              <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-yellow-400/10 rounded-full" />
+            <Reveal variant="left" className="h-full">
+            <div className="relative bg-gradient-to-br from-[#0D3B6E] to-[#1A5294] rounded-2xl p-8 text-white overflow-hidden flex flex-col card-lift hover:shadow-2xl hover:shadow-blue-200 h-full">
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full animate-float-slow" />
+              <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-yellow-400/10 rounded-full animate-float-slower" />
               <div className="relative z-10 flex flex-col flex-1">
                 <div className="w-12 h-12 bg-yellow-400/20 border border-yellow-400/30 rounded-xl flex items-center justify-center mb-5">
                   <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -1609,15 +1663,17 @@ export default function LandingPage() {
                 <a
                   href="https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27m%20interested%20in%20a%20custom%20build%20for%20my%20business."
                   target="_blank" rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-extrabold py-3.5 rounded-xl text-sm transition-colors shadow-lg"
+                  className="inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-extrabold py-3.5 rounded-xl text-sm transition-colors shadow-lg btn-shine"
                 >
                   <MessageSquare className="w-4 h-4" /> Let&apos;s Talk About Your Build
                 </a>
               </div>
             </div>
+            </Reveal>
 
             {/* Setup & Maintenance */}
-            <div className="bg-gray-50 border-2 border-gray-200 hover:border-[#0D3B6E]/30 rounded-2xl p-8 flex flex-col transition-colors">
+            <Reveal variant="right" delay={120} className="h-full">
+            <div className="bg-gray-50 border-2 border-gray-200 hover:border-[#0D3B6E]/30 rounded-2xl p-8 flex flex-col card-lift hover:shadow-xl h-full">
               <div className="w-12 h-12 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center mb-5">
                 <svg className="w-6 h-6 text-[#0D3B6E]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -1636,11 +1692,12 @@ export default function LandingPage() {
               <a
                 href="https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27m%20interested%20in%20setup%20and%20maintenance%20support."
                 target="_blank" rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-extrabold py-3.5 rounded-xl text-sm transition-colors shadow-lg shadow-blue-200"
+                className="inline-flex items-center justify-center gap-2 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-extrabold py-3.5 rounded-xl text-sm transition-colors shadow-lg shadow-blue-200 btn-shine"
               >
                 <MessageSquare className="w-4 h-4" /> Get a Quote
               </a>
             </div>
+            </Reveal>
 
           </div>
 
@@ -1654,14 +1711,15 @@ export default function LandingPage() {
       {/* ── TESTIMONIALS ── */}
       <section className="bg-gray-50 py-24 px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
+          <Reveal className="text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Testimonials</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Trusted by businesses across Ghana</h2>
             <p className="text-gray-500 text-lg">See what our customers say about running their business on GEMS.</p>
-          </div>
+          </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {TESTIMONIALS.map((t, i) => (
-              <div key={t.name} className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow flex flex-col h-full">
+              <Reveal key={t.name} delay={i * 140} className="h-full">
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-xl hover:border-gray-200 card-lift flex flex-col h-full">
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />)}
                 </div>
@@ -1679,6 +1737,7 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -1687,43 +1746,49 @@ export default function LandingPage() {
       {/* ── CTA BANNER ── */}
       <section className="relative bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0D3B6E] py-24 px-6 text-white overflow-hidden">
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full" />
-          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-yellow-400/10 rounded-full" />
+          <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full animate-float-slow" />
+          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-yellow-400/10 rounded-full animate-float-slower" />
         </div>
         <div className="max-w-3xl mx-auto text-center relative z-10">
-          <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">Ready to run your business smarter?</h2>
-          <p className="text-blue-200 text-lg mb-10 max-w-xl mx-auto">Join hundreds of businesses already using GEMS to manage their entire operations from one smart workplace.</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
-            <a href="tel:+233241550366" className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-extrabold px-8 py-4 rounded-xl text-base transition-colors flex items-center justify-center gap-2 shadow-lg">
-              <Phone className="w-4 h-4" /> Call Us Now
-            </a>
-            <Link href="/login" className="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold px-8 py-4 rounded-xl text-base transition-colors flex items-center justify-center">
-              Log In to Dashboard
-            </Link>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-6">
-            {[
-              { icon: Shield, text: 'Secure & reliable' },
-              { icon: Globe, text: 'Paystack payments' },
-              { icon: Zap, text: 'Setup in minutes' },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-2 text-blue-200 text-sm">
-                <Icon className="w-4 h-4 text-yellow-400" /> {text}
-              </div>
-            ))}
-          </div>
-          <p className="text-blue-300 text-xs mt-6">14-day free trial · Not charged until day 14 · Subscribe to continue</p>
+          <Reveal>
+            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">Ready to run your business smarter?</h2>
+            <p className="text-blue-200 text-lg mb-10 max-w-xl mx-auto">Join hundreds of businesses already using GEMS to manage their entire operations from one smart workplace.</p>
+          </Reveal>
+          <Reveal delay={150}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+              <a href="tel:+233241550366" className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-extrabold px-8 py-4 rounded-xl text-base transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-lg btn-shine">
+                <Phone className="w-4 h-4" /> Call Us Now
+              </a>
+              <Link href="/login" className="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold px-8 py-4 rounded-xl text-base transition-all hover:-translate-y-0.5 flex items-center justify-center">
+                Log In to Dashboard
+              </Link>
+            </div>
+          </Reveal>
+          <Reveal delay={300}>
+            <div className="flex flex-wrap items-center justify-center gap-6">
+              {[
+                { icon: Shield, text: 'Secure & reliable' },
+                { icon: Globe, text: 'Paystack payments' },
+                { icon: Zap, text: 'Setup in minutes' },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-2 text-blue-200 text-sm">
+                  <Icon className="w-4 h-4 text-yellow-400" /> {text}
+                </div>
+              ))}
+            </div>
+            <p className="text-blue-300 text-xs mt-6">14-day free trial · Not charged until day 14 · Subscribe to continue</p>
+          </Reveal>
         </div>
       </section>
 
       {/* ── CONTACT ── */}
       <section id="contact" className="py-24 px-6 bg-gray-50 border-t border-gray-100">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
+          <Reveal className="text-center mb-12">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Get in touch</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">We'd love to hear from you</h2>
             <p className="text-gray-500 text-lg">Reach us via your preferred channel. We typically respond within a few hours.</p>
-          </div>
+          </Reveal>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
 
@@ -1734,10 +1799,11 @@ export default function LandingPage() {
                 { icon: MessageCircle, label: 'SMS', value: '+233 241 550 366', sub: 'Text us anytime', color: 'bg-green-50 text-green-600', href: 'sms:+233241550366' },
                 { icon: MessageSquare, label: 'WhatsApp', value: '+233 241 550 366', sub: 'Quick responses guaranteed', color: 'bg-emerald-50 text-emerald-600', href: 'https://wa.me/233241550366' },
                 { icon: Mail, label: 'Email', value: 'gthinkcompanylimited@gmail.com', sub: 'We reply within 24 hours', color: 'bg-purple-50 text-purple-600', href: 'mailto:gthinkcompanylimited@gmail.com' },
-              ].map(({ icon: Icon, label, value, sub, color, href }) => (
-                <a key={label} href={href} target="_blank" rel="noreferrer"
-                  className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-gray-200 transition-all group">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
+              ].map(({ icon: Icon, label, value, sub, color, href }, ci) => (
+                <Reveal key={label} variant="left" delay={ci * 90}>
+                <a href={href} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-gray-200 transition-all group hover:-translate-y-0.5">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110 ${color}`}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <div className="flex-1">
@@ -1747,10 +1813,12 @@ export default function LandingPage() {
                   </div>
                   <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#0D3B6E] group-hover:translate-x-1 transition-all" />
                 </a>
+                </Reveal>
               ))}
             </div>
 
             {/* Right — message form with channel tabs */}
+            <Reveal variant="right" delay={150}>
             <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
               <h3 className="font-bold text-gray-900 mb-5">Send us a message</h3>
 
@@ -1828,6 +1896,7 @@ export default function LandingPage() {
                 </button>
               </div>
             </div>
+            </Reveal>
           </div>
         </div>
       </section>

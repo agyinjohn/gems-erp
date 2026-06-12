@@ -23,6 +23,20 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
     : null;
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('gems-sidebar-collapsed');
+    if (saved === 'true') setSidebarCollapsed(true);
+  }, []);
+
+  const toggleSidebarCollapse = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('gems-sidebar-collapsed', String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
@@ -45,14 +59,28 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
-        <Header title={title} subtitle={subtitle} onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-auto p-4 sm:p-6">
+    <div className="flex min-h-dvh h-dvh bg-gray-50 overflow-hidden">
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+      />
+      <div
+        className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-[margin] duration-300 ease-in-out ${
+          sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'
+        }`}
+      >
+        <Header
+          title={title}
+          subtitle={subtitle}
+          onMenuClick={() => setSidebarOpen(true)}
+          sidebarCollapsed={sidebarCollapsed}
+          onSidebarToggle={toggleSidebarCollapse}
+        />
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 min-w-0">
           {/* Subscription expiry banner */}
           {tenant && daysLeft !== null && daysLeft <= 7 && (
-            <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between ${
+            <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 ${
               daysLeft <= 0 ? 'bg-red-50 border border-red-200 text-red-700' :
               daysLeft <= 3 ? 'bg-orange-50 border border-orange-200 text-orange-700' :
               'bg-yellow-50 border border-yellow-200 text-yellow-700'

@@ -6,12 +6,18 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { toast } from '@/components/ui';
 
-interface Props { title: string; subtitle?: string; onMenuClick: () => void; }
+interface Props {
+  title: string;
+  subtitle?: string;
+  onMenuClick: () => void;
+  sidebarCollapsed?: boolean;
+  onSidebarToggle?: () => void;
+}
 
 interface SearchResult { type: string; label: string; sub: string; link: string; }
 interface Notification { id: string; type: 'warning' | 'info'; title: string; message: string; link: string; }
 
-export default function Header({ title, subtitle, onMenuClick }: Props) {
+export default function Header({ title, subtitle, onMenuClick, sidebarCollapsed, onSidebarToggle }: Props) {
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -117,9 +123,19 @@ export default function Header({ title, subtitle, onMenuClick }: Props) {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3 min-w-0">
-        <button onClick={onMenuClick} className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0">
+    <header className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2 sm:gap-3 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+        <button
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches && onSidebarToggle) {
+              onSidebarToggle();
+            } else {
+              onMenuClick();
+            }
+          }}
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Toggle menu'}
+        >
           <Menu className="w-5 h-5 text-gray-600" />
         </button>
         <div className="min-w-0">
@@ -128,13 +144,13 @@ export default function Header({ title, subtitle, onMenuClick }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
 
         {/* Search */}
-        <div ref={searchRef} className="relative hidden md:block">
+        <div ref={searchRef} className="relative hidden lg:block">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
-            className="pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-56 focus:w-72 transition-all"
+            className="pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 xl:w-56 focus:w-64 xl:focus:w-72 transition-all"
             placeholder="Search products, orders, customers…"
             value={query}
             onChange={e => { setQuery(e.target.value); setSearchOpen(true); }}

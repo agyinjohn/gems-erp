@@ -43,6 +43,7 @@ export default function DashboardPage() {
     };
     return (
       <AppLayout title="Dashboard" subtitle="Here's your inventory overview." allowedRoles={ALL_ROLES}>
+        <div className="min-w-0 max-w-full">
 
         {/* ── KPI Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
@@ -81,11 +82,11 @@ export default function DashboardPage() {
             {/* Movement type breakdown */}
             <div className="mt-6">
               <h4 className="text-sm font-semibold text-gray-700 mb-3">Movements This Month</h4>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {byType.length ? byType.map((t: any) => (
-                  <div key={t._id} className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium ${typeColors[t._id] || 'bg-gray-100 text-gray-600'}`}>
-                    <span className="capitalize">{t._id}</span>
-                    <span className="font-bold">{t.count} moves · {t.qty} units</span>
+                  <div key={t._id} className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-medium ${typeColors[t._id] || 'bg-gray-100 text-gray-600'}`}>
+                    <span className="capitalize shrink-0">{t._id}</span>
+                    <span className="font-bold text-right truncate">{t.count} moves · {t.qty} units</span>
                   </div>
                 )) : <p className="text-xs text-gray-400 col-span-2">No movements this month</p>}
               </div>
@@ -93,10 +94,10 @@ export default function DashboardPage() {
           </div>
 
           {/* 7-day in/out trend chart */}
-          <div className="card">
+          <div className="card min-w-0 overflow-hidden">
             <h3 className="font-semibold text-gray-800 mb-4">7-Day Stock Movement Trend</h3>
             {stockTrend.length ? (
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={220} minWidth={0}>
                 <BarChart data={stockTrend} barGap={4}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="day" tick={{ fontSize: 11 }} />
@@ -246,6 +247,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        </div>
 
       </AppLayout>
     );
@@ -265,6 +267,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout title="Dashboard" subtitle={subtitle[role] || "Welcome back!"} allowedRoles={ALL_ROLES}>
+      <div className="min-w-0 max-w-full space-y-0">
 
       {/* ── ROW 1: KPIs visible to admin + relevant roles ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
@@ -333,7 +336,7 @@ export default function DashboardPage() {
       {can('accountant') && (
         <>
           {/* KPI row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
             <StatCard label="Total Revenue"    value={fmt(data?.kpis?.total_revenue  || 0)} icon={<TrendingUp className="w-6 h-6 text-green-600"/>}  color="bg-green-50"  sub="All paid orders" />
             <StatCard label="Total Expenses"   value={fmt(data?.kpis?.total_expenses || 0)} icon={<Receipt className="w-6 h-6 text-red-600"/>}      color="bg-red-50"    sub="All time" />
             <StatCard label="Net Profit"       value={fmt(data?.kpis?.net_profit     || 0)} icon={<DollarSign className="w-6 h-6 text-blue-600"/>}  color="bg-blue-50"   sub="Revenue minus expenses" />
@@ -342,10 +345,10 @@ export default function DashboardPage() {
 
           {/* Revenue chart + Expenses by category */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-            <div className="card">
+            <div className="card min-w-0 overflow-hidden">
               <h3 className="font-semibold text-gray-800 mb-4">Revenue — Last 6 Months</h3>
               {data?.monthly_revenue?.length ? (
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={200} minWidth={0}>
                   <BarChart data={data.monthly_revenue}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="month" tick={{ fontSize: 12 }} />
@@ -431,10 +434,10 @@ export default function DashboardPage() {
       {/* ── CHARTS — admin, sales only (not accountant — has own section above) ── */}
       {can('super_admin','business_owner','branch_manager','sales_staff') && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-          <div className="card">
+          <div className="card min-w-0 overflow-hidden">
             <h3 className="font-semibold text-gray-800 mb-4">Monthly Revenue</h3>
             {data?.monthly_sales?.length ? (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={200} minWidth={0}>
                 <BarChart data={data.monthly_sales}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
@@ -446,10 +449,10 @@ export default function DashboardPage() {
             ) : <div className="h-48 flex items-center justify-center text-gray-400 text-sm">No sales data yet</div>}
           </div>
 
-          <div className="card">
+          <div className="card min-w-0 overflow-hidden">
             <h3 className="font-semibold text-gray-800 mb-4">Order Volume</h3>
             {data?.monthly_sales?.length ? (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={200} minWidth={0}>
                 <LineChart data={data.monthly_sales}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
@@ -473,12 +476,12 @@ export default function DashboardPage() {
             {data?.recent_orders?.length ? (
               <div className="space-y-3">
                 {data.recent_orders.map((o: any) => (
-                  <div key={o.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{o.order_number}</div>
-                      <div className="text-xs text-gray-500">{o.customer_name}</div>
+                  <div key={o.id} className="flex items-center justify-between gap-3 py-2 border-b border-gray-50 last:border-0 min-w-0">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-gray-900 truncate">{o.order_number}</div>
+                      <div className="text-xs text-gray-500 truncate">{o.customer_name}</div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <div className="text-sm font-semibold text-gray-900">GH₵ {parseFloat(o.total).toFixed(2)}</div>
                       <Badge status={o.payment_status} />
                     </div>
@@ -625,6 +628,7 @@ export default function DashboardPage() {
           </>
         )}
 
+      </div>
       </div>
     </AppLayout>
   );

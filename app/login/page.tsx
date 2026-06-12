@@ -37,10 +37,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="h-screen flex overflow-hidden" style={{ background: 'linear-gradient(135deg, #0D3B6E 0%, #1A6BB5 100%)' }}>
+    <div className="min-h-dvh flex flex-col lg:flex-row" style={{ background: 'linear-gradient(135deg, #0D3B6E 0%, #1A6BB5 100%)' }}>
 
       {/* ── Left branding panel ── */}
-      <div className="hidden lg:flex flex-col justify-center px-16 flex-1 text-white relative overflow-hidden">
+      <div className="hidden lg:flex flex-col justify-center px-10 xl:px-16 flex-1 min-h-0 lg:sticky lg:top-0 lg:h-dvh text-white relative overflow-hidden shrink-0">
         {/* Background photo */}
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -52,23 +52,23 @@ export default function LoginPage() {
           style={{ background: 'linear-gradient(135deg, rgba(13,59,110,0.88) 0%, rgba(26,107,181,0.80) 100%)' }}
         />
         {/* Content */}
-        <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center">
-              <Building2 className="w-8 h-8 text-blue-900" />
+        <div className="relative z-10 py-10 xl:py-0">
+          <div className="flex items-center gap-4 mb-6 xl:mb-8">
+            <div className="w-12 h-12 xl:w-14 xl:h-14 bg-white rounded-2xl flex items-center justify-center shrink-0">
+              <Building2 className="w-7 h-7 xl:w-8 xl:h-8 text-blue-900" />
             </div>
-            <div>
-              <div className="text-3xl font-black">GEMS</div>
-              <div className="text-blue-200">GTHINK Enterprise Management System</div>
+            <div className="min-w-0">
+              <div className="text-2xl xl:text-3xl font-black">GEMS</div>
+              <div className="text-blue-200 text-sm xl:text-base">GTHINK Enterprise Management System</div>
             </div>
           </div>
-          <h2 className="text-4xl font-bold leading-tight mb-4">
+          <h2 className="text-3xl xl:text-4xl font-bold leading-tight mb-3 xl:mb-4">
             Your Business. One System.<br /><span className="text-yellow-400">Smart Workplace.</span>
           </h2>
-          <p className="text-blue-200 text-lg max-w-md">
+          <p className="text-blue-200 text-base xl:text-lg max-w-md">
             All-in-one platform for Stocks, Inventory, Sales, eCommerce, Payments, Procurement, Finance, HR, CRM, POS and More — all connected, all in real time.
           </p>
-          <div className="mt-10 grid grid-cols-2 gap-4 max-w-sm">
+          <div className="mt-6 xl:mt-10 grid grid-cols-2 gap-3 xl:gap-4 max-w-sm">
             {[' Inventory & Payment', 'POS, Sales & eCommerce', 'HR & Payroll', 'Accounting & Finance'].map(m => (
               <div key={m} className="bg-white/10 rounded-xl px-4 py-3 text-sm text-blue-100">✓ {m}</div>
             ))}
@@ -76,8 +76,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── Right login form ── */}
-      <div className="flex items-center justify-center w-full lg:w-[45%] bg-white px-4 sm:px-8 lg:px-10 relative">
+      {/* ── Right login form — scrolls on short laptop viewports ── */}
+      <div className="flex-1 w-full lg:w-[min(45%,520px)] lg:max-w-[520px] lg:shrink-0 min-h-dvh overflow-y-auto overflow-x-hidden bg-white relative">
 
         {/* Subtle background pattern */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -85,18 +85,11 @@ export default function LoginPage() {
           <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-yellow-50 rounded-full opacity-60" />
         </div>
 
-        <div className="w-full max-w-[400px] relative z-10">
+        <div className="relative z-10 min-h-full flex items-center justify-center px-4 sm:px-8 lg:px-8 xl:px-10 py-8 sm:py-10 [@media(max-height:800px)]:py-5">
+        <div className="w-full max-w-[400px] my-auto">
 
-          {/* Logo — desktop only */}
-          <div className="hidden lg:flex flex-col items-center mb-6">
-            <div className="w-12 h-12 bg-[#0D3B6E] rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-2">
-              <Building2 className="w-6 h-6 text-white" />
-            </div>
-            <span className="font-extrabold text-xl text-[#0D3B6E] tracking-tight">GEMS</span>
-          </div>
-
-          {/* Mobile logo */}
-          <div className="text-center mb-8 lg:hidden">
+          {/* Mobile / tablet logo — hidden when left branding panel is visible */}
+          <div className="text-center mb-6 sm:mb-8 lg:hidden [@media(max-height:800px)]:mb-4">
             <div className="w-12 h-12 bg-[#0D3B6E] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-200">
               <Building2 className="w-7 h-7 text-white" />
             </div>
@@ -105,13 +98,13 @@ export default function LoginPage() {
           </div>
 
           {/* Heading */}
-          <div className="mb-5 text-center">
-            <h2 className="text-2xl font-extrabold text-gray-900 mb-1">Welcome</h2>
+          <div className="mb-4 sm:mb-5 text-center [@media(max-height:800px)]:mb-3">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Welcome</h2>
             <p className="text-gray-400 text-sm">Enter your credentials to access your workspace</p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
                 <span className="w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center flex-shrink-0">!</span>
@@ -126,7 +119,7 @@ export default function LoginPage() {
                 </svg>
                 <input
                   type="email"
-                  className="form-input pl-10 h-12 text-base"
+                  className="form-input pl-10 h-11 sm:h-12 text-base"
                   placeholder="you@company.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -143,7 +136,7 @@ export default function LoginPage() {
                 </svg>
                 <input
                   type={showPw ? 'text' : 'password'}
-                  className="form-input pl-10 pr-11 h-12 text-base"
+                  className="form-input pl-10 pr-11 h-11 sm:h-12 text-base"
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
@@ -162,7 +155,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-12 rounded-xl text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200 mt-2"
+              className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-11 sm:h-12 rounded-xl text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200 mt-1 sm:mt-2"
             >
               {loading
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Signing in…</>
@@ -172,17 +165,17 @@ export default function LoginPage() {
           </form>
 
           {/* Demo accounts */}
-          <div className="mt-3">
+          <div className="mt-2.5 sm:mt-3">
             <button
               type="button"
               onClick={() => setShowDemo(!showDemo)}
-              className="w-full flex items-center justify-between text-xs text-gray-400 hover:text-gray-600 border border-dashed border-gray-200 rounded-xl px-4 py-2.5 transition-colors"
+              className="w-full flex items-center justify-between text-xs text-gray-400 hover:text-gray-600 border border-dashed border-gray-200 rounded-xl px-4 py-2 sm:py-2.5 transition-colors"
             >
               <span>🧪 Demo accounts (click to fill)</span>
               <span>{showDemo ? '▲' : '▼'}</span>
             </button>
             {showDemo && (
-              <div className="mt-2 grid grid-cols-2 gap-1.5">
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-40 sm:max-h-none overflow-y-auto sm:overflow-visible pr-0.5">
                 {DEMO_ACCOUNTS.map(a => (
                   <button
                     key={a.email}
@@ -199,13 +192,13 @@ export default function LoginPage() {
           </div>
 
           {/* Trust badges */}
-          <div className="flex items-center justify-center gap-6 mt-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-x-6 mt-3 sm:mt-4 [@media(max-height:800px)]:mt-2">
             {[
               { icon: '🔒', text: 'SSL Secured' },
               { icon: '🛡️', text: 'Data Protected' },
               { icon: '⚡', text: '99.9% Uptime' },
             ].map(b => (
-              <div key={b.text} className="flex items-center gap-1.5 text-xs text-gray-400">
+              <div key={b.text} className="flex items-center gap-1.5 text-xs text-gray-400 whitespace-nowrap">
                 <span className="text-sm">{b.icon}</span>
                 {b.text}
               </div>
@@ -213,7 +206,7 @@ export default function LoginPage() {
           </div>
 
           {/* Register CTA */}
-          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-center gap-2.5">
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-2.5 [@media(max-height:800px)]:mt-2 [@media(max-height:800px)]:pt-2">
             <span className="text-sm text-gray-400">Don't have an account?</span>
             <Link
               href="/register"
@@ -224,10 +217,11 @@ export default function LoginPage() {
           </div>
 
           {/* Footer note */}
-          <p className="text-center text-xs text-gray-400 mt-5">
+          <p className="text-center text-xs text-gray-400 mt-4 sm:mt-5 [@media(max-height:800px)]:mt-3">
             GEMS Portal - {new Date().getFullYear()} - v1.3.5
           </p>
 
+        </div>
         </div>
       </div>
 

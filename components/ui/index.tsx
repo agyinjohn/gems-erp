@@ -66,12 +66,12 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
 interface StatProps { label: string; value: string | number; icon: ReactNode; color: string; sub?: string; }
 export function StatCard({ label, value, icon, color, sub }: StatProps) {
   return (
-    <div className="card flex items-center gap-4">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>{icon}</div>
-      <div>
-        <div className="text-2xl font-bold text-gray-900">{value}</div>
-        <div className="text-sm text-gray-500">{label}</div>
-        {sub && <div className="text-xs text-gray-400 mt-0.5">{sub}</div>}
+    <div className="card flex items-center gap-3 sm:gap-4 min-w-0">
+      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>{icon}</div>
+      <div className="min-w-0">
+        <div className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{value}</div>
+        <div className="text-xs sm:text-sm text-gray-500 truncate">{label}</div>
+        {sub && <div className="text-xs text-gray-400 mt-0.5 truncate">{sub}</div>}
       </div>
     </div>
   );
