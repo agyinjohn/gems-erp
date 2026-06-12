@@ -164,7 +164,12 @@
     text-white bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full;
 }
 .store-image-gallery-thumbs {
-  @apply flex gap-2 overflow-x-auto pb-1 scrollbar-hide;
+  @apply flex gap-2 overflow-x-auto pb-1;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.store-image-gallery-thumbs::-webkit-scrollbar {
+  display: none;
 }
 .store-image-gallery-thumb {
   @apply flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden ring-2 ring-transparent

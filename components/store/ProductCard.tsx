@@ -2,6 +2,7 @@
 import { Plus, Minus, MapPin } from 'lucide-react';
 import { formatGhs } from './theme';
 import ProductCardImage from './ProductCardImage';
+import { getProductImages } from './productImages';
 
 interface Props {
   product: any;
@@ -15,6 +16,7 @@ interface Props {
 export default function ProductCard({ product: p, inCartQty, showBranch, onOpen, onAdd, onUpdateQty }: Props) {
   const outOfStock = p.stock_qty <= 0;
   const lowStock = p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5);
+  const multiImage = getProductImages(p).length > 1;
 
   return (
     <article className="store-product-card group flex flex-col">
@@ -34,7 +36,7 @@ export default function ProductCard({ product: p, inCartQty, showBranch, onOpen,
           </span>
         )}
         {showBranch && p.branch_name && (
-          <span className="absolute bottom-2 left-2 store-badge store-badge-dark text-[9px] px-2 py-0.5">
+          <span className={`absolute left-2 store-badge store-badge-dark text-[9px] px-2 py-0.5 ${multiImage ? 'bottom-7' : 'bottom-2'}`}>
             <MapPin className="w-2.5 h-2.5" />
             {p.branch_name}
           </span>
