@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { useSidebar } from './SidebarContext';
 import { ToastContainer } from '@/components/ui';
 import ChatWidget from '@/components/ChatWidget';
 
@@ -22,21 +23,7 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
     ? Math.ceil((new Date(tenant.subscription_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('gems-sidebar-collapsed');
-    if (saved === 'true') setSidebarCollapsed(true);
-  }, []);
-
-  const toggleSidebarCollapse = () => {
-    setSidebarCollapsed(prev => {
-      const next = !prev;
-      localStorage.setItem('gems-sidebar-collapsed', String(next));
-      return next;
-    });
-  };
+  const { open: sidebarOpen, collapsed: sidebarCollapsed, setOpen: setSidebarOpen, toggleCollapsed: toggleSidebarCollapse } = useSidebar();
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
