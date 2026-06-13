@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer base {
   html { scroll-behavior: smooth; }
   body { @apply bg-gray-50 text-gray-900 antialiased; }
@@ -73,6 +83,36 @@
   .reveal, .reveal-left, .reveal-right, .reveal-scale { opacity: 1; transform: none; transition: none; }
   .animate-float-slow, .animate-float-slower, .animate-drift, .animate-panel-in, .animate-pop-in { animation: none; }
   .btn-shine:hover::after { animation: none; }
+  .login-mesh-bg::before, .login-mesh-bg::after { animation: none; }
+}
+
+/* ── Login page ── */
+@keyframes login-glow {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50%      { opacity: 0.7; transform: scale(1.06); }
+}
+.login-mesh-bg {
+  background: linear-gradient(160deg, #050d18 0%, #0a1628 35%, #0D3B6E 70%, #0a2540 100%);
+}
+.login-mesh-bg::before,
+.login-mesh-bg::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  animation: login-glow 10s ease-in-out infinite;
+}
+.login-mesh-bg::before {
+  width: 520px; height: 520px;
+  top: -120px; right: -80px;
+  background: rgba(26, 107, 181, 0.35);
+}
+.login-mesh-bg::after {
+  width: 420px; height: 420px;
+  bottom: -100px; left: -60px;
+  background: rgba(251, 191, 36, 0.12);
+  animation-delay: -5s;
 }
 
 /* ── Storefront (eCommerce) ── */
@@ -136,9 +176,6 @@
 .store-qty-btn-primary {
   @apply bg-[#0D3B6E] text-white border-[#0D3B6E] hover:bg-[#1A5294];
 }
-
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-.scrollbar-hide::-webkit-scrollbar { display: none; }
 
 .store-filter-panel { @apply bg-white rounded-2xl border border-gray-100 shadow-sm; }
 .store-filter-section-title { @apply text-sm font-semibold text-gray-800; }

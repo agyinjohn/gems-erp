@@ -10,7 +10,16 @@ import StoreFooter from '@/components/store/StoreFooter';
 import MobileBottomBar from '@/components/store/MobileBottomBar';
 import ProductImageGallery from '@/components/store/ProductImageGallery';
 import ProductCardSkeleton from '@/components/store/ProductCardSkeleton';
+import OrderTrackingPanel from '@/components/store/OrderTrackingPanel';
 import { categoryGradient, categoryIconColor, formatGhs } from '@/components/store/theme';
+import {
+  DEFAULT_STOREFRONT_SETTINGS,
+  calcDeliveryFee,
+  amountUntilFreeDelivery,
+  fetchPublicStoreSettings,
+  trackStoreOrder,
+  type StorefrontSettings,
+} from '@/lib/storefrontSettings';
 import { useStoreProductFeed } from '@/hooks/useStoreProductFeed';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
@@ -73,6 +82,7 @@ export default function TenantStorefrontPage() {
   const [sortBy, setSortBy] = useState<'default'|'price_asc'|'price_desc'|'name'>('default');
   const [openSections, setOpenSections] = useState<Record<string,boolean>>({ categories: true, price: true, availability: true, sort: true });
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [storeSettings, setStoreSettings] = useState<StorefrontSettings>({ ...DEFAULT_STOREFRONT_SETTINGS });
   const toggleSection = (key: string) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   const {
@@ -99,6 +109,7 @@ export default function TenantStorefrontPage() {
       setTenant(r.data.data.tenant);
       setBranches(r.data.data.branches);
     }).catch(() => {});
+    fetchPublicStoreSettings(tenantSlug).then(setStoreSettings);
   }, [tenantSlug]);
 
   useEffect(() => {
@@ -192,10 +203,16 @@ export default function TenantStorefrontPage() {
   const resetPage = () => { /* client-only filters; server feed resets via hook queryKey */ };
   const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
-  const deliveryFee = cartTotal >= 500 ? 0 : 30;
+  const deliveryFee = calcDeliveryFee(cartTotal, storeSettings);
+  const freeDeliveryGap = amountUntilFreeDelivery(cartTotal, storeSettings);
   const orderTotal = cartTotal + deliveryFee;
 
   const initiateCheckout = async () => {
+    if (!storeSettings.store_enabled) { setError('This store is not accepting orders right now.'); return; }
+    if (storeSettings.min_order_amount && cartTotal < storeSettings.min_order_amount) {
+      setError(`Minimum order amount is ${formatGhs(storeSettings.min_order_amount)}.`);
+      return;
+    }
     if (!form.customer_name || !form.customer_email) { setError('Name and email are required.'); return; }
     if (cart.length === 0) { setError('Your cart is empty.'); return; }
     setPaying(true); setError('');
@@ -264,8 +281,7 @@ export default function TenantStorefrontPage() {
     setTrackError('');
     setTrackResult(null);
     try {
-      const r = await publicApi.get(`/storefront/${tenantSlug}/orders/${encodeURIComponent(trackInput.trim())}`);
-      setTrackResult(r.data.data);
+      setTrackResult(await trackStoreOrder(tenantSlug, trackInput.trim()));
     } catch {
       setTrackError('Order not found. Check your reference and try again.');
     } finally {
@@ -347,6 +363,15 @@ export default function TenantStorefrontPage() {
             >
               Continue Shopping
             </button>
+            {orderNumber && (
+              <button
+                type="button"
+                className="w-full text-sm text-[#0D3B6E] font-medium hover:underline mt-2"
+                onClick={() => { setTrackInput(orderNumber.split(',')[0].trim()); setTrackResult(null); setTrackError(''); setStep('track'); }}
+              >
+                Track this order
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -377,6 +402,18 @@ export default function TenantStorefrontPage() {
         onSelectBranch={b => { setActiveBranch(b); setShowBranchMenu(false); }}
         onOpenMobileFilters={() => setShowMobileFilters(true)}
       />
+
+      {storeSettings.announcement && step === 'shop' && (
+        <div className="bg-amber-50 border-b border-amber-100 px-4 py-2.5 text-center text-sm text-amber-900">
+          {storeSettings.announcement}
+        </div>
+      )}
+
+      {!storeSettings.store_enabled && step === 'shop' && (
+        <div className="bg-gray-100 border-b border-gray-200 px-4 py-3 text-center text-sm text-gray-600">
+          This store is temporarily closed for new orders. Please check back later.
+        </div>
+      )}
 
       {step === 'shop' && (
         <div className="flex min-h-[calc(100vh-7rem)]">
@@ -418,7 +455,7 @@ export default function TenantStorefrontPage() {
 
           {!search && !filterCat && !inStockOnly && priceMax === '' && priceMin === 0 && (
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 bg-white/70 backdrop-blur-sm rounded-2xl px-5 py-3 mb-6 ring-1 ring-gray-200/60 text-xs sm:text-sm">
-              <span className="flex items-center gap-2 text-gray-700 font-medium"><Truck className="w-4 h-4 text-[#0D3B6E]" /> Free delivery over GH₵ 500</span>
+              <span className="flex items-center gap-2 text-gray-700 font-medium"><Truck className="w-4 h-4 text-[#0D3B6E]" /> Free delivery over {formatGhs(storeSettings.free_delivery_threshold)}</span>
               <span className="hidden sm:flex items-center gap-2 text-gray-600"><Lock className="w-4 h-4 text-emerald-600" /> Secure Paystack checkout</span>
               <span className="hidden md:flex items-center gap-2 text-gray-600"><BadgeCheck className="w-4 h-4 text-amber-500" /> Verified inventory</span>
             </div>
@@ -562,13 +599,13 @@ export default function TenantStorefrontPage() {
               <div className="lg:col-span-1">
                 <div className="store-filter-panel p-6 sticky top-24">
                   <div className="text-2xl font-extrabold text-gray-900 mb-1">{formatGhs(parseFloat(selectedProduct.price))}</div>
-                  <div className="text-xs text-gray-400 mb-4">Free delivery on orders over GH₵ 500</div>
+                  <div className="text-xs text-gray-400 mb-4">Free delivery on orders over {formatGhs(storeSettings.free_delivery_threshold)}</div>
                   {selectedProduct.stock_qty > 0 ? (
                     <>
                       <div className="bg-slate-50 rounded-xl p-3 mb-4 space-y-2 ring-1 ring-slate-100">
                         <div className="flex items-center gap-2 text-sm text-gray-700">
                           <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                          <span><strong>Free delivery</strong> on orders over GH₵ 500</span>
+                          <span><strong>Free delivery</strong> on orders over {formatGhs(storeSettings.free_delivery_threshold)}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-700">
                           <Lock className="w-4 h-4 text-[#0D3B6E] flex-shrink-0" />
@@ -798,26 +835,7 @@ export default function TenantStorefrontPage() {
               </button>
             </div>
             {trackResult && (
-              <div className="mt-6 pt-6 border-t border-gray-100 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-xs text-gray-400">Order</p>
-                    <p className="font-mono font-bold text-[#0D3B6E]">{trackResult.order_number || trackInput}</p>
-                  </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 capitalize">
-                    {trackResult.status || 'Processing'}
-                  </span>
-                </div>
-                {trackResult.total != null && (
-                  <p className="text-sm text-gray-600">Total: <strong>{formatGhs(parseFloat(trackResult.total))}</strong></p>
-                )}
-                {trackResult.delivery_address && (
-                  <p className="text-sm text-gray-500 flex items-start gap-2">
-                    <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
-                    {trackResult.delivery_address}
-                  </p>
-                )}
-              </div>
+              <OrderTrackingPanel order={trackResult} reference={trackInput.trim()} />
             )}
           </div>
         </div>
@@ -1085,9 +1103,9 @@ export default function TenantStorefrontPage() {
                   <span>Total</span>
                   <span>{formatGhs(orderTotal)}</span>
                 </div>
-                {deliveryFee > 0 && (
+                {freeDeliveryGap > 0 && (
                   <div className="text-xs text-center text-amber-800 bg-amber-50 rounded-xl py-2 px-3 ring-1 ring-amber-100">
-                    Add <strong>{formatGhs(500 - cartTotal)}</strong> more for free delivery
+                    Add <strong>{formatGhs(freeDeliveryGap)}</strong> more for free delivery
                   </div>
                 )}
                 <button

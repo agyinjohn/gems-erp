@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
   X, Monitor, TrendingUp, CreditCard, ChevronDown,
-  MessageCircle, CheckSquare, Wrench,
+  MessageCircle, CheckSquare, Wrench, ShoppingBag,
 } from 'lucide-react';
 
 function SidebarLink({
@@ -103,9 +103,10 @@ const navGroups = [
   {
     label: 'Settings',
     items: [
-      { href: '/branches', label: 'Branches', icon: Store,      roles: ['business_owner'], permission: 'branches.manage' },
-      { href: '/users',    label: 'Users',    icon: Settings,   roles: ['business_owner'], permission: 'users.manage' },
-      { href: '/billing',  label: 'Billing',  icon: Calculator, roles: ['business_owner'], permission: 'billing.view' },
+      { href: '/store-settings', label: 'Online Store', icon: ShoppingBag, roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },
+      { href: '/branches',     label: 'Branches',     icon: Store,      roles: ['business_owner'],                   permission: 'branches.manage' },
+      { href: '/users',        label: 'Users',        icon: Settings,   roles: ['business_owner'],                   permission: 'users.manage' },
+      { href: '/billing',      label: 'Billing',      icon: Calculator, roles: ['business_owner'],                   permission: 'billing.view' },
     ],
   },
 ];
