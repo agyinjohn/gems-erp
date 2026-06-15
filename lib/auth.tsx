@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import api from './api';
+import { getLoginRedirect } from './productMode';
 
 interface User {
   id: string;
@@ -79,20 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser({ ...user, permissions: user.permissions || [] });
     setTenant(tenant || null);
     setBranch(branch || null);
-    const roleRedirects: Record<string, string> = {
-      platform_admin:       '/platform',
-      employee:             '/ess',
-      super_admin:          '/dashboard',
-      business_owner:       '/dashboard',
-      branch_manager:       '/dashboard',
-      sales_staff:          '/pos',
-      warehouse_staff:      '/inventory',
-      accountant:           '/accounting',
-      hr_manager:           '/dashboard',
-      procurement_officer:  '/dashboard',
-      custom:               '/dashboard',
-    };
-    router.push(roleRedirects[user.role] ?? '/dashboard');
+    router.push(getLoginRedirect(user.role));
   };
 
   const logout = () => {

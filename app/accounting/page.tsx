@@ -33,6 +33,11 @@ export default function AccountingPage() {
   const [plLoading, setPlLoading] = useState(false);
   const [plFrom, setPlFrom] = useState('');
   const [plTo, setPlTo] = useState('');
+  const [plSource, setPlSource] = useState<'orders'|'gl'>('orders');
+  const [importModal, setImportModal] = useState(false);
+  const [importType, setImportType] = useState<'expenses'|'journal'>('expenses');
+  const [importCsv, setImportCsv] = useState('');
+  const [importing, setImporting] = useState(false);
   const [bs, setBs] = useState<any>(null);
   const [bsLoading, setBsLoading] = useState(false);
   const [cf, setCf] = useState<any>(null);
@@ -251,6 +256,7 @@ export default function AccountingPage() {
       const params = new URLSearchParams();
       if (plFrom) params.append('from', plFrom);
       if (plTo) params.append('to', plTo);
+      if (plSource === 'gl') params.append('source', 'gl');
       const res = await api.get(`/accounting/pl?${params.toString()}`);
       setPl(res.data.data);
     } finally { setPlLoading(false); }
@@ -275,6 +281,64 @@ export default function AccountingPage() {
     } finally { setCfLoading(false); }
   };
 
+  const parseCsvRows = (text: string) => {
+    const lines = text.trim().split(/\r?\n/).filter(Boolean);
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+    return lines.slice(1).map(line => {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      const row: Record<string, string> = {};
+      headers.forEach((h, i) => { row[h] = cols[i] || ''; });
+      return row;
+    });
+  };
+
+  const exportAccounting = async (format: 'quickbooks' | 'xero') => {
+    try {
+      const res = await api.get(`/accounting/export/${format}`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${format}-export-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Export failed');
+    }
+  };
+
+  const importReconcileCsv = async () => {
+    if (!bankStatement.trim()) { toast.error('Paste bank CSV first'); return; }
+    const rows = bankStatement.trim().split('\n').slice(1).map(line => {
+      const parts = line.split(',').map(p => p.replace(/^"|"$/g, '').trim());
+      return { date: parts[0], description: parts[1], amount: parts[2] };
+    }).filter(r => r.amount);
+    setReconLoading(true);
+    try {
+      const res = await api.post('/accounting/reconcile/import', { rows });
+      setReconResult(res.data.data);
+      setParsedLines(rows.map((r, i) => ({ ...r, id: i, amount: parseFloat(r.amount) })));
+      toast.success(`Imported ${res.data.data.imported} bank lines`);
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Import failed');
+    } finally { setReconLoading(false); }
+  };
+
+  const runImport = async () => {
+    const rows = parseCsvRows(importCsv);
+    if (!rows.length) { toast.error('Paste CSV with a header row and at least one data row.'); return; }
+    setImporting(true);
+    try {
+      const res = await api.post('/accounting/import', { type: importType, rows });
+      toast.success(`Imported ${res.data.data.imported} record(s)`);
+      setImportModal(false);
+      setImportCsv('');
+      load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Import failed');
+    } finally { setImporting(false); }
+  };
+
   const exportCSV = (filename: string, rows: string[][]) => {
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -284,7 +348,7 @@ export default function AccountingPage() {
   const exportPlCsv = () => {
     if (!pl) return;
     const rows = [
-      ['P&L Report', plFrom || 'All time', plTo || ''],
+      ['P&L Report', plSource === 'gl' ? 'GL-based' : 'Orders-based', plFrom || 'All time', plTo || ''],
       [],
       ['Metric', 'Amount (GH₵)'],
       ['Revenue', pl.revenue],
@@ -295,7 +359,7 @@ export default function AccountingPage() {
       ['Category', 'Amount (GH₵)'],
       ...(pl.expenses_by_category?.map((c:any) => [c.category, c.total]) || []),
     ];
-    exportCSV(`pl-report-${Date.now()}.csv`, rows);
+    exportCSV(`pl-report-${plSource}-${Date.now()}.csv`, rows);
   };
 
   const exportBsCsv = () => {
@@ -598,6 +662,27 @@ export default function AccountingPage() {
               <StatCard label="Net Profit" value={`GH₵ ${(parseFloat(summary.revenue||0)-parseFloat(summary.expenses||0)).toFixed(0)}`} icon={<DollarSign className="w-6 h-6 text-blue-600"/>} color="bg-blue-50" />
               <StatCard label="Journal Entries" value={journal.length} icon={<BookOpen className="w-6 h-6 text-purple-600"/>} color="bg-purple-50" />
             </div>
+            <div className="card">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-gray-800">Import data</h3>
+                  <p className="text-sm text-gray-500 mt-1">Bulk import expenses or journal entries from CSV (standalone accounting deployments).</p>
+                </div>
+                <button className="btn-secondary" onClick={() => setImportModal(true)}><Download className="w-4 h-4" /> Import CSV</button>
+              </div>
+            </div>
+            <div className="card">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-gray-800">Export to accounting software</h3>
+                  <p className="text-sm text-gray-500 mt-1">Download journal entries as CSV for QuickBooks or Xero.</p>
+                </div>
+                <div className="flex gap-2">
+                  <button className="btn-secondary text-sm" onClick={() => exportAccounting('quickbooks')}>QuickBooks CSV</button>
+                  <button className="btn-secondary text-sm" onClick={() => exportAccounting('xero')}>Xero CSV</button>
+                </div>
+              </div>
+            </div>
             {/* Account Balances by Type */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {['asset','liability','equity','revenue','expense'].map(type => {
@@ -814,6 +899,7 @@ export default function AccountingPage() {
             <h3 className="font-semibold text-gray-800 mb-1">Bank Reconciliation</h3>
             <p className="text-xs md:text-sm text-gray-500 mb-4">Paste your bank statement below. Each line should contain a date, description, and amount. The last number on each line is used as the amount.</p>
             <p className="text-xs text-gray-400 mb-3 font-mono">e.g. &nbsp; 2024-01-15 &nbsp; Sales receipt &nbsp; 5000.00 &nbsp;&nbsp;|&nbsp;&nbsp; 2024-01-16 &nbsp; Supplier payment &nbsp; -1200.00</p>
+            <p className="text-xs text-gray-500 mb-3">Or upload CSV with columns: date, description, amount</p>
             <textarea
               className="form-input font-mono text-xs"
               rows={7}
@@ -828,6 +914,9 @@ export default function AccountingPage() {
             <div className="flex flex-col sm:flex-row gap-3">
               <button className="btn-primary w-full sm:w-auto" onClick={runReconciliation} disabled={reconLoading || !parsedLines.length}>
                 {reconLoading ? 'Reconciling…' : 'Run Reconciliation'}
+              </button>
+              <button className="btn-secondary w-full sm:w-auto" onClick={importReconcileCsv} disabled={reconLoading || !bankStatement.trim()}>
+                Import CSV & Reconcile
               </button>
               {reconResult && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setReconResult(null); setBankStatement(''); setParsedLines([]); }}>Clear</button>}
             </div>
@@ -1223,6 +1312,13 @@ export default function AccountingPage() {
             <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3">
               <div><label className="form-label">From</label><input type="date" className="form-input" value={plFrom} onChange={e => setPlFrom(e.target.value)} /></div>
               <div><label className="form-label">To</label><input type="date" className="form-input" value={plTo} onChange={e => setPlTo(e.target.value)} /></div>
+              <div>
+                <label className="form-label">Source</label>
+                <select className="form-input" value={plSource} onChange={e => setPlSource(e.target.value as 'orders'|'gl')}>
+                  <option value="orders">Paid orders</option>
+                  <option value="gl">General ledger</option>
+                </select>
+              </div>
               <button className="btn-primary w-full sm:w-auto" onClick={loadPl} disabled={plLoading}>{plLoading ? 'Loading...' : 'Generate Report'}</button>
                 {pl && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setPlFrom(''); setPlTo(''); setPl(null); }}>Clear</button>}
             </div>
@@ -1230,6 +1326,10 @@ export default function AccountingPage() {
           {plLoading && <Spinner />}
           {pl && (
             <div id="pl-print" className="space-y-5">
+              <p className="text-xs text-gray-500">
+                Source: <strong>{pl.source === 'gl' ? 'General ledger' : 'Paid orders'}</strong>
+                {pl.source === 'gl' ? ' — revenue and expenses from journal entries.' : ' — revenue from paid orders and expenses from expense records.'}
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 <StatCard label="Revenue" value={`GH₵ ${parseFloat(pl.revenue||0).toFixed(2)}`} icon={<TrendingUp className="w-6 h-6 text-green-600"/>} color="bg-green-50" />
                 <StatCard label="Gross Profit" value={`GH₵ ${parseFloat(pl.gross_profit||0).toFixed(2)}`} icon={<DollarSign className="w-6 h-6 text-blue-600"/>} color="bg-blue-50" />
@@ -2015,6 +2115,23 @@ export default function AccountingPage() {
           >
             {poPaySaving ? 'Processing…' : 'Record Payment'}
           </button>
+        </div>
+      </Modal>
+
+      <Modal open={importModal} onClose={() => setImportModal(false)} title="Import CSV">
+        <div className="space-y-4">
+          <div>
+            <label className="form-label">Import type</label>
+            <select className="form-input" value={importType} onChange={e => setImportType(e.target.value as 'expenses'|'journal')}>
+              <option value="expenses">Expenses — columns: title, amount, category, expense_date, description</option>
+              <option value="journal">Journal — columns: description, account_code, debit, credit, entry_date, reference</option>
+            </select>
+          </div>
+          <div>
+            <label className="form-label">CSV data</label>
+            <textarea className="form-input font-mono text-xs" rows={8} placeholder={importType === 'expenses' ? 'title,amount,category,expense_date\nRent,500,Rent,2025-01-15' : 'description,account_code,debit,credit,reference\nOffice supplies,5200,50,0,EXP-001'} value={importCsv} onChange={e => setImportCsv(e.target.value)} />
+          </div>
+          <button className="btn-primary w-full" onClick={runImport} disabled={importing}>{importing ? 'Importing…' : 'Run Import'}</button>
         </div>
       </Modal>
 

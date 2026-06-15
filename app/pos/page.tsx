@@ -4,7 +4,8 @@ import AppLayout from '@/components/layout/AppLayout';
 import api from '@/lib/api';
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, Package,
-  Banknote, CreditCard, Smartphone, X, PrinterIcon, CheckCircle2, Barcode,
+  Banknote, CreditCard, Smartphone, X, PrinterIcon, CheckCircle2, Barcode, RotateCcw,
+  Clock, FileText,
 } from 'lucide-react';
 
 interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; }
@@ -36,6 +37,27 @@ export default function POSPage() {
   const barcodeRef = useRef<HTMLInputElement>(null);
   const [barcodeInput, setBarcodeInput]   = useState('');
   const [barcodeFlash, setBarcodeFlash]   = useState<'success'|'error'|null>(null);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundOrderNumber, setRefundOrderNumber] = useState('');
+  const [refundReason, setRefundReason] = useState('');
+  const [refundProcessing, setRefundProcessing] = useState(false);
+  const [refundMessage, setRefundMessage] = useState('');
+  const [currentShift, setCurrentShift] = useState<any>(null);
+  const [showOpenShift, setShowOpenShift] = useState(false);
+  const [showCloseShift, setShowCloseShift] = useState(false);
+  const [openingFloat, setOpeningFloat] = useState('0');
+  const [actualCash, setActualCash] = useState('');
+  const [closeNotes, setCloseNotes] = useState('');
+  const [zReport, setZReport] = useState<any>(null);
+  const [shiftProcessing, setShiftProcessing] = useState(false);
+  const [shiftMessage, setShiftMessage] = useState('');
+
+  const loadShift = useCallback(async () => {
+    try {
+      const r = await api.get('/pos/shifts/current');
+      setCurrentShift(r.data.data);
+    } catch { setCurrentShift(null); }
+  }, []);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -59,7 +81,8 @@ export default function POSPage() {
       setCategories(cats as string[]);
     }).catch(() => {});
     setTimeout(() => barcodeRef.current?.focus(), 300);
-  }, []);
+    loadShift();
+  }, [loadShift]);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
 
@@ -125,6 +148,82 @@ export default function POSPage() {
 
   const openPayModal = () => { setError(''); setAmountTendered(cartTotal.toFixed(2)); setShowPayModal(true); };
 
+  const openShift = async () => {
+    setShiftProcessing(true); setShiftMessage('');
+    try {
+      const r = await api.post('/pos/shifts/open', { opening_float: parseFloat(openingFloat) || 0 });
+      setCurrentShift(r.data.data);
+      setShowOpenShift(false);
+      setOpeningFloat('0');
+    } catch (e: any) {
+      setShiftMessage(e.response?.data?.message || 'Could not open shift.');
+    } finally { setShiftProcessing(false); }
+  };
+
+  const closeShift = async () => {
+    if (!actualCash) { setShiftMessage('Enter actual cash in drawer.'); return; }
+    setShiftProcessing(true); setShiftMessage('');
+    try {
+      const r = await api.post('/pos/shifts/close', { actual_cash: parseFloat(actualCash), notes: closeNotes });
+      setZReport(r.data.data.z_report);
+      setCurrentShift(null);
+      setShowCloseShift(false);
+      setActualCash('');
+      setCloseNotes('');
+    } catch (e: any) {
+      setShiftMessage(e.response?.data?.message || 'Could not close shift.');
+    } finally { setShiftProcessing(false); }
+  };
+
+  const completePaystackSale = async (initData: any) => {
+    const { order_id, reference, amount, email, paystack_public_key } = initData;
+    return new Promise<void>((resolve, reject) => {
+      const run = () => {
+        const handler = (window as any).PaystackPop.setup({
+          key: paystack_public_key,
+          email,
+          amount: Math.round(amount * 100),
+          currency: 'GHS',
+          ref: reference,
+          onClose: () => reject(new Error('Payment cancelled.')),
+          callback: async (response: any) => {
+            try {
+              const r = await api.post('/pos/paystack/verify', { reference: response.reference, order_id });
+              const data = r.data.data;
+              setReceipt({
+                order_number: data.order_number,
+                items: [...cart],
+                total: cartTotal,
+                payment_method: paymentMethod,
+                amount_tendered: cartTotal,
+                change: 0,
+                customer_name: customerName || 'Walk-in Customer',
+                customer_phone: customerPhone,
+                createdAt: new Date().toISOString(),
+              });
+              setShowPayModal(false);
+              clearCart();
+              loadProducts();
+              loadShift();
+              resolve();
+            } catch (e: any) {
+              reject(new Error(e.response?.data?.message || 'Payment verification failed.'));
+            }
+          },
+        });
+        handler.openIframe();
+      };
+      if ((window as any).PaystackPop) run();
+      else {
+        const script = document.createElement('script');
+        script.src = 'https://js.paystack.co/v1/inline.js';
+        script.onload = run;
+        script.onerror = () => reject(new Error('Could not load Paystack.'));
+        document.body.appendChild(script);
+      }
+    });
+  };
+
   const completeSale = async () => {
     if (cart.length === 0) return;
     if (paymentMethod === 'cash' && parseFloat(amountTendered) < cartTotal) {
@@ -132,6 +231,16 @@ export default function POSPage() {
     }
     setProcessing(true); setError('');
     try {
+      if (paymentMethod === 'momo' || paymentMethod === 'card') {
+        const initRes = await api.post('/pos/paystack/init', {
+          items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
+          payment_method: paymentMethod,
+          customer_name: customerName || 'Walk-in Customer',
+          customer_phone: customerPhone,
+        });
+        await completePaystackSale(initRes.data.data);
+        return;
+      }
       const r = await api.post('/pos/sale', {
         items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
         payment_method: paymentMethod,
@@ -153,7 +262,8 @@ export default function POSPage() {
       });
       setShowPayModal(false);
       clearCart();
-      loadProducts(); // refresh stock
+      loadProducts();
+      loadShift();
     } catch (e: any) {
       setError(e.response?.data?.message || 'Sale failed. Please try again.');
     } finally { setProcessing(false); }
@@ -161,8 +271,54 @@ export default function POSPage() {
 
   const printReceipt = () => window.print();
 
+  const processRefund = async () => {
+    if (!refundOrderNumber.trim()) { setRefundMessage('Enter the sale receipt number (e.g. POS-...).'); return; }
+    setRefundProcessing(true); setRefundMessage('');
+    try {
+      const r = await api.post('/pos/refund', { order_number: refundOrderNumber.trim(), reason: refundReason || undefined });
+      setRefundMessage(r.data.message || 'Refund processed.');
+      setRefundOrderNumber('');
+      setRefundReason('');
+      loadProducts();
+    } catch (e: any) {
+      setRefundMessage(e.response?.data?.message || 'Refund failed.');
+    } finally { setRefundProcessing(false); }
+  };
+
   return (
     <AppLayout title="Point of Sale" subtitle="Walk-in sales terminal" allowedRoles={['business_owner','branch_manager','sales_staff']}>
+      <div className="mb-3 px-1 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm">
+          <Clock className="w-4 h-4 text-gray-400" />
+          {currentShift ? (
+            <span className="text-gray-700">
+              Shift <span className="font-mono font-semibold">{currentShift.shift_number}</span>
+              <span className="text-gray-400 ml-2">· {currentShift.sales_count || 0} sales · GH₵ {parseFloat(currentShift.sales_total || 0).toFixed(2)}</span>
+            </span>
+          ) : (
+            <span className="text-amber-700 font-medium">No open shift — open one to track cash drawer</span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {!currentShift ? (
+            <button className="btn-secondary text-xs py-1.5" onClick={() => { setShiftMessage(''); setShowOpenShift(true); }}>Open Shift</button>
+          ) : (
+            <button className="btn-secondary text-xs py-1.5" onClick={() => { setShiftMessage(''); setActualCash(String(currentShift.expected_cash ?? currentShift.opening_float ?? '')); setShowCloseShift(true); }}>Close Shift / Z-Report</button>
+          )}
+          <button className="btn-secondary text-xs py-1.5" onClick={() => { setRefundMessage(''); setShowRefundModal(true); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" />Refund</button>
+        </div>
+      </div>
+      <style jsx global>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          #pos-receipt-print, #pos-receipt-print * { visibility: visible !important; }
+          #pos-receipt-print {
+            position: fixed; left: 0; top: 0; width: 72mm; padding: 4mm;
+            font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #000; background: #fff;
+          }
+          #pos-receipt-print .no-print { display: none !important; }
+        }
+      `}</style>
       <div className="-m-4 sm:-m-6 flex flex-col lg:flex-row" style={{ height: 'calc(100vh - 72px)' }}>
 
         {/* ══ LEFT: Product Panel ══ */}
@@ -363,14 +519,23 @@ export default function POSPage() {
                 <span className="bg-yellow-400 text-gray-900 text-xs font-extrabold px-2 py-0.5 rounded-full">{cartCount}</span>
               )}
             </div>
-            {cart.length > 0 && (
+            <div className="flex items-center gap-1">
               <button
-                onClick={clearCart}
-                className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-medium transition-colors px-2 py-1 rounded-lg hover:bg-white/10"
+                onClick={() => { setShowRefundModal(true); setRefundMessage(''); }}
+                className="flex items-center gap-1 text-white/70 hover:text-white text-xs font-medium transition-colors px-2 py-1 rounded-lg hover:bg-white/10"
+                title="Refund a previous sale"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Clear all
+                <RotateCcw className="w-3.5 h-3.5" /> Refund
               </button>
-            )}
+              {cart.length > 0 && (
+                <button
+                  onClick={clearCart}
+                  className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-medium transition-colors px-2 py-1 rounded-lg hover:bg-white/10"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Clear all
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Customer info */}
@@ -604,7 +769,7 @@ export default function POSPage() {
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
 
             {/* Success header */}
-            <div className="bg-green-600 px-6 py-6 text-center">
+            <div className="bg-green-600 px-6 py-6 text-center no-print">
               <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-3">
                 <CheckCircle2 className="w-8 h-8 text-green-600" />
               </div>
@@ -612,11 +777,12 @@ export default function POSPage() {
               <p className="text-green-100 text-sm mt-1 font-mono">{receipt.order_number}</p>
             </div>
 
-            {/* Receipt */}
-            <div className="p-5 max-h-[50vh] overflow-y-auto">
+            {/* Receipt — thermal print target */}
+            <div id="pos-receipt-print" className="p-5 max-h-[50vh] overflow-y-auto">
               {/* Store info */}
               <div className="text-center mb-4 pb-4 border-b border-dashed border-gray-200">
-                <p className="font-extrabold text-gray-900">GEMS Store</p>
+                <p className="font-extrabold text-gray-900 text-sm">GEMS Store</p>
+                <p className="text-xs text-gray-500 mt-1 font-mono">{receipt.order_number}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{new Date(receipt.createdAt).toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' })}</p>
                 {receipt.customer_name !== 'Walk-in Customer' && (
                   <p className="text-xs text-gray-500 mt-1">Customer: <strong>{receipt.customer_name}</strong></p>
@@ -665,7 +831,7 @@ export default function POSPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 px-5 pb-5 pt-2 border-t border-gray-100">
+            <div className="flex gap-3 px-5 pb-5 pt-2 border-t border-gray-100 no-print">
               <button
                 onClick={printReceipt}
                 className="flex-1 flex items-center justify-center gap-2 border-2 border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold py-3 rounded-xl text-sm transition-colors"
@@ -677,6 +843,94 @@ export default function POSPage() {
                 className="flex-1 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-extrabold py-3 rounded-xl text-sm transition-colors"
               >
                 New Sale
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showOpenShift && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowOpenShift(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><Clock className="w-5 h-5" /> Open Shift</h2>
+            <label className="form-label">Opening float (cash in drawer)</label>
+            <input className="form-input mb-4" type="number" min="0" step="0.01" value={openingFloat} onChange={e => setOpeningFloat(e.target.value)} />
+            {shiftMessage && <p className="text-sm text-red-600 mb-3">{shiftMessage}</p>}
+            <button className="btn-primary w-full" onClick={openShift} disabled={shiftProcessing}>{shiftProcessing ? 'Opening…' : 'Start Shift'}</button>
+          </div>
+        </div>
+      )}
+
+      {showCloseShift && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowCloseShift(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><FileText className="w-5 h-5" /> Close Shift</h2>
+            <p className="text-sm text-gray-500 mb-3">Expected cash: GH₵ {parseFloat(currentShift?.expected_cash ?? currentShift?.opening_float ?? 0).toFixed(2)}</p>
+            <label className="form-label">Actual cash counted</label>
+            <input className="form-input mb-3" type="number" min="0" step="0.01" value={actualCash} onChange={e => setActualCash(e.target.value)} />
+            <label className="form-label">Notes (optional)</label>
+            <input className="form-input mb-4" value={closeNotes} onChange={e => setCloseNotes(e.target.value)} />
+            {shiftMessage && <p className="text-sm text-red-600 mb-3">{shiftMessage}</p>}
+            <button className="btn-primary w-full" onClick={closeShift} disabled={shiftProcessing}>{shiftProcessing ? 'Closing…' : 'Close & Print Z-Report'}</button>
+          </div>
+        </div>
+      )}
+
+      {zReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setZReport(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="font-bold text-lg mb-4">Z-Report — {zReport.shift_number}</h2>
+            <div className="space-y-2 text-sm font-mono">
+              {[
+                ['Sales count', zReport.sales_count],
+                ['Sales total', `GH₵ ${parseFloat(zReport.sales_total || 0).toFixed(2)}`],
+                ['Refunds', `GH₵ ${parseFloat(zReport.refunds_total || 0).toFixed(2)}`],
+                ['Cash sales', `GH₵ ${parseFloat(zReport.cash_sales || 0).toFixed(2)}`],
+                ['Card', `GH₵ ${parseFloat(zReport.card_total || 0).toFixed(2)}`],
+                ['Mobile money', `GH₵ ${parseFloat(zReport.momo_total || 0).toFixed(2)}`],
+                ['Opening float', `GH₵ ${parseFloat(zReport.opening_float || 0).toFixed(2)}`],
+                ['Expected cash', `GH₵ ${parseFloat(zReport.expected_cash || 0).toFixed(2)}`],
+                ['Actual cash', `GH₵ ${parseFloat(zReport.actual_cash || 0).toFixed(2)}`],
+                ['Variance', `GH₵ ${parseFloat(zReport.cash_variance || 0).toFixed(2)}`],
+              ].map(([k, v]) => (
+                <div key={k} className="flex justify-between border-b border-gray-50 py-1"><span className="text-gray-500">{k}</span><span className="font-semibold">{v}</span></div>
+              ))}
+            </div>
+            <button className="btn-secondary w-full mt-4" onClick={() => window.print()}>Print</button>
+            <button className="btn-primary w-full mt-2" onClick={() => setZReport(null)}>Done</button>
+          </div>
+        </div>
+      )}
+
+      {/* Refund modal */}
+      {showRefundModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowRefundModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-extrabold text-gray-900 text-lg flex items-center gap-2"><RotateCcw className="w-5 h-5" /> Refund Sale</h2>
+              <button onClick={() => setShowRefundModal(false)} className="p-1 rounded-lg hover:bg-gray-100"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">Enter the receipt number from a completed POS sale. Stock and ledger entries will be reversed.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="form-label">Receipt / Order Number</label>
+                <input className="form-input font-mono" placeholder="POS-1739..." value={refundOrderNumber} onChange={e => setRefundOrderNumber(e.target.value)} />
+              </div>
+              <div>
+                <label className="form-label">Reason (optional)</label>
+                <input className="form-input" placeholder="Wrong item, customer return…" value={refundReason} onChange={e => setRefundReason(e.target.value)} />
+              </div>
+              {refundMessage && (
+                <p className={`text-sm px-3 py-2 rounded-lg ${refundMessage.includes('failed') || refundMessage.includes('Enter') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+                  {refundMessage}
+                </p>
+              )}
+              <button onClick={processRefund} disabled={refundProcessing} className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-50 text-white font-bold py-3 rounded-xl">
+                {refundProcessing ? 'Processing…' : 'Process Full Refund'}
               </button>
             </div>
           </div>

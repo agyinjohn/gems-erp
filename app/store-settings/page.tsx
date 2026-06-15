@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Spinner, toast } from '@/components/ui';
-import { ExternalLink, Save, Store, Truck, Megaphone } from 'lucide-react';
+import { ExternalLink, Save, Store, Truck, Megaphone, Tag, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import api from '@/lib/api';
 import {
   DEFAULT_STOREFRONT_SETTINGS,
   fetchMerchantStoreSettings,
@@ -17,11 +18,14 @@ export default function StoreSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<StorefrontSettings>({ ...DEFAULT_STOREFRONT_SETTINGS });
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [couponForm, setCouponForm] = useState({ code: '', discount_type: 'percent', discount_value: '10', min_order_amount: '0', max_uses: '0' });
 
   useEffect(() => {
     fetchMerchantStoreSettings()
       .then(setForm)
       .finally(() => setLoading(false));
+    api.get('/coupons').then(r => setCoupons(r.data.data || [])).catch(() => {});
   }, []);
 
   const set = <K extends keyof StorefrontSettings>(key: K, value: StorefrontSettings[K]) => {
@@ -38,6 +42,33 @@ export default function StoreSettingsPage() {
       toast.error(e.response?.data?.message || 'Could not save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const createCoupon = async () => {
+    if (!couponForm.code.trim()) { toast.error('Coupon code required'); return; }
+    try {
+      const r = await api.post('/coupons', {
+        ...couponForm,
+        discount_value: parseFloat(couponForm.discount_value),
+        min_order_amount: parseFloat(couponForm.min_order_amount) || 0,
+        max_uses: parseInt(couponForm.max_uses, 10) || 0,
+      });
+      setCoupons(prev => [r.data.data, ...prev]);
+      setCouponForm({ code: '', discount_type: 'percent', discount_value: '10', min_order_amount: '0', max_uses: '0' });
+      toast.success('Coupon created');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not create coupon');
+    }
+  };
+
+  const deleteCoupon = async (id: string) => {
+    try {
+      await api.delete(`/coupons/${id}`);
+      setCoupons(prev => prev.filter(c => (c.id || c._id) !== id));
+      toast.success('Coupon deleted');
+    } catch {
+      toast.error('Could not delete coupon');
     }
   };
 
@@ -129,6 +160,21 @@ export default function StoreSettingsPage() {
               </div>
             </div>
 
+            {/* Custom domain */}
+            <div className="card">
+              <h2 className="font-bold text-gray-900 mb-2">Custom domain</h2>
+              <p className="text-sm text-gray-500 mb-3">Point your domain (e.g. shop.yourbrand.com) to this app. Visitors at that domain see your storefront.</p>
+              <input
+                className="form-input font-mono text-sm"
+                placeholder="shop.yourbrand.com"
+                value={form.custom_domain || ''}
+                onChange={e => set('custom_domain', e.target.value.toLowerCase().trim())}
+              />
+              <p className="text-xs text-gray-400 mt-2">
+                DNS: CNAME to your GEMS host. API resolve: <code className="bg-gray-100 px-1 rounded">/api/storefront/resolve-domain?host=…</code>
+              </p>
+            </div>
+
             {/* Announcement */}
             <div className="card">
               <div className="flex items-start gap-3 mb-4">
@@ -147,6 +193,42 @@ export default function StoreSettingsPage() {
                 value={form.announcement || ''}
                 onChange={e => set('announcement', e.target.value)}
               />
+            </div>
+
+            <div className="card">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                  <Tag className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">Promotions & coupons</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Customers enter codes at checkout</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <input className="form-input font-mono uppercase" placeholder="CODE" value={couponForm.code} onChange={e => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })} />
+                <select className="form-input" value={couponForm.discount_type} onChange={e => setCouponForm({ ...couponForm, discount_type: e.target.value })}>
+                  <option value="percent">Percent off</option>
+                  <option value="fixed">Fixed amount (GH₵)</option>
+                </select>
+                <input type="number" className="form-input" placeholder="Discount value" value={couponForm.discount_value} onChange={e => setCouponForm({ ...couponForm, discount_value: e.target.value })} />
+                <input type="number" className="form-input" placeholder="Min order (GH₵)" value={couponForm.min_order_amount} onChange={e => setCouponForm({ ...couponForm, min_order_amount: e.target.value })} />
+              </div>
+              <button type="button" className="btn-secondary mb-4" onClick={createCoupon}><Plus className="w-4 h-4" /> Add coupon</button>
+              {coupons.length > 0 && (
+                <div className="space-y-2">
+                  {coupons.map(c => (
+                    <div key={c.id || c._id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+                      <div>
+                        <span className="font-mono font-bold">{c.code}</span>
+                        <span className="text-gray-500 ml-2">{c.discount_type === 'percent' ? `${c.discount_value}%` : formatGhs(c.discount_value)} off</span>
+                        {c.used_count > 0 && <span className="text-xs text-gray-400 ml-2">used {c.used_count}{c.max_uses ? `/${c.max_uses}` : ''}</span>}
+                      </div>
+                      <button type="button" className="text-red-500 hover:text-red-700" onClick={() => deleteCoupon(c.id || c._id)}><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3">

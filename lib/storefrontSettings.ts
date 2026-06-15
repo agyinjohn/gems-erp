@@ -6,6 +6,9 @@ export interface StorefrontSettings {
   store_enabled: boolean;
   announcement?: string;
   min_order_amount?: number;
+  tax_rate?: number;
+  tax_name?: string;
+  custom_domain?: string;
 }
 
 export const DEFAULT_STOREFRONT_SETTINGS: StorefrontSettings = {
@@ -23,7 +26,15 @@ export function normalizeStorefrontSettings(raw: Partial<StorefrontSettings> | n
     store_enabled: raw?.store_enabled ?? DEFAULT_STOREFRONT_SETTINGS.store_enabled,
     announcement: raw?.announcement ?? '',
     min_order_amount: Number(raw?.min_order_amount ?? 0),
+    tax_rate: Number(raw?.tax_rate ?? 0),
+    tax_name: raw?.tax_name ?? '',
+    custom_domain: String(raw?.custom_domain ?? '').toLowerCase().trim(),
   };
+}
+
+export function calcTaxAmount(subtotal: number, taxRatePct = 0): number {
+  if (!subtotal || !taxRatePct) return 0;
+  return Math.round(subtotal * taxRatePct) / 100;
 }
 
 export function calcDeliveryFee(subtotal: number, settings: StorefrontSettings): number {

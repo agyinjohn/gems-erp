@@ -7,8 +7,9 @@ import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
   X, Monitor, TrendingUp, CreditCard, ChevronDown,
-  MessageCircle, CheckSquare, Wrench, ShoppingBag,
+  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen,
 } from 'lucide-react';
+import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 
 function SidebarLink({
   href, label, icon: Icon, isActive, collapsed, onNavigate,
@@ -104,9 +105,11 @@ const navGroups = [
     label: 'Settings',
     items: [
       { href: '/store-settings', label: 'Online Store', icon: ShoppingBag, roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },
+      { href: '/catalog',         label: 'Catalog',      icon: Package,      roles: ['business_owner', 'branch_manager', 'warehouse_staff'], permission: 'inventory.view' },
       { href: '/branches',     label: 'Branches',     icon: Store,      roles: ['business_owner'],                   permission: 'branches.manage' },
       { href: '/users',        label: 'Users',        icon: Settings,   roles: ['business_owner'],                   permission: 'users.manage' },
       { href: '/billing',      label: 'Billing',      icon: Calculator, roles: ['business_owner'],                   permission: 'billing.view' },
+      { href: '/api-docs',     label: 'Store API',    icon: BookOpen,   roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },
     ],
   },
 ];
@@ -161,6 +164,9 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
 
   const toggle = (gi: number) => setOpenGroups(prev => ({ ...prev, [gi]: !prev[gi] }));
 
+  const filterByProductMode = (items: typeof navGroups[0]['items']) =>
+    items.filter((item) => isNavAllowed(item.href));
+
   const renderContent = (isCollapsed: boolean) => (
     <aside className="h-full w-full flex flex-col" style={{ background: 'linear-gradient(180deg, #0D3B6E 0%, #1A5294 100%)' }}>
 
@@ -179,7 +185,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
                 <Building2 className="w-5 h-5 text-blue-900" />
               </div>
               <div className="min-w-0">
-                <div className="text-white font-bold text-lg leading-tight">GEMS</div>
+                <div className="text-white font-bold text-lg leading-tight">{PRODUCT_LABELS[PRODUCT_MODE] || 'GEMS'}</div>
                 <div className="text-blue-200 text-xs truncate uppercase">{tenant?.business_name || 'Business Portal'}</div>
               </div>
             </div>
@@ -200,13 +206,15 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
           // ── Custom role: flat list driven purely by permissions ──
           if (isCustom) {
             const seen = new Set<string>();
-            const items = navGroups.flatMap(g => g.items).filter(item => {
-              if (!item.permission) return false;
-              if (seen.has(item.href)) return false;
-              if (!perms.includes(item.permission)) return false;
-              seen.add(item.href);
-              return true;
-            });
+            const items = filterByProductMode(
+              navGroups.flatMap(g => g.items).filter(item => {
+                if (!item.permission) return false;
+                if (seen.has(item.href)) return false;
+                if (!perms.includes(item.permission)) return false;
+                seen.add(item.href);
+                return true;
+              }),
+            );
             const main = items.filter(i => i.href !== '/ess');
             const ess  = items.find(i => i.href === '/ess');
             return (
@@ -233,7 +241,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
           if (isAdminOrOwner) {
             // Full grouped nav with labels
             return navGroups.map((group, gi) => {
-              const visibleItems = group.items.filter(item => user && item.roles.includes(user.role));
+              const visibleItems = filterByProductMode(group.items.filter(item => user && item.roles.includes(user.role)));
               if (!visibleItems.length) return null;
 
               if (!group.label) {
@@ -284,13 +292,13 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
           // Non-admin/owner: flat list, no labels, My Portal always last
           const allItems = navGroups.flatMap(g => g.items);
           const seen = new Set<string>();
-          const flat = allItems.filter(item => {
+          const flat = filterByProductMode(allItems.filter(item => {
             if (!user || !item.roles.includes(user.role)) return false;
-            if (item.href === '/ess') return false; // handled separately at end
+            if (item.href === '/ess') return false;
             if (seen.has(item.href)) return false;
             seen.add(item.href);
             return true;
-          });
+          }));
           const myPortal = allItems.find(item => item.href === '/ess' && item.roles.includes(user?.role || ''));
 
           return (
@@ -316,7 +324,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
       </nav>
 
       {/* GEMS Store */}
-      {tenant?.slug && user?.role !== 'platform_admin' && (
+      {tenant?.slug && user?.role !== 'platform_admin' && (PRODUCT_MODE === 'full' || PRODUCT_MODE === 'storefront') && (
         <div className={isCollapsed ? 'px-2 pb-2' : 'px-3 pb-3'}>
           <a
             href={`/store/${tenant.slug}`}

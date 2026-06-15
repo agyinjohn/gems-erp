@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, ChevronDown, SlidersHorizontal, User, Tag } from 'lucide-react';
 import { publicApi } from '@/lib/api';
 import ProductCard from '@/components/store/ProductCard';
 import StoreNavbar from '@/components/store/StoreNavbar';
@@ -15,6 +15,7 @@ import { categoryGradient, categoryIconColor, formatGhs } from '@/components/sto
 import {
   DEFAULT_STOREFRONT_SETTINGS,
   calcDeliveryFee,
+  calcTaxAmount,
   amountUntilFreeDelivery,
   fetchPublicStoreSettings,
   trackStoreOrder,
@@ -26,6 +27,15 @@ import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 interface CartItem { product: any; quantity: number; branch_id: string; branch_name: string; }
 
 const CART_ID_KEY = 'gems_cart_id';
+const customerTokenKey = (slug: string) => `gems_store_customer_${slug}`;
+
+const customerApi = (token: string) => {
+  const client = publicApi;
+  return {
+    get: (url: string) => client.get(url, { headers: { Authorization: `Bearer ${token}` } }),
+    post: (url: string, data?: any) => client.post(url, data, { headers: { Authorization: `Bearer ${token}` } }),
+  };
+};
 
 const toCartItem = (item: any): CartItem => ({
   product: {
@@ -58,7 +68,7 @@ export default function TenantStorefrontPage() {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [showCart, setShowCart] = useState(false);
-  const [step, setStep] = useState<'shop'|'detail'|'checkout'|'success'|'track'>('shop');
+  const [step, setStep] = useState<'shop'|'detail'|'checkout'|'success'|'track'|'orders'>('shop');
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [paying, setPaying] = useState(false);
   const [orderId, setOrderId] = useState<number|null>(null);
@@ -77,12 +87,26 @@ export default function TenantStorefrontPage() {
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState('');
   const [priceMin, setPriceMin] = useState<number>(0);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [couponMessage, setCouponMessage] = useState('');
+  const [customerToken, setCustomerToken] = useState('');
+  const [storeCustomer, setStoreCustomer] = useState<any>(null);
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [accountMode, setAccountMode] = useState<'login'|'register'>('login');
+  const [accountForm, setAccountForm] = useState({ name: '', email: '', password: '', phone: '' });
+  const [accountError, setAccountError] = useState('');
+  const [accountLoading, setAccountLoading] = useState(false);
+  const [myOrders, setMyOrders] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [priceMax, setPriceMax] = useState<number|''>('');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'default'|'price_asc'|'price_desc'|'name'>('default');
   const [openSections, setOpenSections] = useState<Record<string,boolean>>({ categories: true, price: true, availability: true, sort: true });
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StorefrontSettings>({ ...DEFAULT_STOREFRONT_SETTINGS });
+  const [pendingPayment, setPendingPayment] = useState<{ orderIds: string[]; reference: string; email: string; grandTotal: number } | null>(null);
+  const [verifyError, setVerifyError] = useState('');
   const toggleSection = (key: string) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   const {
@@ -121,6 +145,19 @@ export default function TenantStorefrontPage() {
         setCart(r.data.data.items.map(toCartItem));
       }).catch(() => {});
     }
+  }, [tenantSlug]);
+
+  useEffect(() => {
+    const token = localStorage.getItem(customerTokenKey(tenantSlug));
+    if (!token) return;
+    setCustomerToken(token);
+    customerApi(token).get('/storefront/customer/me').then(r => {
+      setStoreCustomer(r.data.data);
+      setForm(f => ({ ...f, customer_name: r.data.data.name, customer_email: r.data.data.email, customer_phone: r.data.data.phone || f.customer_phone }));
+    }).catch(() => {
+      localStorage.removeItem(customerTokenKey(tenantSlug));
+      setCustomerToken('');
+    });
   }, [tenantSlug]);
 
   // Close branch menu on outside click
@@ -203,9 +240,140 @@ export default function TenantStorefrontPage() {
   const resetPage = () => { /* client-only filters; server feed resets via hook queryKey */ };
   const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
-  const deliveryFee = calcDeliveryFee(cartTotal, storeSettings);
-  const freeDeliveryGap = amountUntilFreeDelivery(cartTotal, storeSettings);
-  const orderTotal = cartTotal + deliveryFee;
+  const subtotalAfterDiscount = Math.max(0, cartTotal - appliedDiscount);
+  const deliveryFee = calcDeliveryFee(subtotalAfterDiscount, storeSettings);
+  const taxAmount = calcTaxAmount(subtotalAfterDiscount, storeSettings.tax_rate || 0);
+  const freeDeliveryGap = amountUntilFreeDelivery(subtotalAfterDiscount, storeSettings);
+  const orderTotal = subtotalAfterDiscount + deliveryFee + taxAmount;
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponMessage('');
+    try {
+      const r = await publicApi.post('/storefront/coupons/validate', { code: couponCode.trim(), subtotal: cartTotal, tenant_slug: tenantSlug });
+      setAppliedDiscount(r.data.data.discount);
+      setCouponMessage(`Saved ${formatGhs(r.data.data.discount)}`);
+    } catch (e: any) {
+      setAppliedDiscount(0);
+      setCouponMessage(e.response?.data?.message || 'Invalid coupon');
+    }
+  };
+
+  const submitAccount = async () => {
+    setAccountLoading(true); setAccountError('');
+    try {
+      const path = accountMode === 'register'
+        ? `/storefront/${tenantSlug}/customers/register`
+        : `/storefront/${tenantSlug}/customers/login`;
+      const body = accountMode === 'register'
+        ? accountForm
+        : { email: accountForm.email, password: accountForm.password };
+      const r = await publicApi.post(path, body);
+      const { token, customer } = r.data.data;
+      localStorage.setItem(customerTokenKey(tenantSlug), token);
+      setCustomerToken(token);
+      setStoreCustomer(customer);
+      setForm(f => ({ ...f, customer_name: customer.name, customer_email: customer.email, customer_phone: customer.phone || f.customer_phone }));
+      setShowAccountModal(false);
+    } catch (e: any) {
+      setAccountError(e.response?.data?.message || 'Account action failed.');
+    } finally { setAccountLoading(false); }
+  };
+
+  const logoutCustomer = () => {
+    localStorage.removeItem(customerTokenKey(tenantSlug));
+    setCustomerToken('');
+    setStoreCustomer(null);
+    setMyOrders([]);
+  };
+
+  const loadMyOrders = async () => {
+    if (!customerToken) { setShowAccountModal(true); setAccountMode('login'); return; }
+    setOrdersLoading(true);
+    setStep('orders');
+    try {
+      const r = await customerApi(customerToken).get('/storefront/customer/orders');
+      setMyOrders(r.data.data || []);
+    } catch {
+      setMyOrders([]);
+    } finally { setOrdersLoading(false); }
+  };
+
+  const openAccount = () => {
+    if (storeCustomer) {
+      loadMyOrders();
+    } else {
+      setAccountMode('login');
+      setShowAccountModal(true);
+    }
+  };
+
+  const openPaystackCheckout = (payload: { orderIds: string[]; reference: string; email: string; grandTotal: number; paystackKey: string }) => {
+    const { orderIds, reference, email, grandTotal, paystackKey } = payload;
+    setPendingPayment(payload);
+    setVerifyError('');
+
+    const openPaystack = () => {
+      const handler = (window as any).PaystackPop.setup({
+        key: paystackKey,
+        email,
+        amount: Math.round(grandTotal * 100),
+        currency: 'GHS',
+        ref: reference,
+        onClose: () => {
+          setPaying(false);
+          setVerifyError('Payment window closed. You can retry without creating a new order.');
+        },
+        callback: async (response: any) => {
+          try {
+            await publicApi.post('/storefront/verify-payment', { reference: response.reference, order_ids: orderIds });
+            setPendingPayment(null);
+            setVerifyError('');
+            setCompletedCart([...cart]);
+            setCompletedTotal(orderTotal);
+            setCart([]);
+            setStep('success');
+          } catch (e: any) {
+            setVerifyError(e.response?.data?.message || 'Payment verification failed. Your payment may still have gone through — use Retry Verify.');
+          } finally {
+            setPaying(false);
+          }
+        },
+      });
+      handler.openIframe();
+    };
+
+    if ((window as any).PaystackPop) {
+      openPaystack();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://js.paystack.co/v1/inline.js';
+      script.onload = openPaystack;
+      script.onerror = () => { setError('Failed to load Paystack. Check your connection.'); setPaying(false); };
+      document.body.appendChild(script);
+    }
+  };
+
+  const retryPaymentVerification = async () => {
+    if (!pendingPayment) return;
+    setPaying(true);
+    setVerifyError('');
+    try {
+      await publicApi.post('/storefront/verify-payment', {
+        reference: pendingPayment.reference,
+        order_ids: pendingPayment.orderIds,
+      });
+      setPendingPayment(null);
+      setCompletedCart([...cart]);
+      setCompletedTotal(orderTotal);
+      setCart([]);
+      setStep('success');
+    } catch (e: any) {
+      setVerifyError(e.response?.data?.message || 'Verification still failed. Contact support with your payment reference.');
+    } finally {
+      setPaying(false);
+    }
+  };
 
   const initiateCheckout = async () => {
     if (!storeSettings.store_enabled) { setError('This store is not accepting orders right now.'); return; }
@@ -215,55 +383,29 @@ export default function TenantStorefrontPage() {
     }
     if (!form.customer_name || !form.customer_email) { setError('Name and email are required.'); return; }
     if (cart.length === 0) { setError('Your cart is empty.'); return; }
-    setPaying(true); setError('');
+    setPaying(true); setError(''); setVerifyError('');
     try {
       const r = await publicApi.post('/storefront/checkout', {
         ...form,
         delivery_fee: deliveryFee,
         tenant_id: tenant?.id,
+        coupon_code: appliedDiscount > 0 ? couponCode.trim() : undefined,
         items: cart.map(i => ({
           product_id: i.product.id,
           quantity: i.quantity,
           branch_id: i.branch_id,
           branch_name: i.branch_name,
-        }))
+        })),
       });
-      const { orders, grand_total, email, paystack_public_key } = r.data.data;
+      const { orders, grand_total, email, paystack_public_key, reference } = r.data.data;
       const orderIds = orders.map((o: any) => o.order_id);
       const orderNums = orders.map((o: any) => o.order_number);
       setOrderNumber(orderNums.join(', '));
-
-      const openPaystack = () => {
-        const handler = (window as any).PaystackPop.setup({
-          key: paystack_public_key,
-          email,
-          amount: Math.round(grand_total * 100),
-          currency: 'GHS',
-          ref: `GEMS-${orderNums[0]}-${Date.now()}`,
-          onClose: () => { setPaying(false); },
-          callback: async (response: any) => {
-            try {
-              await publicApi.post('/storefront/verify-payment', { reference: response.reference, order_ids: orderIds });
-              setCompletedCart([...cart]);
-              setCompletedTotal(orderTotal);
-              setCart([]);
-              setStep('success');
-            } catch { setError('Payment verification failed. Please contact support.'); }
-            finally { setPaying(false); }
-          }
-        });
-        handler.openIframe();
-      };
-      if ((window as any).PaystackPop) {
-        openPaystack();
-      } else {
-        const script = document.createElement('script');
-        script.src = 'https://js.paystack.co/v1/inline.js';
-        script.onload = openPaystack;
-        script.onerror = () => { setError('Failed to load Paystack. Check your connection.'); setPaying(false); };
-        document.body.appendChild(script);
-      }
-    } catch(e:any) { setError(e.response?.data?.message||'Checkout error'); setPaying(false); }
+      openPaystackCheckout({ orderIds, reference, email, grandTotal: grand_total, paystackKey: paystack_public_key });
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Checkout error. Please try again.');
+      setPaying(false);
+    }
   };
 
   const clearAllFilters = () => {
@@ -401,6 +543,8 @@ export default function TenantStorefrontPage() {
         onToggleBranchMenu={() => setShowBranchMenu(b => !b)}
         onSelectBranch={b => { setActiveBranch(b); setShowBranchMenu(false); }}
         onOpenMobileFilters={() => setShowMobileFilters(true)}
+        onOpenAccount={openAccount}
+        customerName={storeCustomer?.name}
       />
 
       {storeSettings.announcement && step === 'shop' && (
@@ -710,6 +854,16 @@ export default function TenantStorefrontPage() {
                   Delivery Information
                 </h2>
                 {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-xl text-sm mb-4 ring-1 ring-red-100">{error}</div>}
+                {verifyError && (
+                  <div className="bg-amber-50 text-amber-900 px-3 py-3 rounded-xl text-sm mb-4 ring-1 ring-amber-100 space-y-2">
+                    <p>{verifyError}</p>
+                    {pendingPayment && (
+                      <button type="button" onClick={retryPaymentVerification} disabled={paying} className="text-sm font-semibold text-[#0D3B6E] hover:underline">
+                        {paying ? 'Verifying…' : 'Retry payment verification'}
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
                     <label className="form-label">Full Name *</label>
@@ -755,8 +909,13 @@ export default function TenantStorefrontPage() {
                   className="store-btn w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-60 text-gray-900 py-3.5 flex items-center justify-center gap-2 shadow-md shadow-amber-900/10"
                 >
                   <Lock className="w-4 h-4" />
-                  {paying ? 'Processing…' : `Pay ${formatGhs(cartTotal)} with Paystack`}
+                  {paying ? 'Processing…' : `Pay ${formatGhs(orderTotal)} with Paystack`}
                 </button>
+                {pendingPayment && !paying && (
+                  <button type="button" onClick={retryPaymentVerification} className="w-full mt-2 text-sm font-semibold text-[#0D3B6E] hover:underline">
+                    Retry verify payment
+                  </button>
+                )}
                 <p className="text-[10px] text-gray-400 text-center mt-2">You will be redirected to Paystack to complete payment securely</p>
               </div>
             </div>
@@ -788,12 +947,29 @@ export default function TenantStorefrontPage() {
                     <span>Subtotal ({cartCount} items)</span>
                     <span>{formatGhs(cartTotal)}</span>
                   </div>
+                  {appliedDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-emerald-600">
+                      <span>Coupon</span>
+                      <span>-{formatGhs(appliedDiscount)}</span>
+                    </div>
+                  )}
+                  <div className="flex gap-2 mb-2">
+                    <input className="form-input text-xs flex-1" placeholder="Coupon code" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} />
+                    <button type="button" className="btn-secondary text-xs px-3" onClick={applyCoupon}><Tag className="w-3.5 h-3.5" /></button>
+                  </div>
+                  {couponMessage && <p className={`text-xs ${appliedDiscount > 0 ? 'text-emerald-600' : 'text-red-600'}`}>{couponMessage}</p>}
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>Delivery</span>
                     <span className={deliveryFee === 0 ? 'text-emerald-600 font-medium' : ''}>
                       {deliveryFee === 0 ? 'Free' : formatGhs(deliveryFee)}
                     </span>
                   </div>
+                  {taxAmount > 0 && (
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>{storeSettings.tax_name || 'Tax'} ({storeSettings.tax_rate}%)</span>
+                      <span>{formatGhs(taxAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between font-bold text-gray-900 text-base pt-2 border-t border-gray-100">
                     <span>Total</span>
                     <span>{formatGhs(orderTotal)}</span>
@@ -1099,6 +1275,12 @@ export default function TenantStorefrontPage() {
                     {deliveryFee === 0 ? 'Free' : formatGhs(deliveryFee)}
                   </span>
                 </div>
+                {taxAmount > 0 && (
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>{storeSettings.tax_name || 'Tax'} ({storeSettings.tax_rate}%)</span>
+                    <span>{formatGhs(taxAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold text-gray-900 text-base pt-2 border-t border-gray-100">
                   <span>Total</span>
                   <span>{formatGhs(orderTotal)}</span>
@@ -1121,6 +1303,74 @@ export default function TenantStorefrontPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      )}
+
+      {step === 'orders' && (
+        <div className="max-w-2xl mx-auto px-4 py-8 pb-24">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">My Orders</h1>
+              <p className="text-sm text-gray-500">{storeCustomer?.email}</p>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" className="btn-secondary text-xs" onClick={() => setStep('shop')}>Back to shop</button>
+              <button type="button" className="btn-secondary text-xs" onClick={logoutCustomer}>Sign out</button>
+            </div>
+          </div>
+          {ordersLoading ? (
+            <p className="text-sm text-gray-500">Loading orders…</p>
+          ) : myOrders.length === 0 ? (
+            <p className="text-sm text-gray-500">No orders yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {myOrders.map(o => (
+                <div key={o._id || o.id} className="store-filter-panel p-4">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <p className="font-mono font-semibold text-[#0D3B6E]">{o.order_number}</p>
+                      <p className="text-xs text-gray-500 mt-1">{new Date(o.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold">{formatGhs(o.total)}</p>
+                      <p className="text-xs capitalize text-gray-500">{o.status} · {o.payment_status}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {showAccountModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowAccountModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-lg flex items-center gap-2"><User className="w-5 h-5" /> {accountMode === 'login' ? 'Sign in' : 'Create account'}</h2>
+              <button type="button" onClick={() => setShowAccountModal(false)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            {accountError && <p className="text-sm text-red-600 mb-3">{accountError}</p>}
+            <div className="space-y-3">
+              {accountMode === 'register' && (
+                <>
+                  <input className="form-input" placeholder="Full name" value={accountForm.name} onChange={e => setAccountForm({ ...accountForm, name: e.target.value })} />
+                  <input className="form-input" placeholder="Phone (optional)" value={accountForm.phone} onChange={e => setAccountForm({ ...accountForm, phone: e.target.value })} />
+                </>
+              )}
+              <input type="email" className="form-input" placeholder="Email" value={accountForm.email} onChange={e => setAccountForm({ ...accountForm, email: e.target.value })} />
+              <input type="password" className="form-input" placeholder="Password" value={accountForm.password} onChange={e => setAccountForm({ ...accountForm, password: e.target.value })} />
+              <button type="button" className="store-btn store-btn-primary w-full py-3" onClick={submitAccount} disabled={accountLoading}>
+                {accountLoading ? 'Please wait…' : accountMode === 'login' ? 'Sign in' : 'Register'}
+              </button>
+              <button type="button" className="w-full text-sm text-[#0D3B6E]" onClick={() => setAccountMode(accountMode === 'login' ? 'register' : 'login')}>
+                {accountMode === 'login' ? 'Need an account? Register' : 'Already have an account? Sign in'}
+              </button>
+            </div>
           </div>
         </div>
       )}

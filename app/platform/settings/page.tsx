@@ -20,13 +20,13 @@ const TABS = [
   { key: 'features',  label: 'Feature Flags' },
 ];
 
-const MODULES = ['crm', 'accounting', 'hr', 'procurement', 'reports', 'storefront'] as const;
+const MODULES = ['pos', 'crm', 'accounting', 'hr', 'procurement', 'reports', 'storefront'] as const;
 type Module = typeof MODULES[number];
 
 const DEFAULT_FLAGS = {
-  starter:    { crm: false, accounting: false, hr: false, procurement: false, reports: false, storefront: true },
-  pro:        { crm: true,  accounting: true,  hr: true,  procurement: true,  reports: true,  storefront: true },
-  enterprise: { crm: true,  accounting: true,  hr: true,  procurement: true,  reports: true,  storefront: true },
+  starter:    { pos: true, crm: false, accounting: false, hr: false, procurement: false, reports: false, storefront: true },
+  pro:        { pos: true, crm: true,  accounting: true,  hr: true,  procurement: true,  reports: true,  storefront: true },
+  enterprise: { pos: true, crm: true,  accounting: true,  hr: true,  procurement: true,  reports: true,  storefront: true },
 };
 
 export default function PlatformSettingsPage() {

@@ -1,5 +1,5 @@
 'use client';
-import { Package, Search, ShoppingCart, MapPin, ChevronDown, ChevronRight, Menu, SlidersHorizontal } from 'lucide-react';
+import { Package, Search, ShoppingCart, MapPin, ChevronDown, ChevronRight, Menu, SlidersHorizontal, User } from 'lucide-react';
 
 interface Props {
   businessName?: string;
@@ -12,6 +12,7 @@ interface Props {
   branches: any[];
   activeBranch: any;
   showBranchMenu: boolean;
+  customerName?: string;
   onSearchChange: (v: string) => void;
   onCategoryChange: (v: string) => void;
   onResetPage: () => void;
@@ -21,6 +22,7 @@ interface Props {
   onToggleBranchMenu: () => void;
   onSelectBranch: (branch: any | null) => void;
   onOpenMobileFilters?: () => void;
+  onOpenAccount?: () => void;
 }
 
 export default function StoreNavbar({
@@ -43,6 +45,8 @@ export default function StoreNavbar({
   onToggleBranchMenu,
   onSelectBranch,
   onOpenMobileFilters,
+  onOpenAccount,
+  customerName,
 }: Props) {
   const categoryPills = [{ id: '', name: 'All' }, ...categories.map(c => ({ id: c.name, name: c.name }))];
 
@@ -127,6 +131,13 @@ export default function StoreNavbar({
               <span className="truncate">{deliveryLocation || 'Set location'}</span>
             </span>
           </button>
+
+          {onOpenAccount && (
+            <button type="button" onClick={onOpenAccount} className="hidden sm:flex shrink-0 items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-white/10 text-white/90 text-xs font-medium" title="Account">
+              <User className="w-4 h-4" />
+              <span className="max-w-[80px] truncate">{customerName || 'Account'}</span>
+            </button>
+          )}
 
           <button type="button" onClick={onOpenCart} className="relative shrink-0 p-2 rounded-xl hover:bg-white/10 transition-colors group">
             <ShoppingCart className="w-6 h-6 text-white" />
