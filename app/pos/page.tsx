@@ -198,6 +198,9 @@ export default function POSPage() {
     if (!paystack_public_key) {
       throw new Error('Paystack is not configured. Set PAYSTACK_PUBLIC_KEY on the server.');
     }
+    if (!email) {
+      throw new Error('No valid email for Paystack checkout. Use a staff account with a valid email.');
+    }
 
     setShowPayModal(false);
     setOpeningPaystack(true);
@@ -244,13 +247,14 @@ export default function POSPage() {
         const handler = access_code
           ? (window as any).PaystackPop.setup({
               key: paystack_public_key,
+              email,
               access_code,
               onClose,
               callback,
             })
           : (window as any).PaystackPop.setup({
               key: paystack_public_key,
-              email: email || 'customer@gems.local',
+              email,
               amount: Math.round(amount * 100),
               currency: 'GHS',
               ref: reference,
