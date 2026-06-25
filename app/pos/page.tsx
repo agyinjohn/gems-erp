@@ -194,12 +194,17 @@ export default function POSPage() {
   };
 
   const completePaystackSale = async (initData: any, method: string) => {
-    const { order_id, reference, amount, email, paystack_public_key, access_code, channels } = initData;
+    const { order_id, reference, amount, email, paystack_public_key, channels } = initData;
     if (!paystack_public_key) {
       throw new Error('Paystack is not configured. Set PAYSTACK_PUBLIC_KEY on the server.');
     }
     if (!email) {
       throw new Error('No valid email for Paystack checkout. Use a staff account with a valid email.');
+    }
+
+    const amountKobo = Math.round((Number(amount) || cartTotal) * 100);
+    if (!amountKobo || amountKobo < 100) {
+      throw new Error('Transaction amount must be at least GH₵ 1.00.');
     }
 
     setShowPayModal(false);
@@ -235,7 +240,6 @@ export default function POSPage() {
       const run = () => {
         setOpeningPaystack(false);
 
-        // Paystack requires plain functions (not async) and a minimal config when using access_code
         const onClose = function () {
           setPendingPaystack({ order_id, reference, amount, paymentMethod: method });
           resolve();
@@ -244,24 +248,16 @@ export default function POSPage() {
           void verifyAndComplete(response.reference);
         };
 
-        const handler = access_code
-          ? (window as any).PaystackPop.setup({
-              key: paystack_public_key,
-              email,
-              access_code,
-              onClose,
-              callback,
-            })
-          : (window as any).PaystackPop.setup({
-              key: paystack_public_key,
-              email,
-              amount: Math.round(amount * 100),
-              currency: 'GHS',
-              ref: reference,
-              channels: channels || (method === 'card' ? ['card'] : ['mobile_money']),
-              onClose,
-              callback,
-            });
+        const handler = (window as any).PaystackPop.setup({
+          key: paystack_public_key,
+          email,
+          amount: amountKobo,
+          currency: 'GHS',
+          ref: reference,
+          channels: channels || (method === 'card' ? ['card'] : ['mobile_money']),
+          onClose,
+          callback,
+        });
         handler.openIframe();
       };
       if ((window as any).PaystackPop) run();
