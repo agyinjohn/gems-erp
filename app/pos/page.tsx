@@ -194,27 +194,25 @@ export default function POSPage() {
   };
 
   const completePaystackSale = async (initData: any, method: string) => {
-    const { order_id, reference, amount, email, paystack_public_key } = initData;
+    const { order_id, reference, amount, email, paystack_public_key, access_code, channels } = initData;
     if (!paystack_public_key) {
       throw new Error('Paystack is not configured. Set PAYSTACK_PUBLIC_KEY on the server.');
     }
 
-    // Close our modal so Paystack iframe is not hidden behind it
     setShowPayModal(false);
     setOpeningPaystack(true);
 
     return new Promise<void>((resolve, reject) => {
       const run = () => {
         setOpeningPaystack(false);
-        const handler = (window as any).PaystackPop.setup({
+        const setup: Record<string, unknown> = {
           key: paystack_public_key,
           email: email || 'customer@gems.local',
-          amount: Math.round(amount * 100),
-          currency: 'GHS',
           ref: reference,
+          channels: channels || (method === 'card' ? ['card'] : ['mobile_money']),
           onClose: () => {
             setPendingPaystack({ order_id, reference, amount, paymentMethod: method });
-            reject(new Error('Payment window closed. If you completed payment on your phone, tap Retry Verify below.'));
+            resolve();
           },
           callback: async (response: any) => {
             try {
@@ -238,10 +236,17 @@ export default function POSPage() {
               resolve();
             } catch (e: any) {
               setPendingPaystack({ order_id, reference, amount, paymentMethod: method });
-              reject(new Error(e.response?.data?.message || 'Payment verification failed. Try Retry Verify.'));
+              reject(new Error(e.response?.data?.message || 'Payment verification failed. Try Retry verify.'));
             }
           },
-        });
+        };
+        if (access_code) {
+          setup.access_code = access_code;
+        } else {
+          setup.amount = Math.round(amount * 100);
+          setup.currency = 'GHS';
+        }
+        const handler = (window as any).PaystackPop.setup(setup);
         handler.openIframe();
       };
       if ((window as any).PaystackPop) run();
@@ -332,7 +337,7 @@ export default function POSPage() {
       loadProducts();
       loadShift();
     } catch (e: any) {
-      setError(e.response?.data?.message || 'Sale failed. Please try again.');
+      setError(e.response?.data?.message || e.message || 'Sale failed. Please try again.');
     } finally { setProcessing(false); }
   };
 
