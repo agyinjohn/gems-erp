@@ -982,10 +982,10 @@ export default function LandingPage() {
   const customers = useCounter(891);
 
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="landing-page min-h-screen font-sans">
 
       {/* ── NAVBAR ── */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-[0_1px_12px_rgba(0,0,0,0.06)]">
+      <nav className="landing-nav sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-[68px] flex items-center justify-between gap-8">
 
           {/* Logo */}
@@ -1076,8 +1076,9 @@ export default function LandingPage() {
       </nav>
 
       {/* ── HERO ── */}
-      <section className="bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0D3B6E] text-white py-20 px-6 overflow-hidden relative">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <section className="landing-hero text-white py-20 px-6 overflow-hidden relative">
+        <div className="landing-hero-glow" aria-hidden />
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
           <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/5 rounded-full blur-sm animate-float-slow" />
           <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-yellow-400/10 rounded-full blur-sm animate-float-slower" />
           <div className="absolute top-1/2 left-1/4 w-72 h-72 bg-white/3 rounded-full animate-drift" />
@@ -1089,7 +1090,7 @@ export default function LandingPage() {
             {/* Left — text */}
             <div ref={heroRef} className="flex flex-col">
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '0ms' }}>
-                <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-lg px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium mb-6">
+                <div className="inline-flex items-center gap-2 bg-white/10 border border-white/25 backdrop-blur-sm rounded-lg px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium mb-6 shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
                   <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-400 flex-shrink-0" />
                   <span className="whitespace-nowrap">Smart Workplace — Your Business. One System.</span>
                 </div>
@@ -1289,9 +1290,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── STATS ── */}
-      <section className="bg-white border-b border-gray-100 py-14 px-6">
+      <section className="landing-stats-ribbon px-6 pb-2">
         <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-5">
             {[
               { value: '100+', label: 'Businesses', icon: Building2, color: 'bg-blue-50 text-blue-600' },
               { value: '10+', label: 'Modules', icon: Package, color: 'bg-purple-50 text-purple-600' },
@@ -1301,7 +1302,7 @@ export default function LandingPage() {
               const Icon = s.icon;
               return (
                 <Reveal key={s.label} delay={i * 100}>
-                  <div className="flex items-center gap-4 p-5 rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-md card-lift group">
+                  <div className="landing-stat-tile flex items-center gap-4 p-5 rounded-2xl card-lift group">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 ${s.color}`}>
                       <Icon className="w-5 h-5" />
                     </div>
@@ -1318,12 +1319,12 @@ export default function LandingPage() {
       </section>
 
       {/* ── FEATURES ── */}
-      <section id="features" className="py-24 px-6 bg-white">
+      <section id="features" className="landing-canvas-pattern py-24 px-6">
         <div className="max-w-7xl mx-auto">
 
           <Reveal className="text-center mb-14">
-            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Everything you need</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">One System. Every Module.</h2>
+            <span className="landing-eyebrow">Everything you need</span>
+            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">One System. Every Module.</h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">GEMS gives you Stocks, Inventory, Sales, POS, eCommerce, Payments, Procurement, Finance, Accounting, HR, CRM and More — all connected, all in real time.</p>
           </Reveal>
 
@@ -1500,11 +1501,11 @@ export default function LandingPage() {
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <section id="how-it-works" className="bg-gray-50 py-24 px-6">
+      <section id="how-it-works" className="landing-canvas-muted py-24 px-6">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-14">
-            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Simple setup</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Up and running in minutes</h2>
+            <span className="landing-eyebrow">Simple setup</span>
+            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Up and running in minutes</h2>
             <p className="text-gray-500 text-lg">No IT team needed. No complex setup. Just sign up and go.</p>
           </Reveal>
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -1512,7 +1513,7 @@ export default function LandingPage() {
             <div className="hidden md:block absolute top-8 left-[calc(16.67%+16px)] right-[calc(16.67%+16px)] h-0.5 bg-gray-200" />
             {STEPS.map((s, i) => (
               <Reveal key={s.step} delay={i * 180} className="relative text-center">
-                <div className="relative z-10 inline-flex w-16 h-16 rounded-2xl bg-[#0D3B6E] text-white items-center justify-center text-xl font-extrabold mb-5 shadow-lg shadow-blue-200 transition-transform duration-300 hover:scale-110 hover:rotate-3">
+                <div className="relative z-10 inline-flex w-16 h-16 rounded-2xl text-white items-center justify-center text-xl font-extrabold mb-5 landing-step-num transition-transform duration-300 hover:scale-110 hover:rotate-3">
                   {s.step}
                 </div>
                 <h3 className="font-bold text-gray-900 text-lg mb-2">{s.title}</h3>
@@ -1524,12 +1525,11 @@ export default function LandingPage() {
       </section>
 
       {/* ── PRICING ── */}
-      {/* ── PRICING ── */}
-      <section id="pricing" className="py-24 px-6 bg-gray-50">
+      <section id="pricing" className="landing-canvas-white py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <Reveal className="text-center mb-14">
-            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Pricing</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Simple, transparent pricing</h2>
+            <span className="landing-eyebrow">Pricing</span>
+            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Simple, transparent pricing</h2>
             <p className="text-gray-500 text-lg">Start free for 14 days. Not charged until day 14. Subscribe to continue.</p>
           </Reveal>
 
@@ -1537,7 +1537,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mb-6">
             {PLANS.map((p, pi) => (
               <Reveal key={p.key} delay={pi * 140} variant={p.popular ? 'scale' : 'up'}>
-              <div className={`relative bg-white rounded-2xl border-2 p-7 flex flex-col card-lift hover:shadow-2xl ${p.popular ? 'border-[#0D3B6E] shadow-2xl shadow-blue-100 hover:shadow-blue-200' : 'border-gray-200 hover:border-[#0D3B6E]/40 hover:shadow-blue-50'
+              <div className={`relative rounded-2xl border-2 p-7 flex flex-col card-lift hover:shadow-2xl ${p.popular ? 'landing-pricing-popular border-[#0D3B6E] hover:shadow-blue-200' : 'bg-white border-gray-200 hover:border-[#0D3B6E]/40 hover:shadow-blue-50'
                 }`}>
                 {p.popular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0D3B6E] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
@@ -1574,8 +1574,8 @@ export default function LandingPage() {
           {/* Add-ons */}
           <div className="mb-4">
             <Reveal className="text-center mb-10">
-              <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-3">Add-Ons</span>
-              <h3 className="text-2xl font-extrabold text-gray-900 mb-2">Extend your plan</h3>
+              <span className="landing-eyebrow">Add-Ons</span>
+              <h3 className="landing-section-title text-2xl font-extrabold text-gray-900 mb-2">Extend your plan</h3>
               <p className="text-gray-500">Add only what your business needs. Available on any plan.</p>
             </Reveal>
             <div className="grid md:grid-cols-2 gap-6">
@@ -1628,11 +1628,11 @@ export default function LandingPage() {
       </section>
 
       {/* ── SERVICES ── */}
-      <section className="py-24 px-6 bg-white">
+      <section className="landing-canvas-pattern py-24 px-6">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-14">
-            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Professional Services</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">We don&apos;t just hand you software.</h2>
+            <span className="landing-eyebrow">Professional Services</span>
+            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">We don&apos;t just hand you software.</h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">From building a system tailored to your exact workflow, to setting it up and keeping it running — we&apos;re with you every step of the way.</p>
           </Reveal>
 
@@ -1709,17 +1709,17 @@ export default function LandingPage() {
       </section>
 
       {/* ── TESTIMONIALS ── */}
-      <section className="bg-gray-50 py-24 px-6">
+      <section className="landing-canvas-muted py-24 px-6">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-14">
-            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Testimonials</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Trusted by businesses across Ghana</h2>
+            <span className="landing-eyebrow">Testimonials</span>
+            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Trusted by businesses across Ghana</h2>
             <p className="text-gray-500 text-lg">See what our customers say about running their business on GEMS.</p>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {TESTIMONIALS.map((t, i) => (
               <Reveal key={t.name} delay={i * 140} className="h-full">
-              <div className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-xl hover:border-gray-200 card-lift flex flex-col h-full">
+              <div className="landing-testimonial rounded-2xl p-6 hover:shadow-xl card-lift flex flex-col h-full">
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />)}
                 </div>
@@ -1744,8 +1744,8 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA BANNER ── */}
-      <section className="relative bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0D3B6E] py-24 px-6 text-white overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <section className="landing-cta-band py-24 px-6 text-white overflow-hidden relative">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-[1]">
           <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full animate-float-slow" />
           <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-yellow-400/10 rounded-full animate-float-slower" />
         </div>
@@ -1782,11 +1782,11 @@ export default function LandingPage() {
       </section>
 
       {/* ── CONTACT ── */}
-      <section id="contact" className="py-24 px-6 bg-gray-50 border-t border-gray-100">
+      <section id="contact" className="landing-canvas-pattern py-24 px-6 border-t border-gray-100/80">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-12">
-            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#0D3B6E] bg-blue-50 px-3 py-1.5 rounded-full mb-4">Get in touch</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">We'd love to hear from you</h2>
+            <span className="landing-eyebrow">Get in touch</span>
+            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">We'd love to hear from you</h2>
             <p className="text-gray-500 text-lg">Reach us via your preferred channel. We typically respond within a few hours.</p>
           </Reveal>
 
@@ -1819,7 +1819,7 @@ export default function LandingPage() {
 
             {/* Right — message form with channel tabs */}
             <Reveal variant="right" delay={150}>
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <div className="landing-contact-card rounded-2xl p-6">
               <h3 className="font-bold text-gray-900 mb-5">Send us a message</h3>
 
               {/* Channel tabs */}
