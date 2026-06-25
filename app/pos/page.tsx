@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import api from '@/lib/api';
 import {
@@ -17,6 +18,19 @@ const PAYMENT_METHODS = [
   { value: 'momo',     label: 'Mobile Money', icon: Smartphone },
   { value: 'card',     label: 'Card',         icon: CreditCard },
 ];
+
+function PosModal({ children, onClose }: { children: React.ReactNode; onClose?: () => void }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className="relative z-10">{children}</div>
+    </div>,
+    document.body,
+  );
+}
 
 export default function POSPage() {
   const [products, setProducts]       = useState<Product[]>([]);
@@ -287,7 +301,8 @@ export default function POSPage() {
 
   return (
     <AppLayout title="Point of Sale" subtitle="Walk-in sales terminal" allowedRoles={['business_owner','branch_manager','sales_staff']}>
-      <div className="mb-3 px-1 flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-col h-[calc(100dvh-8.5rem)] min-h-[28rem] -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
+      <div className="relative z-20 shrink-0 mb-3 px-1 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm">
           <Clock className="w-4 h-4 text-gray-400" />
           {currentShift ? (
@@ -319,7 +334,7 @@ export default function POSPage() {
           #pos-receipt-print .no-print { display: none !important; }
         }
       `}</style>
-      <div className="-m-4 sm:-m-6 flex flex-col lg:flex-row" style={{ height: 'calc(100vh - 72px)' }}>
+      <div className="flex flex-1 min-h-0 flex-col lg:flex-row">
 
         {/* ══ LEFT: Product Panel ══ */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 border-r border-gray-200">
@@ -640,6 +655,7 @@ export default function POSPage() {
           </div>
         </div>
       </div>
+      </div>
 
       {/* ══ Payment Modal ══ */}
       {showPayModal && (
@@ -850,22 +866,20 @@ export default function POSPage() {
       )}
 
       {showOpenShift && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowOpenShift(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <PosModal onClose={() => setShowOpenShift(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><Clock className="w-5 h-5" /> Open Shift</h2>
             <label className="form-label">Opening float (cash in drawer)</label>
             <input className="form-input mb-4" type="number" min="0" step="0.01" value={openingFloat} onChange={e => setOpeningFloat(e.target.value)} />
             {shiftMessage && <p className="text-sm text-red-600 mb-3">{shiftMessage}</p>}
             <button className="btn-primary w-full" onClick={openShift} disabled={shiftProcessing}>{shiftProcessing ? 'Opening…' : 'Start Shift'}</button>
           </div>
-        </div>
+        </PosModal>
       )}
 
       {showCloseShift && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowCloseShift(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <PosModal onClose={() => setShowCloseShift(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
             <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><FileText className="w-5 h-5" /> Close Shift</h2>
             <p className="text-sm text-gray-500 mb-3">Expected cash: GH₵ {parseFloat(currentShift?.expected_cash ?? currentShift?.opening_float ?? 0).toFixed(2)}</p>
             <label className="form-label">Actual cash counted</label>
@@ -875,13 +889,12 @@ export default function POSPage() {
             {shiftMessage && <p className="text-sm text-red-600 mb-3">{shiftMessage}</p>}
             <button className="btn-primary w-full" onClick={closeShift} disabled={shiftProcessing}>{shiftProcessing ? 'Closing…' : 'Close & Print Z-Report'}</button>
           </div>
-        </div>
+        </PosModal>
       )}
 
       {zReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setZReport(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <PosModal onClose={() => setZReport(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="font-bold text-lg mb-4">Z-Report — {zReport.shift_number}</h2>
             <div className="space-y-2 text-sm font-mono">
               {[
@@ -902,7 +915,7 @@ export default function POSPage() {
             <button className="btn-secondary w-full mt-4" onClick={() => window.print()}>Print</button>
             <button className="btn-primary w-full mt-2" onClick={() => setZReport(null)}>Done</button>
           </div>
-        </div>
+        </PosModal>
       )}
 
       {/* Refund modal */}
