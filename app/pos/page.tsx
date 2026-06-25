@@ -65,6 +65,10 @@ export default function POSPage() {
   const [zReport, setZReport] = useState<any>(null);
   const [shiftProcessing, setShiftProcessing] = useState(false);
   const [shiftMessage, setShiftMessage] = useState('');
+  const [pendingPaystack, setPendingPaystack] = useState<{
+    order_id: string; reference: string; amount: number; paymentMethod: string;
+  } | null>(null);
+  const [openingPaystack, setOpeningPaystack] = useState(false);
 
   const loadShift = useCallback(async () => {
     try {
@@ -189,17 +193,29 @@ export default function POSPage() {
     } finally { setShiftProcessing(false); }
   };
 
-  const completePaystackSale = async (initData: any) => {
+  const completePaystackSale = async (initData: any, method: string) => {
     const { order_id, reference, amount, email, paystack_public_key } = initData;
+    if (!paystack_public_key) {
+      throw new Error('Paystack is not configured. Set PAYSTACK_PUBLIC_KEY on the server.');
+    }
+
+    // Close our modal so Paystack iframe is not hidden behind it
+    setShowPayModal(false);
+    setOpeningPaystack(true);
+
     return new Promise<void>((resolve, reject) => {
       const run = () => {
+        setOpeningPaystack(false);
         const handler = (window as any).PaystackPop.setup({
           key: paystack_public_key,
-          email,
+          email: email || 'customer@gems.local',
           amount: Math.round(amount * 100),
           currency: 'GHS',
           ref: reference,
-          onClose: () => reject(new Error('Payment cancelled.')),
+          onClose: () => {
+            setPendingPaystack({ order_id, reference, amount, paymentMethod: method });
+            reject(new Error('Payment window closed. If you completed payment on your phone, tap Retry Verify below.'));
+          },
           callback: async (response: any) => {
             try {
               const r = await api.post('/pos/paystack/verify', { reference: response.reference, order_id });
@@ -208,20 +224,21 @@ export default function POSPage() {
                 order_number: data.order_number,
                 items: [...cart],
                 total: cartTotal,
-                payment_method: paymentMethod,
+                payment_method: method,
                 amount_tendered: cartTotal,
                 change: 0,
                 customer_name: customerName || 'Walk-in Customer',
                 customer_phone: customerPhone,
                 createdAt: new Date().toISOString(),
               });
-              setShowPayModal(false);
+              setPendingPaystack(null);
               clearCart();
               loadProducts();
               loadShift();
               resolve();
             } catch (e: any) {
-              reject(new Error(e.response?.data?.message || 'Payment verification failed.'));
+              setPendingPaystack({ order_id, reference, amount, paymentMethod: method });
+              reject(new Error(e.response?.data?.message || 'Payment verification failed. Try Retry Verify.'));
             }
           },
         });
@@ -232,10 +249,45 @@ export default function POSPage() {
         const script = document.createElement('script');
         script.src = 'https://js.paystack.co/v1/inline.js';
         script.onload = run;
-        script.onerror = () => reject(new Error('Could not load Paystack.'));
+        script.onerror = () => {
+          setOpeningPaystack(false);
+          reject(new Error('Could not load Paystack checkout.'));
+        };
         document.body.appendChild(script);
       }
     });
+  };
+
+  const retryPaystackVerify = async () => {
+    if (!pendingPaystack) return;
+    setProcessing(true);
+    setError('');
+    try {
+      const r = await api.post('/pos/paystack/verify', {
+        reference: pendingPaystack.reference,
+        order_id: pendingPaystack.order_id,
+      });
+      const data = r.data.data;
+      setReceipt({
+        order_number: data.order_number,
+        items: [...cart],
+        total: cartTotal,
+        payment_method: pendingPaystack.paymentMethod,
+        amount_tendered: cartTotal,
+        change: 0,
+        customer_name: customerName || 'Walk-in Customer',
+        customer_phone: customerPhone,
+        createdAt: new Date().toISOString(),
+      });
+      setPendingPaystack(null);
+      clearCart();
+      loadProducts();
+      loadShift();
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Verification still failed. Contact support with the payment reference.');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const completeSale = async () => {
@@ -252,7 +304,8 @@ export default function POSPage() {
           customer_name: customerName || 'Walk-in Customer',
           customer_phone: customerPhone,
         });
-        await completePaystackSale(initRes.data.data);
+        setProcessing(false);
+        await completePaystackSale(initRes.data.data, paymentMethod);
         return;
       }
       const r = await api.post('/pos/sale', {
@@ -323,6 +376,35 @@ export default function POSPage() {
           <button className="btn-secondary text-xs py-1.5" onClick={() => { setRefundMessage(''); setShowRefundModal(true); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" />Refund</button>
         </div>
       </div>
+
+      {pendingPaystack && (
+        <div className="relative z-20 shrink-0 mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="text-sm text-amber-900">
+            <p className="font-semibold">Payment pending verification</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Ref <span className="font-mono">{pendingPaystack.reference}</span> · GH₵ {pendingPaystack.amount.toFixed(2)}
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button type="button" className="btn-secondary text-xs py-1.5" onClick={() => setPendingPaystack(null)}>Dismiss</button>
+            <button type="button" className="btn-primary text-xs py-1.5" onClick={retryPaystackVerify} disabled={processing}>
+              {processing ? 'Verifying…' : 'Retry Verify'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {openingPaystack && (
+        <div className="relative z-20 shrink-0 mb-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-800">
+          Opening Paystack checkout… complete payment on your phone if prompted.
+        </div>
+      )}
+
+      {error && !showPayModal && (
+        <div className="relative z-20 shrink-0 mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+          {error}
+        </div>
+      )}
       <style jsx global>{`
         @media print {
           body * { visibility: hidden !important; }
@@ -659,9 +741,8 @@ export default function POSPage() {
 
       {/* ══ Payment Modal ══ */}
       {showPayModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPayModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <PosModal onClose={() => { if (!processing && !openingPaystack) setShowPayModal(false); }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
             {/* Header */}
             <div className="bg-[#0D3B6E] px-6 py-4 flex items-center justify-between">
@@ -669,7 +750,7 @@ export default function POSPage() {
                 <p className="text-white/60 text-xs font-medium uppercase tracking-widest">Amount Due</p>
                 <p className="text-white font-extrabold text-3xl tabular-nums">GH₵ {cartTotal.toFixed(2)}</p>
               </div>
-              <button onClick={() => setShowPayModal(false)} className="text-white/50 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+              <button onClick={() => { if (!processing && !openingPaystack) setShowPayModal(false); }} className="text-white/50 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -771,11 +852,15 @@ export default function POSPage() {
                 className="w-full bg-green-600 hover:bg-green-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold py-4 rounded-2xl text-base transition-all flex items-center justify-center gap-2.5 shadow-md"
               >
                 <CheckCircle2 className="w-5 h-5" />
-                {processing ? 'Processing…' : 'Complete Sale'}
+                {processing
+                  ? 'Processing…'
+                  : paymentMethod === 'momo' || paymentMethod === 'card'
+                    ? 'Continue to Paystack'
+                    : 'Complete Sale'}
               </button>
             </div>
           </div>
-        </div>
+        </PosModal>
       )}
 
       {/* ══ Receipt Modal ══ */}
