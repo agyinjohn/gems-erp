@@ -203,50 +203,61 @@ export default function POSPage() {
     setOpeningPaystack(true);
 
     return new Promise<void>((resolve, reject) => {
+      const verifyAndComplete = async (paymentReference: string) => {
+        try {
+          const r = await api.post('/pos/paystack/verify', { reference: paymentReference, order_id });
+          const data = r.data.data;
+          setReceipt({
+            order_number: data.order_number,
+            items: [...cart],
+            total: cartTotal,
+            payment_method: method,
+            amount_tendered: cartTotal,
+            change: 0,
+            customer_name: customerName || 'Walk-in Customer',
+            customer_phone: customerPhone,
+            createdAt: new Date().toISOString(),
+          });
+          setPendingPaystack(null);
+          clearCart();
+          loadProducts();
+          loadShift();
+          resolve();
+        } catch (e: any) {
+          setPendingPaystack({ order_id, reference, amount, paymentMethod: method });
+          reject(new Error(e.response?.data?.message || 'Payment verification failed. Try Retry verify.'));
+        }
+      };
+
       const run = () => {
         setOpeningPaystack(false);
-        const setup: Record<string, unknown> = {
-          key: paystack_public_key,
-          email: email || 'customer@gems.local',
-          ref: reference,
-          channels: channels || (method === 'card' ? ['card'] : ['mobile_money']),
-          onClose: () => {
-            setPendingPaystack({ order_id, reference, amount, paymentMethod: method });
-            resolve();
-          },
-          callback: async (response: any) => {
-            try {
-              const r = await api.post('/pos/paystack/verify', { reference: response.reference, order_id });
-              const data = r.data.data;
-              setReceipt({
-                order_number: data.order_number,
-                items: [...cart],
-                total: cartTotal,
-                payment_method: method,
-                amount_tendered: cartTotal,
-                change: 0,
-                customer_name: customerName || 'Walk-in Customer',
-                customer_phone: customerPhone,
-                createdAt: new Date().toISOString(),
-              });
-              setPendingPaystack(null);
-              clearCart();
-              loadProducts();
-              loadShift();
-              resolve();
-            } catch (e: any) {
-              setPendingPaystack({ order_id, reference, amount, paymentMethod: method });
-              reject(new Error(e.response?.data?.message || 'Payment verification failed. Try Retry verify.'));
-            }
-          },
+
+        // Paystack requires plain functions (not async) and a minimal config when using access_code
+        const onClose = function () {
+          setPendingPaystack({ order_id, reference, amount, paymentMethod: method });
+          resolve();
         };
-        if (access_code) {
-          setup.access_code = access_code;
-        } else {
-          setup.amount = Math.round(amount * 100);
-          setup.currency = 'GHS';
-        }
-        const handler = (window as any).PaystackPop.setup(setup);
+        const callback = function (response: { reference: string }) {
+          void verifyAndComplete(response.reference);
+        };
+
+        const handler = access_code
+          ? (window as any).PaystackPop.setup({
+              key: paystack_public_key,
+              access_code,
+              onClose,
+              callback,
+            })
+          : (window as any).PaystackPop.setup({
+              key: paystack_public_key,
+              email: email || 'customer@gems.local',
+              amount: Math.round(amount * 100),
+              currency: 'GHS',
+              ref: reference,
+              channels: channels || (method === 'card' ? ['card'] : ['mobile_money']),
+              onClose,
+              callback,
+            });
         handler.openIframe();
       };
       if ((window as any).PaystackPop) run();
