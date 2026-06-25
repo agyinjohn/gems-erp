@@ -19,7 +19,7 @@ const PAYMENT_METHODS = [
   { value: 'momo',          label: 'Mobile Money',   icon: Smartphone },
   { value: 'card',          label: 'Card (QR)',       icon: CreditCard },
   { value: 'card_terminal', label: 'Paystack Terminal', icon: Nfc },
-};
+];
 
 function paymentMethodLabel(method: string) {
   if (method === 'momo') return 'Mobile Money';
