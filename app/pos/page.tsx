@@ -355,7 +355,7 @@ export default function POSPage() {
   return (
     <AppLayout title="Point of Sale" subtitle="Walk-in sales terminal" allowedRoles={['business_owner','branch_manager','sales_staff']}>
       <div className="flex flex-col h-[calc(100dvh-8.5rem)] min-h-[28rem] -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
-      <div className="relative z-20 shrink-0 mb-3 px-1 flex flex-wrap items-center justify-between gap-2">
+      <div className="relative z-20 shrink-0 px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 bg-white/80">
         <div className="flex items-center gap-2 text-sm">
           <Clock className="w-4 h-4 text-gray-400" />
           {currentShift ? (
@@ -377,34 +377,6 @@ export default function POSPage() {
         </div>
       </div>
 
-      {pendingPaystack && (
-        <div className="relative z-20 shrink-0 mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="text-sm text-amber-900">
-            <p className="font-semibold">Payment pending verification</p>
-            <p className="text-xs text-amber-700 mt-0.5">
-              Ref <span className="font-mono">{pendingPaystack.reference}</span> · GH₵ {pendingPaystack.amount.toFixed(2)}
-            </p>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <button type="button" className="btn-secondary text-xs py-1.5" onClick={() => setPendingPaystack(null)}>Dismiss</button>
-            <button type="button" className="btn-primary text-xs py-1.5" onClick={retryPaystackVerify} disabled={processing}>
-              {processing ? 'Verifying…' : 'Retry Verify'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {openingPaystack && (
-        <div className="relative z-20 shrink-0 mb-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-800">
-          Opening Paystack checkout… complete payment on your phone if prompted.
-        </div>
-      )}
-
-      {error && !showPayModal && (
-        <div className="relative z-20 shrink-0 mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          {error}
-        </div>
-      )}
       <style jsx global>{`
         @media print {
           body * { visibility: hidden !important; }
@@ -710,6 +682,22 @@ export default function POSPage() {
             )}
           </div>
 
+          {pendingPaystack && (
+            <div className="mx-4 mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <p className="font-semibold">Payment pending — ref {pendingPaystack.reference}</p>
+              <div className="flex gap-2 mt-1.5">
+                <button type="button" className="text-amber-800 underline" onClick={() => setPendingPaystack(null)}>Dismiss</button>
+                <button type="button" className="font-semibold text-amber-900" onClick={retryPaystackVerify} disabled={processing}>
+                  {processing ? 'Verifying…' : 'Retry verify'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {error && !showPayModal && (
+            <div className="mx-4 mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
+          )}
+
           {/* Totals + Charge */}
           <div className="border-t border-gray-200 bg-white">
             {/* Summary rows */}
@@ -741,8 +729,12 @@ export default function POSPage() {
 
       {/* ══ Payment Modal ══ */}
       {showPayModal && (
-        <PosModal onClose={() => { if (!processing && !openingPaystack) setShowPayModal(false); }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => { if (!processing && !openingPaystack) setShowPayModal(false); }}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
             {/* Header */}
             <div className="bg-[#0D3B6E] px-6 py-4 flex items-center justify-between">
@@ -854,13 +846,11 @@ export default function POSPage() {
                 <CheckCircle2 className="w-5 h-5" />
                 {processing
                   ? 'Processing…'
-                  : paymentMethod === 'momo' || paymentMethod === 'card'
-                    ? 'Continue to Paystack'
-                    : 'Complete Sale'}
+                  : 'Complete Sale'}
               </button>
             </div>
           </div>
-        </PosModal>
+        </div>
       )}
 
       {/* ══ Receipt Modal ══ */}
