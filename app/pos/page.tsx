@@ -3,21 +3,30 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import api from '@/lib/api';
+import PaymentQr from '@/components/pos/PaymentQr';
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, Package,
   Banknote, CreditCard, Smartphone, X, PrinterIcon, CheckCircle2, Barcode, RotateCcw,
-  Clock, FileText,
+  Clock, FileText, Copy, Loader2, Nfc,
 } from 'lucide-react';
 
 interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; }
 interface CartItem { product: Product; quantity: number; }
-interface Receipt { order_number: string; items: CartItem[]; total: number; payment_method: string; amount_tendered: number; change: number; customer_name: string; customer_phone: string; createdAt: string; }
+interface Receipt { order_number: string; items: CartItem[]; total: number; payment_method: string; payment_ref?: string; amount_tendered: number; change: number; customer_name: string; customer_phone: string; createdAt: string; }
 
 const PAYMENT_METHODS = [
-  { value: 'cash',     label: 'Cash',        icon: Banknote },
-  { value: 'momo',     label: 'Mobile Money', icon: Smartphone },
-  { value: 'card',     label: 'Card',         icon: CreditCard },
-];
+  { value: 'cash',          label: 'Cash',           icon: Banknote },
+  { value: 'momo',          label: 'Mobile Money',   icon: Smartphone },
+  { value: 'card',          label: 'Card (QR)',       icon: CreditCard },
+  { value: 'card_terminal', label: 'Paystack Terminal', icon: Nfc },
+};
+
+function paymentMethodLabel(method: string) {
+  if (method === 'momo') return 'Mobile Money';
+  if (method === 'card') return 'Card (QR)';
+  if (method === 'card_terminal') return 'Paystack Terminal';
+  return method.charAt(0).toUpperCase() + method.slice(1);
+}
 
 function PosModal({ children, onClose }: { children: React.ReactNode; onClose?: () => void }) {
   const [mounted, setMounted] = useState(false);
@@ -42,6 +51,8 @@ export default function POSPage() {
   const [cart, setCart]               = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amountTendered, setAmountTendered] = useState('');
+  const [vtConfigured, setVtConfigured] = useState<boolean | null>(null);
+  const [vtName, setVtName] = useState('');
   const [customerName, setCustomerName]   = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [showPayModal, setShowPayModal]   = useState(false);
@@ -69,6 +80,11 @@ export default function POSPage() {
     order_id: string; reference: string; amount: number; paymentMethod: string;
   } | null>(null);
   const [openingPaystack, setOpeningPaystack] = useState(false);
+  const [cardQrSession, setCardQrSession] = useState<{
+    order_id: string; reference: string; amount: number; authorization_url: string;
+    paymentMethod: string; virtual_terminal_name?: string | null;
+  } | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const loadShift = useCallback(async () => {
     try {
@@ -101,6 +117,13 @@ export default function POSPage() {
     setTimeout(() => barcodeRef.current?.focus(), 300);
     loadShift();
   }, [loadShift]);
+
+  useEffect(() => {
+    api.get('/pos/paystack/terminal').then(r => {
+      setVtConfigured(!!r.data.data?.configured);
+      setVtName(r.data.data?.name || '');
+    }).catch(() => setVtConfigured(null));
+  }, []);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
 
@@ -164,7 +187,57 @@ export default function POSPage() {
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
   const change = paymentMethod === 'cash' && amountTendered ? parseFloat(amountTendered) - cartTotal : 0;
 
-  const openPayModal = () => { setError(''); setAmountTendered(cartTotal.toFixed(2)); setShowPayModal(true); };
+  const openPayModal = () => {
+    setError('');
+    setAmountTendered(cartTotal.toFixed(2));
+    setCardQrSession(null);
+    setLinkCopied(false);
+    setShowPayModal(true);
+  };
+
+  const closePayModal = () => {
+    if (processing || openingPaystack) return;
+    setShowPayModal(false);
+    setCardQrSession(null);
+    setLinkCopied(false);
+  };
+
+  const finalizePaystackOrder = useCallback(async (order_id: string, reference: string, method: string) => {
+    const r = await api.post('/pos/paystack/verify', { reference, order_id });
+    const data = r.data.data;
+    setReceipt({
+      order_number: data.order_number,
+      items: [...cart],
+      total: cartTotal,
+      payment_method: method,
+      payment_ref: data.payment_ref || reference,
+      amount_tendered: cartTotal,
+      change: 0,
+      customer_name: customerName || 'Walk-in Customer',
+      customer_phone: customerPhone,
+      createdAt: new Date().toISOString(),
+    });
+    setPendingPaystack(null);
+    setCardQrSession(null);
+    setShowPayModal(false);
+    clearCart();
+    loadProducts();
+    loadShift();
+  }, [cart, cartTotal, customerName, customerPhone, loadProducts, loadShift]);
+
+  useEffect(() => {
+    if (!cardQrSession || !showPayModal) return;
+    let active = true;
+    const poll = async () => {
+      try {
+        await finalizePaystackOrder(cardQrSession.order_id, cardQrSession.reference, cardQrSession.paymentMethod);
+      } catch {
+        /* payment not completed yet */
+      }
+    };
+    const id = setInterval(() => { if (active) void poll(); }, 3000);
+    return () => { active = false; clearInterval(id); };
+  }, [cardQrSession, showPayModal, finalizePaystackOrder]);
 
   const openShift = async () => {
     setShiftProcessing(true); setShiftMessage('');
@@ -193,8 +266,8 @@ export default function POSPage() {
     } finally { setShiftProcessing(false); }
   };
 
-  const completePaystackSale = async (initData: any, method: string) => {
-    const { order_id, reference, amount, email, paystack_public_key, channels } = initData;
+  const completeMomoSale = async (initData: any) => {
+    const { order_id, reference, amount, email, paystack_public_key } = initData;
     if (!paystack_public_key) {
       throw new Error('Paystack is not configured. Set PAYSTACK_PUBLIC_KEY on the server.');
     }
@@ -213,26 +286,10 @@ export default function POSPage() {
     return new Promise<void>((resolve, reject) => {
       const verifyAndComplete = async (paymentReference: string) => {
         try {
-          const r = await api.post('/pos/paystack/verify', { reference: paymentReference, order_id });
-          const data = r.data.data;
-          setReceipt({
-            order_number: data.order_number,
-            items: [...cart],
-            total: cartTotal,
-            payment_method: method,
-            amount_tendered: cartTotal,
-            change: 0,
-            customer_name: customerName || 'Walk-in Customer',
-            customer_phone: customerPhone,
-            createdAt: new Date().toISOString(),
-          });
-          setPendingPaystack(null);
-          clearCart();
-          loadProducts();
-          loadShift();
+          await finalizePaystackOrder(order_id, paymentReference, 'momo');
           resolve();
         } catch (e: any) {
-          setPendingPaystack({ order_id, reference, amount, paymentMethod: method });
+          setPendingPaystack({ order_id, reference, amount, paymentMethod: 'momo' });
           reject(new Error(e.response?.data?.message || 'Payment verification failed. Try Retry verify.'));
         }
       };
@@ -241,7 +298,7 @@ export default function POSPage() {
         setOpeningPaystack(false);
 
         const onClose = function () {
-          setPendingPaystack({ order_id, reference, amount, paymentMethod: method });
+          setPendingPaystack({ order_id, reference, amount, paymentMethod: 'momo' });
           resolve();
         };
         const callback = function (response: { reference: string }) {
@@ -254,7 +311,7 @@ export default function POSPage() {
           amount: amountKobo,
           currency: 'GHS',
           ref: reference,
-          channels: channels || (method === 'card' ? ['card'] : ['mobile_money']),
+          channels: ['mobile_money'],
           onClose,
           callback,
         });
@@ -274,31 +331,52 @@ export default function POSPage() {
     });
   };
 
+  const copyCardPaymentLink = async () => {
+    if (!cardQrSession?.authorization_url) return;
+    try {
+      await navigator.clipboard.writeText(cardQrSession.authorization_url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      setError('Could not copy link. Ask the customer to scan the QR code.');
+    }
+  };
+
+  const manualVerifyCard = async () => {
+    if (!cardQrSession) return;
+    setProcessing(true);
+    setError('');
+    try {
+      await finalizePaystackOrder(cardQrSession.order_id, cardQrSession.reference, cardQrSession.paymentMethod);
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Payment not received yet. Ask the customer to complete payment on their phone.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const cancelCardQr = () => {
+    if (!cardQrSession) return;
+    setPendingPaystack({
+      order_id: cardQrSession.order_id,
+      reference: cardQrSession.reference,
+      amount: cardQrSession.amount,
+      paymentMethod: 'card',
+    });
+    setCardQrSession(null);
+    setLinkCopied(false);
+  };
+
   const retryPaystackVerify = async () => {
     if (!pendingPaystack) return;
     setProcessing(true);
     setError('');
     try {
-      const r = await api.post('/pos/paystack/verify', {
-        reference: pendingPaystack.reference,
-        order_id: pendingPaystack.order_id,
-      });
-      const data = r.data.data;
-      setReceipt({
-        order_number: data.order_number,
-        items: [...cart],
-        total: cartTotal,
-        payment_method: pendingPaystack.paymentMethod,
-        amount_tendered: cartTotal,
-        change: 0,
-        customer_name: customerName || 'Walk-in Customer',
-        customer_phone: customerPhone,
-        createdAt: new Date().toISOString(),
-      });
-      setPendingPaystack(null);
-      clearCart();
-      loadProducts();
-      loadShift();
+      await finalizePaystackOrder(
+        pendingPaystack.order_id,
+        pendingPaystack.reference,
+        pendingPaystack.paymentMethod,
+      );
     } catch (e: any) {
       setError(e.response?.data?.message || 'Verification still failed. Contact support with the payment reference.');
     } finally {
@@ -313,7 +391,7 @@ export default function POSPage() {
     }
     setProcessing(true); setError('');
     try {
-      if (paymentMethod === 'momo' || paymentMethod === 'card') {
+      if (paymentMethod === 'momo') {
         const initRes = await api.post('/pos/paystack/init', {
           items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
           payment_method: paymentMethod,
@@ -321,7 +399,34 @@ export default function POSPage() {
           customer_phone: customerPhone,
         });
         setProcessing(false);
-        await completePaystackSale(initRes.data.data, paymentMethod);
+        await completeMomoSale(initRes.data.data);
+        return;
+      }
+      if (paymentMethod === 'card' || paymentMethod === 'card_terminal') {
+        const initRes = await api.post('/pos/paystack/init', {
+          items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
+          payment_method: paymentMethod,
+          customer_name: customerName || 'Walk-in Customer',
+          customer_phone: customerPhone,
+        });
+        const data = initRes.data.data;
+        if (!data.authorization_url) {
+          throw new Error('Could not generate payment link.');
+        }
+        setCardQrSession({
+          order_id: data.order_id,
+          reference: data.reference,
+          amount: data.amount,
+          authorization_url: data.authorization_url,
+          paymentMethod,
+          virtual_terminal_name: data.virtual_terminal_name,
+        });
+        setPendingPaystack({
+          order_id: data.order_id,
+          reference: data.reference,
+          amount: data.amount,
+          paymentMethod,
+        });
         return;
       }
       const r = await api.post('/pos/sale', {
@@ -337,7 +442,8 @@ export default function POSPage() {
         items: [...cart],
         total: cartTotal,
         payment_method: paymentMethod,
-        amount_tendered: parseFloat(amountTendered) || cartTotal,
+        payment_ref: data.payment_ref || undefined,
+        amount_tendered: paymentMethod === 'cash' ? (parseFloat(amountTendered) || cartTotal) : cartTotal,
         change: data.change || 0,
         customer_name: customerName || 'Walk-in Customer',
         customer_phone: customerPhone,
@@ -748,7 +854,7 @@ export default function POSPage() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => { if (!processing && !openingPaystack) setShowPayModal(false); }}
+            onClick={() => { if (!cardQrSession) closePayModal(); }}
           />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
@@ -758,23 +864,71 @@ export default function POSPage() {
                 <p className="text-white/60 text-xs font-medium uppercase tracking-widest">Amount Due</p>
                 <p className="text-white font-extrabold text-3xl tabular-nums">GH₵ {cartTotal.toFixed(2)}</p>
               </div>
-              <button onClick={() => { if (!processing && !openingPaystack) setShowPayModal(false); }} className="text-white/50 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+              <button
+                type="button"
+                onClick={() => { if (cardQrSession) cancelCardQr(); else closePayModal(); }}
+                className="text-white/50 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {cardQrSession ? (
+              <div className="p-5 space-y-4 text-center">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {cardQrSession.paymentMethod === 'card_terminal'
+                      ? (cardQrSession.virtual_terminal_name || vtName || 'Paystack Virtual Terminal')
+                      : 'Customer scans to pay by card'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {cardQrSession.paymentMethod === 'card_terminal'
+                      ? 'Customer scans to pay with card or Mobile Money. Payment completes automatically in GEMS.'
+                      : 'Card details stay on the customer\'s phone — staff never enter CVV.'}
+                  </p>
+                </div>
+
+                <div className="flex justify-center py-2">
+                  <PaymentQr value={cardQrSession.authorization_url} size={220} />
+                </div>
+
+                <div className="flex items-center justify-center gap-2 text-sm text-blue-800 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  <span>Waiting for payment…</span>
+                </div>
+
+                <p className="text-[11px] text-gray-400 font-mono break-all">Ref {cardQrSession.reference}</p>
+
+                {error && <div className="bg-red-50 border border-red-100 text-red-700 text-sm px-4 py-2.5 rounded-xl text-left">{error}</div>}
+
+                <div className="flex gap-2">
+                  <button type="button" className="btn-secondary flex-1 text-sm py-2.5" onClick={copyCardPaymentLink}>
+                    <Copy className="w-4 h-4 inline mr-1.5" />
+                    {linkCopied ? 'Copied!' : 'Copy link'}
+                  </button>
+                  <button type="button" className="btn-primary flex-1 text-sm py-2.5" onClick={manualVerifyCard} disabled={processing}>
+                    {processing ? 'Checking…' : 'Check payment'}
+                  </button>
+                </div>
+
+                <button type="button" className="text-xs text-gray-500 hover:text-gray-700 underline" onClick={cancelCardQr}>
+                  Cancel and choose another method
+                </button>
+              </div>
+            ) : (
             <div className="p-5 space-y-4">
               {error && <div className="bg-red-50 border border-red-100 text-red-700 text-sm px-4 py-2.5 rounded-xl">{error}</div>}
 
               {/* Payment method */}
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Payment Method</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {PAYMENT_METHODS.map(m => {
                     const Icon = m.icon;
                     return (
                       <button
                         key={m.value}
+                        type="button"
                         onClick={() => setPaymentMethod(m.value)}
                         className={`flex flex-col items-center gap-2 py-3.5 rounded-xl border-2 text-xs font-bold transition-all ${
                           paymentMethod === m.value
@@ -788,6 +942,20 @@ export default function POSPage() {
                     );
                   })}
                 </div>
+                {paymentMethod === 'card' && (
+                  <p className="text-[11px] text-gray-500 mt-2 leading-snug">Customer scans a QR code and pays on their own phone.</p>
+                )}
+                {paymentMethod === 'card_terminal' && (
+                  <p className="text-[11px] text-gray-500 mt-2 leading-snug">
+                    Paystack Virtual Terminal — customer scans QR for card or MoMo. Sale auto-completes when paid.
+                    {vtConfigured === false && (
+                      <span className="block text-amber-700 mt-1">Terminal not configured. Ask admin to set VT code in Platform Settings.</span>
+                    )}
+                  </p>
+                )}
+                {paymentMethod === 'momo' && (
+                  <p className="text-[11px] text-gray-500 mt-2 leading-snug">Customer completes Mobile Money on the Paystack screen.</p>
+                )}
               </div>
 
               {/* Cash numpad */}
@@ -855,6 +1023,7 @@ export default function POSPage() {
 
               {/* Complete button */}
               <button
+                type="button"
                 onClick={completeSale}
                 disabled={processing || (paymentMethod === 'cash' && (!amountTendered || parseFloat(amountTendered) < cartTotal))}
                 className="w-full bg-green-600 hover:bg-green-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold py-4 rounded-2xl text-base transition-all flex items-center justify-center gap-2.5 shadow-md"
@@ -862,9 +1031,16 @@ export default function POSPage() {
                 <CheckCircle2 className="w-5 h-5" />
                 {processing
                   ? 'Processing…'
-                  : 'Complete Sale'}
+                  : paymentMethod === 'card'
+                    ? 'Generate payment QR'
+                    : paymentMethod === 'momo'
+                      ? 'Pay with Mobile Money'
+                      : paymentMethod === 'card_terminal'
+                        ? 'Start terminal payment'
+                        : 'Complete Sale'}
               </button>
             </div>
+            )}
           </div>
         </div>
       )}
@@ -919,7 +1095,7 @@ export default function POSPage() {
                 </div>
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>Payment Method</span>
-                  <span className="capitalize font-medium">{receipt.payment_method === 'momo' ? 'Mobile Money' : receipt.payment_method}</span>
+                  <span className="font-medium">{paymentMethodLabel(receipt.payment_method)}</span>
                 </div>
                 {receipt.payment_method === 'cash' && (
                   <>

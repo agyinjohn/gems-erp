@@ -57,6 +57,8 @@ export default function PlatformSettingsPage() {
   const [paystackPublic, setPaystackPublic] = useState('');
   const [paystackSecret, setPaystackSecret] = useState('');
   const [webhookUrl, setWebhookUrl]         = useState('');
+  const [vtCode, setVtCode]                 = useState('');
+  const [vtWhatsapp, setVtWhatsapp]         = useState('');
 
   // Alerts
   const [trialWarnDays, setTrialWarnDays]   = useState(3);
@@ -82,6 +84,8 @@ export default function PlatformSettingsPage() {
         setPaystackPublic(s.paystack_public_key ?? '');
         setPaystackSecret(s.paystack_secret_key ?? '');
         setWebhookUrl(s.paystack_webhook_url ?? '');
+        setVtCode(s.paystack_virtual_terminal_code ?? '');
+        setVtWhatsapp(s.paystack_terminal_whatsapp ?? '');
         setTrialWarnDays(s.trial_warning_days ?? 3);
         setExpiryAlertDays(s.expiry_alert_days ?? 7);
         setAuditRetention(s.audit_retention_days ?? 90);
@@ -115,6 +119,7 @@ export default function PlatformSettingsPage() {
         trial_days: trialDays, grace_days: graceDays, currency, auto_renew_default: autoRenew,
         platform_name: platformName, support_email: supportEmail, platform_logo: platformLogo,
         paystack_public_key: paystackPublic, paystack_secret_key: paystackSecret, paystack_webhook_url: webhookUrl,
+        paystack_virtual_terminal_code: vtCode, paystack_terminal_whatsapp: vtWhatsapp,
         trial_warning_days: trialWarnDays, expiry_alert_days: expiryAlertDays,
         audit_retention_days: auditRetention,
         plans: plansPayload, feature_flags: flags,
@@ -260,9 +265,26 @@ export default function PlatformSettingsPage() {
               </div>
               <div>
                 <label className="form-label">Webhook URL</label>
-                <input type="text" className="form-input font-mono text-sm" placeholder="https://api.yourdomain.com/webhooks/paystack"
+                <input type="text" className="form-input font-mono text-sm" placeholder="https://api.yourdomain.com/api/webhooks/paystack"
                   value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)} />
-                <p className="text-xs text-gray-400 mt-1.5">Register this URL in your Paystack dashboard to receive payment events.</p>
+                <p className="text-xs text-gray-400 mt-1.5">Register this URL in your Paystack dashboard to auto-complete POS terminal payments.</p>
+              </div>
+              <div className="border-t border-gray-100 pt-5">
+                <h3 className="font-semibold text-gray-900 mb-1">Paystack Virtual Terminal (in-store)</h3>
+                <p className="text-sm text-gray-400 mb-4">Create a terminal in Paystack Dashboard → Terminals, then paste the code here (e.g. VT_XXXXX).</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="form-label">Virtual Terminal Code</label>
+                    <input type="text" className="form-input font-mono text-sm" placeholder="VT_XXXXX"
+                      value={vtCode} onChange={e => setVtCode(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="form-label">WhatsApp for terminal alerts (optional)</label>
+                    <input type="text" className="form-input text-sm" placeholder="+233XXXXXXXXX"
+                      value={vtWhatsapp} onChange={e => setVtWhatsapp(e.target.value)} />
+                    <p className="text-xs text-gray-400 mt-1.5">Used when creating terminals via Paystack. Cashiers also get WhatsApp confirmations from Paystack.</p>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex items-start gap-3 bg-yellow-50 border border-yellow-100 rounded-xl px-4 py-3 text-sm text-yellow-700 max-w-lg">
