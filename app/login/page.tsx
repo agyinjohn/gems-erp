@@ -12,22 +12,22 @@ import {
 /* ─── constants ──────────────────────────────────────────────────────────── */
 
 const DEMO_ACCOUNTS = [
-  { label: 'Business Owner',    email: 'owner@gems-store.com',   password: 'Admin@1234', color: 'bg-violet-100 text-violet-700' },
-  { label: 'Sales Staff',       email: 'sales@gthink.com',       password: 'Staff@1234', color: 'bg-blue-100 text-blue-700' },
-  { label: 'Inventory',         email: 'warehouse@gthink.com',   password: 'Staff@1234', color: 'bg-cyan-100 text-cyan-700' },
-  { label: 'Accountant',        email: 'accounts@gthink.com',    password: 'Staff@1234', color: 'bg-emerald-100 text-emerald-700' },
-  { label: 'HR Manager',        email: 'hr@gthink.com',          password: 'Staff@1234', color: 'bg-pink-100 text-pink-700' },
-  { label: 'Procurement',       email: 'procurement@gthink.com', password: 'Staff@1234', color: 'bg-orange-100 text-orange-700' },
+  { label: 'Business Owner', email: 'owner@gems-store.com', password: 'Admin@1234', color: 'bg-violet-100 text-violet-700' },
+  { label: 'Sales Staff', email: 'sales@gthink.com', password: 'Staff@1234', color: 'bg-blue-100 text-blue-700' },
+  { label: 'Inventory', email: 'warehouse@gthink.com', password: 'Staff@1234', color: 'bg-cyan-100 text-cyan-700' },
+  { label: 'Accountant', email: 'accounts@gthink.com', password: 'Staff@1234', color: 'bg-emerald-100 text-emerald-700' },
+  { label: 'HR Manager', email: 'hr@gthink.com', password: 'Staff@1234', color: 'bg-pink-100 text-pink-700' },
+  { label: 'Procurement', email: 'procurement@gthink.com', password: 'Staff@1234', color: 'bg-orange-100 text-orange-700' },
 ];
 
 const MODULES = [
-  { icon: Package,      label: 'Stocks & Inventory',  color: 'text-blue-400' },
+  { icon: Package, label: 'Stocks & Inventory', color: 'text-blue-400' },
   { icon: ShoppingCart, label: 'Sales, POS & eCommerce', color: 'text-violet-400' },
-  { icon: Calculator,   label: 'Accounting & Finance', color: 'text-amber-400' },
-  { icon: Shield,       label: 'Payment System',       color: 'text-green-400' },
-  { icon: Truck,        label: 'Procurement',          color: 'text-cyan-400' },
-  { icon: Users,        label: 'HR & Payroll',         color: 'text-pink-400' },
-  { icon: UserCheck,    label: 'CRM',                  color: 'text-emerald-400' },
+  { icon: Calculator, label: 'Accounting & Finance', color: 'text-amber-400' },
+  { icon: Shield, label: 'Payment System', color: 'text-green-400' },
+  { icon: Truck, label: 'Procurement', color: 'text-cyan-400' },
+  { icon: Users, label: 'HR & Payroll', color: 'text-pink-400' },
+  { icon: UserCheck, label: 'CRM', color: 'text-emerald-400' },
 ];
 
 const TESTIMONIALS = [
@@ -44,14 +44,14 @@ const TESTIMONIALS = [
 /* ─── main page ─────────────────────────────────────────────────────────── */
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail]       = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw]     = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
-  const [mounted, setMounted]   = useState(false);
-  const [tIdx, setTIdx]         = useState(0);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [tIdx, setTIdx] = useState(0);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 80);
@@ -145,9 +145,8 @@ export default function LoginPage() {
               <div className="ml-auto flex gap-1">
                 {TESTIMONIALS.map((_, i) => (
                   <button key={i} onClick={() => setTIdx(i)}
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                      i === tIdx ? 'bg-amber-400 w-4' : 'bg-white/20 hover:bg-white/40'
-                    }`}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === tIdx ? 'bg-amber-400 w-4' : 'bg-white/20 hover:bg-white/40'
+                      }`}
                   />
                 ))}
               </div>
@@ -157,8 +156,8 @@ export default function LoginPage() {
           {/* Stats footer */}
           <div className="mt-auto pt-10 flex items-center gap-8 border-t border-white/8">
             {[
-              { value: '100+',  label: 'Businesses' },
-              { value: '12+',   label: 'Modules' },
+              { value: '100+', label: 'Businesses' },
+              { value: '12+', label: 'Modules' },
               { value: '99.9%', label: 'Uptime' },
             ].map(s => (
               <div key={s.label}>
@@ -197,7 +196,7 @@ export default function LoginPage() {
             style={{ transitionDelay: '100ms' }}
           >
             {/* Desktop header — hidden on mobile (shown in top bar) */}
-            <div className="hidden lg:block mb-8">
+            {/* <div className="hidden lg:block mb-8">
               <Link href="/" className="inline-flex items-center gap-2.5 group mb-8">
                 <div className="w-10 h-10 rounded-xl bg-[#0D3B6E] flex items-center justify-center group-hover:bg-[#134a82] transition-colors">
                   <Package className="w-5 h-5 text-white" />
@@ -207,11 +206,11 @@ export default function LoginPage() {
                   <div className="text-[10px] text-gray-400 font-medium tracking-wide mt-0.5">GTHINK Enterprise Management System</div>
                 </div>
               </Link>
-            </div>
+            </div> */}
 
             {/* Heading */}
             <div className="mb-7 lg:mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Welcome back</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Welcome</h2>
               <p className="text-gray-500 text-sm mt-1.5 leading-relaxed">
                 Sign in to access your business workspace.
               </p>
@@ -231,7 +230,7 @@ export default function LoginPage() {
               {/* Email */}
               <div className="space-y-1.5">
                 <label htmlFor="email" className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Email address
+                  Email 
                 </label>
                 <div className="relative group">
                   <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#0D3B6E] transition-colors pointer-events-none" />
