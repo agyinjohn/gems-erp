@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth';
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, Package,
   Banknote, CreditCard, Smartphone, X, PrinterIcon, CheckCircle2, Barcode, RotateCcw,
-  Clock, FileText, Loader2, Nfc, Monitor, Maximize2, Minimize2, History,
+  Clock, FileText, Loader2, Nfc, Monitor, Maximize2, Minimize2,
 } from 'lucide-react';
 
 interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; }
@@ -525,63 +525,68 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
           ? 'h-full'
           : 'h-[calc(100dvh-8.5rem)] min-h-[28rem] -mx-4 sm:-mx-6 -mb-4 sm:-mb-6'
       }`}>
-      <div className={`relative z-20 shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 bg-white/80 ${
-        standalone ? 'px-3 py-1.5' : 'px-4 sm:px-6 py-2'
+      <div className={`relative z-20 shrink-0 border-b border-gray-100 bg-white/80 ${
+        standalone ? 'px-3 py-2' : 'px-4 sm:px-6 py-2'
       }`}>
-        <div className="flex items-center gap-2 text-sm min-w-0">
-          {standalone && (
-            <span className="font-bold text-[#0D3B6E] truncate max-w-[140px] sm:max-w-none">
-              {tenant?.business_name || 'POS'}
-            </span>
-          )}
-          <Clock className="w-4 h-4 text-gray-400 shrink-0" />
-          {currentShift ? (
-            <span className="text-gray-700">
-              Shift <span className="font-mono font-semibold">{currentShift.shift_number}</span>
-              {currentShift.cashier_name && (
-                <span className="text-gray-500 ml-1">· {currentShift.cashier_name}</span>
-              )}
-              <span className="text-gray-400 ml-2">· {currentShift.sales_count || 0} sales · GH₵ {parseFloat(currentShift.sales_total || 0).toFixed(2)}</span>
-            </span>
-          ) : (
-            <span className="text-amber-700 font-medium">No open shift — open one to track cash drawer</span>
-          )}
-        </div>
-        <div className="flex gap-2 flex-wrap justify-end">
-          {standalone ? (
-            <Link
-              href="/pos"
-              className="btn-secondary text-xs py-1.5 inline-flex items-center gap-1"
-              title="Return to main app layout"
-            >
-              <Minimize2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Exit fullscreen</span>
-            </Link>
-          ) : (
-            <Link
-              href="/pos/terminal"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary text-xs py-1.5 inline-flex items-center gap-1"
-              title="Open POS in fullscreen window"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Fullscreen</span>
-            </Link>
-          )}
-          {!currentShift ? (
-            <button className="btn-secondary text-xs py-1.5" onClick={() => { setShiftMessage(''); setShowOpenShift(true); }}>Open Shift</button>
-          ) : (
-            <button className="btn-secondary text-xs py-1.5" onClick={() => { setShiftMessage(''); setActualCash(String(currentShift.expected_cash ?? currentShift.opening_float ?? '')); setShowCloseShift(true); }}>Close Shift / Z-Report</button>
-          )}
-          <Link href="/pos/shifts" className="btn-secondary text-xs py-1.5 inline-flex items-center gap-1">
-            <History className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Shift history</span>
-          </Link>
-          <button className="btn-secondary text-xs py-1.5" onClick={openCustomerDisplay}>
-            <Monitor className="w-3.5 h-3.5 inline mr-1" />Customer screen
-          </button>
-          <button className="btn-secondary text-xs py-1.5" onClick={() => { setRefundMessage(''); setShowRefundModal(true); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" />Refund</button>
+        <div className="flex items-center gap-3 min-h-9">
+          <div className="flex items-center gap-2 text-sm min-w-0 flex-1">
+            {standalone && (
+              <span className="font-bold text-[#0D3B6E] truncate max-w-[100px] sm:max-w-[160px] shrink-0">
+                {tenant?.business_name || 'POS'}
+              </span>
+            )}
+            <Clock className="w-4 h-4 text-gray-400 shrink-0" />
+            {currentShift ? (
+              <span className="text-gray-700 truncate">
+                <span className="font-mono font-semibold">{currentShift.shift_number}</span>
+                {currentShift.cashier_name && (
+                  <span className="text-gray-500"> · {currentShift.cashier_name}</span>
+                )}
+                <span className="text-gray-400 hidden sm:inline">
+                  {' '}· {currentShift.sales_count || 0} sales · GH₵ {parseFloat(currentShift.sales_total || 0).toFixed(2)}
+                </span>
+              </span>
+            ) : (
+              <span className="text-amber-700 font-medium truncate">No open shift</span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0 overflow-x-auto max-w-[min(100%,28rem)] sm:max-w-none scrollbar-thin">
+            {!currentShift ? (
+              <button className="btn-secondary text-xs py-1.5 whitespace-nowrap" onClick={() => { setShiftMessage(''); setShowOpenShift(true); }}>Open Shift</button>
+            ) : (
+              <button className="btn-secondary text-xs py-1.5 whitespace-nowrap" onClick={() => { setShiftMessage(''); setActualCash(String(currentShift.expected_cash ?? currentShift.opening_float ?? '')); setShowCloseShift(true); }}>Close Shift</button>
+            )}
+            {standalone ? (
+              <Link
+                href="/pos"
+                className="btn-secondary text-xs py-1.5 inline-flex items-center gap-1 whitespace-nowrap"
+                title="Return to main app layout"
+              >
+                <Minimize2 className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Exit</span>
+              </Link>
+            ) : (
+              <Link
+                href="/pos/terminal"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-xs py-1.5 inline-flex items-center gap-1 whitespace-nowrap"
+                title="Open POS in fullscreen window"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Fullscreen</span>
+              </Link>
+            )}
+            <button type="button" className="btn-secondary text-xs py-1.5 inline-flex items-center gap-1 whitespace-nowrap" onClick={openCustomerDisplay}>
+              <Monitor className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Customer screen</span>
+            </button>
+            <button type="button" className="btn-secondary text-xs py-1.5 inline-flex items-center gap-1 whitespace-nowrap" onClick={() => { setRefundMessage(''); setShowRefundModal(true); }}>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Refund</span>
+            </button>
+          </div>
         </div>
       </div>
 
