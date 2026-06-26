@@ -18,6 +18,13 @@ interface QueueItem {
   expires_at?: string | null;
 }
 
+interface PaidFlash {
+  order_id: string;
+  order_number?: string;
+  customer_name: string;
+  amount: number;
+}
+
 type ViewState = 'idle' | 'paying' | 'success';
 
 const ROTATE_MS = 10_000;
@@ -28,9 +35,9 @@ export default function CustomerDisplayPage() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [view, setView] = useState<ViewState>('idle');
-  const prevQueueLen = useRef(0);
+  const [paidFlash, setPaidFlash] = useState<PaidFlash | null>(null);
+  const shownPaidRef = useRef<Set<string>>(new Set());
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastShownOrderId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
@@ -43,43 +50,39 @@ export default function CustomerDisplayPage() {
     try {
       const r = await api.get('/pos/display/queue');
       const items: QueueItem[] = r.data.data || [];
+      const flash: PaidFlash | null = r.data.paid_flash || null;
 
-      if (items.length === 0) {
-        if (prevQueueLen.current > 0 && view === 'paying') {
-          setView('success');
-          successTimer.current = setTimeout(() => {
-            setView('idle');
-            setActiveIndex(0);
-            lastShownOrderId.current = null;
-          }, 3500);
-        } else if (view !== 'success') {
-          setView('idle');
-        }
-        prevQueueLen.current = 0;
-        setQueue([]);
+      setQueue(items);
+
+      if (flash?.order_id && !shownPaidRef.current.has(flash.order_id)) {
+        shownPaidRef.current.add(flash.order_id);
+        setPaidFlash(flash);
+        setView('success');
+        if (successTimer.current) clearTimeout(successTimer.current);
+        successTimer.current = setTimeout(() => {
+          setView(items.length > 0 ? 'paying' : 'idle');
+          setPaidFlash(null);
+        }, 3500);
         return;
       }
 
-      prevQueueLen.current = items.length;
+      if (items.length === 0) {
+        if (view !== 'success') setView('idle');
+        return;
+      }
 
       const focusIdx = items.findIndex((i) => i.is_focused);
-      setQueue(items);
-
       if (focusIdx >= 0) {
         setActiveIndex(focusIdx);
-      } else if (activeIndex >= items.length) {
-        setActiveIndex(0);
+      } else {
+        setActiveIndex((i) => (i >= items.length ? 0 : i));
       }
 
-      setView('paying');
-      if (successTimer.current) {
-        clearTimeout(successTimer.current);
-        successTimer.current = null;
-      }
+      if (view !== 'success') setView('paying');
     } catch {
       /* keep last view */
     }
-  }, [view, activeIndex]);
+  }, [view]);
 
   useEffect(() => {
     if (!user) return;
@@ -114,10 +117,6 @@ export default function CustomerDisplayPage() {
   const storeName = tenant?.business_name || 'Welcome';
   const current = queue[activeIndex] || null;
 
-  if (current && current.order_id !== lastShownOrderId.current) {
-    lastShownOrderId.current = current.order_id;
-  }
-
   return (
     <div className="min-h-dvh bg-gradient-to-b from-[#0D3B6E] to-[#1A5294] flex flex-col items-center justify-center p-6 text-center select-none">
       {view === 'idle' && (
@@ -150,13 +149,14 @@ export default function CustomerDisplayPage() {
         </div>
       )}
 
-      {view === 'success' && (
+      {view === 'success' && paidFlash && (
         <div>
           <div className="w-24 h-24 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
             <CheckCircle2 className="w-14 h-14 text-white" />
           </div>
           <p className="text-white text-3xl font-extrabold">Payment received</p>
-          <p className="text-white/70 text-lg mt-2">Thank you!</p>
+          <p className="text-white/80 text-lg mt-2">{paidFlash.customer_name}</p>
+          <p className="text-white/60 text-base mt-1">GH₵ {Number(paidFlash.amount).toFixed(2)}</p>
         </div>
       )}
     </div>

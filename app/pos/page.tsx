@@ -256,6 +256,10 @@ export default function POSPage() {
     const r = await api.post('/pos/paystack/verify', { reference, order_id });
     const data = r.data.data;
 
+    if (r.data.already_fulfilled) {
+      return;
+    }
+
     if (opts?.fromCart && opts.saleItems?.length) {
       setReceipt({
         order_number: data.order_number,
