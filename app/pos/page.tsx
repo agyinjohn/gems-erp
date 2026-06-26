@@ -80,6 +80,7 @@ export default function POSPage() {
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [displayingId, setDisplayingId] = useState<string | null>(null);
+  const [pendingBarOpen, setPendingBarOpen] = useState(false);
   const notifiedCompleteRef = useRef<Set<string>>(new Set());
   const [openingPaystack, setOpeningPaystack] = useState(false);
 
@@ -538,26 +539,38 @@ export default function POSPage() {
       </div>
 
       {pendingPayments.length > 0 && (
-        <div className="relative z-20 shrink-0 border-b border-amber-200 bg-amber-50 px-4 sm:px-6 py-2">
-          <div className="flex items-center gap-2 mb-2">
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 shrink-0" />
-            <span className="text-xs font-bold text-amber-900 uppercase tracking-wide">
-              {pendingPayments.length} payment{pendingPayments.length !== 1 ? 's' : ''} waiting — you can keep serving
+        <div className="relative z-20 shrink-0 border-b border-amber-100 bg-amber-50/70 px-3 sm:px-4 py-1">
+          <button
+            type="button"
+            onClick={() => setPendingBarOpen(o => !o)}
+            className="flex items-center gap-1.5 w-full text-left min-h-[26px]"
+          >
+            <Loader2 className="w-3 h-3 animate-spin text-amber-600 shrink-0" />
+            <span className="text-[11px] font-semibold text-amber-900">
+              {pendingPayments.length} pending
             </span>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-            {pendingPayments.map(p => (
-              <PendingPaymentChip
-                key={p.order_id}
-                payment={p}
-                verifying={verifyingId === p.order_id}
-                displaying={displayingId === p.order_id}
-                onShowDisplay={() => showPendingOnDisplay(p)}
-                onVerify={() => verifyOnePending(p)}
-                onCancel={() => cancelOnePending(p)}
-              />
-            ))}
-          </div>
+            <span className="text-[10px] text-amber-700/80 truncate hidden sm:inline">
+              — keep serving; tap to {pendingBarOpen ? 'hide' : 'show'}
+            </span>
+            <span className="ml-auto text-[10px] text-amber-600 font-medium shrink-0">
+              {pendingBarOpen ? '▲' : '▼'}
+            </span>
+          </button>
+          {pendingBarOpen && (
+            <div className="flex gap-1.5 overflow-x-auto pb-1 pt-0.5 scrollbar-thin">
+              {pendingPayments.map(p => (
+                <PendingPaymentChip
+                  key={p.order_id}
+                  payment={p}
+                  verifying={verifyingId === p.order_id}
+                  displaying={displayingId === p.order_id}
+                  onShowDisplay={() => showPendingOnDisplay(p)}
+                  onVerify={() => verifyOnePending(p)}
+                  onCancel={() => cancelOnePending(p)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
