@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth';
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, Package,
   Banknote, CreditCard, Smartphone, X, PrinterIcon, CheckCircle2, Barcode, RotateCcw,
-  Clock, FileText, Loader2, Nfc, Monitor, Maximize2, Minimize2,
+  Clock, FileText, Loader2, Nfc, Monitor, Maximize2, Minimize2, History,
 } from 'lucide-react';
 
 interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; }
@@ -564,6 +564,10 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
           ) : (
             <button className="btn-secondary text-xs py-1.5" onClick={() => { setShiftMessage(''); setActualCash(String(currentShift.expected_cash ?? currentShift.opening_float ?? '')); setShowCloseShift(true); }}>Close Shift / Z-Report</button>
           )}
+          <Link href="/pos/shifts" className="btn-secondary text-xs py-1.5 inline-flex items-center gap-1">
+            <History className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Shift history</span>
+          </Link>
           <button className="btn-secondary text-xs py-1.5" onClick={openCustomerDisplay}>
             <Monitor className="w-3.5 h-3.5 inline mr-1" />Customer screen
           </button>

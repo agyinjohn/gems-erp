@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
   X, Monitor, TrendingUp, CreditCard, ChevronDown,
-  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen,
+  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History,
 } from 'lucide-react';
 import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 
@@ -49,6 +49,7 @@ const navGroups = [
     label: 'Sales',
     items: [
       { href: '/pos',    label: 'POS Terminal', icon: Monitor,      roles: ['sales_staff'], permission: 'pos.view' },
+      { href: '/pos/shifts', label: 'Shift History', icon: History, roles: ['sales_staff'], permission: 'pos.view' },
       { href: '/orders', label: 'Orders',       icon: ShoppingCart, roles: ['sales_staff'], permission: 'orders.view' },
       { href: '/crm',    label: 'Customers',    icon: UserCheck,    roles: ['sales_staff'], permission: 'crm.view' },
     ],
@@ -63,6 +64,7 @@ const navGroups = [
     label: 'Operations',
     items: [
       { href: '/pos',         label: 'POS',         icon: Monitor,      roles: ['business_owner','branch_manager'],                    permission: 'pos.view' },
+      { href: '/pos/shifts',  label: 'Shift History', icon: History,    roles: ['business_owner','branch_manager'],                    permission: 'pos.view' },
       { href: '/orders',      label: 'Sales',       icon: ShoppingCart, roles: ['business_owner','branch_manager'],                    permission: 'orders.view' },
       { href: '/inventory',   label: 'Inventory',   icon: Package,      roles: ['business_owner','branch_manager','warehouse_staff'],  permission: 'inventory.view' },
       { href: '/assets',      label: 'Assets',      icon: Wrench,       roles: ['business_owner','branch_manager','warehouse_staff'],  permission: 'inventory.view' },
