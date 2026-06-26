@@ -946,18 +946,18 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
 
       {/* ══ Payment Modal ══ */}
       {showPayModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-2 sm:p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={closePayModal}
           />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden">
 
             {/* Header */}
-            <div className="bg-[#0D3B6E] px-6 py-4 flex items-center justify-between">
+            <div className="bg-[#0D3B6E] px-4 sm:px-6 py-3 flex items-center justify-between shrink-0">
               <div>
-                <p className="text-white/60 text-xs font-medium uppercase tracking-widest">Amount Due</p>
-                <p className="text-white font-extrabold text-3xl tabular-nums">GH₵ {cartTotal.toFixed(2)}</p>
+                <p className="text-white/60 text-[10px] sm:text-xs font-medium uppercase tracking-widest">Amount Due</p>
+                <p className="text-white font-extrabold text-2xl sm:text-3xl tabular-nums">GH₵ {cartTotal.toFixed(2)}</p>
               </div>
               <button
                 type="button"
@@ -968,13 +968,13 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-5 space-y-3">
               {error && <div className="bg-red-50 border border-red-100 text-red-700 text-sm px-4 py-2.5 rounded-xl">{error}</div>}
 
               {/* Payment method */}
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Payment Method</p>
-                <div className="grid grid-cols-2 gap-2">
+                <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Payment Method</p>
+                <div className="grid grid-cols-4 sm:grid-cols-2 gap-1.5 sm:gap-2">
                   {PAYMENT_METHODS.map(m => {
                     const Icon = m.icon;
                     return (
@@ -982,60 +982,59 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                         key={m.value}
                         type="button"
                         onClick={() => setPaymentMethod(m.value)}
-                        className={`flex flex-col items-center gap-2 py-3.5 rounded-xl border-2 text-xs font-bold transition-all ${
+                        className={`flex flex-col items-center gap-1 sm:gap-2 py-2 sm:py-3 rounded-xl border-2 text-[10px] sm:text-xs font-bold transition-all ${
                           paymentMethod === m.value
                             ? 'border-[#0D3B6E] bg-blue-50 text-[#0D3B6E]'
                             : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
                         }`}
                       >
-                        <Icon className="w-5 h-5" />
-                        {m.label}
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="leading-tight text-center">{m.label}</span>
                       </button>
                     );
                   })}
                 </div>
                 {paymentMethod === 'card' && (
-                  <p className="text-[11px] text-gray-500 mt-2 leading-snug">
-                    QR appears on the customer screen. Open it via <strong>Customer screen</strong> in the toolbar.
+                  <p className="text-[11px] text-gray-500 mt-1.5 leading-snug">
+                    QR on customer screen — use <strong>Customer screen</strong> in the toolbar.
                   </p>
                 )}
                 {paymentMethod === 'card_terminal' && (
-                  <p className="text-[11px] text-gray-500 mt-2 leading-snug">
-                    Paystack Virtual Terminal — QR on customer screen. You can serve the next customer while payment completes.
+                  <p className="text-[11px] text-gray-500 mt-1.5 leading-snug">
+                    QR on customer screen. Serve next customer while payment completes.
                     {vtConfigured === false && (
-                      <span className="block text-amber-700 mt-1">Terminal not configured. Ask admin to set VT code in Platform Settings.</span>
+                      <span className="block text-amber-700 mt-1">VT not configured in Platform Settings.</span>
                     )}
                   </p>
                 )}
                 {paymentMethod === 'momo' && (
-                  <p className="text-[11px] text-gray-500 mt-2 leading-snug">Customer completes Mobile Money on the Paystack screen.</p>
+                  <p className="text-[11px] text-gray-500 mt-1.5 leading-snug">Customer pays via Paystack MoMo.</p>
                 )}
               </div>
 
               {/* Cash numpad */}
               {paymentMethod === 'cash' && (
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Amount Tendered</p>
-                  {/* Display */}
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-right mb-3">
-                    <p className="text-2xl font-extrabold text-gray-900 tabular-nums">
+                  <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Amount Tendered</p>
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-right mb-2">
+                    <p className="text-xl sm:text-2xl font-extrabold text-gray-900 tabular-nums">
                       GH₵ {amountTendered || '0.00'}
                     </p>
                     {parseFloat(amountTendered) >= cartTotal && (
-                      <p className="text-sm font-semibold text-green-600 mt-0.5">
+                      <p className="text-xs sm:text-sm font-semibold text-green-600 mt-0.5">
                         Change: GH₵ {(parseFloat(amountTendered) - cartTotal).toFixed(2)}
                       </p>
                     )}
                   </div>
-                  {/* Quick amounts */}
-                  <div className="grid grid-cols-4 gap-1.5 mb-3">
+                  <div className="grid grid-cols-4 gap-1 mb-2">
                     {[cartTotal, Math.ceil(cartTotal / 10) * 10, Math.ceil(cartTotal / 50) * 50, Math.ceil(cartTotal / 100) * 100]
                       .filter((v, i, a) => a.indexOf(v) === i)
                       .map(amt => (
                         <button
                           key={amt}
+                          type="button"
                           onClick={() => setAmountTendered(amt.toFixed(2))}
-                          className={`py-2 rounded-xl text-xs font-bold border-2 transition-all ${
+                          className={`py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
                             parseFloat(amountTendered) === amt
                               ? 'border-[#0D3B6E] bg-blue-50 text-[#0D3B6E]'
                               : 'border-gray-200 text-gray-600 hover:border-blue-300'
@@ -1045,11 +1044,11 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                         </button>
                       ))}
                   </div>
-                  {/* Numpad */}
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-3 gap-1">
                     {['1','2','3','4','5','6','7','8','9','.','0','⌫'].map(k => (
                       <button
                         key={k}
+                        type="button"
                         onClick={() => {
                           if (k === '⌫') {
                             setAmountTendered(p => p.slice(0, -1) || '');
@@ -1062,7 +1061,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                             setAmountTendered(next);
                           }
                         }}
-                        className={`py-3.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                        className={`py-2 sm:py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95 ${
                           k === '⌫'
                             ? 'bg-red-50 text-red-500 hover:bg-red-100'
                             : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
@@ -1074,13 +1073,15 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Complete button */}
+            {/* Complete button — pinned below scroll area */}
+            <div className="shrink-0 border-t border-gray-100 bg-white p-4 pt-3">
               <button
                 type="button"
                 onClick={completeSale}
                 disabled={processing || (paymentMethod === 'cash' && (!amountTendered || parseFloat(amountTendered) < cartTotal))}
-                className="w-full bg-green-600 hover:bg-green-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold py-4 rounded-2xl text-base transition-all flex items-center justify-center gap-2.5 shadow-md"
+                className="w-full bg-green-600 hover:bg-green-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold py-3 sm:py-3.5 rounded-xl text-sm sm:text-base transition-all flex items-center justify-center gap-2 shadow-md"
               >
                 <CheckCircle2 className="w-5 h-5" />
                 {processing
