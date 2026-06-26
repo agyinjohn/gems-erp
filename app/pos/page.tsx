@@ -3,11 +3,12 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import api from '@/lib/api';
-import PaymentQr from '@/components/pos/PaymentQr';
+import PendingPaymentChip, { PendingPayment } from '@/components/pos/PendingPaymentChip';
+import { toast } from '@/components/ui';
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, Package,
   Banknote, CreditCard, Smartphone, X, PrinterIcon, CheckCircle2, Barcode, RotateCcw,
-  Clock, FileText, Copy, Loader2, Nfc,
+  Clock, FileText, Loader2, Nfc, Monitor,
 } from 'lucide-react';
 
 interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; }
@@ -20,7 +21,7 @@ const PAYMENT_METHODS = [
   { value: 'card',          label: 'Card (QR)',       icon: CreditCard },
   { value: 'card_terminal', label: 'Paystack Terminal', icon: Nfc },
 ];
-
+ 
 function paymentMethodLabel(method: string) {
   if (method === 'momo') return 'Mobile Money';
   if (method === 'card') return 'Card (QR)';
@@ -76,15 +77,11 @@ export default function POSPage() {
   const [zReport, setZReport] = useState<any>(null);
   const [shiftProcessing, setShiftProcessing] = useState(false);
   const [shiftMessage, setShiftMessage] = useState('');
-  const [pendingPaystack, setPendingPaystack] = useState<{
-    order_id: string; reference: string; amount: number; paymentMethod: string;
-  } | null>(null);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [displayingId, setDisplayingId] = useState<string | null>(null);
+  const notifiedCompleteRef = useRef<Set<string>>(new Set());
   const [openingPaystack, setOpeningPaystack] = useState(false);
-  const [cardQrSession, setCardQrSession] = useState<{
-    order_id: string; reference: string; amount: number; authorization_url: string;
-    paymentMethod: string; virtual_terminal_name?: string | null;
-  } | null>(null);
-  const [linkCopied, setLinkCopied] = useState(false);
 
   const loadShift = useCallback(async () => {
     try {
@@ -126,6 +123,38 @@ export default function POSPage() {
   }, []);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
+
+  const loadPendingPayments = useCallback(async () => {
+    try {
+      const r = await api.get('/pos/paystack/pending');
+      setPendingPayments(r.data.data || []);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    loadPendingPayments();
+    const tick = async () => {
+      try {
+        const r = await api.get('/pos/paystack/pending');
+        const list: PendingPayment[] = r.data.data || [];
+        setPendingPayments(list);
+        for (const p of list) {
+          try {
+            await api.post('/pos/paystack/verify', { reference: p.reference, order_id: p.order_id });
+            if (!notifiedCompleteRef.current.has(p.order_id)) {
+              notifiedCompleteRef.current.add(p.order_id);
+              toast.success(`Payment received — ${p.customer_name} · GH₵ ${Number(p.total).toFixed(2)} (${p.order_number})`);
+            }
+            loadProducts();
+            loadShift();
+          } catch { /* still pending */ }
+        }
+        await loadPendingPayments();
+      } catch { /* ignore */ }
+    };
+    const id = setInterval(() => { void tick(); }, 3000);
+    return () => clearInterval(id);
+  }, [loadPendingPayments, loadProducts, loadShift]);
 
   // Barcode scan handler
   const handleBarcodeScan = useCallback((sku: string) => {
@@ -190,54 +219,85 @@ export default function POSPage() {
   const openPayModal = () => {
     setError('');
     setAmountTendered(cartTotal.toFixed(2));
-    setCardQrSession(null);
-    setLinkCopied(false);
     setShowPayModal(true);
   };
 
   const closePayModal = () => {
     if (processing || openingPaystack) return;
     setShowPayModal(false);
-    setCardQrSession(null);
-    setLinkCopied(false);
   };
 
-  const finalizePaystackOrder = useCallback(async (order_id: string, reference: string, method: string) => {
+  const finalizePaystackOrder = useCallback(async (
+    order_id: string,
+    reference: string,
+    method: string,
+    opts?: { fromCart?: boolean; saleItems?: CartItem[]; saleTotal?: number; saleCustomerName?: string; saleCustomerPhone?: string },
+  ) => {
     const r = await api.post('/pos/paystack/verify', { reference, order_id });
     const data = r.data.data;
-    setReceipt({
-      order_number: data.order_number,
-      items: [...cart],
-      total: cartTotal,
-      payment_method: method,
-      payment_ref: data.payment_ref || reference,
-      amount_tendered: cartTotal,
-      change: 0,
-      customer_name: customerName || 'Walk-in Customer',
-      customer_phone: customerPhone,
-      createdAt: new Date().toISOString(),
-    });
-    setPendingPaystack(null);
-    setCardQrSession(null);
+
+    if (opts?.fromCart && opts.saleItems?.length) {
+      setReceipt({
+        order_number: data.order_number,
+        items: opts.saleItems,
+        total: opts.saleTotal ?? data.total,
+        payment_method: method,
+        payment_ref: data.payment_ref || reference,
+        amount_tendered: opts.saleTotal ?? data.total,
+        change: 0,
+        customer_name: opts.saleCustomerName || 'Walk-in Customer',
+        customer_phone: opts.saleCustomerPhone || '',
+        createdAt: new Date().toISOString(),
+      });
+      clearCart();
+    } else if (!notifiedCompleteRef.current.has(order_id)) {
+      notifiedCompleteRef.current.add(order_id);
+      toast.success(`Payment received — ${data.customer_name || 'Customer'} · GH₵ ${Number(data.total).toFixed(2)} (${data.order_number})`);
+    }
+
     setShowPayModal(false);
-    clearCart();
     loadProducts();
     loadShift();
-  }, [cart, cartTotal, customerName, customerPhone, loadProducts, loadShift]);
+    loadPendingPayments();
+  }, [loadProducts, loadShift, loadPendingPayments]);
 
-  useEffect(() => {
-    if (!cardQrSession || !showPayModal) return;
-    let active = true;
-    const poll = async () => {
-      try {
-        await finalizePaystackOrder(cardQrSession.order_id, cardQrSession.reference, cardQrSession.paymentMethod);
-      } catch {
-        /* payment not completed yet */
-      }
-    };
-    const id = setInterval(() => { if (active) void poll(); }, 3000);
-    return () => { active = false; clearInterval(id); };
-  }, [cardQrSession, showPayModal, finalizePaystackOrder]);
+  const verifyOnePending = async (p: PendingPayment) => {
+    setVerifyingId(p.order_id);
+    try {
+      await finalizePaystackOrder(p.order_id, p.reference, p.payment_method);
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Payment not received yet.');
+    } finally {
+      setVerifyingId(null);
+    }
+  };
+
+  const showPendingOnDisplay = async (p: PendingPayment) => {
+    setDisplayingId(p.order_id);
+    try {
+      await api.post('/pos/display/show', { order_id: p.order_id });
+      toast.info(`Showing ${p.customer_name} on customer screen`);
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not update customer screen.');
+    } finally {
+      setDisplayingId(null);
+    }
+  };
+
+  const cancelOnePending = async (p: PendingPayment) => {
+    if (!confirm(`Cancel pending payment for ${p.customer_name}?`)) return;
+    try {
+      await api.post('/pos/paystack/cancel', { order_id: p.order_id });
+      toast.info(`Cancelled ${p.order_number}`);
+      loadPendingPayments();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not cancel.');
+    }
+  };
+
+  const openCustomerDisplay = () => {
+    window.open('/pos/customer-display', 'gems-customer-display', 'noopener,noreferrer');
+  };
 
   const openShift = async () => {
     setShiftProcessing(true); setShiftMessage('');
@@ -284,13 +344,25 @@ export default function POSPage() {
     setOpeningPaystack(true);
 
     return new Promise<void>((resolve, reject) => {
+      const saleItems = [...cart];
+      const saleTotal = cartTotal;
+      const saleCustomerName = customerName || 'Walk-in Customer';
+      const saleCustomerPhone = customerPhone;
+
       const verifyAndComplete = async (paymentReference: string) => {
         try {
-          await finalizePaystackOrder(order_id, paymentReference, 'momo');
+          await finalizePaystackOrder(order_id, paymentReference, 'momo', {
+            fromCart: true,
+            saleItems,
+            saleTotal,
+            saleCustomerName,
+            saleCustomerPhone,
+          });
           resolve();
         } catch (e: any) {
-          setPendingPaystack({ order_id, reference, amount, paymentMethod: 'momo' });
-          reject(new Error(e.response?.data?.message || 'Payment verification failed. Try Retry verify.'));
+          toast.info(`MoMo pending — ${saleCustomerName} · GH₵ ${Number(amount).toFixed(2)}`);
+          loadPendingPayments();
+          reject(new Error(e.response?.data?.message || 'Payment verification failed.'));
         }
       };
 
@@ -298,7 +370,8 @@ export default function POSPage() {
         setOpeningPaystack(false);
 
         const onClose = function () {
-          setPendingPaystack({ order_id, reference, amount, paymentMethod: 'momo' });
+          toast.info(`MoMo pending — ${saleCustomerName} · GH₵ ${Number(amount).toFixed(2)}`);
+          loadPendingPayments();
           resolve();
         };
         const callback = function (response: { reference: string }) {
@@ -331,59 +404,6 @@ export default function POSPage() {
     });
   };
 
-  const copyCardPaymentLink = async () => {
-    if (!cardQrSession?.authorization_url) return;
-    try {
-      await navigator.clipboard.writeText(cardQrSession.authorization_url);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch {
-      setError('Could not copy link. Ask the customer to scan the QR code.');
-    }
-  };
-
-  const manualVerifyCard = async () => {
-    if (!cardQrSession) return;
-    setProcessing(true);
-    setError('');
-    try {
-      await finalizePaystackOrder(cardQrSession.order_id, cardQrSession.reference, cardQrSession.paymentMethod);
-    } catch (e: any) {
-      setError(e.response?.data?.message || 'Payment not received yet. Ask the customer to complete payment on their phone.');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const cancelCardQr = () => {
-    if (!cardQrSession) return;
-    setPendingPaystack({
-      order_id: cardQrSession.order_id,
-      reference: cardQrSession.reference,
-      amount: cardQrSession.amount,
-      paymentMethod: 'card',
-    });
-    setCardQrSession(null);
-    setLinkCopied(false);
-  };
-
-  const retryPaystackVerify = async () => {
-    if (!pendingPaystack) return;
-    setProcessing(true);
-    setError('');
-    try {
-      await finalizePaystackOrder(
-        pendingPaystack.order_id,
-        pendingPaystack.reference,
-        pendingPaystack.paymentMethod,
-      );
-    } catch (e: any) {
-      setError(e.response?.data?.message || 'Verification still failed. Contact support with the payment reference.');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
   const completeSale = async () => {
     if (cart.length === 0) return;
     if (paymentMethod === 'cash' && parseFloat(amountTendered) < cartTotal) {
@@ -403,30 +423,21 @@ export default function POSPage() {
         return;
       }
       if (paymentMethod === 'card' || paymentMethod === 'card_terminal') {
+        const saleCustomerName = customerName || 'Walk-in Customer';
         const initRes = await api.post('/pos/paystack/init', {
           items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
           payment_method: paymentMethod,
-          customer_name: customerName || 'Walk-in Customer',
+          customer_name: saleCustomerName,
           customer_phone: customerPhone,
         });
         const data = initRes.data.data;
         if (!data.authorization_url) {
           throw new Error('Could not generate payment link.');
         }
-        setCardQrSession({
-          order_id: data.order_id,
-          reference: data.reference,
-          amount: data.amount,
-          authorization_url: data.authorization_url,
-          paymentMethod,
-          virtual_terminal_name: data.virtual_terminal_name,
-        });
-        setPendingPaystack({
-          order_id: data.order_id,
-          reference: data.reference,
-          amount: data.amount,
-          paymentMethod,
-        });
+        toast.info(`GH₵ ${Number(data.amount).toFixed(2)} on customer screen — ${saleCustomerName}`);
+        clearCart();
+        setShowPayModal(false);
+        loadPendingPayments();
         return;
       }
       const r = await api.post('/pos/sale', {
@@ -495,9 +506,36 @@ export default function POSPage() {
           ) : (
             <button className="btn-secondary text-xs py-1.5" onClick={() => { setShiftMessage(''); setActualCash(String(currentShift.expected_cash ?? currentShift.opening_float ?? '')); setShowCloseShift(true); }}>Close Shift / Z-Report</button>
           )}
+          <button className="btn-secondary text-xs py-1.5" onClick={openCustomerDisplay}>
+            <Monitor className="w-3.5 h-3.5 inline mr-1" />Customer screen
+          </button>
           <button className="btn-secondary text-xs py-1.5" onClick={() => { setRefundMessage(''); setShowRefundModal(true); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" />Refund</button>
         </div>
       </div>
+
+      {pendingPayments.length > 0 && (
+        <div className="relative z-20 shrink-0 border-b border-amber-200 bg-amber-50 px-4 sm:px-6 py-2">
+          <div className="flex items-center gap-2 mb-2">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 shrink-0" />
+            <span className="text-xs font-bold text-amber-900 uppercase tracking-wide">
+              {pendingPayments.length} payment{pendingPayments.length !== 1 ? 's' : ''} waiting — you can keep serving
+            </span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+            {pendingPayments.map(p => (
+              <PendingPaymentChip
+                key={p.order_id}
+                payment={p}
+                verifying={verifyingId === p.order_id}
+                displaying={displayingId === p.order_id}
+                onShowDisplay={() => showPendingOnDisplay(p)}
+                onVerify={() => verifyOnePending(p)}
+                onCancel={() => cancelOnePending(p)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         @media print {
@@ -804,18 +842,6 @@ export default function POSPage() {
             )}
           </div>
 
-          {pendingPaystack && (
-            <div className="mx-4 mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              <p className="font-semibold">Payment pending — ref {pendingPaystack.reference}</p>
-              <div className="flex gap-2 mt-1.5">
-                <button type="button" className="text-amber-800 underline" onClick={() => setPendingPaystack(null)}>Dismiss</button>
-                <button type="button" className="font-semibold text-amber-900" onClick={retryPaystackVerify} disabled={processing}>
-                  {processing ? 'Verifying…' : 'Retry verify'}
-                </button>
-              </div>
-            </div>
-          )}
-
           {error && !showPayModal && (
             <div className="mx-4 mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
           )}
@@ -854,7 +880,7 @@ export default function POSPage() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => { if (!cardQrSession) closePayModal(); }}
+            onClick={closePayModal}
           />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
@@ -866,56 +892,13 @@ export default function POSPage() {
               </div>
               <button
                 type="button"
-                onClick={() => { if (cardQrSession) cancelCardQr(); else closePayModal(); }}
+                onClick={closePayModal}
                 className="text-white/50 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {cardQrSession ? (
-              <div className="p-5 space-y-4 text-center">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {cardQrSession.paymentMethod === 'card_terminal'
-                      ? (cardQrSession.virtual_terminal_name || vtName || 'Paystack Virtual Terminal')
-                      : 'Customer scans to pay by card'}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {cardQrSession.paymentMethod === 'card_terminal'
-                      ? 'Customer scans to pay with card or Mobile Money. Payment completes automatically in GEMS.'
-                      : 'Card details stay on the customer\'s phone — staff never enter CVV.'}
-                  </p>
-                </div>
-
-                <div className="flex justify-center py-2">
-                  <PaymentQr value={cardQrSession.authorization_url} size={220} />
-                </div>
-
-                <div className="flex items-center justify-center gap-2 text-sm text-blue-800 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
-                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                  <span>Waiting for payment…</span>
-                </div>
-
-                <p className="text-[11px] text-gray-400 font-mono break-all">Ref {cardQrSession.reference}</p>
-
-                {error && <div className="bg-red-50 border border-red-100 text-red-700 text-sm px-4 py-2.5 rounded-xl text-left">{error}</div>}
-
-                <div className="flex gap-2">
-                  <button type="button" className="btn-secondary flex-1 text-sm py-2.5" onClick={copyCardPaymentLink}>
-                    <Copy className="w-4 h-4 inline mr-1.5" />
-                    {linkCopied ? 'Copied!' : 'Copy link'}
-                  </button>
-                  <button type="button" className="btn-primary flex-1 text-sm py-2.5" onClick={manualVerifyCard} disabled={processing}>
-                    {processing ? 'Checking…' : 'Check payment'}
-                  </button>
-                </div>
-
-                <button type="button" className="text-xs text-gray-500 hover:text-gray-700 underline" onClick={cancelCardQr}>
-                  Cancel and choose another method
-                </button>
-              </div>
-            ) : (
             <div className="p-5 space-y-4">
               {error && <div className="bg-red-50 border border-red-100 text-red-700 text-sm px-4 py-2.5 rounded-xl">{error}</div>}
 
@@ -943,11 +926,13 @@ export default function POSPage() {
                   })}
                 </div>
                 {paymentMethod === 'card' && (
-                  <p className="text-[11px] text-gray-500 mt-2 leading-snug">Customer scans a QR code and pays on their own phone.</p>
+                  <p className="text-[11px] text-gray-500 mt-2 leading-snug">
+                    QR appears on the customer screen. Open it via <strong>Customer screen</strong> in the toolbar.
+                  </p>
                 )}
                 {paymentMethod === 'card_terminal' && (
                   <p className="text-[11px] text-gray-500 mt-2 leading-snug">
-                    Paystack Virtual Terminal — customer scans QR for card or MoMo. Sale auto-completes when paid.
+                    Paystack Virtual Terminal — QR on customer screen. You can serve the next customer while payment completes.
                     {vtConfigured === false && (
                       <span className="block text-amber-700 mt-1">Terminal not configured. Ask admin to set VT code in Platform Settings.</span>
                     )}
@@ -1032,15 +1017,14 @@ export default function POSPage() {
                 {processing
                   ? 'Processing…'
                   : paymentMethod === 'card'
-                    ? 'Generate payment QR'
+                    ? 'Send to customer screen'
                     : paymentMethod === 'momo'
                       ? 'Pay with Mobile Money'
                       : paymentMethod === 'card_terminal'
-                        ? 'Start terminal payment'
+                        ? 'Send to customer screen'
                         : 'Complete Sale'}
               </button>
             </div>
-            )}
           </div>
         </div>
       )}
