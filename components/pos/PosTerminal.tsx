@@ -943,7 +943,6 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
           </div>
         </div>
       </div>
-      </div>
 
       {/* ══ Payment Modal ══ */}
       {showPayModal && (
