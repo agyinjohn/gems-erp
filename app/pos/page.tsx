@@ -127,34 +127,54 @@ export default function POSPage() {
   const loadPendingPayments = useCallback(async () => {
     try {
       const r = await api.get('/pos/paystack/pending');
-      setPendingPayments(r.data.data || []);
+      const list: PendingPayment[] = r.data.data || [];
+      const events: Array<{
+        type: string;
+        order_id: string;
+        order_number?: string;
+        customer_name: string;
+        total: number;
+        message?: string;
+        reason?: string;
+      }> = r.data.events || [];
+
+      for (const ev of events) {
+        if (ev.type === 'completed') {
+          if (!notifiedCompleteRef.current.has(ev.order_id)) {
+            notifiedCompleteRef.current.add(ev.order_id);
+            toast.success(`Payment received — ${ev.customer_name} · GH₵ ${Number(ev.total).toFixed(2)}${ev.order_number ? ` (${ev.order_number})` : ''}`);
+          }
+        } else if (ev.type === 'expired') {
+          const key = `expired-${ev.order_id}`;
+          if (!notifiedCompleteRef.current.has(key)) {
+            notifiedCompleteRef.current.add(key);
+            toast.error(`${ev.customer_name}: Payment expired — stock released.`);
+          }
+        } else if (ev.type === 'failed') {
+          const key = `failed-${ev.order_id}`;
+          if (!notifiedCompleteRef.current.has(key)) {
+            notifiedCompleteRef.current.add(key);
+            const msg = ev.reason === 'insufficient_stock'
+              ? 'Payment received but items sold out — refund customer on Paystack.'
+              : (ev.message || 'Payment failed.');
+            toast.error(`${ev.customer_name}: ${msg}`);
+          }
+        }
+      }
+
+      setPendingPayments(list);
+      if (events.some((e) => e.type === 'completed')) {
+        loadProducts();
+        loadShift();
+      }
     } catch { /* ignore */ }
-  }, []);
+  }, [loadProducts, loadShift]);
 
   useEffect(() => {
     loadPendingPayments();
-    const tick = async () => {
-      try {
-        const r = await api.get('/pos/paystack/pending');
-        const list: PendingPayment[] = r.data.data || [];
-        setPendingPayments(list);
-        for (const p of list) {
-          try {
-            await api.post('/pos/paystack/verify', { reference: p.reference, order_id: p.order_id });
-            if (!notifiedCompleteRef.current.has(p.order_id)) {
-              notifiedCompleteRef.current.add(p.order_id);
-              toast.success(`Payment received — ${p.customer_name} · GH₵ ${Number(p.total).toFixed(2)} (${p.order_number})`);
-            }
-            loadProducts();
-            loadShift();
-          } catch { /* still pending */ }
-        }
-        await loadPendingPayments();
-      } catch { /* ignore */ }
-    };
-    const id = setInterval(() => { void tick(); }, 3000);
+    const id = setInterval(() => { void loadPendingPayments(); }, 3000);
     return () => clearInterval(id);
-  }, [loadPendingPayments, loadProducts, loadShift]);
+  }, [loadPendingPayments]);
 
   // Barcode scan handler
   const handleBarcodeScan = useCallback((sku: string) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Monitor, X, CheckCircle2 } from 'lucide-react';
+import { Loader2, Monitor, X, CheckCircle2, Clock } from 'lucide-react';
 
 export interface PendingPayment {
   order_id: string;
@@ -12,6 +12,7 @@ export interface PendingPayment {
   reference: string;
   authorization_url: string | null;
   created_at: string;
+  expires_at?: string | null;
 }
 
 function methodLabel(method: string) {
@@ -26,6 +27,13 @@ function timeAgo(iso: string) {
   if (mins < 1) return 'just now';
   if (mins === 1) return '1 min ago';
   return `${mins} min ago`;
+}
+
+function minutesLeft(expiresAt?: string | null) {
+  if (!expiresAt) return null;
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (ms <= 0) return 0;
+  return Math.ceil(ms / 60000);
 }
 
 export default function PendingPaymentChip({
@@ -44,9 +52,13 @@ export default function PendingPaymentChip({
   displaying?: boolean;
 }) {
   const hasQr = !!payment.authorization_url;
+  const left = minutesLeft(payment.expires_at);
+  const urgent = left !== null && left <= 5;
 
   return (
-    <div className="shrink-0 w-[168px] rounded-xl border border-amber-200 bg-amber-50/90 p-2.5 shadow-sm">
+    <div className={`shrink-0 w-[168px] rounded-xl border p-2.5 shadow-sm ${
+      urgent ? 'border-orange-300 bg-orange-50/90' : 'border-amber-200 bg-amber-50/90'
+    }`}>
       <div className="flex items-start justify-between gap-1 mb-1">
         <p className="text-[11px] font-bold text-amber-950 truncate leading-tight" title={payment.customer_name}>
           {payment.customer_name}
@@ -56,7 +68,18 @@ export default function PendingPaymentChip({
         </span>
       </div>
       <p className="text-sm font-extrabold text-[#0D3B6E] tabular-nums">GH₵ {Number(payment.total).toFixed(2)}</p>
-      <p className="text-[10px] text-amber-800/70 mt-0.5">{timeAgo(payment.created_at)}</p>
+      <div className="flex items-center gap-1 mt-0.5 text-[10px] text-amber-800/70">
+        <span>{timeAgo(payment.created_at)}</span>
+        {left !== null && (
+          <>
+            <span>·</span>
+            <span className={`inline-flex items-center gap-0.5 ${urgent ? 'text-orange-700 font-semibold' : ''}`}>
+              <Clock className="w-3 h-3" />
+              {left <= 0 ? 'expiring' : `${left}m left`}
+            </span>
+          </>
+        )}
+      </div>
       <div className="flex flex-wrap gap-1 mt-2">
         {hasQr && (
           <button

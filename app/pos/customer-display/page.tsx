@@ -7,25 +7,30 @@ import PaymentQr from '@/components/pos/PaymentQr';
 import api from '@/lib/api';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 
-interface DisplaySession {
+interface QueueItem {
   order_id: string;
   order_number: string;
   customer_name: string;
   amount: number;
   authorization_url: string;
   reference: string;
-  payment_method: string;
+  is_focused?: boolean;
+  expires_at?: string | null;
 }
 
 type ViewState = 'idle' | 'paying' | 'success';
 
+const ROTATE_MS = 10_000;
+
 export default function CustomerDisplayPage() {
   const { user, loading, tenant } = useAuth();
   const router = useRouter();
-  const [session, setSession] = useState<DisplaySession | null>(null);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [view, setView] = useState<ViewState>('idle');
-  const lastOrderId = useRef<string | null>(null);
+  const prevQueueLen = useRef(0);
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastShownOrderId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
@@ -36,37 +41,45 @@ export default function CustomerDisplayPage() {
 
   const poll = useCallback(async () => {
     try {
-      const r = await api.get('/pos/display/current');
-      const data: DisplaySession | null = r.data.data;
+      const r = await api.get('/pos/display/queue');
+      const items: QueueItem[] = r.data.data || [];
 
-      if (data?.authorization_url) {
-        lastOrderId.current = data.order_id;
-        setSession(data);
-        setView('paying');
-        if (successTimer.current) {
-          clearTimeout(successTimer.current);
-          successTimer.current = null;
-        }
-        return;
-      }
-
-      if (view === 'paying' && lastOrderId.current) {
-        setView('success');
-        setSession(null);
-        successTimer.current = setTimeout(() => {
+      if (items.length === 0) {
+        if (prevQueueLen.current > 0 && view === 'paying') {
+          setView('success');
+          successTimer.current = setTimeout(() => {
+            setView('idle');
+            setActiveIndex(0);
+            lastShownOrderId.current = null;
+          }, 3500);
+        } else if (view !== 'success') {
           setView('idle');
-          lastOrderId.current = null;
-        }, 3500);
+        }
+        prevQueueLen.current = 0;
+        setQueue([]);
         return;
       }
 
-      if (view === 'idle') {
-        setSession(null);
+      prevQueueLen.current = items.length;
+
+      const focusIdx = items.findIndex((i) => i.is_focused);
+      setQueue(items);
+
+      if (focusIdx >= 0) {
+        setActiveIndex(focusIdx);
+      } else if (activeIndex >= items.length) {
+        setActiveIndex(0);
+      }
+
+      setView('paying');
+      if (successTimer.current) {
+        clearTimeout(successTimer.current);
+        successTimer.current = null;
       }
     } catch {
       /* keep last view */
     }
-  }, [view]);
+  }, [view, activeIndex]);
 
   useEffect(() => {
     if (!user) return;
@@ -77,6 +90,14 @@ export default function CustomerDisplayPage() {
       if (successTimer.current) clearTimeout(successTimer.current);
     };
   }, [user, poll]);
+
+  useEffect(() => {
+    if (queue.length <= 1 || view !== 'paying') return;
+    const id = setInterval(() => {
+      setActiveIndex((i) => (i + 1) % queue.length);
+    }, ROTATE_MS);
+    return () => clearInterval(id);
+  }, [queue.length, view]);
 
   useEffect(() => {
     document.documentElement.requestFullscreen?.().catch(() => {});
@@ -91,6 +112,11 @@ export default function CustomerDisplayPage() {
   }
 
   const storeName = tenant?.business_name || 'Welcome';
+  const current = queue[activeIndex] || null;
+
+  if (current && current.order_id !== lastShownOrderId.current) {
+    lastShownOrderId.current = current.order_id;
+  }
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-[#0D3B6E] to-[#1A5294] flex flex-col items-center justify-center p-6 text-center select-none">
@@ -102,20 +128,25 @@ export default function CustomerDisplayPage() {
         </div>
       )}
 
-      {view === 'paying' && session && (
+      {view === 'paying' && current && (
         <div className="w-full max-w-md">
+          {queue.length > 1 && (
+            <p className="text-white/50 text-xs mb-3">
+              {activeIndex + 1} of {queue.length} waiting · rotates every {ROTATE_MS / 1000}s
+            </p>
+          )}
           <p className="text-white/60 text-xs uppercase tracking-widest mb-2">Amount due</p>
           <p className="text-white text-5xl md:text-6xl font-extrabold tabular-nums mb-1">
-            GH₵ {Number(session.amount).toFixed(2)}
+            GH₵ {Number(current.amount).toFixed(2)}
           </p>
-          <p className="text-white/80 text-base mb-6">{session.customer_name}</p>
+          <p className="text-white/80 text-base mb-6">{current.customer_name}</p>
 
           <div className="bg-white rounded-2xl p-6 shadow-2xl inline-block">
-            <PaymentQr value={session.authorization_url} size={280} />
+            <PaymentQr value={current.authorization_url} size={280} />
           </div>
 
           <p className="text-white/90 text-lg font-medium mt-6">Scan with your phone to pay</p>
-          <p className="text-white/50 text-xs mt-3 font-mono">{session.reference}</p>
+          <p className="text-white/50 text-xs mt-3 font-mono">{current.reference}</p>
         </div>
       )}
 
