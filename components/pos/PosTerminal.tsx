@@ -44,7 +44,7 @@ function PosModal({ children, onClose }: { children: React.ReactNode; onClose?: 
 }
 
 export default function PosTerminal({ standalone = false }: { standalone?: boolean }) {
-  const { tenant } = useAuth();
+  const { tenant, user } = useAuth();
   const [products, setProducts]       = useState<Product[]>([]);
   const [categories, setCategories]   = useState<string[]>([]);
   const [search, setSearch]           = useState('');
@@ -74,6 +74,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const [showOpenShift, setShowOpenShift] = useState(false);
   const [showCloseShift, setShowCloseShift] = useState(false);
   const [openingFloat, setOpeningFloat] = useState('0');
+  const [cashierName, setCashierName] = useState('');
   const [actualCash, setActualCash] = useState('');
   const [closeNotes, setCloseNotes] = useState('');
   const [zReport, setZReport] = useState<any>(null);
@@ -329,10 +330,16 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const openShift = async () => {
     setShiftProcessing(true); setShiftMessage('');
     try {
-      const r = await api.post('/pos/shifts/open', { opening_float: parseFloat(openingFloat) || 0 });
+      const payload: { opening_float: number; cashier_name?: string } = {
+        opening_float: parseFloat(openingFloat) || 0,
+      };
+      const trimmedCashier = cashierName.trim();
+      if (trimmedCashier) payload.cashier_name = trimmedCashier;
+      const r = await api.post('/pos/shifts/open', payload);
       setCurrentShift(r.data.data);
       setShowOpenShift(false);
       setOpeningFloat('0');
+      setCashierName('');
     } catch (e: any) {
       setShiftMessage(e.response?.data?.message || 'Could not open shift.');
     } finally { setShiftProcessing(false); }
@@ -531,6 +538,9 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
           {currentShift ? (
             <span className="text-gray-700">
               Shift <span className="font-mono font-semibold">{currentShift.shift_number}</span>
+              {currentShift.cashier_name && (
+                <span className="text-gray-500 ml-1">· {currentShift.cashier_name}</span>
+              )}
               <span className="text-gray-400 ml-2">· {currentShift.sales_count || 0} sales · GH₵ {parseFloat(currentShift.sales_total || 0).toFixed(2)}</span>
             </span>
           ) : (
@@ -1194,6 +1204,17 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
         <PosModal onClose={() => setShowOpenShift(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><Clock className="w-5 h-5" /> Open Shift</h2>
+            <label className="form-label">Cashier name</label>
+            <input
+              className="form-input mb-3"
+              type="text"
+              placeholder={user?.name || 'Cashier name'}
+              value={cashierName}
+              onChange={e => setCashierName(e.target.value)}
+            />
+            <p className="text-xs text-gray-500 mb-4">
+              Leave blank to use {user?.name || 'your account name'}.
+            </p>
             <label className="form-label">Opening float (cash in drawer)</label>
             <input className="form-input mb-4" type="number" min="0" step="0.01" value={openingFloat} onChange={e => setOpeningFloat(e.target.value)} />
             {shiftMessage && <p className="text-sm text-red-600 mb-3">{shiftMessage}</p>}
@@ -1221,6 +1242,9 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
         <PosModal onClose={() => setZReport(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="font-bold text-lg mb-4">Z-Report — {zReport.shift_number}</h2>
+            {zReport.cashier_name && (
+              <p className="text-sm text-gray-500 mb-3">Cashier: {zReport.cashier_name}</p>
+            )}
             <div className="space-y-2 text-sm font-mono">
               {[
                 ['Sales count', zReport.sales_count],

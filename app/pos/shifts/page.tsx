@@ -92,6 +92,7 @@ export default function ShiftHistoryPage() {
     const q = search.toLowerCase();
     return (
       s.shift_number?.toLowerCase().includes(q) ||
+      s.cashier_name?.toLowerCase().includes(q) ||
       s.opened_by?.name?.toLowerCase().includes(q) ||
       s.closed_by?.name?.toLowerCase().includes(q)
     );
@@ -163,7 +164,7 @@ export default function ShiftHistoryPage() {
               keyField="id"
               renderRow={(s) => [
                 <span key="num" className="font-mono font-semibold text-[#0D3B6E]">{s.shift_number}</span>,
-                s.opened_by?.name || '—',
+                s.cashier_name || s.opened_by?.name || '—',
                 fmtDateTime(s.opened_at),
                 s.status === 'open' ? <span className="text-green-600">Still open</span> : fmtDateTime(s.closed_at),
                 fmtDuration(s.opened_at, s.closed_at),
@@ -226,7 +227,7 @@ export default function ShiftHistoryPage() {
                 ['Started', fmtDateTime(detail.shift.opened_at)],
                 ['Ended', detail.shift.status === 'open' ? 'Still open' : fmtDateTime(detail.shift.closed_at)],
                 ['Duration', fmtDuration(detail.shift.opened_at, detail.shift.closed_at)],
-                ['Cashier', detail.shift.opened_by?.name || '—'],
+                ['Cashier', detail.shift.cashier_name || detail.shift.opened_by?.name || '—'],
                 ['Closed by', detail.shift.closed_by?.name || '—'],
                 ['Gross sales', fmtGhs(detail.summary.gross_sales)],
                 ['Refunds', fmtGhs(detail.summary.total_refunds)],
