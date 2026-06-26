@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth';
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, Package,
   Banknote, CreditCard, Smartphone, X, PrinterIcon, CheckCircle2, Barcode, RotateCcw,
-  Clock, FileText, Loader2, Nfc, Monitor, Maximize2, Minimize2,
+  Clock, FileText, Loader2, Nfc, Monitor, Maximize2, Minimize2, AlertTriangle,
 } from 'lucide-react';
 
 interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; }
@@ -86,6 +86,8 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const [pendingBarOpen, setPendingBarOpen] = useState(false);
   const notifiedCompleteRef = useRef<Set<string>>(new Set());
   const [openingPaystack, setOpeningPaystack] = useState(false);
+  const [pendingToCancel, setPendingToCancel] = useState<PendingPayment | null>(null);
+  const [cancelProcessing, setCancelProcessing] = useState(false);
 
   const loadShift = useCallback(async () => {
     try {
@@ -240,7 +242,16 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
   const change = paymentMethod === 'cash' && amountTendered ? parseFloat(amountTendered) - cartTotal : 0;
 
+  const requireShift = useCallback(() => {
+    if (currentShift) return true;
+    toast.error('Open a shift before making sales.');
+    setShiftMessage('');
+    setShowOpenShift(true);
+    return false;
+  }, [currentShift]);
+
   const openPayModal = () => {
+    if (!requireShift()) return;
     setError('');
     setAmountTendered(cartTotal.toFixed(2));
     setShowPayModal(true);
@@ -312,14 +323,22 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
     }
   };
 
-  const cancelOnePending = async (p: PendingPayment) => {
-    if (!confirm(`Cancel pending payment for ${p.customer_name}?`)) return;
+  const requestCancelPending = (p: PendingPayment) => {
+    setPendingToCancel(p);
+  };
+
+  const confirmCancelPending = async () => {
+    if (!pendingToCancel) return;
+    setCancelProcessing(true);
     try {
-      await api.post('/pos/paystack/cancel', { order_id: p.order_id });
-      toast.info(`Cancelled ${p.order_number}`);
+      await api.post('/pos/paystack/cancel', { order_id: pendingToCancel.order_id });
+      toast.info(`Cancelled ${pendingToCancel.order_number}`);
+      setPendingToCancel(null);
       loadPendingPayments();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Could not cancel.');
+    } finally {
+      setCancelProcessing(false);
     }
   };
 
@@ -440,6 +459,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
 
   const completeSale = async () => {
     if (cart.length === 0) return;
+    if (!requireShift()) return;
     if (paymentMethod === 'cash' && parseFloat(amountTendered) < cartTotal) {
       setError('Amount tendered is less than total.'); return;
     }
@@ -506,6 +526,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const printReceipt = () => window.print();
 
   const processRefund = async () => {
+    if (!requireShift()) return;
     if (!refundOrderNumber.trim()) { setRefundMessage('Enter the sale receipt number (e.g. POS-...).'); return; }
     setRefundProcessing(true); setRefundMessage('');
     try {
@@ -547,7 +568,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                 </span>
               </span>
             ) : (
-              <span className="text-amber-700 font-medium truncate">No open shift</span>
+              <span className="text-amber-700 font-medium truncate">No open shift — sales blocked</span>
             )}
           </div>
 
@@ -582,7 +603,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
               <Monitor className="w-3.5 h-3.5" />
               <span className="hidden lg:inline">Customer screen</span>
             </button>
-            <button type="button" className="btn-secondary text-xs py-1.5 inline-flex items-center gap-1 whitespace-nowrap" onClick={() => { setRefundMessage(''); setShowRefundModal(true); }}>
+            <button type="button" className="btn-secondary text-xs py-1.5 inline-flex items-center gap-1 whitespace-nowrap" onClick={() => { if (!requireShift()) return; setRefundMessage(''); setShowRefundModal(true); }}>
               <RotateCcw className="w-3.5 h-3.5" />
               <span className="hidden lg:inline">Refund</span>
             </button>
@@ -618,7 +639,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                   displaying={displayingId === p.order_id}
                   onShowDisplay={() => showPendingOnDisplay(p)}
                   onVerify={() => verifyOnePending(p)}
-                  onCancel={() => cancelOnePending(p)}
+                  onCancel={() => requestCancelPending(p)}
                 />
               ))}
             </div>
@@ -955,8 +976,14 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                 disabled={cart.length === 0}
                 className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold py-4 rounded-2xl text-base transition-all flex items-center justify-center gap-2.5 shadow-md"
               >
-                <Banknote className="w-5 h-5" />
-                {cart.length === 0 ? 'Add items to charge' : `Charge  GH₵ ${cartTotal.toFixed(2)}`}
+                {!currentShift ? (
+                  'Open shift to charge'
+                ) : (
+                  <>
+                    <Banknote className="w-5 h-5" />
+                    {cart.length === 0 ? 'Add items to charge' : `Charge  GH₵ ${cartTotal.toFixed(2)}`}
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1268,6 +1295,56 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
             </div>
             <button className="btn-secondary w-full mt-4" onClick={() => window.print()}>Print</button>
             <button className="btn-primary w-full mt-2" onClick={() => setZReport(null)}>Done</button>
+          </div>
+        </PosModal>
+      )}
+
+      {pendingToCancel && (
+        <PosModal onClose={() => !cancelProcessing && setPendingToCancel(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-11 h-11 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h2 className="font-bold text-lg text-gray-900">Cancel pending payment?</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  This will cancel the unpaid order and release reserved stock. Only cancel if the customer is not paying.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl bg-gray-50 border border-gray-100 p-3 text-sm mb-5 space-y-1">
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-500">Customer</span>
+                <span className="font-medium text-gray-900 text-right">{pendingToCancel.customer_name}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-500">Order</span>
+                <span className="font-mono font-medium text-gray-900">{pendingToCancel.order_number}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-500">Amount</span>
+                <span className="font-bold text-[#0D3B6E] tabular-nums">GH₵ {Number(pendingToCancel.total).toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn-secondary flex-1"
+                disabled={cancelProcessing}
+                onClick={() => setPendingToCancel(null)}
+              >
+                Keep waiting
+              </button>
+              <button
+                type="button"
+                className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl"
+                disabled={cancelProcessing}
+                onClick={confirmCancelPending}
+              >
+                {cancelProcessing ? 'Cancelling…' : 'Yes, cancel payment'}
+              </button>
+            </div>
           </div>
         </PosModal>
       )}
