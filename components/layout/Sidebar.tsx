@@ -11,6 +11,19 @@ import {
 } from 'lucide-react';
 import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 
+/** Sidebar highlight — avoid parent /pos matching /pos/shifts */
+function isNavActive(pathname: string, href: string): boolean {
+  if (pathname === href) return true;
+  if (href === '/platform' || href === '/dashboard') return false;
+  if (href === '/pos') {
+    return (
+      pathname.startsWith('/pos/terminal') ||
+      pathname.startsWith('/pos/customer-display')
+    );
+  }
+  return pathname.startsWith(`${href}/`);
+}
+
 function SidebarLink({
   href, label, icon: Icon, isActive, collapsed, onNavigate,
 }: {
@@ -155,9 +168,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
       const next = { ...prev };
       navGroups.forEach((group, gi) => {
         if (!group.label) return;
-        const hasActive = group.items.some(item =>
-          pathname === item.href || pathname.startsWith(item.href + '/')
-        );
+        const hasActive = group.items.some(item => isNavActive(pathname, item.href));
         if (hasActive) next[gi] = true;
       });
       return next;
@@ -222,7 +233,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
             return (
               <div className="space-y-0.5">
                 {main.map(item => {
-                  const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
+                  const isActive = isNavActive(pathname, item.href);
                   return (
                     <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon}
                       isActive={isActive} collapsed={isCollapsed} onNavigate={onClose} />
@@ -250,7 +261,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
                 return (
                   <div key={gi} className="mb-1">
                     {visibleItems.map(item => {
-                      const isActive = pathname === item.href || (item.href !== '/platform' && item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
+                      const isActive = isNavActive(pathname, item.href);
                       return (
                         <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon}
                           isActive={isActive} collapsed={isCollapsed} onNavigate={onClose} />
@@ -277,7 +288,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
                   {isExpanded && (
                     <div className={`space-y-0.5 ${isCollapsed ? '' : 'mt-0.5'}`}>
                       {visibleItems.map(item => {
-                        const isActive = pathname === item.href || (item.href !== '/platform' && item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
+                        const isActive = isNavActive(pathname, item.href);
                         return (
                           <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon}
                             isActive={isActive} collapsed={isCollapsed} onNavigate={onClose} />
@@ -306,7 +317,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
           return (
             <div className="space-y-0.5">
               {flat.map(item => {
-                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
+                const isActive = isNavActive(pathname, item.href);
                 return (
                   <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon}
                     isActive={isActive} collapsed={isCollapsed} onNavigate={onClose} />
