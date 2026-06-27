@@ -98,3 +98,22 @@ export function formatPayLinesForDisplay(payroll: any) {
     ];
   return { allowances, deductions };
 }
+
+export function buildPayslipDisplayRows(payroll: any) {
+  const lines = formatPayLinesForDisplay(payroll);
+  return [
+    { label: 'Gross Salary', value: `GH₵ ${parseFloat(payroll.gross_salary).toFixed(2)}`, color: 'text-gray-800', bg: '' },
+    ...lines.allowances.map((line: { name: string; amount: number }) => ({
+      label: line.name,
+      value: `+ GH₵ ${parseFloat(String(line.amount)).toFixed(2)}`,
+      color: 'text-green-600',
+      bg: 'bg-green-50/40',
+    })),
+    ...lines.deductions.map((line: { name: string; amount: number }) => ({
+      label: line.name,
+      value: `- GH₵ ${parseFloat(String(line.amount)).toFixed(2)}`,
+      color: 'text-red-600',
+      bg: 'bg-red-50/40',
+    })),
+  ];
+}

@@ -5,6 +5,8 @@ import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
 import { Plus, Umbrella, Banknote, User, CheckCircle, Clock, Mail, Phone, Building2, Hash, Calendar, TrendingUp, CalendarDays, Printer } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { buildPayslipDisplayRows } from '@/components/hr/PayrollLineEditor';
+import HrConfirmModal from '@/components/hr/HrConfirmModal';
 
 const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const days = (start: string, end: string) => Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86400000) + 1;
@@ -31,6 +33,15 @@ export default function ESSPage() {
   const [slipLoading, setSlipLoading] = useState(false);
   const [selectedSlip, setSelectedSlip] = useState<any>(null);
   const [slipNotFound, setSlipNotFound] = useState(false);
+  const [hrConfirm, setHrConfirm] = useState<{
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    danger?: boolean;
+    details?: { label: string; value: string }[];
+    action: () => Promise<void>;
+  } | null>(null);
+  const [confirmSaving, setConfirmSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -64,6 +75,19 @@ export default function ESSPage() {
 
   useEffect(() => { load(); }, []);
 
+  const executeHrConfirm = async () => {
+    if (!hrConfirm) return;
+    setConfirmSaving(true);
+    try {
+      await hrConfirm.action();
+      setHrConfirm(null);
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Action failed');
+    } finally {
+      setConfirmSaving(false);
+    }
+  };
+
   const submitLeave = async () => {
     if (!form.start_date || !form.end_date) { toast.error('Please select start and end dates'); return; }
     if (new Date(form.end_date) < new Date(form.start_date)) { toast.error('End date cannot be before start date'); return; }
@@ -74,22 +98,56 @@ export default function ESSPage() {
       setLeaveModal(false);
       setForm({ leave_type:'annual', start_date:'', end_date:'', reason:'' });
       load();
-    } catch(e: any) { toast.error(e.response?.data?.message || 'Failed to submit'); }
+    } catch(e: any) { toast.error(e.response?.data?.message || 'Failed to submit'); throw e; }
     finally { setSaving(false); }
   };
 
+  const requestSubmitLeave = () => {
+    if (!form.start_date || !form.end_date) { toast.error('Please select start and end dates'); return; }
+    if (new Date(form.end_date) < new Date(form.start_date)) { toast.error('End date cannot be before start date'); return; }
+    setHrConfirm({
+      title: 'Submit leave request?',
+      message: `Submit your ${form.leave_type} leave request for approval.`,
+      confirmLabel: 'Submit request',
+      details: [
+        { label: 'Type', value: form.leave_type },
+        { label: 'From', value: form.start_date },
+        { label: 'To', value: form.end_date },
+        { label: 'Days', value: String(days(form.start_date, form.end_date)) },
+      ],
+      action: submitLeave,
+    });
+  };
+
   const cancelLeave = async (id: string) => {
-    if (!confirm('Cancel this leave request?')) return;
-    try {
-      await api.patch(`/ess/leave-requests/${id}/cancel`);
-      toast.success('Leave request cancelled');
-      load();
-    } catch(e: any) { toast.error(e.response?.data?.message || 'Failed'); }
+    await api.patch(`/ess/leave-requests/${id}/cancel`);
+    toast.success('Leave request cancelled');
+    load();
+  };
+
+  const requestCancelLeave = (row: any) => {
+    setHrConfirm({
+      title: 'Cancel leave request?',
+      message: 'This will withdraw your pending leave request.',
+      confirmLabel: 'Cancel request',
+      danger: true,
+      details: [
+        { label: 'Type', value: row.leave_type },
+        { label: 'From', value: new Date(row.start_date).toLocaleDateString() },
+        { label: 'To', value: new Date(row.end_date).toLocaleDateString() },
+      ],
+      action: async () => { await cancelLeave(row.id); },
+    });
   };
 
   const printPayslip = (p: any) => {
     const win = window.open('', '_blank', 'width=700,height=600');
     if (!win) return;
+    const rows = buildPayslipDisplayRows(p);
+    const rowHtml = rows.map((row) => {
+      const color = row.color.includes('green') ? '#16a34a' : row.color.includes('red') ? '#dc2626' : '#111';
+      return `<tr><td class="label">${row.label}</td><td class="amount" style="color:${color}">${row.value}</td></tr>`;
+    }).join('');
     win.document.write(`
       <html><head><title>Payslip — ${months[p.month-1]} ${p.year}</title>
       <style>
@@ -106,11 +164,7 @@ export default function ESSPage() {
       <h1>GEMS — Payslip</h1>
       <div class="sub">${months[p.month-1]} ${p.year} &nbsp;·&nbsp; ${me?.name || ''} &nbsp;·&nbsp; ${me?.employee_code || ''}</div>
       <table>
-        <tr><td class="label">Gross Salary</td><td class="amount">GH₵ ${parseFloat(p.gross_salary).toFixed(2)}</td></tr>
-        <tr><td class="label">Allowances</td><td class="amount" style="color:#16a34a">+ GH₵ ${parseFloat(p.allowances||0).toFixed(2)}</td></tr>
-        <tr><td class="label">PAYE</td><td class="amount" style="color:#dc2626">- GH₵ ${parseFloat(p.paye||0).toFixed(2)}</td></tr>
-        <tr><td class="label">SSNIT (5.5%)</td><td class="amount" style="color:#dc2626">- GH₵ ${parseFloat(p.ssnit_employee||0).toFixed(2)}</td></tr>
-        <tr><td class="label">Other deductions</td><td class="amount" style="color:#dc2626">- GH₵ ${Math.max(0, parseFloat(p.deductions||0) - parseFloat(p.paye||0) - parseFloat(p.ssnit_employee||0)).toFixed(2)}</td></tr>
+        ${rowHtml}
         <tr><td class="label net">Net Pay</td><td class="amount net">GH₵ ${parseFloat(p.net_salary).toFixed(2)}</td></tr>
       </table>
       <div class="footer">Generated by GEMS &middot; ${new Date().toLocaleDateString()}</div>
@@ -259,15 +313,10 @@ export default function ESSPage() {
                         <>
                           <p className="text-xs text-gray-400 mb-3">{months[latestPayslip.month-1]} {latestPayslip.year}</p>
                           <div className="space-y-2">
-                            {[
-                              { label:'Gross Salary', val:`GH₵ ${parseFloat(latestPayslip.gross_salary).toFixed(2)}`,    color:'text-gray-800' },
-                              { label:'Allowances',   val:`+ GH₵ ${parseFloat(latestPayslip.allowances||0).toFixed(2)}`, color:'text-green-600' },
-                              { label:'PAYE',         val:`- GH₵ ${parseFloat(latestPayslip.paye||0).toFixed(2)}`,         color:'text-red-500' },
-                              { label:'SSNIT',        val:`- GH₵ ${parseFloat(latestPayslip.ssnit_employee||0).toFixed(2)}`, color:'text-red-500' },
-                            ].map(row => (
+                            {buildPayslipDisplayRows(latestPayslip).map(row => (
                               <div key={row.label} className="flex justify-between text-sm py-1.5 border-b border-gray-50">
                                 <span className="text-gray-500">{row.label}</span>
-                                <span className={`font-medium ${row.color}`}>{row.val}</span>
+                                <span className={`font-medium ${row.color}`}>{row.value}</span>
                               </div>
                             ))}
                             <div className="flex justify-between text-sm pt-2">
@@ -346,7 +395,7 @@ export default function ESSPage() {
                           <td className="px-4 py-3"><Badge status={l.status} /></td>
                           <td className="px-4 py-3">
                             {l.status === 'pending' && (
-                              <button onClick={() => cancelLeave(l.id)} className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded">Cancel</button>
+                              <button onClick={() => requestCancelLeave(l)} className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded">Cancel</button>
                             )}
                           </td>
                         </tr>
@@ -410,12 +459,7 @@ export default function ESSPage() {
                   </div>
 
                   <div className="border border-gray-100 rounded-xl overflow-hidden">
-                    {[
-                      { label:'Gross Salary',  value: `GH₵ ${parseFloat(selectedSlip.gross_salary).toFixed(2)}`,    color:'text-gray-800',  bg:'' },
-                      { label:'Allowances',    value: `+ GH₵ ${parseFloat(selectedSlip.allowances||0).toFixed(2)}`, color:'text-green-600', bg:'bg-green-50/40' },
-                      { label:'PAYE',          value: `- GH₵ ${parseFloat(selectedSlip.paye||0).toFixed(2)}`,         color:'text-red-600',   bg:'bg-red-50/40' },
-                      { label:'SSNIT',         value: `- GH₵ ${parseFloat(selectedSlip.ssnit_employee||0).toFixed(2)}`, color:'text-red-600', bg:'bg-red-50/40' },
-                    ].map(row => (
+                    {buildPayslipDisplayRows(selectedSlip).map(row => (
                       <div key={row.label} className={`flex justify-between items-center px-5 py-3.5 border-b border-gray-100 ${row.bg}`}>
                         <span className="text-sm text-gray-600">{row.label}</span>
                         <span className={`text-sm font-semibold ${row.color}`}>{row.value}</span>
@@ -503,9 +547,21 @@ export default function ESSPage() {
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setLeaveModal(false)}>Cancel</button>
-          <button className="btn-primary" onClick={submitLeave} disabled={saving}>{saving ? 'Submitting…' : 'Submit Request'}</button>
+          <button className="btn-primary" onClick={requestSubmitLeave} disabled={saving}>{saving ? 'Submitting…' : 'Submit Request'}</button>
         </div>
       </Modal>
+
+      <HrConfirmModal
+        open={!!hrConfirm}
+        title={hrConfirm?.title || ''}
+        message={hrConfirm?.message || ''}
+        confirmLabel={hrConfirm?.confirmLabel}
+        danger={hrConfirm?.danger}
+        details={hrConfirm?.details}
+        saving={confirmSaving || saving}
+        onClose={() => setHrConfirm(null)}
+        onConfirm={executeHrConfirm}
+      />
     </AppLayout>
   );
 }

@@ -689,23 +689,36 @@ export default function HRPage() {
           {loading ? <Spinner /> : payroll.length===0 ? <EmptyState message="No payroll runs yet" icon={<Banknote className="w-8 h-8 text-gray-300"/>} /> : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="table-header"><tr>{['Employee','Period','Gross','PAYE','SSNIT','Allow.','Net','Status',''].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
+                <thead className="table-header"><tr>{['Employee','Period','Gross','Allowances','Deductions','Net','Status',''].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
                 <tbody className="divide-y divide-gray-50">
-                  {payroll.map(p => (
+                  {payroll.map(p => {
+                    const lines = formatPayLinesForDisplay(p);
+                    return (
                     <tr key={p.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium">{p.employee_name||'—'}</td>
                       <td className="px-4 py-3 text-gray-500">{months[p.month-1]} {p.year}</td>
                       <td className="px-4 py-3">GH₵ {parseFloat(p.gross_salary).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-red-600">GH₵ {parseFloat(p.paye||0).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-red-600">GH₵ {parseFloat(p.ssnit_employee||0).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-green-600">+GH₵ {parseFloat(p.allowances||0).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-xs">
+                        {lines.allowances.length === 0 ? <span className="text-gray-400">—</span> : lines.allowances.map((line: any) => (
+                          <div key={line.name} className="text-green-600">{line.name}: GH₵ {parseFloat(line.amount).toFixed(2)}</div>
+                        ))}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {lines.deductions.length === 0 ? <span className="text-gray-400">—</span> : lines.deductions.map((line: any) => (
+                          <div key={line.name} className="text-red-600">{line.name}: GH₵ {parseFloat(line.amount).toFixed(2)}</div>
+                        ))}
+                      </td>
                       <td className="px-4 py-3 font-semibold">GH₵ {parseFloat(p.net_salary).toFixed(2)}</td>
                       <td className="px-4 py-3"><Badge status={p.status} /></td>
                       <td className="px-4 py-3">
-                        {p.status==='submitted' && <button onClick={() => approvePayroll(p.id)} className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4"/></button>}
+                        <div className="flex gap-1">
+                          <button onClick={() => openPayrollDetail(p)} title="View details" className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Eye className="w-4 h-4"/></button>
+                          {p.status==='submitted' && <button onClick={() => requestApprovePayroll(p)} title="Approve" className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4"/></button>}
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -735,7 +748,7 @@ export default function HRPage() {
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={saveAttendance} disabled={saving}>{saving?'Saving…':'Save'}</button>
+          <button className="btn-primary" onClick={requestSaveAttendance} disabled={saving}>{saving?'Saving…':'Save'}</button>
         </div>
       </Modal>
 
@@ -762,7 +775,7 @@ export default function HRPage() {
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={submitLeave} disabled={saving}>{saving?'Submitting…':'Submit'}</button>
+          <button className="btn-primary" onClick={requestSubmitLeave} disabled={saving}>{saving?'Submitting…':'Submit'}</button>
         </div>
       </Modal>
 
@@ -900,7 +913,7 @@ export default function HRPage() {
           </button>
           {empStep < 3
             ? <button className="btn-primary" onClick={() => { if (!empForm.name && empStep===1) { toast.error('Full name is required'); return; } setEmpStep(empStep+1); }}>Next →</button>
-            : <button className="btn-primary" onClick={saveEmployee} disabled={saving}>{saving ? 'Saving…' : editingEmployee ? 'Save Changes' : 'Add Employee'}</button>
+            : <button className="btn-primary" onClick={requestSaveEmployee} disabled={saving}>{saving ? 'Saving…' : editingEmployee ? 'Save Changes' : 'Add Employee'}</button>
           }
         </div>
       </Modal>
@@ -923,11 +936,21 @@ export default function HRPage() {
             </div>
             <div><label className="form-label">Year</label><input type="number" className="form-input" value={payForm.year} onChange={e => setPayForm({...payForm,year:parseInt(e.target.value)})} /></div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><label className="form-label">Allowances (GH₵)</label><input type="number" className="form-input" value={payForm.allowances} onChange={e => setPayForm({...payForm,allowances:e.target.value})} /></div>
-            <div><label className="form-label">Extra deductions (GH₵)</label><input type="number" className="form-input" value={payForm.extra_deductions} onChange={e => setPayForm({...payForm,extra_deductions:e.target.value})} /></div>
-          </div>
-          <p className="text-xs text-gray-500">PAYE and SSNIT (5.5%) are calculated automatically from gross + allowances.</p>
+          <PayrollLineEditor
+            label="Allowances"
+            lines={payForm.allowance_lines}
+            onChange={(allowance_lines) => setPayForm({ ...payForm, allowance_lines })}
+            presets={ALLOWANCE_PRESETS}
+            amountPrefix="+"
+          />
+          <PayrollLineEditor
+            label="Other deductions (PAYE & SSNIT added automatically)"
+            lines={payForm.deduction_lines}
+            onChange={(deduction_lines) => setPayForm({ ...payForm, deduction_lines })}
+            presets={DEDUCTION_PRESETS}
+            amountPrefix="-"
+          />
+          <p className="text-xs text-gray-500">Each allowance and deduction is stored by name on the payslip.</p>
           {payForm.employee_id && (
             <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-800">
               Employee gross: GH₵ {employees.find(e=>e.id==payForm.employee_id)?.gross_salary || 0}
@@ -936,7 +959,7 @@ export default function HRPage() {
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={runPayroll} disabled={saving}>{saving?'Running…':'Run Payroll'}</button>
+          <button className="btn-primary" onClick={requestRunPayroll} disabled={saving}>{saving?'Running…':'Run Payroll'}</button>
         </div>
       </Modal>
 
@@ -950,12 +973,73 @@ export default function HRPage() {
           </div>
           <div><label className="form-label">Year</label><input type="number" className="form-input" value={bulkPayForm.year} onChange={e => setBulkPayForm({...bulkPayForm, year: parseInt(e.target.value)})} /></div>
         </div>
-        <div><label className="form-label">Extra deductions per employee (GH₵)</label><input type="number" className="form-input" value={bulkPayForm.extra_deductions} onChange={e => setBulkPayForm({...bulkPayForm, extra_deductions: e.target.value})} /></div>
+        <PayrollLineEditor
+          label="Shared allowances (applied to each employee)"
+          lines={bulkPayForm.allowance_lines}
+          onChange={(allowance_lines) => setBulkPayForm({ ...bulkPayForm, allowance_lines })}
+          presets={ALLOWANCE_PRESETS}
+          amountPrefix="+"
+        />
+        <PayrollLineEditor
+          label="Shared deductions (PAYE & SSNIT added per employee)"
+          lines={bulkPayForm.deduction_lines}
+          onChange={(deduction_lines) => setBulkPayForm({ ...bulkPayForm, deduction_lines })}
+          presets={DEDUCTION_PRESETS}
+          amountPrefix="-"
+        />
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={runBulkPayroll} disabled={saving}>{saving ? 'Running…' : 'Run for all staff'}</button>
+          <button className="btn-primary" onClick={requestBulkPayroll} disabled={saving}>{saving ? 'Running…' : 'Run for all staff'}</button>
         </div>
       </Modal>
+
+      <Modal open={modal==='payroll_detail'} onClose={() => setModal(null)} title="Payroll details" size="md">
+        {payrollDetail && (() => {
+          const lines = formatPayLinesForDisplay(payrollDetail);
+          return (
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600">
+                <div className="font-semibold text-gray-900">{payrollDetail.employee_name}</div>
+                <div>{months[payrollDetail.month - 1]} {payrollDetail.year} · <Badge status={payrollDetail.status} /></div>
+              </div>
+              <div className="rounded-xl border border-gray-100 overflow-hidden text-sm">
+                <div className="flex justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                  <span className="text-gray-600">Base gross salary</span>
+                  <span className="font-semibold">GH₵ {parseFloat(payrollDetail.gross_salary).toFixed(2)}</span>
+                </div>
+                {lines.allowances.map((line: any) => (
+                  <div key={line.name} className="flex justify-between px-4 py-2.5 border-b border-gray-50">
+                    <span className="text-green-700">{line.name}</span>
+                    <span className="font-medium text-green-600">+ GH₵ {parseFloat(line.amount).toFixed(2)}</span>
+                  </div>
+                ))}
+                {lines.deductions.map((line: any) => (
+                  <div key={line.name} className="flex justify-between px-4 py-2.5 border-b border-gray-50">
+                    <span className="text-red-700">{line.name}</span>
+                    <span className="font-medium text-red-600">- GH₵ {parseFloat(line.amount).toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between px-4 py-3 bg-blue-50">
+                  <span className="font-bold text-gray-900">Net pay</span>
+                  <span className="font-extrabold text-blue-700">GH₵ {parseFloat(payrollDetail.net_salary).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+
+      <HrConfirmModal
+        open={!!hrConfirm}
+        title={hrConfirm?.title || ''}
+        message={hrConfirm?.message || ''}
+        confirmLabel={hrConfirm?.confirmLabel}
+        danger={hrConfirm?.danger}
+        details={hrConfirm?.details}
+        saving={confirmSaving || saving}
+        onClose={() => setHrConfirm(null)}
+        onConfirm={executeHrConfirm}
+      />
 
       <Modal open={modal==='terminate'} onClose={() => setModal(null)} title={`Terminate — ${terminateTarget?.name}`} size="sm">
         <p className="text-sm text-gray-600 mb-3">This ends employment and unlinks their system user from ESS.</p>
