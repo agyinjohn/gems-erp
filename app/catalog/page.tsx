@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import api from '@/lib/api';
+import ProductImageUpload from '@/components/inventory/ProductImageUpload';
 import { Modal, Spinner, toast, EmptyState } from '@/components/ui';
 import { Plus, Search, Package, Edit2 } from 'lucide-react';
 
@@ -14,6 +15,7 @@ interface Product {
   cost_price?: number;
   stock_qty: number;
   category_name?: string;
+  images?: string[];
   is_active: boolean;
 }
 
@@ -25,7 +27,7 @@ export default function CatalogPage() {
   const [modal, setModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [form, setForm] = useState({ name: '', sku: '', price: '', cost_price: '', stock_qty: '0', category_id: '' });
+  const [form, setForm] = useState({ name: '', sku: '', price: '', cost_price: '', stock_qty: '0', category_id: '', images: [] as string[] });
 
   const load = async () => {
     setLoading(true);
@@ -43,7 +45,7 @@ export default function CatalogPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: '', sku: '', price: '', cost_price: '', stock_qty: '0', category_id: categories[0]?._id || '' });
+    setForm({ name: '', sku: '', price: '', cost_price: '', stock_qty: '0', category_id: categories[0]?._id || '', images: [] });
     setModal(true);
   };
 
@@ -56,6 +58,7 @@ export default function CatalogPage() {
       cost_price: String(p.cost_price || 0),
       stock_qty: String(p.stock_qty),
       category_id: '',
+      images: Array.isArray((p as any).images) ? (p as any).images.filter(Boolean) : [],
     });
     setModal(true);
   };
@@ -71,6 +74,7 @@ export default function CatalogPage() {
         cost_price: parseFloat(form.cost_price) || 0,
         stock_qty: parseInt(form.stock_qty, 10) || 0,
         category_id: form.category_id || undefined,
+        images: form.images,
         is_active: true,
       };
       if (editing) {
@@ -154,6 +158,10 @@ export default function CatalogPage() {
               </select>
             </div>
           )}
+          <ProductImageUpload
+            images={form.images}
+            onChange={(images) => setForm({ ...form, images })}
+          />
           <button className="btn-primary w-full" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save Product'}</button>
         </div>
       </Modal>

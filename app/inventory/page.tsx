@@ -4,6 +4,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast, ResponsiveTable } from '@/components/ui';
 import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen, X, ChevronDown, MapPin } from 'lucide-react';
 import api from '@/lib/api';
+import ProductImageUpload from '@/components/inventory/ProductImageUpload';
 
 // ── Category field templates ──────────────────────────────────────────────────
 type FieldDef = { label: string; key: string; type: 'text'|'number'|'select'|'boolean'; options?: string[]; required?: boolean };
@@ -407,7 +408,7 @@ export default function InventoryPage() {
   const [catConfirm, setCatConfirm] = useState<any>(null);
   const [locConfirm, setLocConfirm] = useState<any>(null);
   const [locForm, setLocForm] = useState({ name:'', code:'', type:'shelf', description:'' });
-  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', images:'', attributes: {} as Record<string,any> });
+  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', images: [] as string[], attributes: {} as Record<string,any> });
   const [catForm, setCatForm] = useState({ name:'', description:'', custom_fields: [] as FieldDef[] });
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [adjustQty, setAdjustQty] = useState('');
@@ -454,13 +455,13 @@ export default function InventoryPage() {
     (!filterCat || (p.category_id?._id || p.category_id) == filterCat)
   );
 
-  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',images:'',attributes:{} }); setError(''); setModal('add'); };
-  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku,barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,images:p.images?.[0]||'',attributes:p.attributes||{} }); setError(''); setModal('edit'); };
+  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',images:[],attributes:{} }); setError(''); setModal('add'); };
+  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku,barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{} }); setError(''); setModal('edit'); };
   const openAdjust = (p: any) => { setSelected(p); setAdjustQty(''); setAdjustType('add'); setAdjustNote(''); setModal('adjust'); };
 
   const save = async () => {
     setSaving(true); setError('');
-    const payload = { ...form, barcode: form.barcode.trim() || null, images: form.images.trim() ? [form.images.trim()] : [] };
+    const payload = { ...form, barcode: form.barcode.trim() || null, images: form.images };
     try {
       if (modal === 'add') await api.post('/products', payload);
       else await api.put(`/products/${selected.id}`, payload);
@@ -712,14 +713,10 @@ export default function InventoryPage() {
           <div><label className="form-label">Unit</label><input {...inputProps('unit')} placeholder="piece, kg, box…" /></div>
           <div className="col-span-2"><label className="form-label">Description</label><textarea {...inputProps('description')} rows={3} placeholder="Product description…" /></div>
           <div className="col-span-2">
-            <label className="form-label">Image URL</label>
-            <input {...inputProps('images')} placeholder="https://example.com/image.jpg" />
-            {form.images.trim() && (
-              <div className="mt-2 flex items-center gap-3">
-                <img src={form.images.trim()} alt="preview" className="w-16 h-16 object-cover rounded-lg border border-gray-200" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                <span className="text-xs text-gray-400">Image preview</span>
-              </div>
-            )}
+            <ProductImageUpload
+              images={form.images}
+              onChange={(images) => setForm({ ...form, images })}
+            />
           </div>
 
           {/* Dynamic category attributes */}

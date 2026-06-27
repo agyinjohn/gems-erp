@@ -5,6 +5,7 @@ import { EmptyState, Spinner, toast } from '@/components/ui';
 import { CheckCircle, XCircle, ClipboardList, Users, DollarSign } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import api from '@/lib/api';
+import PoConfirmModal from '@/components/procurement/PoConfirmModal';
 
 export default function ApprovalsPage() {
   const { user } = useAuth();
@@ -12,6 +13,8 @@ export default function ApprovalsPage() {
   const [leaves,   setLeaves]   = useState<any[]>([]);
   const [payrolls, setPayrolls] = useState<any[]>([]);
   const [loading,  setLoading]  = useState(true);
+  const [poToApprove, setPoToApprove] = useState<any>(null);
+  const [poApproving, setPoApproving] = useState(false);
 
   const canApprovePO      = ['business_owner','accountant'].includes(user?.role || '');
   const canApproveLeave   = ['business_owner','hr_manager'].includes(user?.role || '');
@@ -21,11 +24,11 @@ export default function ApprovalsPage() {
     setLoading(true);
     try {
       const [poRes, leaveRes, payrollRes] = await Promise.all([
-        canApprovePO      ? api.get('/purchase-orders?status=draft').catch(() => ({ data: { data: [] } })) : Promise.resolve({ data: { data: [] } }),
+        canApprovePO      ? api.get('/purchase-orders?status=pending_approval').catch(() => ({ data: { data: [] } })) : Promise.resolve({ data: { data: [] } }),
         canApproveLeave   ? api.get('/leave-requests').catch(() => ({ data: { data: [] } }))               : Promise.resolve({ data: { data: [] } }),
         canApprovePayroll ? api.get('/payroll').catch(() => ({ data: { data: [] } }))                      : Promise.resolve({ data: { data: [] } }),
       ]);
-      setPos((poRes.data.data || []).filter((p: any) => p.status === 'draft'));
+      setPos((poRes.data.data || []).filter((p: any) => p.status === 'pending_approval'));
       setLeaves((leaveRes.data.data || []).filter((l: any) => l.status === 'pending'));
       setPayrolls((payrollRes.data.data || []).filter((p: any) => p.status === 'submitted'));
     } finally { setLoading(false); }
@@ -33,9 +36,16 @@ export default function ApprovalsPage() {
 
   useEffect(() => { load(); }, []);
 
-  const approvePO = async (id: string) => {
-    try { await api.patch(`/purchase-orders/${id}/approve`); toast.success('PO approved'); load(); }
-    catch(e: any) { toast.error(e.response?.data?.message || 'Failed'); }
+  const approvePO = async () => {
+    if (!poToApprove) return;
+    setPoApproving(true);
+    try {
+      await api.patch(`/purchase-orders/${poToApprove.id}/approve`);
+      toast.success('PO approved');
+      setPoToApprove(null);
+      load();
+    } catch(e: any) { toast.error(e.response?.data?.message || 'Failed'); }
+    finally { setPoApproving(false); }
   };
 
   const approveLeave = async (id: string, status: 'approved' | 'rejected') => {
@@ -98,7 +108,7 @@ export default function ApprovalsPage() {
                       <td className="px-4 py-3 font-semibold">GHS {parseFloat(po.total_cost||0).toFixed(2)}</td>
                       <td className="px-4 py-3 text-xs text-gray-400">{new Date(po.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
-                        <button onClick={() => approvePO(po.id)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg">
+                        <button onClick={() => setPoToApprove(po)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg">
                           <CheckCircle className="w-3.5 h-3.5"/> Approve
                         </button>
                       </td>
@@ -170,6 +180,15 @@ export default function ApprovalsPage() {
 
         </div>
       )}
+
+      <PoConfirmModal
+        open={!!poToApprove}
+        action="approve"
+        po={poToApprove}
+        saving={poApproving}
+        onClose={() => !poApproving && setPoToApprove(null)}
+        onConfirm={approvePO}
+      />
     </AppLayout>
   );
 }

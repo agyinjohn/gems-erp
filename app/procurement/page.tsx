@@ -2,25 +2,40 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import AppLayout from '@/components/layout/AppLayout';
-import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
-import { Plus, Search, Eye, CheckCircle, Truck, ClipboardList, Building2, Edit2, Trash2, Send, CreditCard } from 'lucide-react';
+import { Modal, Badge, EmptyState, Spinner, toast, ConfirmDialog } from '@/components/ui';
+import { Plus, Search, Eye, CheckCircle, Truck, ClipboardList, Building2, Edit2, Trash2, Send, CreditCard, Download, Printer, XCircle } from 'lucide-react';
 import api from '@/lib/api';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
+import PoPrintView from '@/components/procurement/PoPrintView';
+import PoConfirmModal, { PoConfirmAction } from '@/components/procurement/PoConfirmModal';
+import { printReport } from '@/lib/reportUtils';
 
 export default function ProcurementPage() {
   const { user } = useAuth();
-  const canApprove = user?.role === 'business_owner' || user?.role === 'accountant';
+  const role = user?.role || '';
+  const isWarehouseOnly = role === 'warehouse_staff';
+  const canManagePO = role === 'business_owner' || role === 'procurement_officer';
+  const canApprove = role === 'business_owner' || role === 'accountant';
+  const canReceive = ['business_owner', 'warehouse_staff', 'procurement_officer'].includes(role);
+  const canPay = ['business_owner', 'accountant', 'procurement_officer'].includes(role);
   const [pos, setPOs] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'pos'|'suppliers'>('pos');
-  const [modal, setModal] = useState<'add_po'|'view_po'|'add_supplier'|'receive'|null>(null);
+  const [modal, setModal] = useState<'add_po'|'view_po'|'add_supplier'|'receive'|'cancel_po'|null>(null);
   const [selected, setSelected] = useState<any>(null);
+  const [editingPoId, setEditingPoId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [printPo, setPrintPo] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
 
   const [poForm, setPoForm] = useState({ supplier_id:'', expected_date:'', notes:'', items:[{product_id:'',quantity_ordered:1,unit_cost:''}] });
   const [supForm, setSupForm] = useState({ name:'', email:'', phone:'', address:'', payment_terms:'Net 30', notes:'' });
@@ -29,19 +44,36 @@ export default function ProcurementPage() {
   const [poPayModal, setPoPayModal] = useState<any>(null);
   const [poPayForm, setPoPayForm] = useState({ amount:'', method:'bank_transfer', reference:'', note:'' });
   const [poPaySaving, setPoPaySaving] = useState(false);
+  const [poConfirm, setPoConfirm] = useState<{
+    action: PoConfirmAction;
+    po: any;
+    details?: { label: string; value: string }[];
+  } | null>(null);
+  const [confirmSupplierId, setConfirmSupplierId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [p, s, pr] = await Promise.all([
-        api.get('/purchase-orders').catch(() => ({ data: { data: [] } })),
-        api.get('/suppliers').catch(() => ({ data: { data: [] } })),
-        api.get('/products?is_active=true'),
+      const params = new URLSearchParams();
+      if (statusFilter) params.set('status', statusFilter);
+      if (dateFrom) params.set('from', dateFrom);
+      if (dateTo) params.set('to', dateTo);
+      if (branchFilter) params.set('branch_id', branchFilter);
+      const poUrl = `/purchase-orders${params.toString() ? `?${params}` : ''}`;
+
+      const [p, s, pr, b] = await Promise.all([
+        api.get(poUrl).catch(() => ({ data: { data: [] } })),
+        isWarehouseOnly ? Promise.resolve({ data: { data: [] } }) : api.get('/suppliers').catch(() => ({ data: { data: [] } })),
+        canManagePO ? api.get('/products?is_active=true') : Promise.resolve({ data: { data: [] } }),
+        api.get('/branches').catch(() => ({ data: { data: [] } })),
       ]);
-      setPOs(p.data.data); setSuppliers(s.data.data); setProducts(pr.data.data);
+      setPOs(p.data.data || []);
+      setSuppliers(s.data.data || []);
+      setProducts(pr.data.data || []);
+      setBranches(b.data.data || []);
     } finally { setLoading(false); }
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [statusFilter, dateFrom, dateTo, branchFilter]);
 
   const addPoItem = () => setPoForm({ ...poForm, items: [...poForm.items, { product_id:'', quantity_ordered:1, unit_cost:'' }] });
   const updatePoItem = (i: number, k: string, v: any) => {
@@ -49,12 +81,69 @@ export default function ProcurementPage() {
   };
   const getPoTotal = () => poForm.items.reduce((s, item) => s + (parseFloat(item.unit_cost)||0) * item.quantity_ordered, 0);
 
+  const resetPoForm = () => {
+    setPoForm({ supplier_id:'', expected_date:'', notes:'', items:[{product_id:'',quantity_ordered:1,unit_cost:''}] });
+    setEditingPoId(null);
+    setError('');
+  };
+
   const createPO = async () => {
     setSaving(true); setError('');
     try {
-      await api.post('/purchase-orders', { ...poForm, items: poForm.items.filter(i => i.product_id) });
-      setModal(null); load();
+      const payload = { ...poForm, items: poForm.items.filter(i => i.product_id) };
+      if (editingPoId) {
+        await api.put(`/purchase-orders/${editingPoId}`, payload);
+        toast.success('PO updated');
+      } else {
+        await api.post('/purchase-orders', payload);
+        toast.success('PO created');
+      }
+      setModal(null); resetPoForm(); load();
     } catch(e:any) { setError(e.response?.data?.message || 'Error'); }
+    finally { setSaving(false); }
+  };
+
+  const openEditPO = async (po: any) => {
+    const r = await api.get(`/purchase-orders/${po.id}`).catch(() => ({ data: { data: po } }));
+    const full = r.data.data;
+    setEditingPoId(full.id || full._id);
+    setPoForm({
+      supplier_id: full.supplier_id?._id || full.supplier_id || '',
+      expected_date: full.expected_date ? String(full.expected_date).slice(0, 10) : '',
+      notes: full.notes || '',
+      items: (full.items || []).map((i: any) => ({
+        product_id: i.product_id?._id || i.product_id || '',
+        quantity_ordered: i.quantity_ordered,
+        unit_cost: i.unit_cost,
+      })),
+    });
+    setError('');
+    setModal('add_po');
+  };
+
+  const openPoConfirm = (action: PoConfirmAction, po: any, details?: { label: string; value: string }[]) => {
+    setPoConfirm({ action, po, details });
+  };
+
+  const submitPO = (po: any) => openPoConfirm('submit', po);
+  const approvePO = (po: any) => openPoConfirm('approve', po);
+  const sendPO = (po: any) => openPoConfirm('send', po);
+
+  const openCancel = (po: any) => {
+    setSelected(po);
+    setCancelReason('');
+    setModal('cancel_po');
+  };
+
+  const confirmCancelPO = async () => {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      await api.patch(`/purchase-orders/${selected.id}/cancel`, { reason: cancelReason || undefined });
+      toast.success('PO cancelled');
+      setModal(null);
+      load();
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Cancel failed'); }
     finally { setSaving(false); }
   };
 
@@ -70,9 +159,9 @@ export default function ProcurementPage() {
   };
 
   const deleteSupplier = async (id: string) => {
-    if (!confirm('Deactivate this supplier?')) return;
     await api.delete(`/suppliers/${id}`).catch(()=>{});
     toast.success('Supplier deactivated');
+    setConfirmSupplierId(null);
     load();
   };
 
@@ -81,48 +170,132 @@ export default function ProcurementPage() {
     setSelected(r.data.data); setModal('view_po');
   };
 
-  const openReceive = (po: any) => {
-    setSelected(po);
-    setReceiveItems((po.items||[]).map((i:any) => ({ ...i, receive_qty: i.quantity_ordered - i.quantity_received })));
+  const openReceive = async (po: any) => {
+    const r = await api.get(`/purchase-orders/${po.id}`).catch(() => ({ data: { data: po } }));
+    const full = r.data.data;
+    setSelected(full);
+    setReceiveItems((full.items || []).map((i: any) => ({
+      ...i,
+      id: i._id || i.id,
+      receive_qty: Math.max(0, (i.quantity_ordered || 0) - (i.quantity_received || 0)),
+    })));
     setModal('receive');
   };
 
   const doReceive = async () => {
-    setSaving(true);
-    try {
-      await api.post(`/purchase-orders/${selected.id}/receive`, { items: receiveItems });
-      setModal(null); load();
-    } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
-    finally { setSaving(false); }
+    const receiving = receiveItems.filter(i => (i.receive_qty || 0) > 0);
+    if (!receiving.length) {
+      toast.error('Enter at least one quantity to receive');
+      return;
+    }
+    const totalUnits = receiving.reduce((s, i) => s + (i.receive_qty || 0), 0);
+    openPoConfirm('receive', selected, [
+      { label: 'Lines', value: `${receiving.length} item(s)` },
+      { label: 'Units', value: String(totalUnits) },
+    ]);
   };
 
-  const approvePO = async (id: number) => {
-    await api.patch(`/purchase-orders/${id}/approve`).catch(()=>{});
+  const executeReceive = async () => {
+    const items = receiveItems
+      .filter(i => (i.receive_qty || 0) > 0)
+      .map(i => ({
+        _id: i.id || i._id,
+        product_id: i.product_id,
+        product_name: i.product_name,
+        receive_qty: i.receive_qty,
+      }));
+    await api.post(`/purchase-orders/${selected.id}/receive`, { items });
+    toast.success('Goods received');
+    setModal(null);
+  };
+
+  const executeSend = async (id: string) => {
+    await api.patch(`/purchase-orders/${id}/send`);
+    toast.success('PO marked as sent to supplier');
+  };
+
+  const executeSubmit = async (id: string) => {
+    await api.patch(`/purchase-orders/${id}/submit`);
+    toast.success('PO submitted for approval');
+  };
+
+  const executeApprove = async (id: string) => {
+    await api.patch(`/purchase-orders/${id}/approve`);
     toast.success('PO approved');
-    load();
   };
 
-  const sendPO = async (id: number) => {
+  const runPoConfirm = async () => {
+    if (!poConfirm) return;
+    const { action, po } = poConfirm;
+    const setBusy = action === 'pay' ? setPoPaySaving : setSaving;
+    setBusy(true);
     try {
-      await api.patch(`/purchase-orders/${id}/send`);
-      toast.success('PO marked as sent to supplier');
+      const id = po.id || po._id;
+      if (action === 'submit') await executeSubmit(id);
+      else if (action === 'approve') await executeApprove(id);
+      else if (action === 'send') await executeSend(id);
+      else if (action === 'receive') await executeReceive();
+      else if (action === 'pay') await executePay();
+      setPoConfirm(null);
       load();
-    } catch(e:any) { toast.error(e.response?.data?.message || 'Failed'); }
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Action failed');
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const recordPoPayment = async () => {
+  const openPrint = async (po: any) => {
+    const r = await api.get(`/purchase-orders/${po.id}`).catch(() => ({ data: { data: po } }));
+    setPrintPo(r.data.data);
+    setTimeout(() => printReport(`PO — ${r.data.data.po_number}`, 'po-print'), 50);
+  };
+
+  const exportCsv = () => {
+    const rows = filtered.map(p => [
+      p.po_number,
+      p.supplier_name || p.supplier_id?.name || '',
+      p.status,
+      p.payment_status || 'unpaid',
+      parseFloat(p.total_cost || 0).toFixed(2),
+      parseFloat(p.amount_paid || 0).toFixed(2),
+      p.expected_date ? new Date(p.expected_date).toLocaleDateString() : '',
+      p.created_at || p.createdAt ? new Date(p.created_at || p.createdAt).toLocaleDateString() : '',
+    ]);
+    const header = ['PO Number','Supplier','Status','Payment','Total','Paid','Expected','Created'];
+    const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `purchase-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const canCancelPO = (po: any) => {
+    if (['completed', 'cancelled'].includes(po.status)) return false;
+    return !(po.items || []).some((i: any) => (i.quantity_received || 0) > 0);
+  };
+
+  const askPayConfirm = () => {
+    if (!poPayModal || !parseFloat(poPayForm.amount || '0')) return;
+    openPoConfirm('pay', poPayModal, [
+      { label: 'Amount', value: `GH₵ ${parseFloat(poPayForm.amount).toFixed(2)}` },
+      { label: 'Method', value: poPayForm.method.replace(/_/g, ' ') },
+      ...(poPayForm.reference ? [{ label: 'Reference', value: poPayForm.reference }] : []),
+    ]);
+  };
+
+  const executePay = async () => {
     if (!poPayModal) return;
-    setPoPaySaving(true);
-    try {
-      const res = await api.patch(`/purchase-orders/${poPayModal.id}/pay`, poPayForm);
-      const { paid, outstanding } = res.data;
-      toast.success(`GHS ${parseFloat(paid).toFixed(2)} paid${ outstanding > 0 ? ` — GHS ${parseFloat(outstanding).toFixed(2)} still outstanding` : ' — fully cleared' }`);
-      setPoPayModal(null);
-      setPoPayForm({ amount:'', method:'bank_transfer', reference:'', note:'' });
-      load();
-    } catch(e:any) { toast.error(e.response?.data?.message || 'Payment failed'); }
-    finally { setPoPaySaving(false); }
+    const res = await api.patch(`/purchase-orders/${poPayModal.id}/pay`, poPayForm);
+    const { paid, outstanding } = res.data;
+    toast.success(`GHS ${parseFloat(paid).toFixed(2)} paid${ outstanding > 0 ? ` — GHS ${parseFloat(outstanding).toFixed(2)} still outstanding` : ' — fully cleared' }`);
+    setPoPayModal(null);
+    setPoPayForm({ amount:'', method:'bank_transfer', reference:'', note:'' });
   };
+
+  const recordPoPayment = askPayConfirm;
 
   const filtered = pos.filter(p =>
     (!search || p.po_number?.toLowerCase().includes(search.toLowerCase())) &&
@@ -130,15 +303,17 @@ export default function ProcurementPage() {
   );
 
   const totalSpend = pos.reduce((s, p) => s + parseFloat(p.total_cost || 0), 0);
-  const pendingApproval = pos.filter(p => p.status === 'draft').length;
+  const pendingApproval = pos.filter(p => ['draft', 'pending_approval'].includes(p.status)).length;
   const pendingReceipt = pos.filter(p => ['approved','sent','partially_received'].includes(p.status)).length;
   const unpaidAmount = pos.reduce((s, p) => s + (parseFloat(p.total_cost || 0) - parseFloat(p.amount_paid || 0)), 0);
 
   return (
-    <AppLayout title="Procurement" subtitle="Purchase orders, suppliers and goods receipt" allowedRoles={['business_owner','procurement_officer']}>
+    <AppLayout title="Procurement" subtitle={isWarehouseOnly ? 'Receive goods against purchase orders' : 'Purchase orders, suppliers and goods receipt'} allowedRoles={['business_owner','procurement_officer','warehouse_staff']}>
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
+      <div className={`grid grid-cols-2 ${isWarehouseOnly ? 'lg:grid-cols-1 max-w-sm' : 'lg:grid-cols-4'} gap-3 sm:gap-4 mb-5`}>
+        {!isWarehouseOnly && (
+          <>
         <div className="card flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
             <ClipboardList className="w-5 h-5 text-blue-600" />
@@ -157,6 +332,8 @@ export default function ProcurementPage() {
             <div className="text-xs text-gray-400">Awaiting Approval</div>
           </div>
         </div>
+          </>
+        )}
         <div className="card flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-cyan-50 flex items-center justify-center flex-shrink-0">
             <Truck className="w-5 h-5 text-cyan-600" />
@@ -166,6 +343,7 @@ export default function ProcurementPage() {
             <div className="text-xs text-gray-400">Pending Receipt</div>
           </div>
         </div>
+        {!isWarehouseOnly && (
         <div className="card flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
             <CreditCard className="w-5 h-5 text-red-500" />
@@ -175,35 +353,50 @@ export default function ProcurementPage() {
             <div className="text-xs text-gray-400">Outstanding Payables</div>
           </div>
         </div>
+        )}
       </div>
 
       {/* Tabs */}
       <div className="flex flex-col sm:flex-row gap-2 mb-5">
-        {([{t:'pos',l:'Purchase Orders',icon:<ClipboardList className="w-4 h-4"/>},{t:'suppliers',l:'Suppliers',icon:<Building2 className="w-4 h-4"/>}]).map(({t,l,icon}) => (
+        {([
+          { t: 'pos', l: 'Purchase Orders', icon: <ClipboardList className="w-4 h-4" /> },
+          ...(!isWarehouseOnly ? [{ t: 'suppliers', l: 'Suppliers', icon: <Building2 className="w-4 h-4" /> }] : []),
+        ]).map(({ t, l, icon }) => (
           <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 w-full sm:w-auto ${tab===t ? 'bg-blue-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>
         ))}
         <div className="sm:ml-auto flex gap-2 w-full sm:w-auto">
-          {tab === 'pos' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setPoForm({ supplier_id:'',expected_date:'',notes:'',items:[{product_id:'',quantity_ordered:1,unit_cost:''}] }); setError(''); setModal('add_po'); }}><Plus className="w-4 h-4" />New PO</button>}
-          {tab === 'suppliers' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setSelectedSupplier(null); setSupForm({ name:'',email:'',phone:'',address:'',payment_terms:'Net 30',notes:'' }); setError(''); setModal('add_supplier'); }}><Plus className="w-4 h-4" />Add Supplier</button>}
+          {tab === 'pos' && canManagePO && <button className="btn-primary w-full sm:w-auto" onClick={() => { resetPoForm(); setModal('add_po'); }}><Plus className="w-4 h-4" />New PO</button>}
+          {tab === 'suppliers' && canManagePO && <button className="btn-primary w-full sm:w-auto" onClick={() => { setSelectedSupplier(null); setSupForm({ name:'',email:'',phone:'',address:'',payment_terms:'Net 30',notes:'' }); setError(''); setModal('add_supplier'); }}><Plus className="w-4 h-4" />Add Supplier</button>}
         </div>
       </div>
 
       {tab === 'pos' && (
         <>
-          <div className="flex gap-3 mb-4">
+          <div className="flex flex-col lg:flex-row gap-3 mb-4">
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input className="form-input pl-9" placeholder="Search PO number…" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <select className="form-input w-48" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <select className="form-input w-full lg:w-44" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
               <option value="">All Statuses</option>
               {['draft','pending_approval','approved','sent','partially_received','completed','cancelled'].map(s => (
                 <option key={s} value={s}>{s.replace(/_/g,' ')}</option>
               ))}
             </select>
-            {(search || statusFilter) && (
-              <button className="btn-secondary" onClick={() => { setSearch(''); setStatusFilter(''); }}>Clear</button>
+            <input type="date" className="form-input w-full lg:w-40" value={dateFrom} onChange={e => setDateFrom(e.target.value)} title="From date" />
+            <input type="date" className="form-input w-full lg:w-40" value={dateTo} onChange={e => setDateTo(e.target.value)} title="To date" />
+            {branches.length > 0 && (
+              <select className="form-input w-full lg:w-44" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
+                <option value="">All Branches</option>
+                {branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
             )}
+            <div className="flex gap-2">
+              <button className="btn-secondary" onClick={exportCsv} title="Export CSV"><Download className="w-4 h-4" /></button>
+              {(search || statusFilter || dateFrom || dateTo || branchFilter) && (
+                <button className="btn-secondary" onClick={() => { setSearch(''); setStatusFilter(''); setDateFrom(''); setDateTo(''); setBranchFilter(''); }}>Clear</button>
+              )}
+            </div>
           </div>
           <div className="card p-0 overflow-hidden">
             {loading ? <Spinner /> : filtered.length === 0
@@ -226,12 +419,27 @@ export default function ProcurementPage() {
                     'bg-gray-100 text-gray-500'
                   }`}>{po.payment_status || 'unpaid'}</span>,
                   <span className="text-gray-500 text-xs">{po.expected_date ? new Date(po.expected_date).toLocaleDateString() : '—'}</span>,
-                  <div className="flex gap-2">
-                    <button onClick={() => openView(po)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Eye className="w-4 h-4" /></button>
-                    {po.status === 'draft' && canApprove && <button onClick={() => approvePO(po.id)} title="Approve PO" className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4" /></button>}
-                    {po.status === 'approved' && <button onClick={() => sendPO(po.id)} title="Mark as Sent to Supplier" className="p-1.5 hover:bg-purple-50 rounded text-purple-600"><Send className="w-4 h-4" /></button>}
-                    {['approved','sent','partially_received'].includes(po.status) && <button onClick={() => openReceive(po)} title="Receive Goods" className="p-1.5 hover:bg-yellow-50 rounded text-yellow-600"><Truck className="w-4 h-4" /></button>}
-                    {['sent','partially_received','completed'].includes(po.status) && po.payment_status !== 'paid' && (
+                  <div className="flex gap-2 flex-wrap">
+                    <button onClick={() => openView(po)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600" title="View"><Eye className="w-4 h-4" /></button>
+                    <button onClick={() => openPrint(po)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Print"><Printer className="w-4 h-4" /></button>
+                    {po.status === 'draft' && canManagePO && (
+                      <>
+                        <button onClick={() => openEditPO(po)} title="Edit draft" className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4" /></button>
+                        <button onClick={() => submitPO(po)} title="Submit for approval" className="p-1.5 hover:bg-indigo-50 rounded text-indigo-600"><Send className="w-4 h-4" /></button>
+                      </>
+                    )}
+                    {po.status === 'pending_approval' && canApprove && (
+                      <button onClick={() => approvePO(po)} title="Approve PO" className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4" /></button>
+                    )}
+                    {po.status === 'draft' && canApprove && (
+                      <button onClick={() => approvePO(po)} title="Approve PO (skip submit)" className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4" /></button>
+                    )}
+                    {canManagePO && canCancelPO(po) && (
+                      <button onClick={() => openCancel(po)} title="Cancel PO" className="p-1.5 hover:bg-red-50 rounded text-red-500"><XCircle className="w-4 h-4" /></button>
+                    )}
+                    {po.status === 'approved' && canManagePO && <button onClick={() => sendPO(po)} title="Mark as Sent to Supplier" className="p-1.5 hover:bg-purple-50 rounded text-purple-600"><Send className="w-4 h-4" /></button>}
+                    {['approved','sent','partially_received'].includes(po.status) && canReceive && <button onClick={() => openReceive(po)} title="Receive Goods" className="p-1.5 hover:bg-yellow-50 rounded text-yellow-600"><Truck className="w-4 h-4" /></button>}
+                    {['sent','partially_received','completed'].includes(po.status) && po.payment_status !== 'paid' && canPay && (
                       <button
                         onClick={() => {
                           const outstanding = parseFloat(po.total_cost||0) - parseFloat(po.amount_paid||0);
@@ -264,7 +472,7 @@ export default function ProcurementPage() {
                 <Badge status={s.is_active ? 'active':'inactive'} />,
                 <div className="flex gap-1">
                   <button onClick={() => { setSelectedSupplier(s); setSupForm({ name:s.name, email:s.email||'', phone:s.phone||'', address:s.address||'', payment_terms:s.payment_terms||'Net 30', notes:s.notes||'' }); setError(''); setModal('add_supplier'); }} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-4 h-4" /></button>
-                  <button onClick={() => deleteSupplier(s.id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => setConfirmSupplierId(s.id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ]}
             />
@@ -272,8 +480,8 @@ export default function ProcurementPage() {
         </div>
       )}
 
-      {/* New PO Modal */}
-      <Modal open={modal==='add_po'} onClose={() => setModal(null)} title="Create Purchase Order" size="lg">
+      {/* New / Edit PO Modal */}
+      <Modal open={modal==='add_po'} onClose={() => { setModal(null); resetPoForm(); }} title={editingPoId ? 'Edit Purchase Order' : 'Create Purchase Order'} size="lg">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div><label className="form-label">Supplier *</label>
@@ -306,8 +514,8 @@ export default function ProcurementPage() {
           <div className="text-right font-semibold mt-3">Total: GH₵ {getPoTotal().toFixed(2)}</div>
         </div>
         <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={createPO} disabled={saving}>{saving?'Creating…':'Create PO'}</button>
+          <button className="btn-secondary" onClick={() => { setModal(null); resetPoForm(); }}>Cancel</button>
+          <button className="btn-primary" onClick={createPO} disabled={saving}>{saving ? (editingPoId ? 'Saving…' : 'Creating…') : (editingPoId ? 'Save Changes' : 'Create PO')}</button>
         </div>
       </Modal>
 
@@ -362,8 +570,20 @@ export default function ProcurementPage() {
             </div>
           </div>
         )}
-        <div className="flex justify-end mt-6">
+        <div className="flex justify-between mt-6">
+          <button className="btn-secondary" onClick={() => openPrint(selected)}><Printer className="w-4 h-4" />Print</button>
           <button className="btn-secondary" onClick={() => setModal(null)}>Close</button>
+        </div>
+      </Modal>
+
+      {/* Cancel PO Modal */}
+      <Modal open={modal==='cancel_po'} onClose={() => setModal(null)} title={`Cancel PO — ${selected?.po_number}`} size="sm">
+        <p className="text-sm text-gray-600 mb-3">This cannot be undone. Goods must not have been received.</p>
+        <label className="form-label">Reason (optional)</label>
+        <textarea className="form-input" rows={3} value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="Why is this PO being cancelled?" />
+        <div className="flex gap-3 justify-end mt-6">
+          <button className="btn-secondary" onClick={() => setModal(null)}>Keep PO</button>
+          <button className="btn-primary bg-red-600 hover:bg-red-700" onClick={confirmCancelPO} disabled={saving}>{saving ? 'Cancelling…' : 'Cancel PO'}</button>
         </div>
       </Modal>
 
@@ -382,7 +602,7 @@ export default function ProcurementPage() {
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={doReceive} disabled={saving}>{saving?'Saving…':'Confirm Receipt'}</button>
+          <button className="btn-primary" onClick={doReceive} disabled={saving}>Review receipt</button>
         </div>
       </Modal>
       {/* Supplier Payment Modal */}
@@ -451,6 +671,30 @@ export default function ProcurementPage() {
           >{poPaySaving ? 'Processing…' : 'Record Payment'}</button>
         </div>
       </Modal>
+
+      {/* Hidden print template */}
+      <div className="hidden">
+        <PoPrintView po={printPo} businessName={user?.tenant_name} />
+      </div>
+
+      <PoConfirmModal
+        open={!!poConfirm}
+        action={poConfirm?.action || null}
+        po={poConfirm?.po}
+        details={poConfirm?.details}
+        saving={saving || poPaySaving}
+        onClose={() => !saving && !poPaySaving && setPoConfirm(null)}
+        onConfirm={runPoConfirm}
+      />
+
+      <ConfirmDialog
+        open={!!confirmSupplierId}
+        onClose={() => setConfirmSupplierId(null)}
+        onConfirm={() => confirmSupplierId && deleteSupplier(confirmSupplierId)}
+        title="Deactivate supplier?"
+        message="This supplier will be marked inactive and hidden from new purchase orders."
+        danger
+      />
     </AppLayout>
   );
 }
