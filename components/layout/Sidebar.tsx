@@ -99,12 +99,6 @@ const navGroups = [
     })),
   },
   {
-    label: 'People',
-    items: [
-      { href: '/departments', label: 'Departments', icon: Building2, roles: ['business_owner', 'hr_manager'], permission: 'hr.view' },
-    ],
-  },
-  {
     label: 'Accounting',
     items: ACCOUNTING_SECTIONS.map((s) => ({
       href: `/accounting/${s.slug}`,
@@ -144,6 +138,7 @@ const navGroups = [
       { href: '/store-settings', label: 'Online Store', icon: ShoppingBag, roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },
       { href: '/catalog',         label: 'Catalog',      icon: Package,      roles: ['business_owner', 'branch_manager', 'warehouse_staff'], permission: 'inventory.view' },
       { href: '/branches',     label: 'Branches',     icon: Store,      roles: ['business_owner'],                   permission: 'branches.manage' },
+      { href: '/departments',  label: 'Departments',  icon: Building2,  roles: ['business_owner', 'hr_manager'],     permission: 'hr.view' },
       { href: '/users',        label: 'Users',        icon: Settings,   roles: ['business_owner'],                   permission: 'users.manage' },
       { href: '/billing',      label: 'Billing',      icon: Calculator, roles: ['business_owner'],                   permission: 'billing.view' },
       { href: '/api-docs',     label: 'Store API',    icon: BookOpen,   roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },

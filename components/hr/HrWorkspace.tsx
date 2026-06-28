@@ -77,29 +77,53 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const [leaveForm, setLeaveForm] = useState({ employee_id:'', leave_type:'annual', start_date:'', end_date:'', reason:'' });
   const [attendanceForm, setAttendanceForm] = useState({ employee_id:'', date: new Date().toISOString().split('T')[0], status:'present', notes:'' });
 
-  const load = async () => {
+  const loadSection = async (sec: HrSectionSlug, date = attendanceDate) => {
     setLoading(true);
     try {
-      const [e, d, l, p, s] = await Promise.all([
-        api.get('/employees').catch(()=>({data:{data:[]}})),
-        api.get('/departments').catch(()=>({data:{data:[]}})),
-        api.get('/leave-requests').catch(()=>({data:{data:[]}})),
-        api.get('/payroll').catch(()=>({data:{data:[]}})),
-        api.get('/hr/summary').catch(()=>({data:{data:null}})),
-      ]);
-      setEmployees(e.data.data); setDepartments(d.data.data);
-      setLeave(l.data.data); setPayroll(p.data.data);
-      setHrSummary(s.data.data);
-    } finally { setLoading(false); }
+      if (sec === 'employees') {
+        const [e, d, s] = await Promise.all([
+          api.get('/employees').catch(() => ({ data: { data: [] } })),
+          api.get('/departments').catch(() => ({ data: { data: [] } })),
+          api.get('/hr/summary').catch(() => ({ data: { data: null } })),
+        ]);
+        setEmployees(e.data.data);
+        setDepartments(d.data.data);
+        setHrSummary(s.data.data);
+      } else if (sec === 'attendance') {
+        const [e, a] = await Promise.all([
+          api.get('/employees').catch(() => ({ data: { data: [] } })),
+          api.get(`/attendance?date=${date}`).catch(() => ({ data: { data: [] } })),
+        ]);
+        setEmployees(e.data.data);
+        setAttendance(a.data.data);
+        setHrSummary(null);
+      } else if (sec === 'leave') {
+        const [l, e] = await Promise.all([
+          api.get('/leave-requests').catch(() => ({ data: { data: [] } })),
+          api.get('/employees').catch(() => ({ data: { data: [] } })),
+        ]);
+        setLeave(l.data.data);
+        setEmployees(e.data.data);
+        setHrSummary(null);
+      } else if (sec === 'payroll') {
+        const [p, e] = await Promise.all([
+          api.get('/payroll').catch(() => ({ data: { data: [] } })),
+          api.get('/employees').catch(() => ({ data: { data: [] } })),
+        ]);
+        setPayroll(p.data.data);
+        setEmployees(e.data.data);
+        setHrSummary(null);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const loadAttendance = async (date: string) => {
-    const r = await api.get(`/attendance?date=${date}`).catch(()=>({data:{data:[]}}));
-    setAttendance(r.data.data);
-  };
+  const reloadSection = () => loadSection(section);
 
-  useEffect(() => { load(); }, []);
-  useEffect(() => { if (section === 'attendance') loadAttendance(attendanceDate); }, [section, attendanceDate]);
+  useEffect(() => {
+    loadSection(section, attendanceDate);
+  }, [section, attendanceDate]);
 
   const filtered = employees.filter(e => !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.employee_code?.toLowerCase().includes(search.toLowerCase()));
 
@@ -205,7 +229,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       setModal(null);
       setEditingEmployee(null);
       setEmpStep(1);
-      load();
+      reloadSection();
     } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); throw e; }
     finally { setSaving(false); }
   };
@@ -234,7 +258,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       await api.patch(`/employees/${terminateTarget.id}/terminate`, terminateForm);
       toast.success('Employee terminated');
       setModal(null);
-      load();
+      reloadSection();
     } catch (e: any) { toast.error(e.response?.data?.message || 'Failed'); }
     finally { setSaving(false); }
   };
@@ -251,7 +275,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       });
       toast.success('Payroll run created (PAYE & SSNIT calculated)');
       setModal(null);
-      load();
+      reloadSection();
     } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); throw e; }
     finally { setSaving(false); }
   };
@@ -279,7 +303,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const approveLeave = async (id: number, status: string) => {
     await api.patch(`/leave-requests/${id}`, { status });
     toast.success(status === 'approved' ? 'Leave approved' : 'Leave rejected');
-    load();
+    reloadSection();
   };
 
   const requestApproveLeave = (row: any, status: 'approved' | 'rejected') => {
@@ -302,7 +326,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
   const submitLeave = async () => {
     setSaving(true); setError('');
-    try { await api.post('/leave-requests', leaveForm); toast.success('Leave request submitted'); setModal(null); load(); }
+    try { await api.post('/leave-requests', leaveForm); toast.success('Leave request submitted'); setModal(null); reloadSection(); }
     catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); throw e; }
     finally { setSaving(false); }
   };
@@ -329,7 +353,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
   const saveAttendance = async () => {
     setSaving(true); setError('');
-    try { await api.post('/attendance', attendanceForm); toast.success('Attendance recorded'); setModal(null); loadAttendance(attendanceDate); }
+    try { await api.post('/attendance', attendanceForm); toast.success('Attendance recorded'); setModal(null); reloadSection(); }
     catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); throw e; }
     finally { setSaving(false); }
   };
@@ -366,7 +390,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           api.post('/attendance', { employee_id, date: attendanceDate, status })
         )
       );
-      loadAttendance(attendanceDate);
+      reloadSection();
       toast.success('Attendance saved for all employees');
     } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); throw e; }
     finally { setSaving(false); }
@@ -402,7 +426,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       toast.success(`Payroll: ${created.length} created, ${skipped.length} skipped`);
       if (errors?.length) toast.error(`${errors.length} failed — check console`);
       setModal(null);
-      load();
+      reloadSection();
     } catch (e: any) { toast.error(e.response?.data?.message || 'Bulk payroll failed'); throw e; }
     finally { setSaving(false); }
   };
@@ -443,7 +467,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const approvePayroll = async (id: number) => {
     await api.patch(`/payroll/${id}/approve`);
     toast.success('Payroll approved');
-    load();
+    reloadSection();
   };
 
   const requestApprovePayroll = (row: any) => {
@@ -484,17 +508,52 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+  const sectionKpis = (): { label: string; value: string | number }[] => {
+    if (section === 'employees' && hrSummary) {
+      return [
+        { label: 'Active staff', value: hrSummary.active },
+        { label: 'Terminated', value: hrSummary.terminated },
+        { label: 'Total employees', value: hrSummary.total_employees },
+        { label: 'Departments', value: departments.length },
+      ];
+    }
+    if (section === 'attendance') {
+      return [
+        { label: 'Records', value: attendance.length },
+        { label: 'Present', value: attendance.filter((a) => a.status === 'present').length },
+        { label: 'Absent', value: attendance.filter((a) => a.status === 'absent').length },
+        { label: 'On leave', value: attendance.filter((a) => a.status === 'leave').length },
+      ];
+    }
+    if (section === 'leave') {
+      return [
+        { label: 'Pending', value: leave.filter((l) => l.status === 'pending').length },
+        { label: 'Approved', value: leave.filter((l) => l.status === 'approved').length },
+        { label: 'Rejected', value: leave.filter((l) => l.status === 'rejected').length },
+        { label: 'Total requests', value: leave.length },
+      ];
+    }
+    if (section === 'payroll') {
+      const approved = payroll.filter((p) => p.status === 'approved');
+      const submitted = payroll.filter((p) => p.status === 'submitted');
+      const totalPaid = approved.reduce((sum, p) => sum + Number(p.net_salary || 0), 0);
+      return [
+        { label: 'Submitted', value: submitted.length },
+        { label: 'Approved', value: approved.length },
+        { label: 'Total runs', value: payroll.length },
+        { label: 'Total paid', value: `GH₵ ${totalPaid.toLocaleString()}` },
+      ];
+    }
+    return [];
+  };
+
+  const kpis = sectionKpis();
+
   return (
     <>
-      {hrSummary && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
-          {[
-            { label: 'Active staff', value: hrSummary.active },
-            { label: 'On leave today', value: hrSummary.on_leave },
-            { label: 'Pending leave', value: hrSummary.pending_leave },
-            { label: 'Terminated', value: hrSummary.terminated },
-            { label: 'Payroll paid', value: `GH₵ ${Number(hrSummary.payroll_total || 0).toLocaleString()}` },
-          ].map((k) => (
+      {kpis.length > 0 && (
+        <div className={`grid grid-cols-2 gap-3 mb-5 ${kpis.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+          {kpis.map((k) => (
             <div key={k.label} className="card py-3 px-4">
               <div className="text-lg font-bold text-gray-900">{k.value}</div>
               <div className="text-xs text-gray-400">{k.label}</div>
@@ -1084,7 +1143,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             onChange={async () => {
               const r = await api.get(`/employees/${detailEmployee.id || detailEmployee._id}`);
               setDetailEmployee(r.data.data);
-              load();
+              reloadSection();
             }}
           />
         )}
