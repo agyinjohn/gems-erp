@@ -393,7 +393,7 @@ export default function DashboardPage() {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-800">Recent Expenses</h3>
-                <a href="/accounting" className="text-xs text-blue-600 hover:underline">View all →</a>
+                <a href="/accounting/overview" className="text-xs text-blue-600 hover:underline">View all →</a>
               </div>
               {data?.recent_expenses?.length ? (
                 <div className="space-y-2">
@@ -414,11 +414,11 @@ export default function DashboardPage() {
               <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: 'Record Expense',  href: '/accounting',  color: 'bg-red-50 text-red-700' },
-                  { label: 'Journal Entry',   href: '/accounting',  color: 'bg-purple-50 text-purple-700' },
-                  { label: 'Balance Sheet',   href: '/accounting',  color: 'bg-green-50 text-green-700' },
-                  { label: 'P&L Report',      href: '/accounting',  color: 'bg-blue-50 text-blue-700' },
-                  { label: 'Trial Balance',   href: '/accounting',  color: 'bg-indigo-50 text-indigo-700' },
+                  { label: 'Record Expense',  href: '/accounting/expenses',  color: 'bg-red-50 text-red-700' },
+                  { label: 'Journal Entry',   href: '/accounting/journal',  color: 'bg-purple-50 text-purple-700' },
+                  { label: 'Balance Sheet',   href: '/accounting/bs',  color: 'bg-green-50 text-green-700' },
+                  { label: 'P&L Report',      href: '/accounting/pl',  color: 'bg-blue-50 text-blue-700' },
+                  { label: 'Trial Balance',   href: '/accounting/trial-balance',  color: 'bg-indigo-50 text-indigo-700' },
                   { label: 'Approvals',       href: '/approvals',   color: 'bg-orange-50 text-orange-700' },
                 ].map(a => (
                   <a key={a.label} href={a.href} className={`flex items-center justify-between px-3 py-3 rounded-xl text-sm font-medium ${a.color} hover:opacity-80 transition-opacity`}>

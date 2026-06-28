@@ -10,10 +10,12 @@ import {
   MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History,
 } from 'lucide-react';
 import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
+import { ACCOUNTING_SECTIONS } from '@/lib/accountingNav';
 
 /** Sidebar highlight — avoid parent /pos matching /pos/shifts */
 function isNavActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
+  if (href === '/accounting/overview' && pathname === '/accounting') return true;
   if (href === '/platform' || href === '/dashboard') return false;
   if (href === '/pos') {
     return (
@@ -92,9 +94,18 @@ const navGroups = [
     ],
   },
   {
+    label: 'Accounting',
+    items: ACCOUNTING_SECTIONS.map((s) => ({
+      href: `/accounting/${s.slug}`,
+      label: s.label,
+      icon: s.icon,
+      roles: ['business_owner', 'accountant'],
+      permission: 'accounting.view',
+    })),
+  },
+  {
     label: 'Finance',
     items: [
-      { href: '/accounting',   label: 'Accounting', icon: Calculator, roles: ['business_owner','accountant'], permission: 'accounting.view' },
       { href: '/payment-logs', label: 'Payments',   icon: CreditCard, roles: ['business_owner','accountant'], permission: 'accounting.view' },
     ],
   },

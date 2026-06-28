@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
   if (PRODUCT_MODE !== 'full' && !isAppPathAllowed(pathname)) {
     const home = PRODUCT_MODE === 'pos' ? '/pos'
       : PRODUCT_MODE === 'storefront' ? '/store-settings'
-      : PRODUCT_MODE === 'accounting' ? '/accounting'
+      : PRODUCT_MODE === 'accounting' ? '/accounting/overview'
       : '/dashboard';
     return NextResponse.redirect(new URL(home, request.url));
   }

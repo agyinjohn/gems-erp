@@ -14,7 +14,7 @@ export const MODE_HOME: Record<ProductMode, string> = {
   full: '/dashboard',
   pos: '/pos',
   storefront: '/store-settings',
-  accounting: '/accounting',
+  accounting: '/accounting/overview',
 };
 
 /** Merchant app routes allowed in each product bundle (null = all) */
@@ -64,7 +64,7 @@ export function getLoginRedirect(role: string, mode: ProductMode = PRODUCT_MODE)
     employee: '/ess',
     sales_staff: '/pos',
     warehouse_staff: '/inventory',
-    accountant: '/accounting',
+    accountant: '/accounting/overview',
   };
   return roleRedirects[role] ?? MODE_HOME[mode] ?? '/dashboard';
 }
