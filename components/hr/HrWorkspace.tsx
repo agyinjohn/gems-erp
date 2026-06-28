@@ -560,37 +560,39 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           ))}
         </div>
       )}
-      <div className="flex flex-wrap justify-end gap-2 mb-5">
-        {section === 'employees' && (
-          <>
-            <button type="button" className="btn-secondary" onClick={exportHrCsv} title="Export CSV"><Download className="w-4 h-4" /></button>
-            <button type="button" className="btn-primary" onClick={openAddEmp}><Plus className="w-4 h-4" />Add Employee</button>
-          </>
-        )}
-        {section === 'attendance' && (
-          <button type="button" className="btn-primary" onClick={() => { setAttendanceForm({ employee_id: '', date: attendanceDate, status: 'present', notes: '' }); setError(''); setModal('add_attendance'); }}>
-            <Calendar className="w-4 h-4" />Record Attendance
-          </button>
-        )}
-        {section === 'leave' && (
-          <button type="button" className="btn-primary" onClick={() => { setLeaveForm({ employee_id: '', leave_type: 'annual', start_date: '', end_date: '', reason: '' }); setError(''); setModal('add_leave'); }}>
-            <Plus className="w-4 h-4" />Apply Leave
-          </button>
-        )}
-        {section === 'payroll' && (
-          <>
-            <button type="button" className="btn-secondary" onClick={() => { resetBulkPayForm(); setModal('bulk_payroll'); }}>Bulk Run</button>
-            <button type="button" className="btn-primary" onClick={() => { resetPayForm(); setError(''); setModal('add_payroll'); }}><DollarSign className="w-4 h-4" />Run Payroll</button>
-          </>
-        )}
-      </div>
+      {section !== 'employees' && (
+        <div className="flex flex-wrap justify-end gap-2 mb-5">
+          {section === 'attendance' && (
+            <button type="button" className="btn-primary" onClick={() => { setAttendanceForm({ employee_id: '', date: attendanceDate, status: 'present', notes: '' }); setError(''); setModal('add_attendance'); }}>
+              <Calendar className="w-4 h-4" />Record Attendance
+            </button>
+          )}
+          {section === 'leave' && (
+            <button type="button" className="btn-primary" onClick={() => { setLeaveForm({ employee_id: '', leave_type: 'annual', start_date: '', end_date: '', reason: '' }); setError(''); setModal('add_leave'); }}>
+              <Plus className="w-4 h-4" />Apply Leave
+            </button>
+          )}
+          {section === 'payroll' && (
+            <>
+              <button type="button" className="btn-secondary" onClick={() => { resetBulkPayForm(); setModal('bulk_payroll'); }}>Bulk Run</button>
+              <button type="button" className="btn-primary" onClick={() => { resetPayForm(); setError(''); setModal('add_payroll'); }}><DollarSign className="w-4 h-4" />Run Payroll</button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Employees */}
       {section === 'employees' && (
         <>
-          <div className="relative mb-4">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input className="form-input pl-9" placeholder="Search employees…" value={search} onChange={e => setSearch(e.target.value)} />
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input className="form-input pl-9 w-full" placeholder="Search employees…" value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button type="button" className="btn-secondary" onClick={exportHrCsv} title="Export CSV"><Download className="w-4 h-4" /></button>
+              <button type="button" className="btn-primary" onClick={openAddEmp}><Plus className="w-4 h-4" />Add Employee</button>
+            </div>
           </div>
           <div className="card p-0 overflow-hidden">
             {loading ? <Spinner /> : filtered.length===0 ? <EmptyState message="No employees found" icon={<Users className="w-8 h-8 text-gray-300"/>} /> : (
