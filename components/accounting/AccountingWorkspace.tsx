@@ -17,6 +17,7 @@ import AccountingPlPanel from '@/components/accounting/AccountingPlPanel';
 import AccountingBalanceSheetPanel from '@/components/accounting/AccountingBalanceSheetPanel';
 import AccountingCashFlowPanel from '@/components/accounting/AccountingCashFlowPanel';
 import AccountingBudgetPanel from '@/components/accounting/AccountingBudgetPanel';
+import AccountingTaxPanel from '@/components/accounting/AccountingTaxPanel';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 import type { AccountingSectionSlug } from '@/lib/accountingNav';
 
@@ -30,21 +31,12 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const [historyModal, setHistoryModal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
   const [invoiceData, setInvoiceData] = useState<{ order: any; business: any } | null>(null);
   const [invoiceModal, setInvoiceModal] = useState(false);
   const [importModal, setImportModal] = useState(false);
   const [importType, setImportType] = useState<'expenses'|'journal'>('expenses');
   const [importCsv, setImportCsv] = useState('');
   const [importing, setImporting] = useState(false);
-  const [taxRates, setTaxRates] = useState<any[]>([]);
-  const [taxModal, setTaxModal] = useState<'add'|'edit'|null>(null);
-  const [selectedTax, setSelectedTax] = useState<any>(null);
-  const [taxForm, setTaxForm] = useState({ name:'', rate:'', applies_to:'both', is_active:true });
-  const [vatReturn, setVatReturn] = useState<any>(null);
-  const [vatLoading, setVatLoading] = useState(false);
-  const [vatFrom, setVatFrom] = useState('');
-  const [vatTo, setVatTo] = useState('');
 
   // Trial Balance
   const [tb, setTb] = useState<any>(null);
@@ -70,16 +62,14 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const load = async () => {
     setLoading(true);
     try {
-      const [a, s, taxRes] = await Promise.all([
+      const [a, s] = await Promise.all([
         api.get('/accounts').catch(()=>({data:{data:[]}})),
         api.get('/accounting/summary').catch(()=>({data:{data:{}}})),
-        api.get('/tax-rates').catch(()=>({data:{data:[]}})),
       ]);
       const allAccounts = a.data.data || [];
       const postingAccounts = allAccounts.filter((acc: any) => !acc.is_group);
       setAccounts(postingAccounts);
       setSummary(s.data.data||{});
-      setTaxRates(taxRes.data.data||[]);
     } finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
@@ -156,40 +146,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
     } finally { setImporting(false); }
   };
 
-  const saveTax = async () => {
-    setSaving(true); setError('');
-    try {
-      if (selectedTax) await api.put(`/tax-rates/${selectedTax.id}`, taxForm);
-      else await api.post('/tax-rates', taxForm);
-      setTaxModal(null);
-      toast.success('Saved successfully');
-      load();
-    } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
-    finally { setSaving(false); }
-  };
-
-  const deleteTax = async (id: string) => {
-    if (!confirm('Delete this tax rate?')) return;
-    await api.delete(`/tax-rates/${id}`);
-    toast.success('Deleted successfully');
-    load();
-  };
-
-  const openAddTax = () => { setSelectedTax(null); setTaxForm({ name:'', rate:'', applies_to:'both', is_active:true }); setError(''); setTaxModal('add'); };
-  const openEditTax = (t: any) => { setSelectedTax(t); setTaxForm({ name:t.name, rate:String(t.rate), applies_to:t.applies_to, is_active:t.is_active }); setError(''); setTaxModal('edit'); };
-
-  const loadVatReturn = async () => {
-    setVatLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (vatFrom) params.append('from', vatFrom);
-      if (vatTo)   params.append('to', vatTo);
-      const res = await api.get(`/accounting/vat-return?${params.toString()}`);
-      setVatReturn(res.data.data);
-    } catch (e: any) { toast.error(e.response?.data?.message || 'Failed to load VAT return'); }
-    finally { setVatLoading(false); }
-  };
-
   const loadTrialBalance = async () => {
     setTbLoading(true);
     try {
@@ -264,7 +220,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
     <>
       {/* Section action bar */}
       <div className="flex flex-wrap justify-end gap-2 mb-4 md:mb-5">
-          {section==='tax'          && <button className="btn-primary text-xs md:text-sm" onClick={openAddTax}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Tax</button>}
           {section==='trial-balance' && tb && <button className="btn-secondary" onClick={() => { const rows = [['Code','Account','Type','Debit','Credit'],...(tb.accounts||[]).map((r:any)=>[r.code,r.name,r.type,r.debit_balance.toFixed(2),r.credit_balance.toFixed(2)]),['','TOTALS','',tb.totals.debit.toFixed(2),tb.totals.credit.toFixed(2)]]; const csv=rows.map(r=>r.map((c:any)=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`trial-balance-${Date.now()}.csv`; a.click(); }}><Download className="w-4 h-4" />CSV</button>}
           {section==='invoices'      && <button className="btn-primary text-xs md:text-sm" onClick={() => setInvModal(true)}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">New </span>Invoice</button>}
         {section==='periods'       && <button className="btn-primary text-xs md:text-sm" onClick={() => setPeriodModal(true)}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">New </span>Period</button>}
@@ -321,96 +276,9 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         <AccountingBudgetPanel onDataChange={load} />
       )}
 
-      {/* Tax / VAT Tab */}
       {section==='tax' && (
-        <div className="space-y-4 md:space-y-6">
-          {/* VAT Return */}
-          <div className="card">
-            <h3 className="font-semibold text-gray-800 mb-3">VAT Return</h3>
-            <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3 mb-4">
-              <div><label className="form-label">From</label><input type="date" className="form-input" value={vatFrom} onChange={e => setVatFrom(e.target.value)} /></div>
-              <div><label className="form-label">To</label><input type="date" className="form-input" value={vatTo} onChange={e => setVatTo(e.target.value)} /></div>
-              <button className="btn-primary w-full sm:w-auto" onClick={loadVatReturn} disabled={vatLoading}>{vatLoading ? 'Loading…' : 'Generate'}</button>
-              {vatReturn && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setVatReturn(null); setVatFrom(''); setVatTo(''); }}>Clear</button>}
-            </div>
-            {vatReturn && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-                <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
-                  <div className="text-xs text-blue-600 font-medium mb-1">Output VAT (Collected)</div>
-                  <div className="text-xl font-bold text-blue-800">GH₵ {parseFloat(vatReturn.output_vat||0).toFixed(2)}</div>
-                  <div className="text-xs text-blue-500 mt-1">VAT charged to customers</div>
-                </div>
-                <div className="rounded-xl bg-orange-50 border border-orange-100 p-4">
-                  <div className="text-xs text-orange-600 font-medium mb-1">Input VAT (Paid)</div>
-                  <div className="text-xl font-bold text-orange-800">GH₵ {parseFloat(vatReturn.input_vat||0).toFixed(2)}</div>
-                  <div className="text-xs text-orange-500 mt-1">VAT paid to suppliers</div>
-                </div>
-                <div className={`rounded-xl border p-4 ${vatReturn.status === 'payable' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
-                  <div className={`text-xs font-medium mb-1 ${vatReturn.status === 'payable' ? 'text-red-600' : 'text-green-600'}`}>Net VAT {vatReturn.status === 'payable' ? 'Payable' : 'Reclaimable'}</div>
-                  <div className={`text-xl font-bold ${vatReturn.status === 'payable' ? 'text-red-800' : 'text-green-800'}`}>GH₵ {Math.abs(parseFloat(vatReturn.net_vat_payable||0)).toFixed(2)}</div>
-                  <div className={`text-xs mt-1 ${vatReturn.status === 'payable' ? 'text-red-500' : 'text-green-500'}`}>{vatReturn.status === 'payable' ? 'Owed to tax authority' : 'Claimable from tax authority'}</div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Tax Rates */}
-          <div className="card p-0 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-800">Tax Rates</h3>
-            </div>
-            {loading ? <Spinner /> : taxRates.length===0 ? <EmptyState message="No tax rates configured" icon={<Receipt className="w-8 h-8 text-gray-300"/>} /> : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs md:text-sm">
-                  <thead className="table-header"><tr>{['Name','Rate (%)','Applies To','Status',''].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr></thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {taxRates.map(t => (
-                      <tr key={t.id} className="hover:bg-gray-50">
-                        <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{t.name}</td>
-                        <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-blue-700">{parseFloat(t.rate).toFixed(2)}%</td>
-                        <td className="px-3 md:px-4 py-2 md:py-3 hidden md:table-cell"><span className="badge badge-blue text-xs">{t.applies_to}</span></td>
-                        <td className="px-3 md:px-4 py-2 md:py-3">{t.is_active ? <span className="badge bg-green-100 text-green-700 text-xs">Active</span> : <span className="badge bg-gray-100 text-gray-500 text-xs">Inactive</span>}</td>
-                        <td className="px-3 md:px-4 py-2 md:py-3 flex gap-1">
-                          <button onClick={() => openEditTax(t)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
-                          <button onClick={() => deleteTax(t.id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        <AccountingTaxPanel onDataChange={load} />
       )}
-
-      {/* Tax Rate Modal */}
-      <Modal open={!!taxModal} onClose={() => setTaxModal(null)} title={taxModal==='edit' ? 'Edit Tax Rate' : 'Add Tax Rate'} size="sm">
-        {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
-        <div className="space-y-3">
-          <div><label className="form-label">Name *</label><input className="form-input" value={taxForm.name} onChange={e => setTaxForm({...taxForm,name:e.target.value})} placeholder="e.g. VAT" /></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div><label className="form-label">Rate (%) *</label><input type="number" className="form-input" value={taxForm.rate} onChange={e => setTaxForm({...taxForm,rate:e.target.value})} placeholder="e.g. 15" /></div>
-            <div><label className="form-label">Applies To</label>
-              <select className="form-input" value={taxForm.applies_to} onChange={e => setTaxForm({...taxForm,applies_to:e.target.value})}>
-                <option value="both">Both</option>
-                <option value="sales">Sales</option>
-                <option value="purchases">Purchases</option>
-              </select>
-            </div>
-          </div>
-          {taxModal==='edit' && (
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="tax-active" checked={taxForm.is_active} onChange={e => setTaxForm({...taxForm,is_active:e.target.checked})} />
-              <label htmlFor="tax-active" className="text-sm text-gray-700">Active</label>
-            </div>
-          )}
-        </div>
-        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
-          <button className="btn-secondary w-full sm:w-auto" onClick={() => setTaxModal(null)}>Cancel</button>
-          <button className="btn-primary w-full sm:w-auto" onClick={saveTax} disabled={saving}>{saving?'Saving…':taxModal==='edit'?'Update':'Add Tax Rate'}</button>
-        </div>
-      </Modal>
 
       {/* Trial Balance Tab */}
       {section==='trial-balance' && (
