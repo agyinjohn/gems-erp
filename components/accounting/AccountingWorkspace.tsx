@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import InvoiceModal from '@/components/InvoiceModal';
 import AccountingOverviewPanel from '@/components/accounting/AccountingOverviewPanel';
 import AccountingAccountsPanel from '@/components/accounting/AccountingAccountsPanel';
+import AccountingExpensesPanel from '@/components/accounting/AccountingExpensesPanel';
 import AccountingCreditNotesTab from '@/components/accounting/AccountingCreditNotesTab';
 import AccountingVendorBillsTab from '@/components/accounting/AccountingVendorBillsTab';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
@@ -17,7 +18,6 @@ interface AccountingWorkspaceProps {
 
 export default function AccountingWorkspace({ section }: AccountingWorkspaceProps) {
   const [accounts, setAccounts] = useState<any[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
   const [journal, setJournal] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({});
   const [ar, setAr] = useState<any[]>([]);
@@ -28,7 +28,7 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const [poPaySaving, setPoPaySaving] = useState(false);
   const [historyModal, setHistoryModal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState<'expense'|'journal'|null>(null);
+  const [modal, setModal] = useState<'journal'|null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [bankStatement, setBankStatement] = useState('');
@@ -90,17 +90,14 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const [periodModal, setPeriodModal] = useState(false);
   const [periodForm, setPeriodForm] = useState({ name:'', type:'month', start_date:'', end_date:'' });
   const [acctConfirm, setAcctConfirm] = useState<any>(null);
-  const [selectedExpense, setSelectedExpense] = useState<any>(null);
 
-  const [expForm, setExpForm] = useState({ title:'', category:'', amount:'', account_id:'', description:'', expense_date: new Date().toISOString().split('T')[0], receipt: null as { file:string; mime_type:string; name:string } | null });
   const [jeForm, setJeForm] = useState({ description:'', entry_date: new Date().toISOString().split('T')[0], lines:[{ account_id:'', debit:'', credit:'', description:'' }] });
 
   const load = async () => {
     setLoading(true);
     try {
-      const [a, e, j, s, arRes, taxRes] = await Promise.all([
+      const [a, j, s, arRes, taxRes] = await Promise.all([
         api.get('/accounts').catch(()=>({data:{data:[]}})),
-        api.get('/expenses').catch(()=>({data:{data:[]}})),
         api.get('/journal-entries').catch(()=>({data:{data:[]}})),
         api.get('/accounting/summary').catch(()=>({data:{data:{}}})),
         api.get('/invoices?status=sent,partially_paid,overdue').catch(()=>({data:{data:[]}})),
@@ -109,7 +106,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
       const allAccounts = a.data.data || [];
       const postingAccounts = allAccounts.filter((acc: any) => !acc.is_group);
       setAccounts(postingAccounts);
-      setExpenses(e.data.data);
       setJournal(j.data.data); setSummary(s.data.data||{});
       setAr(arRes.data.data||[]);
       setTaxRates(taxRes.data.data||[]);
@@ -221,35 +217,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
 
   const addJeLine = () => setJeForm({ ...jeForm, lines:[...jeForm.lines, {account_id:'',debit:'',credit:'',description:''}] });
   const updateJeLine = (i:number,k:string,v:any) => { const l=[...jeForm.lines]; l[i]={...l[i],[k]:v}; setJeForm({...jeForm,lines:l}); };
-
-  const saveExpense = async () => {
-    setSaving(true); setError('');
-    try {
-      if (selectedExpense) await api.put(`/expenses/${selectedExpense.id}`, expForm);
-      else await api.post('/expenses', expForm);
-      setModal(null); load();
-    } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
-    finally { setSaving(false); }
-  };
-
-  const deleteExpense = async (id: string) => {
-    if (!confirm('Delete this expense?')) return;
-    await api.delete(`/expenses/${id}`);
-    toast.success('Deleted successfully');
-    load();
-  };
-
-  const openEditExpense = (e: any) => {
-    setSelectedExpense(e);
-    setExpForm({ title:e.title, category:e.category||'', amount:String(e.amount), account_id:e.account_id||'', description:e.description||'', expense_date: e.expense_date?.split('T')[0] ?? new Date().toISOString().split('T')[0], receipt: e.receipt || null });
-    setError(''); setModal('expense');
-  };
-
-  const handleReceiptUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => setExpForm(f => ({ ...f, receipt: { file: reader.result as string, mime_type: file.type, name: file.name } }));
-    reader.readAsDataURL(file);
-  };
 
   const saveJournal = async () => {
     setSaving(true); setError('');
@@ -591,7 +558,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
     <>
       {/* Section action bar */}
       <div className="flex flex-wrap justify-end gap-2 mb-4 md:mb-5">
-          {section==='expenses'     && <button className="btn-primary text-xs md:text-sm" onClick={() => { setSelectedExpense(null); setExpForm({title:'',category:'',amount:'',account_id:'',description:'',expense_date:new Date().toISOString().split('T')[0],receipt:null}); setError(''); setModal('expense'); }}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Expense</button>}
           {section==='tax'          && <button className="btn-primary text-xs md:text-sm" onClick={openAddTax}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Tax</button>}
           {section==='journal'      && <button className="btn-primary text-xs md:text-sm" onClick={() => { setJeForm({description:'',entry_date:new Date().toISOString().split('T')[0],lines:[{account_id:'',debit:'',credit:'',description:''}]}); setError(''); setModal('journal'); }}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">New </span>Entry</button>}
           {section==='pl'           && pl && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportPlCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('P&L Report','pl-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
@@ -611,38 +577,8 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         <AccountingAccountsPanel onDataChange={load} />
       )}
 
-      {/* Expenses */}
       {section==='expenses' && (
-        <div className="card p-0 overflow-hidden">
-          {loading ? <Spinner /> : expenses.length===0 ? <EmptyState message="No expenses recorded" icon={<Receipt className="w-8 h-8 text-gray-300"/>} /> : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs md:text-sm">
-                <thead className="table-header"><tr>{['Title','Category','Amount','Date','Recorded By','Receipt',''].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr></thead>
-                <tbody className="divide-y divide-gray-50">
-                  {expenses.map(e => (
-                    <tr key={e.id} className="hover:bg-gray-50">
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{e.title}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500">{e.category||'—'}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GH₵ {parseFloat(e.amount).toFixed(2)}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 text-xs">{new Date(e.expense_date).toLocaleDateString()}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 hidden lg:table-cell">{e.created_by?.name||'—'}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 hidden md:table-cell">
-                        {e.receipt?.file
-                          ? <a href={e.receipt.file} download={e.receipt.name} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-medium"><FileText className="w-3.5 h-3.5" />{e.receipt.name?.length > 16 ? e.receipt.name.slice(0,16)+'…' : e.receipt.name}</a>
-                          : <span className="text-xs text-gray-300">—</span>
-                        }
-                      </td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 flex gap-1">
-                        <button onClick={() => openEditExpense(e)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
-                        <button onClick={() => deleteExpense(e.id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <AccountingExpensesPanel onDataChange={load} />
       )}
 
       {/* AR Tab */}
@@ -1490,57 +1426,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
           <button className="btn-secondary w-full sm:w-auto" onClick={() => setTaxModal(null)}>Cancel</button>
           <button className="btn-primary w-full sm:w-auto" onClick={saveTax} disabled={saving}>{saving?'Saving…':taxModal==='edit'?'Update':'Add Tax Rate'}</button>
-        </div>
-      </Modal>
-
-      {/* Add Expense Modal */}
-      <Modal open={modal==='expense'} onClose={() => setModal(null)} title={selectedExpense ? 'Edit Expense' : 'Record Expense'} size="lg">
-        {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
-        <div className="space-y-3">
-          <div><label className="form-label">Title *</label><input className="form-input" value={expForm.title} onChange={e => setExpForm({...expForm,title:e.target.value})} placeholder="e.g. Office rent" /></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div><label className="form-label">Category</label><input className="form-input" value={expForm.category} onChange={e => setExpForm({...expForm,category:e.target.value})} placeholder="e.g. Rent" /></div>
-            <div><label className="form-label">Amount (GH₵) *</label><input type="number" className="form-input" value={expForm.amount} onChange={e => setExpForm({...expForm,amount:e.target.value})} /></div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div><label className="form-label">Account</label>
-              <select className="form-input" value={expForm.account_id} onChange={e => setExpForm({...expForm,account_id:e.target.value})}>
-                <option value="">Select account</option>
-                {accounts.filter(a=>a.type==='expense').map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </div>
-            <div><label className="form-label">Date</label><input type="date" className="form-input" value={expForm.expense_date} onChange={e => setExpForm({...expForm,expense_date:e.target.value})} /></div>
-          </div>
-          <div><label className="form-label">Description</label><textarea className="form-input" rows={2} value={expForm.description} onChange={e => setExpForm({...expForm,description:e.target.value})} /></div>
-          {/* Receipt upload */}
-          <div>
-            <label className="form-label">Receipt / Attachment</label>
-            {expForm.receipt?.file ? (
-              <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                {expForm.receipt.mime_type?.startsWith('image/') ? (
-                  <img src={expForm.receipt.file} alt="receipt" className="w-12 h-12 object-cover rounded-lg border border-blue-200" />
-                ) : (
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center"><FileText className="w-6 h-6 text-blue-500" /></div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-700 truncate">{expForm.receipt.name}</p>
-                  <a href={expForm.receipt.file} download={expForm.receipt.name} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">Download</a>
-                </div>
-                <button type="button" onClick={() => setExpForm({...expForm, receipt: null})} className="text-red-400 hover:text-red-600 text-xs font-semibold px-2 py-1 rounded hover:bg-red-50">Remove</button>
-              </div>
-            ) : (
-              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-colors">
-                <Download className="w-5 h-5 text-gray-400 mb-1" />
-                <span className="text-xs text-gray-500">Click to upload receipt</span>
-                <span className="text-xs text-gray-400">PNG, JPG, PDF up to 5MB</span>
-                <input type="file" className="hidden" accept="image/*,.pdf" onChange={e => { const f = e.target.files?.[0]; if (f) handleReceiptUpload(f); }} />
-              </label>
-            )}
-          </div>
-        </div>
-        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
-          <button className="btn-secondary w-full sm:w-auto" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary w-full sm:w-auto" onClick={saveExpense} disabled={saving}>{saving?'Saving…':selectedExpense?'Update Expense':'Save Expense'}</button>
         </div>
       </Modal>
 
