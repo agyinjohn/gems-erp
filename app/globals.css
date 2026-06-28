@@ -403,7 +403,7 @@
   /* ── Sidebar ── */
   .sidebar-link { @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 min-w-0 text-gray-800; }
   .sidebar-link:hover { @apply bg-gray-100 text-gray-900; }
-  .sidebar-link.active { @apply bg-blue-50 text-blue-800 font-semibold; }
+  .sidebar-link.active { @apply relative overflow-hidden bg-blue-50 text-blue-900 font-semibold shadow-sm ring-1 ring-blue-100 pl-4 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-full before:bg-blue-700; }
   .sidebar-link.inactive { @apply text-gray-800; }
 
   /* ── Cards ── */

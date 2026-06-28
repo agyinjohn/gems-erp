@@ -39,13 +39,24 @@ function SidebarLink({
       href={href}
       onClick={onNavigate}
       title={collapsed ? label : undefined}
-      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 min-w-0 ${
+      className={[
+        'group flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-150 min-w-0',
+        collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5',
         isActive
-          ? 'bg-blue-50 text-blue-800 font-semibold'
-          : 'text-gray-800 hover:bg-gray-100 hover:text-gray-900'
-      } ${collapsed ? 'justify-center !px-2 !gap-0' : ''}`}
+          ? collapsed
+            ? 'bg-blue-700 text-white shadow-sm ring-2 ring-blue-100'
+            : 'relative overflow-hidden bg-blue-50 text-blue-900 font-semibold shadow-sm ring-1 ring-blue-100 pl-4 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-full before:bg-blue-700'
+          : 'text-gray-800 hover:bg-gray-100 hover:text-gray-900',
+      ].join(' ')}
     >
-      <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-blue-800' : 'text-gray-600'}`} />
+      <Icon
+        className={[
+          'w-4 h-4 flex-shrink-0',
+          isActive
+            ? collapsed ? 'text-white' : 'text-blue-700'
+            : 'text-gray-500 group-hover:text-gray-700',
+        ].join(' ')}
+      />
       {!collapsed && <span className="truncate">{label}</span>}
     </Link>
   );
