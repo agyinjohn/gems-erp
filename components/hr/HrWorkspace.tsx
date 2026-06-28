@@ -52,7 +52,13 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const [leaveFilter, setLeaveFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [leaveDateFrom, setLeaveDateFrom] = useState('');
   const [leaveDateTo, setLeaveDateTo] = useState('');
+  const [payrollSearch, setPayrollSearch] = useState('');
+  const [payrollFilter, setPayrollFilter] = useState<'all' | 'draft' | 'submitted' | 'approved' | 'paid'>('all');
+  const [payrollFilterMonth, setPayrollFilterMonth] = useState<'all' | number>('all');
+  const [payrollFilterYear, setPayrollFilterYear] = useState<'all' | number>('all');
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   const [empStep, setEmpStep] = useState(1);
   const [empForm, setEmpForm] = useState({
@@ -195,6 +201,32 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     { value: 'approved', label: 'Approved' },
     { value: 'rejected', label: 'Rejected' },
   ];
+
+  const payrollFilterOptions: { value: typeof payrollFilter; label: string }[] = [
+    { value: 'all', label: 'All statuses' },
+    { value: 'submitted', label: 'Submitted' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'paid', label: 'Paid' },
+    { value: 'draft', label: 'Draft' },
+  ];
+
+  const payrollYearOptions = Array.from(
+    new Set([new Date().getFullYear(), ...payroll.map((p) => Number(p.year))])
+  ).sort((a, b) => b - a);
+
+  const filteredPayroll = payroll.filter((p) => {
+    if (payrollFilter !== 'all' && p.status !== payrollFilter) return false;
+    if (payrollFilterMonth !== 'all' && Number(p.month) !== payrollFilterMonth) return false;
+    if (payrollFilterYear !== 'all' && Number(p.year) !== payrollFilterYear) return false;
+    if (!payrollSearch.trim()) return true;
+    const q = payrollSearch.toLowerCase();
+    const period = `${months[p.month - 1]} ${p.year}`.toLowerCase();
+    return (
+      p.employee_name?.toLowerCase().includes(q) ||
+      p.status?.toLowerCase().includes(q) ||
+      period.includes(q)
+    );
+  });
 
   const emptyEmpForm = () => ({
     name:'', date_of_birth:'', gender:'', nationality:'', marital_status:'', national_id:'', photo:'',
@@ -354,6 +386,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     const emp = employees.find((e) => e.id === payForm.employee_id);
     const allowLines = activePayLines(payForm.allowance_lines);
     const dedLines = activePayLines(payForm.deduction_lines);
+    setModal(null);
     setHrConfirm({
       title: 'Run payroll?',
       message: `Create payroll for ${emp?.name} for ${months[payForm.month - 1]} ${payForm.year}. PAYE and SSNIT will be added automatically.`,
@@ -528,6 +561,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     const activeCount = employees.filter((e) => e.status === 'active').length;
     const allowLines = activePayLines(bulkPayForm.allowance_lines);
     const dedLines = activePayLines(bulkPayForm.deduction_lines);
+    setModal(null);
     setHrConfirm({
       title: 'Run bulk payroll?',
       message: `Create payroll for all ${activeCount} active employees for ${months[bulkPayForm.month - 1]} ${bulkPayForm.year}. Existing runs for this period will be skipped.`,
@@ -599,7 +633,16 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     deduction_lines: [...DEFAULT_DEDUCTION_LINES],
   });
 
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const openRunPayroll = () => {
+    resetPayForm();
+    setError('');
+    setModal('add_payroll');
+  };
+
+  const openBulkPayroll = () => {
+    resetBulkPayForm();
+    setModal('bulk_payroll');
+  };
 
   const sectionKpis = (): { label: string; value: string | number }[] => {
     if (section === 'employees' && hrSummary) {
@@ -608,17 +651,6 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         { label: 'Terminated', value: hrSummary.terminated },
         { label: 'Total employees', value: hrSummary.total_employees },
         { label: 'Departments', value: departments.length },
-      ];
-    }
-    if (section === 'payroll') {
-      const approved = payroll.filter((p) => p.status === 'approved');
-      const submitted = payroll.filter((p) => p.status === 'submitted');
-      const totalPaid = approved.reduce((sum, p) => sum + Number(p.net_salary || 0), 0);
-      return [
-        { label: 'Submitted', value: submitted.length },
-        { label: 'Approved', value: approved.length },
-        { label: 'Total runs', value: payroll.length },
-        { label: 'Total paid', value: `GH₵ ${totalPaid.toLocaleString()}` },
       ];
     }
     return [];
@@ -636,14 +668,6 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               <div className="text-xs text-gray-400">{k.label}</div>
             </div>
           ))}
-        </div>
-      )}
-      {section === 'payroll' && (
-        <div className="flex flex-wrap justify-end gap-2 mb-5">
-          <>
-            <button type="button" className="btn-secondary" onClick={() => { resetBulkPayForm(); setModal('bulk_payroll'); }}>Bulk Run</button>
-            <button type="button" className="btn-primary" onClick={() => { resetPayForm(); setError(''); setModal('add_payroll'); }}><DollarSign className="w-4 h-4" />Run Payroll</button>
-          </>
         </div>
       )}
 
@@ -887,45 +911,103 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       )}
 
       {section === 'payroll' && (
-        <div className="card p-0 overflow-hidden">
-          {loading ? <Spinner /> : payroll.length===0 ? <EmptyState message="No payroll runs yet" icon={<Banknote className="w-8 h-8 text-gray-300"/>} /> : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="table-header"><tr>{['Employee','Period','Gross','Allowances','Deductions','Net','Status',''].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
-                <tbody className="divide-y divide-gray-50">
-                  {payroll.map(p => {
-                    const lines = formatPayLinesForDisplay(p);
-                    return (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{p.employee_name||'—'}</td>
-                      <td className="px-4 py-3 text-gray-500">{months[p.month-1]} {p.year}</td>
-                      <td className="px-4 py-3">GH₵ {parseFloat(p.gross_salary).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-xs">
-                        {lines.allowances.length === 0 ? <span className="text-gray-400">—</span> : lines.allowances.map((line: any) => (
-                          <div key={line.name} className="text-green-600">{line.name}: GH₵ {parseFloat(line.amount).toFixed(2)}</div>
-                        ))}
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        {lines.deductions.length === 0 ? <span className="text-gray-400">—</span> : lines.deductions.map((line: any) => (
-                          <div key={line.name} className="text-red-600">{line.name}: GH₵ {parseFloat(line.amount).toFixed(2)}</div>
-                        ))}
-                      </td>
-                      <td className="px-4 py-3 font-semibold">GH₵ {parseFloat(p.net_salary).toFixed(2)}</td>
-                      <td className="px-4 py-3"><Badge status={p.status} /></td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          <button onClick={() => openPayrollDetail(p)} title="View details" className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Eye className="w-4 h-4"/></button>
-                          {p.status==='submitted' && <button onClick={() => requestApprovePayroll(p)} title="Approve" className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4"/></button>}
-                        </div>
-                      </td>
-                    </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+        <>
+          <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                className="form-input pl-9 w-full"
+                placeholder="Search payroll runs…"
+                value={payrollSearch}
+                onChange={(e) => setPayrollSearch(e.target.value)}
+              />
             </div>
-          )}
-        </div>
+            <div className="w-full sm:w-auto sm:min-w-[160px]">
+              <label className="form-label">Status</label>
+              <select className="form-input w-full" value={payrollFilter} onChange={(e) => setPayrollFilter(e.target.value as typeof payrollFilter)}>
+                {payrollFilterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="w-full sm:w-auto sm:min-w-[140px]">
+              <label className="form-label">Month</label>
+              <select className="form-input w-full" value={payrollFilterMonth} onChange={(e) => setPayrollFilterMonth(e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10))}>
+                <option value="all">All months</option>
+                {months.map((m, i) => (
+                  <option key={m} value={i + 1}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div className="w-full sm:w-auto sm:min-w-[120px]">
+              <label className="form-label">Year</label>
+              <select className="form-input w-full" value={payrollFilterYear} onChange={(e) => setPayrollFilterYear(e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10))}>
+                <option value="all">All years</option>
+                {payrollYearOptions.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button type="button" className="btn-secondary" onClick={openBulkPayroll}>Bulk Run</button>
+              <button type="button" className="btn-primary" onClick={openRunPayroll}>
+                <DollarSign className="w-4 h-4" />Run Payroll
+              </button>
+            </div>
+          </div>
+          <div className="card p-0 overflow-hidden">
+            {loading ? <Spinner /> : filteredPayroll.length === 0 ? (
+              <EmptyState
+                message={payroll.length === 0 ? 'No payroll runs yet' : 'No payroll runs match your filters'}
+                icon={<Banknote className="w-8 h-8 text-gray-300" />}
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="table-header">
+                    <tr>{['Employee', 'Period', 'Gross', 'Allowances', 'Deductions', 'Net', 'Status', ''].map((h) => <th key={h || 'actions'} className="px-4 py-3 text-left">{h}</th>)}</tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filteredPayroll.map((p) => {
+                      const lines = formatPayLinesForDisplay(p);
+                      return (
+                        <tr key={p.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium">{p.employee_name || '—'}</td>
+                          <td className="px-4 py-3 text-gray-500">{months[p.month - 1]} {p.year}</td>
+                          <td className="px-4 py-3">GH₵ {parseFloat(p.gross_salary).toFixed(2)}</td>
+                          <td className="px-4 py-3 text-xs">
+                            {lines.allowances.length === 0 ? <span className="text-gray-400">—</span> : lines.allowances.map((line: any) => (
+                              <div key={line.name} className="text-green-600">{line.name}: GH₵ {parseFloat(line.amount).toFixed(2)}</div>
+                            ))}
+                          </td>
+                          <td className="px-4 py-3 text-xs">
+                            {lines.deductions.length === 0 ? <span className="text-gray-400">—</span> : lines.deductions.map((line: any) => (
+                              <div key={line.name} className="text-red-600">{line.name}: GH₵ {parseFloat(line.amount).toFixed(2)}</div>
+                            ))}
+                          </td>
+                          <td className="px-4 py-3 font-semibold">GH₵ {parseFloat(p.net_salary).toFixed(2)}</td>
+                          <td className="px-4 py-3"><Badge status={p.status} /></td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-1">
+                              <button type="button" onClick={() => openPayrollDetail(p)} title="View details" className="p-1.5 hover:bg-gray-100 rounded text-gray-600">
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              {p.status === 'submitted' && (
+                                <button type="button" onClick={() => requestApprovePayroll(p)} title="Approve payroll" className="p-1.5 hover:bg-green-50 rounded text-green-600">
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Add Attendance Modal */}
