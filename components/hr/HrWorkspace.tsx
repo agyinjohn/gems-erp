@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
-import { Plus, Search, DollarSign, CheckCircle, Calendar, Users, Clock, Umbrella, Banknote, Edit2, UserX, FileText, Download, Eye } from 'lucide-react';
+import { Plus, Search, DollarSign, CheckCircle, XCircle, Calendar, Users, Clock, Umbrella, Banknote, Edit2, UserX, FileText, Download, Eye } from 'lucide-react';
 import api from '@/lib/api';
 import EmployeeDocuments from '@/components/hr/EmployeeDocuments';
 import PayrollLineEditor, {
@@ -48,6 +48,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [leaveSearch, setLeaveSearch] = useState('');
+  const [leaveFilter, setLeaveFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
 
   const [empStep, setEmpStep] = useState(1);
@@ -80,6 +82,20 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const getAttendanceEmployeeId = (record: any) => {
     const id = record?.employee_id?.id ?? record?.employee_id?._id ?? record?.employee_id;
     return id != null ? String(id) : '';
+  };
+
+  const openApplyLeave = () => {
+    setLeaveForm({ employee_id: '', leave_type: 'annual', start_date: '', end_date: '', reason: '' });
+    setError('');
+    setModal('add_leave');
+  };
+
+  const formatLeaveType = (type: string) => type.replace(/_/g, ' ');
+
+  const leaveDurationDays = (start: string, end: string) => {
+    if (!start || !end) return 0;
+    const ms = new Date(end).getTime() - new Date(start).getTime();
+    return ms >= 0 ? Math.floor(ms / (1000 * 60 * 60 * 24)) + 1 : 0;
   };
 
   const openRecordAttendance = () => {
@@ -150,6 +166,25 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   }, [section, attendanceDate]);
 
   const filtered = employees.filter(e => !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.employee_code?.toLowerCase().includes(search.toLowerCase()));
+
+  const filteredLeave = leave.filter((l) => {
+    if (leaveFilter !== 'all' && l.status !== leaveFilter) return false;
+    if (!leaveSearch.trim()) return true;
+    const q = leaveSearch.toLowerCase();
+    return (
+      l.employee_name?.toLowerCase().includes(q) ||
+      l.leave_type?.toLowerCase().includes(q) ||
+      l.reason?.toLowerCase().includes(q) ||
+      l.status?.toLowerCase().includes(q)
+    );
+  });
+
+  const leaveFilterOptions: { value: typeof leaveFilter; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'rejected', label: 'Rejected' },
+  ];
 
   const emptyEmpForm = () => ({
     name:'', date_of_birth:'', gender:'', nationality:'', marital_status:'', national_id:'', photo:'',
@@ -331,18 +366,21 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   };
 
   const requestApproveLeave = (row: any, status: 'approved' | 'rejected') => {
+    const days = leaveDurationDays(row.start_date, row.end_date);
     setHrConfirm({
-      title: status === 'approved' ? 'Approve leave?' : 'Reject leave?',
+      title: status === 'approved' ? 'Approve leave request?' : 'Reject leave request?',
       message: status === 'approved'
-        ? `Approve ${row.employee_name}'s ${row.leave_type} leave request.`
-        : `Reject ${row.employee_name}'s ${row.leave_type} leave request.`,
-      confirmLabel: status === 'approved' ? 'Approve' : 'Reject',
+        ? `Approve ${row.employee_name}'s ${formatLeaveType(row.leave_type)} leave request.`
+        : `Reject ${row.employee_name}'s ${formatLeaveType(row.leave_type)} leave request.`,
+      confirmLabel: status === 'approved' ? 'Approve leave' : 'Reject leave',
       danger: status === 'rejected',
       details: [
         { label: 'Employee', value: row.employee_name || '—' },
-        { label: 'Type', value: row.leave_type },
-        { label: 'Dates', value: `${new Date(row.start_date).toLocaleDateString()} – ${new Date(row.end_date).toLocaleDateString()}` },
-        { label: 'Reason', value: row.reason || '—' },
+        { label: 'Type', value: formatLeaveType(row.leave_type) },
+        { label: 'From', value: new Date(row.start_date).toLocaleDateString() },
+        { label: 'To', value: new Date(row.end_date).toLocaleDateString() },
+        { label: 'Duration', value: `${days} day${days === 1 ? '' : 's'}` },
+        { label: 'Reason', value: row.reason?.trim() || '—' },
       ],
       action: async () => { await approveLeave(row.id, status); },
     });
@@ -360,16 +398,24 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       toast.error('Employee and dates are required');
       return;
     }
+    if (leaveForm.end_date < leaveForm.start_date) {
+      toast.error('End date cannot be before start date');
+      return;
+    }
     const emp = employees.find((e) => e.id === leaveForm.employee_id);
+    const days = leaveDurationDays(leaveForm.start_date, leaveForm.end_date);
+    setModal(null);
     setHrConfirm({
       title: 'Submit leave request?',
-      message: `Create a ${leaveForm.leave_type} leave request for ${emp?.name}.`,
+      message: `Create a ${formatLeaveType(leaveForm.leave_type)} leave request for ${emp?.name}.`,
       confirmLabel: 'Submit request',
       details: [
         { label: 'Employee', value: emp?.name || '—' },
-        { label: 'Type', value: leaveForm.leave_type },
+        { label: 'Type', value: formatLeaveType(leaveForm.leave_type) },
         { label: 'From', value: leaveForm.start_date },
         { label: 'To', value: leaveForm.end_date },
+        { label: 'Duration', value: `${days} day${days === 1 ? '' : 's'}` },
+        ...(leaveForm.reason.trim() ? [{ label: 'Reason', value: leaveForm.reason.trim() }] : []),
       ],
       action: submitLeave,
     });
@@ -554,14 +600,6 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         { label: 'Departments', value: departments.length },
       ];
     }
-    if (section === 'leave') {
-      return [
-        { label: 'Pending', value: leave.filter((l) => l.status === 'pending').length },
-        { label: 'Approved', value: leave.filter((l) => l.status === 'approved').length },
-        { label: 'Rejected', value: leave.filter((l) => l.status === 'rejected').length },
-        { label: 'Total requests', value: leave.length },
-      ];
-    }
     if (section === 'payroll') {
       const approved = payroll.filter((p) => p.status === 'approved');
       const submitted = payroll.filter((p) => p.status === 'submitted');
@@ -590,19 +628,12 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           ))}
         </div>
       )}
-      {section !== 'employees' && section !== 'attendance' && (
+      {section === 'payroll' && (
         <div className="flex flex-wrap justify-end gap-2 mb-5">
-          {section === 'leave' && (
-            <button type="button" className="btn-primary" onClick={() => { setLeaveForm({ employee_id: '', leave_type: 'annual', start_date: '', end_date: '', reason: '' }); setError(''); setModal('add_leave'); }}>
-              <Plus className="w-4 h-4" />Apply Leave
-            </button>
-          )}
-          {section === 'payroll' && (
-            <>
-              <button type="button" className="btn-secondary" onClick={() => { resetBulkPayForm(); setModal('bulk_payroll'); }}>Bulk Run</button>
-              <button type="button" className="btn-primary" onClick={() => { resetPayForm(); setError(''); setModal('add_payroll'); }}><DollarSign className="w-4 h-4" />Run Payroll</button>
-            </>
-          )}
+          <>
+            <button type="button" className="btn-secondary" onClick={() => { resetBulkPayForm(); setModal('bulk_payroll'); }}>Bulk Run</button>
+            <button type="button" className="btn-primary" onClick={() => { resetPayForm(); setError(''); setModal('add_payroll'); }}><DollarSign className="w-4 h-4" />Run Payroll</button>
+          </>
         </div>
       )}
 
@@ -761,35 +792,88 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       )}
 
       {section === 'leave' && (
-        <div className="card p-0 overflow-hidden">
-          {loading ? <Spinner /> : leave.length===0 ? <EmptyState message="No leave requests" icon={<Umbrella className="w-8 h-8 text-gray-300"/>} /> : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="table-header"><tr>{['Employee','Type','From','To','Reason','Status','Actions'].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
-                <tbody className="divide-y divide-gray-50">
-                  {leave.map(l => (
-                    <tr key={l.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{l.employee_name||'—'}</td>
-                      <td className="px-4 py-3 text-gray-500 capitalize">{l.leave_type}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{new Date(l.start_date).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{new Date(l.end_date).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{l.reason||'—'}</td>
-                      <td className="px-4 py-3"><Badge status={l.status} /></td>
-                      <td className="px-4 py-3">
-                        {l.status==='pending' && (
-                          <div className="flex gap-2">
-                            <button onClick={() => requestApproveLeave(l, 'approved')} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded hover:bg-green-100">Approve</button>
-                            <button onClick={() => requestApproveLeave(l, 'rejected')} className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded hover:bg-red-100">Reject</button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <>
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                className="form-input pl-9 w-full"
+                placeholder="Search leave requests…"
+                value={leaveSearch}
+                onChange={(e) => setLeaveSearch(e.target.value)}
+              />
             </div>
-          )}
-        </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {leaveFilterOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setLeaveFilter(option.value)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    leaveFilter === option.value
+                      ? 'bg-blue-700 text-white border-blue-700'
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="btn-primary shrink-0" onClick={openApplyLeave}>
+              <Plus className="w-4 h-4" />Apply Leave
+            </button>
+          </div>
+          <div className="card p-0 overflow-hidden">
+            {loading ? <Spinner /> : filteredLeave.length === 0 ? (
+              <EmptyState message={leave.length === 0 ? 'No leave requests' : 'No leave requests match your filters'} icon={<Umbrella className="w-8 h-8 text-gray-300" />} />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="table-header">
+                    <tr>{['Employee', 'Type', 'From', 'To', 'Days', 'Reason', 'Status', ''].map((h) => <th key={h || 'actions'} className="px-4 py-3 text-left">{h}</th>)}</tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filteredLeave.map((l) => (
+                      <tr key={l.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium">{l.employee_name || '—'}</td>
+                        <td className="px-4 py-3 text-gray-500 capitalize">{formatLeaveType(l.leave_type)}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500">{new Date(l.start_date).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500">{new Date(l.end_date).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-gray-600">{leaveDurationDays(l.start_date, l.end_date)}</td>
+                        <td className="px-4 py-3 text-gray-500 max-w-xs">{l.reason?.trim() ? l.reason : '—'}</td>
+                        <td className="px-4 py-3"><Badge status={l.status} /></td>
+                        <td className="px-4 py-3">
+                          {l.status === 'pending' ? (
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                onClick={() => requestApproveLeave(l, 'approved')}
+                                title="Approve leave"
+                                className="p-1.5 hover:bg-green-50 rounded text-green-600"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => requestApproveLeave(l, 'rejected')}
+                                title="Reject leave"
+                                className="p-1.5 hover:bg-red-50 rounded text-red-600"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {section === 'payroll' && (
@@ -892,7 +976,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             <div><label className="form-label">Start Date *</label><input type="date" className="form-input" value={leaveForm.start_date} onChange={e => setLeaveForm({...leaveForm,start_date:e.target.value})} /></div>
             <div><label className="form-label">End Date *</label><input type="date" className="form-input" value={leaveForm.end_date} onChange={e => setLeaveForm({...leaveForm,end_date:e.target.value})} /></div>
           </div>
-          <div><label className="form-label">Reason</label><textarea className="form-input" rows={2} value={leaveForm.reason} onChange={e => setLeaveForm({...leaveForm,reason:e.target.value})} /></div>
+          <div><label className="form-label">Reason</label><textarea className="form-input min-h-[88px] resize-y" rows={3} placeholder="Optional reason for leave" value={leaveForm.reason} onChange={e => setLeaveForm({...leaveForm,reason:e.target.value})} /></div>
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
