@@ -198,28 +198,28 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
     items.filter((item) => isNavAllowed(item.href));
 
   const renderContent = (isCollapsed: boolean) => (
-    <aside className="h-full w-full flex flex-col" style={{ background: 'linear-gradient(180deg, #0D3B6E 0%, #1A5294 100%)' }}>
+    <aside className="h-full w-full flex flex-col bg-white border-r border-gray-200">
 
       {/* Logo */}
-      <div className={`border-b border-white/10 flex items-center shrink-0 ${
+      <div className={`border-b border-gray-200 flex items-center shrink-0 ${
         isCollapsed ? 'justify-center px-2 py-4' : 'px-4 py-4 justify-between gap-2'
       }`}>
         {isCollapsed ? (
-          <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center" title="GEMS">
-            <Building2 className="w-5 h-5 text-blue-900" />
+          <div className="w-9 h-9 bg-blue-700 rounded-lg flex items-center justify-center" title="GEMS">
+            <Building2 className="w-5 h-5 text-white" />
           </div>
         ) : (
           <>
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5 text-blue-900" />
+              <div className="w-9 h-9 bg-blue-700 rounded-lg flex items-center justify-center shrink-0">
+                <Building2 className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
-                <div className="text-white font-bold text-lg leading-tight">{PRODUCT_LABELS[PRODUCT_MODE] || 'GEMS'}</div>
-                <div className="text-blue-200 text-xs truncate uppercase">{tenant?.business_name || 'Business Portal'}</div>
+                <div className="text-gray-900 font-bold text-lg leading-tight">{PRODUCT_LABELS[PRODUCT_MODE] || 'GEMS'}</div>
+                <div className="text-gray-500 text-xs truncate uppercase">{tenant?.business_name || 'Business Portal'}</div>
               </div>
             </div>
-            <button onClick={onClose} className="lg:hidden text-white/60 hover:text-white p-1.5 rounded-lg hover:bg-white/10 shrink-0" aria-label="Close menu">
+            <button onClick={onClose} className="lg:hidden text-gray-500 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 shrink-0" aria-label="Close menu">
               <X className="w-5 h-5" />
             </button>
           </>
@@ -258,7 +258,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
                 })}
                 {ess && (
                   <>
-                    <div className="my-2 border-t border-white/10" />
+                    <div className="my-2 border-t border-gray-200" />
                     <SidebarLink href="/ess" label="My Portal" icon={UserCircle}
                       isActive={pathname === '/ess'} collapsed={isCollapsed} onNavigate={onClose} />
                   </>
@@ -295,13 +295,13 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
                   {!isCollapsed && (
                     <button
                       onClick={() => toggle(gi)}
-                      className="w-full flex items-center justify-between px-3 py-1.5 mt-3 mb-1 rounded-lg text-[10px] font-bold uppercase tracking-widest text-blue-100/70 hover:text-white hover:bg-white/5 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-1.5 mt-3 mb-1 rounded-lg text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <span>{group.label}</span>
                       <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                     </button>
                   )}
-                  {isCollapsed && <div className="my-2 border-t border-white/10 first:mt-0" />}
+                  {isCollapsed && <div className="my-2 border-t border-gray-200 first:mt-0" />}
                   {isExpanded && (
                     <div className={`space-y-0.5 ${isCollapsed ? '' : 'mt-0.5'}`}>
                       {visibleItems.map(item => {
@@ -342,7 +342,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
               })}
               {myPortal && (
                 <>
-                  <div className="my-2 border-t border-white/10" />
+                  <div className="my-2 border-t border-gray-200" />
                   <SidebarLink href="/ess" label="My Portal" icon={UserCircle}
                     isActive={pathname === '/ess' || pathname.startsWith('/ess/')}
                     collapsed={isCollapsed} onNavigate={onClose} />
@@ -361,7 +361,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
             target="_blank"
             rel="noopener noreferrer"
             title={isCollapsed ? 'GEMS Store' : undefined}
-            className={`flex items-center rounded-lg text-sm font-medium text-white bg-white/10 hover:bg-white/20 transition-colors ${
+            className={`flex items-center rounded-lg text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors ${
               isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
             }`}
           >
@@ -372,21 +372,21 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
       )}
 
       {/* User Info */}
-      <div className={`border-t border-white/10 ${isCollapsed ? 'px-2 py-3' : 'px-3 py-4'}`}>
+      <div className={`border-t border-gray-200 ${isCollapsed ? 'px-2 py-3' : 'px-3 py-4'}`}>
         {isCollapsed ? (
           <div
-            className="w-10 h-10 mx-auto rounded-full bg-white/20 flex items-center justify-center text-white text-sm font-bold"
+            className="w-10 h-10 mx-auto rounded-full bg-blue-700 flex items-center justify-center text-white text-sm font-bold"
             title={`${user?.name}\n${user?.email}`}
           >
             {user?.name?.charAt(0).toUpperCase()}
           </div>
         ) : (
           <>
-            <div className="px-4 py-3 rounded-lg bg-white/10">
-              <div className="text-white text-sm font-medium truncate">{user?.name}</div>
-              <div className="text-blue-200 text-xs truncate">{user?.email}</div>
+            <div className="px-4 py-3 rounded-lg bg-gray-50 border border-gray-100">
+              <div className="text-gray-900 text-sm font-medium truncate">{user?.name}</div>
+              <div className="text-gray-500 text-xs truncate">{user?.email}</div>
             </div>
-            <div className="text-blue-300 text-[10px] mt-2 text-center truncate uppercase">GTHINK Enterprise Management System</div>
+            <div className="text-gray-400 text-[10px] mt-2 text-center truncate uppercase">GTHINK Enterprise Management System</div>
           </>
         )}
       </div>
