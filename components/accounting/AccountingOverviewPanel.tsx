@@ -8,7 +8,7 @@ import {
 import {
   DollarSign, TrendingUp, TrendingDown, Landmark, ArrowDownCircle, ArrowUpCircle,
   Receipt, AlertTriangle, CheckCircle2, Download,
-  Activity, Calendar,
+  Activity, Calendar, Loader2,
 } from 'lucide-react';
 import { StatCard, Spinner, toast } from '@/components/ui';
 import api from '@/lib/api';
@@ -62,6 +62,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [depConfirm, setDepConfirm] = useState(false);
+  const [syncingCoa, setSyncingCoa] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -78,6 +79,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
   useEffect(() => { load(); }, [load]);
 
   const seedCoa = async () => {
+    setSyncingCoa(true);
     try {
       await api.post('/accounting/seed-coa');
       toast.success('Chart of accounts updated');
@@ -85,6 +87,8 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
       onDataChange?.();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Failed to update COA');
+    } finally {
+      setSyncingCoa(false);
     }
   };
 
@@ -121,7 +125,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
   const showArMismatch = Math.abs(arDiff) > 0.02;
 
   return (
-    <div className={`space-y-5 md:space-y-6 relative ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
+    <div className={`space-y-5 md:space-y-6 relative ${loading || syncingCoa ? 'opacity-60 pointer-events-none' : ''}`}>
       {/* Header: period + fiscal status */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex flex-wrap gap-2">
@@ -431,7 +435,11 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
             <h4 className="font-semibold text-gray-800 text-sm">Advanced COA</h4>
             <p className="text-xs text-gray-500 mt-1 mb-3">Add VAT Input, PAYE & SSNIT payable accounts.</p>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn-secondary text-xs" onClick={seedCoa}>Update COA</button>
+              <button type="button" className="btn-secondary text-xs" onClick={seedCoa} disabled={syncingCoa}>
+                {syncingCoa
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Syncing COA…</>
+                  : 'Update COA'}
+              </button>
               <button type="button" className="btn-secondary text-xs" onClick={() => setDepConfirm(true)}>Run depreciation</button>
             </div>
           </div>

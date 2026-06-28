@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Plus, Search, Download, Eye, Edit2, BookMarked, RefreshCw,
-  Ban, CheckCircle2, FolderTree,
+  Ban, CheckCircle2, FolderTree, Loader2,
 } from 'lucide-react';
 import { Modal, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
 import api from '@/lib/api';
@@ -39,6 +39,7 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [syncingCoa, setSyncingCoa] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
     code: '', name: '', type: 'asset', description: '', opening_balance: '', parent_id: '',
@@ -135,6 +136,7 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
   };
 
   const seedCoa = async () => {
+    setSyncingCoa(true);
     try {
       await api.post('/accounting/seed-coa');
       toast.success('Standard chart of accounts synced');
@@ -142,6 +144,8 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
       onDataChange?.();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'COA sync failed');
+    } finally {
+      setSyncingCoa(false);
     }
   };
 
@@ -177,7 +181,7 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
   const accounts: any[] = data?.accounts || [];
 
   return (
-    <div className={`space-y-5 relative ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
+    <div className={`space-y-5 relative ${loading || syncingCoa ? 'opacity-60 pointer-events-none' : ''}`}>
       {/* Summary */}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -211,7 +215,11 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
             Show group headers
           </label>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn-secondary text-xs" onClick={seedCoa}><RefreshCw className="w-3.5 h-3.5" /> Sync COA</button>
+            <button type="button" className="btn-secondary text-xs" onClick={seedCoa} disabled={syncingCoa}>
+              {syncingCoa
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Syncing…</>
+                : <><RefreshCw className="w-3.5 h-3.5" /> Sync COA</>}
+            </button>
             <button type="button" className="btn-secondary text-xs" onClick={exportCsv} disabled={!accounts.length}><Download className="w-3.5 h-3.5" /> CSV</button>
             <button type="button" className="btn-primary text-xs" onClick={openAdd}><Plus className="w-3.5 h-3.5" /> Add account</button>
           </div>
@@ -220,7 +228,13 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
 
       {/* Table */}
       <div className="card p-0 overflow-hidden">
-        {accounts.length === 0 ? (
+        {syncingCoa ? (
+          <div className="flex flex-col items-center justify-center py-20 px-6">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-sm text-gray-600 mt-3 font-medium">Syncing chart of accounts…</p>
+            <p className="text-xs text-gray-400 mt-1">Adding standard GL accounts and parent links</p>
+          </div>
+        ) : accounts.length === 0 ? (
           <EmptyState
             message="No accounts match your filters"
             description="Sync the standard COA or add a custom posting account."
