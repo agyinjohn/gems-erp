@@ -39,9 +39,13 @@ function SidebarLink({
       href={href}
       onClick={onNavigate}
       title={collapsed ? label : undefined}
-      className={`sidebar-link ${isActive ? 'active' : 'inactive'} ${collapsed ? 'justify-center !px-2 !gap-0' : ''}`}
+      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 min-w-0 ${
+        isActive
+          ? 'bg-blue-50 text-blue-800 font-semibold'
+          : 'text-gray-800 hover:bg-gray-100 hover:text-gray-900'
+      } ${collapsed ? 'justify-center !px-2 !gap-0' : ''}`}
     >
-      <Icon className="w-4 h-4 flex-shrink-0" />
+      <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-blue-800' : 'text-gray-600'}`} />
       {!collapsed && <span className="truncate">{label}</span>}
     </Link>
   );
@@ -216,7 +220,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
               </div>
               <div className="min-w-0">
                 <div className="text-gray-900 font-bold text-lg leading-tight">{PRODUCT_LABELS[PRODUCT_MODE] || 'GEMS'}</div>
-                <div className="text-gray-500 text-xs truncate uppercase">{tenant?.business_name || 'Business Portal'}</div>
+                <div className="text-gray-600 text-xs truncate uppercase">{tenant?.business_name || 'Business Portal'}</div>
               </div>
             </div>
             <button onClick={onClose} className="lg:hidden text-gray-500 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 shrink-0" aria-label="Close menu">
@@ -295,7 +299,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
                   {!isCollapsed && (
                     <button
                       onClick={() => toggle(gi)}
-                      className="w-full flex items-center justify-between px-3 py-1.5 mt-3 mb-1 rounded-lg text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-1.5 mt-3 mb-1 rounded-lg text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                     >
                       <span>{group.label}</span>
                       <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
@@ -361,11 +365,11 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
             target="_blank"
             rel="noopener noreferrer"
             title={isCollapsed ? 'GEMS Store' : undefined}
-            className={`flex items-center rounded-lg text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors ${
+            className={`flex items-center rounded-lg text-sm font-medium text-gray-800 bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:text-gray-900 transition-colors ${
               isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
             }`}
           >
-            <Store className="w-4 h-4 flex-shrink-0" />
+            <Store className="w-4 h-4 flex-shrink-0 text-gray-600" />
             {!isCollapsed && 'GEMS Store'}
           </a>
         </div>
@@ -384,9 +388,9 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
           <>
             <div className="px-4 py-3 rounded-lg bg-gray-50 border border-gray-100">
               <div className="text-gray-900 text-sm font-medium truncate">{user?.name}</div>
-              <div className="text-gray-500 text-xs truncate">{user?.email}</div>
+              <div className="text-gray-600 text-xs truncate">{user?.email}</div>
             </div>
-            <div className="text-gray-400 text-[10px] mt-2 text-center truncate uppercase">GTHINK Enterprise Management System</div>
+            <div className="text-gray-500 text-[10px] mt-2 text-center truncate uppercase">GTHINK Enterprise Management System</div>
           </>
         )}
       </div>

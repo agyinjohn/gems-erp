@@ -401,10 +401,10 @@
   .page-container { @apply p-4 sm:p-6 space-y-5; }
 
   /* ── Sidebar ── */
-  .sidebar-link { @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 min-w-0; }
+  .sidebar-link { @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 min-w-0 text-gray-800; }
   .sidebar-link:hover { @apply bg-gray-100 text-gray-900; }
-  .sidebar-link.active { @apply bg-blue-50 text-blue-700 font-semibold; }
-  .sidebar-link.inactive { @apply text-gray-600; }
+  .sidebar-link.active { @apply bg-blue-50 text-blue-800 font-semibold; }
+  .sidebar-link.inactive { @apply text-gray-800; }
 
   /* ── Cards ── */
   .card { @apply bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5; }
