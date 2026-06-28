@@ -13,6 +13,20 @@ function fmt(n: number | string | undefined | null) {
   return `GH₵ ${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function fmtOptional(n: number | string | undefined | null, hasValue?: boolean) {
+  if (hasValue === false || (n == null && hasValue == null)) return '—';
+  if (n == null || n === '') return '—';
+  return fmt(n);
+}
+
+function displayDate(value: string | undefined | null) {
+  if (!value) return '—';
+  const iso = value.slice(0, 10);
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return value;
+  return new Date(y, m - 1, d).toLocaleDateString();
+}
+
 function parseBankStatement(text: string) {
   return text.split('\n').map((line) => line.trim()).filter(Boolean).map((line, i) => {
     const nums = line.match(/[-+]?\d+(?:\.\d+)?/g) || [];
@@ -135,21 +149,39 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
     setSaving(true);
     try {
       const summary = reconResult.summary;
+      const matchedByBankId = new Map<number, string>(
+        reconResult.matched.map((m: any) => [m.bank?.id, m.gl?.id]),
+      );
+      const parseBalance = (raw: string, fallback: number | null | undefined) => {
+        if (raw !== '') return parseFloat(raw);
+        return fallback ?? null;
+      };
       const payload = {
         ...reconPayload(),
-        opening_balance: summary.opening_balance ?? openingBalance ?? 0,
-        closing_balance: summary.closing_balance ?? closingBalance ?? summary.computed_closing ?? 0,
+        period_from: periodFrom || reconResult.period?.from,
+        period_to: periodTo || reconResult.period?.to,
+        opening_balance: parseBalance(openingBalance, summary.opening_balance),
+        closing_balance: parseBalance(closingBalance, summary.closing_balance ?? summary.computed_closing),
         bank_lines: parsedLines.map((line) => ({
           date: line.date,
           description: line.description,
           amount: line.amount,
-          matched: reconResult.matched.some((m: any) => m.bank?.id === line.id || m.bank?.description === line.description),
+          matched: matchedByBankId.has(line.id),
+          matched_gl_id: matchedByBankId.get(line.id) || undefined,
         })),
         matched_pairs: reconResult.matched.map((m: any) => ({
           bank_line_id: String(m.bank?.id ?? m.bank?.description),
           gl_line_id: m.gl?.id,
         })),
-        notes: `Match rate ${summary.match_rate}% · ${summary.matched_count}/${summary.bank_line_count} lines`,
+        summary: {
+          bank_total: summary.bank_total,
+          gl_period_total: summary.gl_period_total,
+          matched_count: summary.matched_count,
+          bank_line_count: summary.bank_line_count,
+          match_rate: summary.match_rate,
+          period_difference: summary.period_difference,
+        },
+        notes: `Match rate ${summary.match_rate}% · ${summary.matched_count}/${summary.bank_line_count} lines · ${reconResult.period?.from || '—'} → ${reconResult.period?.to || '—'}`,
       };
 
       let sessionId = savedSessionId;
@@ -157,13 +189,12 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
         const created = await api.post('/accounting/reconciliations', payload);
         sessionId = created.data.data.id;
         setSavedSessionId(sessionId);
+      } else {
+        await api.put(`/accounting/reconciliations/${sessionId}`, payload);
       }
 
       if (complete && sessionId) {
-        await api.patch(`/accounting/reconciliations/${sessionId}/complete`, {
-          matched_pairs: payload.matched_pairs,
-          bank_lines: payload.bank_lines,
-        });
+        await api.patch(`/accounting/reconciliations/${sessionId}/complete`, payload);
         toast.success('Reconciliation completed and saved');
       } else {
         toast.success('Reconciliation saved as draft');
@@ -199,7 +230,8 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
     const q = sessionSearch.toLowerCase();
     return list.filter((s: any) =>
       s.status.includes(q)
-      || new Date(s.statement_date).toLocaleDateString().includes(q)
+      || displayDate(s.statement_date).includes(q)
+      || (s.period_from && displayDate(s.period_from).includes(q))
       || (s.notes || '').toLowerCase().includes(q)
     );
   }, [viewData, sessionSearch]);
@@ -222,7 +254,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
         <StatCard label="Draft sessions" value={String(viewSummary.draft_sessions ?? 0)} icon={<FileText className="w-5 h-5 text-amber-600" />} color="bg-amber-50" sub="In progress" />
         <StatCard
           label="Last completed"
-          value={viewSummary.last_statement_date ? new Date(viewSummary.last_statement_date).toLocaleDateString() : '—'}
+          value={viewSummary.last_statement_date ? displayDate(viewSummary.last_statement_date) : '—'}
           icon={<CheckCircle2 className="w-5 h-5 text-blue-600" />}
           color="bg-blue-50"
           sub={`${viewSummary.completed_sessions ?? 0} completed`}
@@ -414,17 +446,30 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
           <div className="overflow-x-auto">
             <table className="w-full text-xs md:text-sm">
               <thead className="table-header">
-                <tr>{['Statement date', 'Status', 'Opening', 'Closing', 'Lines', 'Matched', ''].map((h) => <th key={h || 'a'} className="px-3 py-2 text-left">{h}</th>)}</tr>
+                <tr>
+                  {['Statement', 'Period', 'Status', 'Opening', 'Closing', 'Bank net', 'Lines', 'Matched', 'Rate', ''].map((h) => (
+                    <th key={h || 'actions'} className="px-3 py-2 text-left">{h}</th>
+                  ))}
+                </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {sessions.map((s: any) => (
                   <tr key={s.id} className="hover:bg-gray-50/80">
-                    <td className="px-3 py-2 whitespace-nowrap">{new Date(s.statement_date).toLocaleDateString()}</td>
-                    <td className="px-3 py-2"><span className={`badge text-xs ${s.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{s.status}</span></td>
-                    <td className="px-3 py-2 tabular-nums">{fmt(s.opening_balance)}</td>
-                    <td className="px-3 py-2 tabular-nums">{fmt(s.closing_balance)}</td>
-                    <td className="px-3 py-2">{s.bank_line_count}</td>
-                    <td className="px-3 py-2">{s.matched_count}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{displayDate(s.statement_date)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-gray-500">
+                      {s.period_from || s.period_to
+                        ? `${displayDate(s.period_from)} → ${displayDate(s.period_to)}`
+                        : '—'}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`badge text-xs ${s.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{s.status}</span>
+                    </td>
+                    <td className="px-3 py-2 tabular-nums">{fmtOptional(s.opening_balance, s.has_opening_balance)}</td>
+                    <td className="px-3 py-2 tabular-nums">{fmtOptional(s.closing_balance, s.has_closing_balance)}</td>
+                    <td className="px-3 py-2 tabular-nums">{s.bank_total != null ? fmt(s.bank_total) : '—'}</td>
+                    <td className="px-3 py-2">{s.bank_line_count ?? 0}</td>
+                    <td className="px-3 py-2">{s.matched_count ?? 0}</td>
+                    <td className="px-3 py-2">{s.match_rate != null ? `${s.match_rate}%` : '—'}</td>
                     <td className="px-3 py-2">
                       <button type="button" onClick={async () => { try { const r = await api.get(`/accounting/reconciliations/${s.id}`); setSessionDetail(r.data.data); } catch { toast.error('Could not load session'); } }} className="p-1.5 hover:bg-gray-100 rounded text-gray-500">
                         <Eye className="w-3.5 h-3.5" />
@@ -442,19 +487,43 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
         Matching uses amount first, then date proximity and description similarity. Only non-voided GL cash lines (1001) in the statement period are compared.
       </p>
 
-      <Modal open={!!sessionDetail} onClose={() => setSessionDetail(null)} title="Reconciliation session" size="md">
+      <Modal open={!!sessionDetail} onClose={() => setSessionDetail(null)} title="Reconciliation session" size="lg">
         {sessionDetail && (
-          <div className="space-y-3 text-sm">
-            <div className="grid grid-cols-2 gap-3">
-              <div><span className="text-gray-500">Statement date</span><p>{new Date(sessionDetail.statement_date).toLocaleDateString()}</p></div>
+          <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div><span className="text-gray-500">Statement date</span><p>{displayDate(sessionDetail.statement_date)}</p></div>
+              <div><span className="text-gray-500">Period</span><p>{displayDate(sessionDetail.period_from)} → {displayDate(sessionDetail.period_to)}</p></div>
               <div><span className="text-gray-500">Status</span><p className="capitalize">{sessionDetail.status}</p></div>
-              <div><span className="text-gray-500">Opening</span><p>{fmt(sessionDetail.opening_balance)}</p></div>
-              <div><span className="text-gray-500">Closing</span><p>{fmt(sessionDetail.closing_balance)}</p></div>
-              <div><span className="text-gray-500">Bank lines</span><p>{sessionDetail.bank_lines?.length || 0}</p></div>
-              <div><span className="text-gray-500">Matched pairs</span><p>{sessionDetail.matched_pairs?.length || 0}</p></div>
+              <div><span className="text-gray-500">Opening</span><p>{fmtOptional(sessionDetail.opening_balance, sessionDetail.has_opening_balance)}</p></div>
+              <div><span className="text-gray-500">Closing</span><p>{fmtOptional(sessionDetail.closing_balance, sessionDetail.has_closing_balance)}</p></div>
+              <div><span className="text-gray-500">Bank net</span><p>{sessionDetail.bank_total != null ? fmt(sessionDetail.bank_total) : '—'}</p></div>
+              <div><span className="text-gray-500">GL net (period)</span><p>{sessionDetail.gl_period_total != null ? fmt(sessionDetail.gl_period_total) : '—'}</p></div>
+              <div><span className="text-gray-500">Matched</span><p>{sessionDetail.matched_count ?? 0} / {sessionDetail.bank_line_count ?? 0} ({sessionDetail.match_rate ?? 0}%)</p></div>
+              <div><span className="text-gray-500">Account</span><p>{sessionDetail.account_code} — {sessionDetail.account_name}</p></div>
             </div>
             {sessionDetail.notes && <p className="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">{sessionDetail.notes}</p>}
             {sessionDetail.completed_by_name && <p className="text-xs text-gray-400">Completed by {sessionDetail.completed_by_name}</p>}
+
+            {(sessionDetail.matched_bank_lines?.length > 0 || sessionDetail.unmatched_bank_lines?.length > 0) && (
+              <div className="space-y-3">
+                {sessionDetail.matched_bank_lines?.length > 0 && (
+                  <ResultTable
+                    headers={['Date', 'Description', 'Amount']}
+                    rows={sessionDetail.matched_bank_lines.map((l: any) => [l.date || '—', l.description, fmt(l.amount)])}
+                    empty=""
+                    headerClass="bg-green-50"
+                  />
+                )}
+                {sessionDetail.unmatched_bank_lines?.length > 0 && (
+                  <ResultTable
+                    headers={['Date', 'Description', 'Amount']}
+                    rows={sessionDetail.unmatched_bank_lines.map((l: any) => [l.date || '—', l.description, fmt(l.amount)])}
+                    empty=""
+                    headerClass="bg-yellow-50"
+                  />
+                )}
+              </div>
+            )}
           </div>
         )}
       </Modal>
