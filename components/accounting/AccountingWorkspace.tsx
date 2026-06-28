@@ -7,6 +7,7 @@ import InvoiceModal from '@/components/InvoiceModal';
 import AccountingOverviewPanel from '@/components/accounting/AccountingOverviewPanel';
 import AccountingAccountsPanel from '@/components/accounting/AccountingAccountsPanel';
 import AccountingExpensesPanel from '@/components/accounting/AccountingExpensesPanel';
+import AccountingJournalPanel from '@/components/accounting/AccountingJournalPanel';
 import AccountingCreditNotesTab from '@/components/accounting/AccountingCreditNotesTab';
 import AccountingVendorBillsTab from '@/components/accounting/AccountingVendorBillsTab';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
@@ -18,7 +19,6 @@ interface AccountingWorkspaceProps {
 
 export default function AccountingWorkspace({ section }: AccountingWorkspaceProps) {
   const [accounts, setAccounts] = useState<any[]>([]);
-  const [journal, setJournal] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({});
   const [ar, setAr] = useState<any[]>([]);
   const [apLedger, setApLedger] = useState<{ entries: any[]; total_outstanding: number } | null>(null);
@@ -28,7 +28,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const [poPaySaving, setPoPaySaving] = useState(false);
   const [historyModal, setHistoryModal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState<'journal'|null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [bankStatement, setBankStatement] = useState('');
@@ -91,14 +90,11 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const [periodForm, setPeriodForm] = useState({ name:'', type:'month', start_date:'', end_date:'' });
   const [acctConfirm, setAcctConfirm] = useState<any>(null);
 
-  const [jeForm, setJeForm] = useState({ description:'', entry_date: new Date().toISOString().split('T')[0], lines:[{ account_id:'', debit:'', credit:'', description:'' }] });
-
   const load = async () => {
     setLoading(true);
     try {
-      const [a, j, s, arRes, taxRes] = await Promise.all([
+      const [a, s, arRes, taxRes] = await Promise.all([
         api.get('/accounts').catch(()=>({data:{data:[]}})),
-        api.get('/journal-entries').catch(()=>({data:{data:[]}})),
         api.get('/accounting/summary').catch(()=>({data:{data:{}}})),
         api.get('/invoices?status=sent,partially_paid,overdue').catch(()=>({data:{data:[]}})),
         api.get('/tax-rates').catch(()=>({data:{data:[]}})),
@@ -106,7 +102,7 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
       const allAccounts = a.data.data || [];
       const postingAccounts = allAccounts.filter((acc: any) => !acc.is_group);
       setAccounts(postingAccounts);
-      setJournal(j.data.data); setSummary(s.data.data||{});
+      setSummary(s.data.data||{});
       setAr(arRes.data.data||[]);
       setTaxRates(taxRes.data.data||[]);
     } finally { setLoading(false); }
@@ -213,16 +209,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         toast.success(`Posted ${res.data.data.posted} depreciation entries`);
       },
     });
-  };
-
-  const addJeLine = () => setJeForm({ ...jeForm, lines:[...jeForm.lines, {account_id:'',debit:'',credit:'',description:''}] });
-  const updateJeLine = (i:number,k:string,v:any) => { const l=[...jeForm.lines]; l[i]={...l[i],[k]:v}; setJeForm({...jeForm,lines:l}); };
-
-  const saveJournal = async () => {
-    setSaving(true); setError('');
-    try { await api.post('/journal-entries', jeForm); setModal(null); load(); }
-    catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
-    finally { setSaving(false); }
   };
 
   const loadPl = async () => {
@@ -559,7 +545,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
       {/* Section action bar */}
       <div className="flex flex-wrap justify-end gap-2 mb-4 md:mb-5">
           {section==='tax'          && <button className="btn-primary text-xs md:text-sm" onClick={openAddTax}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Tax</button>}
-          {section==='journal'      && <button className="btn-primary text-xs md:text-sm" onClick={() => { setJeForm({description:'',entry_date:new Date().toISOString().split('T')[0],lines:[{account_id:'',debit:'',credit:'',description:''}]}); setError(''); setModal('journal'); }}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">New </span>Entry</button>}
           {section==='pl'           && pl && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportPlCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('P&L Report','pl-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
           {section==='bs'           && bs && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportBsCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('Balance Sheet','bs-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
           {section==='cashflow'     && cf && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportCfCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('Cash Flow Statement','cf-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
@@ -853,50 +838,8 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         </div>
       )}
 
-      {/* Journal */}
       {section==='journal' && (
-        <div className="card p-0 overflow-hidden">
-          {loading ? <Spinner /> : journal.length===0 ? <EmptyState message="No journal entries yet" icon={<BookOpen className="w-8 h-8 text-gray-300"/>} /> : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs md:text-sm">
-                <thead className="table-header"><tr>{['Reference','Description','Debit','Credit','Date','Source','Status',''].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr></thead>
-                <tbody className="divide-y divide-gray-50">
-                  {journal.map(j => (
-                    <tr key={j.id} className={`hover:bg-gray-50 ${j.status==='voided' ? 'opacity-50' : ''}`}>
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{j.reference}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-medium max-w-xs truncate hidden lg:table-cell">{j.description}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 text-green-700 font-semibold">GH₵ {parseFloat(j.total_debit||0).toFixed(2)}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 text-red-600 font-semibold">GH₵ {parseFloat(j.total_credit||0).toFixed(2)}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 text-xs hidden md:table-cell">{new Date(j.entry_date).toLocaleDateString()}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 hidden lg:table-cell"><span className="badge badge-blue text-xs">{j.source}</span></td>
-                      <td className="px-3 md:px-4 py-2 md:py-3">
-                        <span className={`badge text-xs ${j.status==='voided' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
-                          {j.status || 'posted'}
-                        </span>
-                      </td>
-                      <td className="px-3 md:px-4 py-2 md:py-3">
-                        {j.status !== 'voided' && (
-                          <button
-                            onClick={async () => {
-                              const reason = prompt('Reason for voiding this entry?');
-                              if (!reason) return;
-                              try {
-                                await api.post(`/journal-entries/${j.id}/void`, { reason });
-                                toast.success('Entry voided and reversed');
-                                load();
-                              } catch (e: any) { toast.error(e.response?.data?.message || 'Failed to void'); }
-                            }}
-                            className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded hidden md:inline-block"
-                          >Void</button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <AccountingJournalPanel onDataChange={load} />
       )}
 
       {/* Balance Sheet Tab */}
@@ -1426,41 +1369,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
           <button className="btn-secondary w-full sm:w-auto" onClick={() => setTaxModal(null)}>Cancel</button>
           <button className="btn-primary w-full sm:w-auto" onClick={saveTax} disabled={saving}>{saving?'Saving…':taxModal==='edit'?'Update':'Add Tax Rate'}</button>
-        </div>
-      </Modal>
-
-      {/* Journal Entry Modal */}
-      <Modal open={modal==='journal'} onClose={() => setModal(null)} title="New Journal Entry" size="lg">
-        {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="md:col-span-2"><label className="form-label">Description *</label><input className="form-input" value={jeForm.description} onChange={e => setJeForm({...jeForm,description:e.target.value})} /></div>
-          <div><label className="form-label">Date</label><input type="date" className="form-input" value={jeForm.entry_date} onChange={e => setJeForm({...jeForm,entry_date:e.target.value})} /></div>
-        </div>
-        <div className="border-t pt-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-sm md:text-base">Journal Lines</h4>
-            <button className="btn-secondary py-1 text-xs" onClick={addJeLine}><Plus className="w-3 h-3" />Add Line</button>
-          </div>
-          <div className="space-y-2">
-            {jeForm.lines.map((line,i) => (
-              <div key={i} className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                <select className="form-input md:col-span-2" value={line.account_id} onChange={e => updateJeLine(i,'account_id',e.target.value)}>
-                  <option value="">Select account</option>
-                  {accounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
-                </select>
-                <input type="number" className="form-input" placeholder="Debit" value={line.debit} onChange={e => updateJeLine(i,'debit',e.target.value)} />
-                <input type="number" className="form-input" placeholder="Credit" value={line.credit} onChange={e => updateJeLine(i,'credit',e.target.value)} />
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-8 mt-3 text-xs sm:text-sm font-semibold">
-            <span>Total Debit: GH₵ {jeForm.lines.reduce((s,l)=>s+(parseFloat(l.debit)||0),0).toFixed(2)}</span>
-            <span>Total Credit: GH₵ {jeForm.lines.reduce((s,l)=>s+(parseFloat(l.credit)||0),0).toFixed(2)}</span>
-          </div>
-        </div>
-        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
-          <button className="btn-secondary w-full sm:w-auto" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary w-full sm:w-auto" onClick={saveJournal} disabled={saving}>{saving?'Saving…':'Post Entry'}</button>
         </div>
       </Modal>
 
