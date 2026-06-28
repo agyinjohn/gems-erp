@@ -8,6 +8,8 @@ import AccountingOverviewPanel from '@/components/accounting/AccountingOverviewP
 import AccountingAccountsPanel from '@/components/accounting/AccountingAccountsPanel';
 import AccountingExpensesPanel from '@/components/accounting/AccountingExpensesPanel';
 import AccountingJournalPanel from '@/components/accounting/AccountingJournalPanel';
+import AccountingReceivablesPanel from '@/components/accounting/AccountingReceivablesPanel';
+import AccountingPayablesPanel from '@/components/accounting/AccountingPayablesPanel';
 import AccountingCreditNotesTab from '@/components/accounting/AccountingCreditNotesTab';
 import AccountingVendorBillsTab from '@/components/accounting/AccountingVendorBillsTab';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
@@ -20,12 +22,6 @@ interface AccountingWorkspaceProps {
 export default function AccountingWorkspace({ section }: AccountingWorkspaceProps) {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({});
-  const [ar, setAr] = useState<any[]>([]);
-  const [apLedger, setApLedger] = useState<{ entries: any[]; total_outstanding: number } | null>(null);
-  const [apLedgerLoading, setApLedgerLoading] = useState(false);
-  const [poPayModal, setPoPayModal] = useState<any>(null);
-  const [poPayForm, setPoPayForm] = useState({ amount: '', method: 'bank_transfer', reference: '', note: '' });
-  const [poPaySaving, setPoPaySaving] = useState(false);
   const [historyModal, setHistoryModal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -93,44 +89,24 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const load = async () => {
     setLoading(true);
     try {
-      const [a, s, arRes, taxRes] = await Promise.all([
+      const [a, s, taxRes] = await Promise.all([
         api.get('/accounts').catch(()=>({data:{data:[]}})),
         api.get('/accounting/summary').catch(()=>({data:{data:{}}})),
-        api.get('/invoices?status=sent,partially_paid,overdue').catch(()=>({data:{data:[]}})),
         api.get('/tax-rates').catch(()=>({data:{data:[]}})),
       ]);
       const allAccounts = a.data.data || [];
       const postingAccounts = allAccounts.filter((acc: any) => !acc.is_group);
       setAccounts(postingAccounts);
       setSummary(s.data.data||{});
-      setAr(arRes.data.data||[]);
       setTaxRates(taxRes.data.data||[]);
     } finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
   useEffect(() => { if (section === 'bs' && !bs) loadBs(); }, [section]);
-  useEffect(() => { if (section === 'ap') loadApLedger(); }, [section]);
-  useEffect(() => { if (section === 'ar') loadAr(); }, [section]);
   useEffect(() => { if (section === 'budget') loadBudget(); }, [section]);
   useEffect(() => { if (section === 'trial-balance') loadTrialBalance(); }, [section]);
   useEffect(() => { if (section === 'invoices') loadInvoices(); }, [section]);
   useEffect(() => { if (section === 'periods') loadPeriods(); }, [section]);
-
-  const loadApLedger = async () => {
-    setApLedgerLoading(true);
-    try {
-      const res = await api.get('/accounting/ap-ledger');
-      setApLedger(res.data.data);
-    } catch { setApLedger({ entries: [], total_outstanding: 0 }); }
-    finally { setApLedgerLoading(false); }
-  };
-
-  const loadAr = async () => {
-    try {
-      const res = await api.get('/invoices?status=sent,partially_paid,overdue');
-      setAr(res.data.data || []);
-    } catch {}
-  };
 
   const openInvoice = async (orderId: string) => {
     try {
@@ -508,7 +484,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
       setPayForm({ amount:'', method:'cash', reference:'', note:'' });
       toast.success('Payment recorded');
       loadInvoices();
-      loadAr();
     } catch (e: any) { toast.error(e.response?.data?.message || 'Failed'); }
     finally { setInvSaving(false); }
   };
@@ -523,19 +498,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
       loadPeriods();
     } catch (e: any) { toast.error(e.response?.data?.message || 'Failed'); }
     finally { setInvSaving(false); }
-  };
-
-  const arAging = () => {
-    const now = Date.now();
-    const buckets = { current:[] as any[], d30:[] as any[], d60:[] as any[], d90:[] as any[] };
-    ar.forEach((o: any) => {
-      const days = Math.floor((now - new Date(o.issue_date || o.created_at).getTime()) / 86400000);
-      if (days <= 30) buckets.current.push({...o, days});
-      else if (days <= 60) buckets.d30.push({...o, days});
-      else if (days <= 90) buckets.d60.push({...o, days});
-      else buckets.d90.push({...o, days});
-    });
-    return buckets;
   };
 
   const typeColors: Record<string,string> = { asset:'bg-green-100 text-green-800', liability:'bg-red-100 text-red-800', equity:'bg-blue-100 text-blue-800', revenue:'bg-purple-100 text-purple-800', expense:'bg-yellow-100 text-yellow-800' };
@@ -566,130 +528,15 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         <AccountingExpensesPanel onDataChange={load} />
       )}
 
-      {/* AR Tab */}
       {section==='ar' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-            <div className="card"><div className="text-2xl font-bold text-blue-600">{ar.length}</div><div className="text-sm text-gray-500">Open Invoices</div></div>
-            <div className="card"><div className="text-2xl font-bold text-red-600">GH₵ {ar.reduce((s:number,o:any)=>s+parseFloat(o.amount_due||0),0).toFixed(2)}</div><div className="text-sm text-gray-500">Total Outstanding</div></div>
-            <div className="card"><div className="text-2xl font-bold text-orange-600">{ar.filter((o:any)=>o.status==='overdue').length}</div><div className="text-sm text-gray-500">Overdue</div></div>
-          </div>
-          {/* Aging Buckets */}
-          {!loading && ar.length > 0 && (() => {
-            const { current, d30, d60, d90 } = arAging();
-            const sum = (arr: any[]) => arr.reduce((s,o) => s + parseFloat(o.amount_due||0), 0);
-            return (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {[{label:'Current (0-30d)',arr:current,color:'bg-green-50 border-green-200 text-green-700'},{label:'31-60 days',arr:d30,color:'bg-yellow-50 border-yellow-200 text-yellow-700'},{label:'61-90 days',arr:d60,color:'bg-orange-50 border-orange-200 text-orange-700'},{label:'90+ days',arr:d90,color:'bg-red-50 border-red-200 text-red-700'}].map(({label,arr,color}) => (
-                  <div key={label} className={`rounded-xl border p-4 ${color}`}>
-                    <div className="text-xs font-medium mb-1">{label}</div>
-                    <div className="text-xl font-bold">GH₵ {sum(arr).toFixed(2)}</div>
-                    <div className="text-xs mt-1">{arr.length} invoice{arr.length!==1?'s':''}</div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-          <div className="card p-0 overflow-hidden">
-            {loading ? <Spinner /> : ar.length===0 ? <EmptyState message="No outstanding receivables" icon={<ArrowDownCircle className="w-8 h-8 text-gray-300"/>} /> : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs md:text-sm">
-                  <thead className="table-header"><tr>{['Invoice #','Customer','Amount Due','Issued','Due Date','Age','Status'].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr></thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {ar.map((o:any) => {
-                      const days = Math.floor((Date.now() - new Date(o.issue_date || o.created_at).getTime()) / 86400000);
-                      const ageColor = days > 90 ? 'text-red-600 font-bold' : days > 60 ? 'text-orange-500 font-semibold' : days > 30 ? 'text-yellow-600' : 'text-green-600';
-                      const statusColor: Record<string,string> = { sent:'bg-blue-100 text-blue-700', partially_paid:'bg-yellow-100 text-yellow-700', overdue:'bg-red-100 text-red-700' };
-                      return (
-                        <tr key={o.id} className="hover:bg-gray-50">
-                          <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{o.invoice_number}</td>
-                          <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{o.customer_name}</td>
-                          <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GH₵ {parseFloat(o.amount_due||0).toFixed(2)}</td>
-                          <td className="px-3 md:px-4 py-2 md:py-3 text-gray-400 text-xs hidden md:table-cell">{new Date(o.issue_date).toLocaleDateString()}</td>
-                          <td className="px-3 md:px-4 py-2 md:py-3 text-gray-400 text-xs hidden lg:table-cell">{new Date(o.due_date).toLocaleDateString()}</td>
-                          <td className={`px-3 md:px-4 py-2 md:py-3 text-xs ${ageColor}`}>{days}d</td>
-                          <td className="px-3 md:px-4 py-2 md:py-3"><span className={`badge text-xs ${statusColor[o.status] || 'bg-gray-100 text-gray-600'}`}>{o.status.replace('_',' ')}</span></td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        <AccountingReceivablesPanel onDataChange={load} />
       )}
 
       {section==='vendor-bills' && <AccountingVendorBillsTab accounts={accounts} />}
       {section==='credit-notes' && <AccountingCreditNotesTab />}
 
-      {/* AP Tab */}
       {section==='ap' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-            <div className="card">
-              <div className="text-2xl font-bold text-orange-600">{apLedger?.entries.length ?? '—'}</div>
-              <div className="text-sm text-gray-500">Open Payables</div>
-            </div>
-            <div className="card">
-              <div className="text-2xl font-bold text-red-600">GH₵ {(apLedger?.total_outstanding ?? 0).toFixed(2)}</div>
-              <div className="text-sm text-gray-500">Total Outstanding (GL)</div>
-            </div>
-            <div className="card">
-              <div className="text-2xl font-bold text-gray-500 text-sm font-normal mt-1">Source of truth: account 2001</div>
-              <div className="text-sm text-gray-400">Accounts Payable ledger</div>
-            </div>
-          </div>
-
-          <div className="card p-0 overflow-hidden">
-            {apLedgerLoading ? <Spinner /> : !apLedger || apLedger.entries.length === 0
-              ? <EmptyState message="No outstanding payables in the GL — account 2001 is clear" icon={<ArrowUpCircle className="w-8 h-8 text-gray-300"/>} />
-              : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs md:text-sm">
-                  <thead className="table-header">
-                    <tr>{['Reference','Description','Supplier','PO #','Date','Outstanding',''].map(h => <th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {apLedger.entries.map((e: any, i: number) => (
-                      <tr key={i} className="hover:bg-gray-50">
-                        <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{e.reference}</td>
-                        <td className="px-3 md:px-4 py-2 md:py-3 text-gray-700 max-w-xs truncate hidden lg:table-cell">{e.description}</td>
-                        <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{e.supplier || <span className="text-gray-400">—</span>}</td>
-                        <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs hidden md:table-cell">{e.po_number || <span className="text-gray-400">—</span>}</td>
-                        <td className="px-3 md:px-4 py-2 md:py-3 text-xs text-gray-400 hidden lg:table-cell">{new Date(e.entry_date).toLocaleDateString()}</td>
-                        <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600">GH₵ {e.outstanding.toFixed(2)}</td>
-                        <td className="px-3 md:px-4 py-2 md:py-3">
-                          <div className="flex gap-1">
-                            {e.po_id && (
-                              <button
-                                onClick={() => {
-                                  setPoPayModal(e);
-                                  setPoPayForm({ amount: e.outstanding.toFixed(2), method: 'bank_transfer', reference: '', note: '' });
-                                }}
-                                className="text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-2 md:px-3 py-1 md:py-1.5 rounded-lg"
-                              >Pay</button>
-                            )}
-                            {e.payments?.length > 0 && (
-                              <button onClick={() => setHistoryModal({ type:'po', label: e.po_number || e.reference, payments: e.payments, total: e.outstanding + e.payments.reduce((s:number,p:any)=>s+p.amount,0), paid: e.payments.reduce((s:number,p:any)=>s+p.amount,0) })} className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded hidden md:inline-block">History</button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-gray-50 font-semibold border-t-2 border-gray-200">
-                      <td className="px-3 md:px-4 py-2 md:py-3" colSpan={5}>Total Outstanding</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 text-red-600">GH₵ {apLedger.total_outstanding.toFixed(2)}</td>
-                      <td />
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        <AccountingPayablesPanel onDataChange={load} />
       )}
 
       {/* Reconciliation Tab */}
@@ -1471,7 +1318,7 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
                           <td className="px-3 md:px-4 py-2 md:py-3">
                             <div className="flex gap-1">
                               {inv.status==='draft' && (
-                                <button onClick={async () => { try { await api.patch(`/invoices/${inv.id}/send`); toast.success('Invoice sent'); loadInvoices(); loadAr(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2 md:px-2.5 py-1 rounded-lg">Send</button>
+                                <button onClick={async () => { try { await api.patch(`/invoices/${inv.id}/send`); toast.success('Invoice sent'); loadInvoices(); } catch(e:any){ toast.error(e.response?.data?.message||'Failed'); } }} className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2 md:px-2.5 py-1 rounded-lg">Send</button>
                               )}
                               {['sent','partially_paid','overdue'].includes(inv.status) && (
                                 <button onClick={() => { setPayModal(inv); setPayForm({ amount: String(inv.amount_due), method:'cash', reference:'', note:'' }); }} className="text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-2 md:px-2.5 py-1 rounded-lg">Pay</button>
@@ -1684,80 +1531,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         )}
         <div className="flex justify-end mt-4">
           <button className="btn-secondary" onClick={() => setHistoryModal(null)}>Close</button>
-        </div>
-      </Modal>
-
-      {/* Supplier Payment Modal */}
-      <Modal open={!!poPayModal} onClose={() => setPoPayModal(null)} title={`Pay Supplier — ${poPayModal?.po_number || poPayModal?.reference}`} size="sm">
-        {poPayModal && (
-          <div className="space-y-3">
-            <div className="bg-gray-50 rounded-xl px-4 py-3 text-sm">
-              <div className="flex justify-between mb-1">
-                <span className="text-gray-500">Supplier</span>
-                <span className="font-medium">{poPayModal.supplier || '—'}</span>
-              </div>
-              <div className="flex justify-between mb-1">
-                <span className="text-gray-500">Total Outstanding</span>
-                <span className="font-semibold text-red-600">GH₵ {poPayModal.outstanding.toFixed(2)}</span>
-              </div>
-            </div>
-            <div>
-              <label className="form-label">Amount Paying (GH₵) *</label>
-              <input
-                type="number"
-                className="form-input"
-                value={poPayForm.amount}
-                onChange={e => setPoPayForm({ ...poPayForm, amount: e.target.value })}
-                max={poPayModal.outstanding}
-              />
-              {parseFloat(poPayForm.amount || '0') < poPayModal.outstanding && parseFloat(poPayForm.amount || '0') > 0 && (
-                <p className="text-xs text-yellow-600 mt-1">
-                  Partial payment — GH₵ {(poPayModal.outstanding - parseFloat(poPayForm.amount)).toFixed(2)} will remain outstanding.
-                </p>
-              )}
-              {parseFloat(poPayForm.amount || '0') >= poPayModal.outstanding && (
-                <p className="text-xs text-green-600 mt-1">✓ Full payment — payable will be cleared.</p>
-              )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="form-label">Payment Method</label>
-                <select className="form-input" value={poPayForm.method} onChange={e => setPoPayForm({ ...poPayForm, method: e.target.value })}>
-                  {['bank_transfer','cash','cheque','mobile_money','card'].map(m => (
-                    <option key={m} value={m}>{m.replace('_', ' ')}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="form-label">Reference / Cheque No.</label>
-                <input className="form-input" value={poPayForm.reference} onChange={e => setPoPayForm({ ...poPayForm, reference: e.target.value })} placeholder="e.g. TXN-001" />
-              </div>
-            </div>
-            <div>
-              <label className="form-label">Note</label>
-              <input className="form-input" value={poPayForm.note} onChange={e => setPoPayForm({ ...poPayForm, note: e.target.value })} placeholder="Optional note" />
-            </div>
-          </div>
-        )}
-        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
-          <button className="btn-secondary w-full sm:w-auto" onClick={() => setPoPayModal(null)}>Cancel</button>
-          <button
-            className="btn-primary w-full sm:w-auto"
-            disabled={poPaySaving || !parseFloat(poPayForm.amount || '0')}
-            onClick={async () => {
-              setPoPaySaving(true);
-              try {
-                const res = await api.patch(`/purchase-orders/${poPayModal.po_id}/pay`, poPayForm);
-                const { paid, outstanding } = res.data;
-                toast.success(`GH₵ ${parseFloat(paid).toFixed(2)} paid${ outstanding > 0 ? ` — GH₵ ${parseFloat(outstanding).toFixed(2)} still outstanding` : ' — fully cleared' }`);
-                setPoPayModal(null);
-                loadApLedger();
-              } catch (e: any) { toast.error(e.response?.data?.message || 'Payment failed'); }
-              finally { setPoPaySaving(false); }
-            }}
-          >
-            {poPaySaving ? 'Processing…' : 'Record Payment'}
-          </button>
         </div>
       </Modal>
 
