@@ -14,6 +14,7 @@ import AccountingCreditNotesPanel from '@/components/accounting/AccountingCredit
 import AccountingVendorBillsPanel from '@/components/accounting/AccountingVendorBillsPanel';
 import AccountingReconciliationPanel from '@/components/accounting/AccountingReconciliationPanel';
 import AccountingPlPanel from '@/components/accounting/AccountingPlPanel';
+import AccountingBalanceSheetPanel from '@/components/accounting/AccountingBalanceSheetPanel';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 import type { AccountingSectionSlug } from '@/lib/accountingNav';
 
@@ -34,8 +35,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const [importType, setImportType] = useState<'expenses'|'journal'>('expenses');
   const [importCsv, setImportCsv] = useState('');
   const [importing, setImporting] = useState(false);
-  const [bs, setBs] = useState<any>(null);
-  const [bsLoading, setBsLoading] = useState(false);
   const [cf, setCf] = useState<any>(null);
   const [cfLoading, setCfLoading] = useState(false);
   const [cfFrom, setCfFrom] = useState('');
@@ -95,7 +94,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
     } finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
-  useEffect(() => { if (section === 'bs' && !bs) loadBs(); }, [section]);
   useEffect(() => { if (section === 'budget') loadBudget(); }, [section]);
   useEffect(() => { if (section === 'trial-balance') loadTrialBalance(); }, [section]);
   useEffect(() => { if (section === 'invoices') loadInvoices(); }, [section]);
@@ -127,14 +125,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         toast.success(`Posted ${res.data.data.posted} depreciation entries`);
       },
     });
-  };
-
-  const loadBs = async () => {
-    setBsLoading(true);
-    try {
-      const res = await api.get('/accounting/balance-sheet');
-      setBs(res.data.data);
-    } finally { setBsLoading(false); }
   };
 
   const loadCf = async () => {
@@ -193,34 +183,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
-  };
-
-  const exportBsCsv = () => {
-    if (!bs) return;
-    const fmt = (v: any) => parseFloat(v||0).toFixed(2);
-    const rows = [
-      ['Balance Sheet', new Date().toLocaleDateString()],
-      [],
-      ['ASSETS', ''],
-      ['Cash & Bank',           fmt(bs.assets.cash)],
-      ['Accounts Receivable',   fmt(bs.assets.accounts_receivable)],
-      ['Inventory',             fmt(bs.assets.inventory)],
-      ['Total Current Assets',  fmt(bs.assets.total_current)],
-      ['Total Assets',          fmt(bs.assets.total)],
-      [],
-      ['LIABILITIES', ''],
-      ['Accounts Payable',          fmt(bs.liabilities.accounts_payable)],
-      ['VAT Payable',               fmt(bs.liabilities.vat_payable)],
-      ['Total Current Liabilities', fmt(bs.liabilities.total_current)],
-      ['Total Liabilities',         fmt(bs.liabilities.total)],
-      [],
-      ['EQUITY', ''],
-      ["Owner's Equity",       fmt(bs.equity.owner_equity)],
-      ['Retained Earnings',    fmt(bs.equity.retained_earnings)],
-      ['Current Net Income',   fmt(bs.equity.current_net_income)],
-      ['Total Equity',         fmt(bs.equity.total)],
-    ];
-    exportCSV(`balance-sheet-${Date.now()}.csv`, rows);
   };
 
   const exportCfCsv = () => {
@@ -403,7 +365,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
       {/* Section action bar */}
       <div className="flex flex-wrap justify-end gap-2 mb-4 md:mb-5">
           {section==='tax'          && <button className="btn-primary text-xs md:text-sm" onClick={openAddTax}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Tax</button>}
-          {section==='bs'           && bs && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportBsCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('Balance Sheet','bs-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
           {section==='cashflow'     && cf && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportCfCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('Cash Flow Statement','cf-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
           {section==='budget'       && <div className="flex gap-2">{budgetData && <button className="btn-secondary text-xs md:text-sm" onClick={exportBudgetCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button>}<button className="btn-primary text-xs md:text-sm" onClick={() => { setEditingBudget(null); setBudgetForm({ category:'', amount:'', period:budgetPeriod, period_type:budgetPeriodType }); setBudgetModal(true); }}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Set </span>Budget</button></div>}
           {section==='trial-balance' && tb && <button className="btn-secondary" onClick={() => { const rows = [['Code','Account','Type','Debit','Credit'],...(tb.accounts||[]).map((r:any)=>[r.code,r.name,r.type,r.debit_balance.toFixed(2),r.credit_balance.toFixed(2)]),['','TOTALS','',tb.totals.debit.toFixed(2),tb.totals.credit.toFixed(2)]]; const csv=rows.map(r=>r.map((c:any)=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`trial-balance-${Date.now()}.csv`; a.click(); }}><Download className="w-4 h-4" />CSV</button>}
@@ -446,114 +407,8 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         <AccountingJournalPanel onDataChange={load} />
       )}
 
-      {/* Balance Sheet Tab */}
       {section==='bs' && (
-        <div className="space-y-4">
-          {bsLoading && <Spinner />}
-          {bs && (() => {
-            // Use GL-derived fields from the new API
-            const a = bs.assets;
-            const l = bs.liabilities;
-            const e = bs.equity;
-            const fmt = (v: any) => parseFloat(v||0).toLocaleString('en-GH', { minimumFractionDigits:2, maximumFractionDigits:2 });
-            const isBalanced = bs.is_balanced;
-
-            const Line = ({ label, value }: { label: string; value: number }) => (
-              <div className="flex items-baseline py-[5px] border-b border-dotted border-gray-100 last:border-0">
-                <span className="text-sm text-gray-600 flex-1 pl-6">{label}</span>
-                <span className="text-sm text-gray-800 tabular-nums w-44 text-right">{fmt(value)}</span>
-              </div>
-            );
-            const Subtotal = ({ label, value }: { label: string; value: number }) => (
-              <div className="flex items-baseline py-[6px] mt-1">
-                <span className="text-sm font-semibold text-gray-700 flex-1 pl-2">{label}</span>
-                <span className="text-sm font-semibold text-gray-900 tabular-nums w-44 text-right border-t border-gray-400 pt-0.5">{fmt(value)}</span>
-              </div>
-            );
-            const Total = ({ label, value }: { label: string; value: number }) => (
-              <div className="flex items-baseline py-2 mt-1">
-                <span className="text-sm font-bold uppercase tracking-wide text-gray-900 flex-1 pl-2">{label}</span>
-                <span className="text-sm font-bold text-gray-900 tabular-nums w-44 text-right" style={{borderTop:'2px solid #111',borderBottom:'2px solid #111',paddingTop:'2px',paddingBottom:'2px'}}>{fmt(value)}</span>
-              </div>
-            );
-            const Section = ({ title }: { title: string }) => (
-              <div className="mt-7 mb-2 pb-1 border-b border-gray-300">
-                <span className="text-xs font-bold uppercase tracking-widest text-gray-500">{title}</span>
-              </div>
-            );
-
-            return (
-              <div id="bs-print" className="w-full">
-                <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                  <div className="text-center py-7 px-8 border-b border-gray-100">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">GEMS</p>
-                    <h2 className="text-2xl font-bold text-gray-900">Balance Sheet</h2>
-                    <p className="text-sm text-gray-500 mt-1">As at {new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">All amounts in Ghana Cedis (GH₵)</p>
-                  </div>
-                  <div className="px-8 py-6">
-                    <Section title="Assets" />
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider pl-2 mb-1 mt-3">Current Assets</div>
-                    <Line label="Cash & Bank"          value={a.cash} />
-                    <Line label="Accounts Receivable"  value={a.accounts_receivable} />
-                    <Line label="Inventory"            value={a.inventory} />
-                    {a.prepaid > 0 && <Line label="Prepaid Expenses" value={a.prepaid} />}
-                    <Subtotal label="Total Current Assets" value={a.total_current} />
-                    {(a.ppe !== 0 || a.accum_depreciation !== 0) && (
-                      <>
-                        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider pl-2 mb-1 mt-4">Non-Current Assets</div>
-                        {a.ppe !== 0 && <Line label="Property & Equipment" value={a.ppe} />}
-                        {a.accum_depreciation !== 0 && <Line label="Accumulated Depreciation" value={a.accum_depreciation} />}
-                        <Subtotal label="Total Non-Current Assets" value={a.total_non_current} />
-                      </>
-                    )}
-                    <div className="mt-4" />
-                    <Total label="Total Assets" value={a.total} />
-
-                    <Section title="Liabilities" />
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider pl-2 mb-1 mt-3">Current Liabilities</div>
-                    <Line label="Accounts Payable"   value={l.accounts_payable} />
-                    {l.vat_payable > 0    && <Line label="VAT Payable"        value={l.vat_payable} />}
-                    {l.accrued > 0        && <Line label="Accrued Liabilities" value={l.accrued} />}
-                    {l.salaries_payable > 0 && <Line label="Salaries Payable"  value={l.salaries_payable} />}
-                    <Subtotal label="Total Current Liabilities" value={l.total_current} />
-                    {l.long_term_loans !== 0 && (
-                      <>
-                        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider pl-2 mb-1 mt-4">Non-Current Liabilities</div>
-                        <Line label="Long-Term Loans" value={l.long_term_loans} />
-                        <Subtotal label="Total Non-Current Liabilities" value={l.total_non_current} />
-                      </>
-                    )}
-                    <div className="mt-4" />
-                    <Total label="Total Liabilities" value={l.total} />
-
-                    <Section title="Shareholders' Equity" />
-                    <div className="mt-3" />
-                    {e.owner_equity !== 0      && <Line label="Owner's Equity"      value={e.owner_equity} />}
-                    {e.retained_earnings !== 0 && <Line label="Retained Earnings"   value={e.retained_earnings} />}
-                    {e.current_net_income !== 0 && <Line label="Current Period Net Income" value={e.current_net_income} />}
-                    <Subtotal label="Total Equity" value={e.total} />
-                    <div className="mt-4" />
-                    <Total label="Total Liabilities & Equity" value={l.total + e.total} />
-
-                    <div className={`mt-6 rounded-lg px-4 py-3 flex items-center justify-between text-sm ${isBalanced ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                      <span className={`font-mono text-xs ${isBalanced ? 'text-green-700' : 'text-red-700'}`}>
-                        Assets {fmt(a.total)} = Liabilities {fmt(l.total)} + Equity {fmt(e.total)}
-                      </span>
-                      <span className={`font-bold text-sm ${isBalanced ? 'text-green-700' : 'text-red-700'}`}>
-                        {isBalanced ? '✓ Balanced' : '✗ Unbalanced'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="px-8 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 text-center">
-                    Prepared by GEMS &middot; {new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })} &middot; Unaudited
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-          {!bs && !bsLoading && <EmptyState message="Click Load Balance Sheet to view the snapshot" icon={<DollarSign className="w-8 h-8 text-gray-300"/>} />}
-        </div>
+        <AccountingBalanceSheetPanel onDataChange={load} />
       )}
 
       {/* Cash Flow Tab */}
