@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
 import { Plus, Search, DollarSign, CheckCircle, Calendar, Users, Clock, Umbrella, Banknote, Edit2, UserX, FileText, Download, Eye } from 'lucide-react';
@@ -16,7 +15,7 @@ import PayrollLineEditor, {
   type PayLine,
 } from '@/components/hr/PayrollLineEditor';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
-import { HR_SECTIONS, hrHref, type HrSectionSlug } from '@/lib/hrNav';
+import { type HrSectionSlug } from '@/lib/hrNav';
 
 interface HrWorkspaceProps {
   section: HrSectionSlug;
@@ -561,47 +560,29 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           ))}
         </div>
       )}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {HR_SECTIONS.map((s) => {
-          const Icon = s.icon;
-          const active = section === s.slug;
-          return (
-            <Link
-              key={s.slug}
-              href={hrHref(s.slug)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                active ? 'bg-blue-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {s.label}
-            </Link>
-          );
-        })}
-        <div className="ml-auto flex gap-2">
-          {section === 'employees' && (
-            <>
-              <button type="button" className="btn-secondary" onClick={exportHrCsv} title="Export CSV"><Download className="w-4 h-4" /></button>
-              <button type="button" className="btn-primary" onClick={openAddEmp}><Plus className="w-4 h-4" />Add Employee</button>
-            </>
-          )}
-          {section === 'attendance' && (
-            <button type="button" className="btn-primary" onClick={() => { setAttendanceForm({ employee_id: '', date: attendanceDate, status: 'present', notes: '' }); setError(''); setModal('add_attendance'); }}>
-              <Calendar className="w-4 h-4" />Record Attendance
-            </button>
-          )}
-          {section === 'leave' && (
-            <button type="button" className="btn-primary" onClick={() => { setLeaveForm({ employee_id: '', leave_type: 'annual', start_date: '', end_date: '', reason: '' }); setError(''); setModal('add_leave'); }}>
-              <Plus className="w-4 h-4" />Apply Leave
-            </button>
-          )}
-          {section === 'payroll' && (
-            <>
-              <button type="button" className="btn-secondary" onClick={() => { resetBulkPayForm(); setModal('bulk_payroll'); }}>Bulk Run</button>
-              <button type="button" className="btn-primary" onClick={() => { resetPayForm(); setError(''); setModal('add_payroll'); }}><DollarSign className="w-4 h-4" />Run Payroll</button>
-            </>
-          )}
-        </div>
+      <div className="flex flex-wrap justify-end gap-2 mb-5">
+        {section === 'employees' && (
+          <>
+            <button type="button" className="btn-secondary" onClick={exportHrCsv} title="Export CSV"><Download className="w-4 h-4" /></button>
+            <button type="button" className="btn-primary" onClick={openAddEmp}><Plus className="w-4 h-4" />Add Employee</button>
+          </>
+        )}
+        {section === 'attendance' && (
+          <button type="button" className="btn-primary" onClick={() => { setAttendanceForm({ employee_id: '', date: attendanceDate, status: 'present', notes: '' }); setError(''); setModal('add_attendance'); }}>
+            <Calendar className="w-4 h-4" />Record Attendance
+          </button>
+        )}
+        {section === 'leave' && (
+          <button type="button" className="btn-primary" onClick={() => { setLeaveForm({ employee_id: '', leave_type: 'annual', start_date: '', end_date: '', reason: '' }); setError(''); setModal('add_leave'); }}>
+            <Plus className="w-4 h-4" />Apply Leave
+          </button>
+        )}
+        {section === 'payroll' && (
+          <>
+            <button type="button" className="btn-secondary" onClick={() => { resetBulkPayForm(); setModal('bulk_payroll'); }}>Bulk Run</button>
+            <button type="button" className="btn-primary" onClick={() => { resetPayForm(); setError(''); setModal('add_payroll'); }}><DollarSign className="w-4 h-4" />Run Payroll</button>
+          </>
+        )}
       </div>
 
       {/* Employees */}
