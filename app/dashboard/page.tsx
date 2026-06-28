@@ -393,7 +393,7 @@ export default function DashboardPage() {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-800">Recent Expenses</h3>
-                <a href="/accounting/overview" className="text-xs text-blue-600 hover:underline">View all →</a>
+                <a href="/accounting/expenses" className="text-xs text-blue-600 hover:underline">View all →</a>
               </div>
               {data?.recent_expenses?.length ? (
                 <div className="space-y-2">

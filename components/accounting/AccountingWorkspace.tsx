@@ -4,6 +4,7 @@ import { Modal, Badge, EmptyState, Spinner, StatCard, toast } from '@/components
 import { Plus, DollarSign, TrendingUp, TrendingDown, BookOpen, BookMarked, Receipt, FileText, Landmark, ArrowDownCircle, ArrowUpCircle, Edit2, Trash2, Download, Activity, Eye } from 'lucide-react';
 import api from '@/lib/api';
 import InvoiceModal from '@/components/InvoiceModal';
+import AccountingOverviewPanel from '@/components/accounting/AccountingOverviewPanel';
 import AccountingCreditNotesTab from '@/components/accounting/AccountingCreditNotesTab';
 import AccountingVendorBillsTab from '@/components/accounting/AccountingVendorBillsTab';
 import AccountingLedgerPanel from '@/components/accounting/AccountingLedgerPanel';
@@ -655,72 +656,7 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
       </div>
 
       {section==='overview' && (
-        loading ? <Spinner /> : (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              <StatCard label="Total Revenue" value={`GH₵ ${parseFloat(summary.revenue||0).toFixed(0)}`} icon={<TrendingUp className="w-6 h-6 text-green-600"/>} color="bg-green-50" />
-              <StatCard label="Total Expenses" value={`GH₵ ${parseFloat(summary.expenses||0).toFixed(0)}`} icon={<TrendingDown className="w-6 h-6 text-red-600"/>} color="bg-red-50" />
-              <StatCard label="Net Profit" value={`GH₵ ${(parseFloat(summary.revenue||0)-parseFloat(summary.expenses||0)).toFixed(0)}`} icon={<DollarSign className="w-6 h-6 text-blue-600"/>} color="bg-blue-50" />
-              <StatCard label="Journal Entries" value={journal.length} icon={<BookOpen className="w-6 h-6 text-purple-600"/>} color="bg-purple-50" />
-            </div>
-            <div className="card">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-gray-800">Advanced accounting setup</h3>
-                  <p className="text-sm text-gray-500 mt-1">Add VAT Input, PAYE & SSNIT payable accounts, and run asset depreciation.</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button className="btn-secondary text-sm" onClick={seedAdvancedCoa}>Update COA</button>
-                  <button className="btn-secondary text-sm" onClick={runDepreciation}>Run depreciation</button>
-                </div>
-              </div>
-            </div>
-            <div className="card">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-gray-800">Import data</h3>
-                  <p className="text-sm text-gray-500 mt-1">Bulk import expenses or journal entries from CSV (standalone accounting deployments).</p>
-                </div>
-                <button className="btn-secondary" onClick={() => setImportModal(true)}><Download className="w-4 h-4" /> Import CSV</button>
-              </div>
-            </div>
-            <div className="card">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-gray-800">Export to accounting software</h3>
-                  <p className="text-sm text-gray-500 mt-1">Download journal entries as CSV for QuickBooks or Xero.</p>
-                </div>
-                <div className="flex gap-2">
-                  <button className="btn-secondary text-sm" onClick={() => exportAccounting('quickbooks')}>QuickBooks CSV</button>
-                  <button className="btn-secondary text-sm" onClick={() => exportAccounting('xero')}>Xero CSV</button>
-                </div>
-              </div>
-            </div>
-            {/* Account Balances by Type */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-              {['asset','liability','equity','revenue','expense'].map(type => {
-                const typeAccs = accounts.filter(a => a.type===type);
-                if (!typeAccs.length) return null;
-                return (
-                  <div key={type} className="card">
-                    <h3 className="font-semibold text-gray-800 capitalize mb-3">{type} Accounts</h3>
-                    <div className="space-y-2">
-                      {typeAccs.map(a => (
-                        <div key={a.id} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
-                          <div>
-                            <span className="text-sm font-medium text-gray-800">{a.name}</span>
-                            <span className="text-xs text-gray-400 ml-2">{a.code}</span>
-                          </div>
-                          <span className="text-sm font-semibold">GH₵ {parseFloat(a.balance||0).toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )
+        <AccountingOverviewPanel onDataChange={load} onImport={() => setImportModal(true)} />
       )}
 
       {/* Accounts */}
