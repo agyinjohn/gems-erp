@@ -2,12 +2,16 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
-import { Plus, DollarSign, TrendingUp, TrendingDown, BookOpen, ArrowDownCircle, ArrowUpCircle, LayoutDashboard, BookMarked, Receipt, FileText, Landmark, Edit2, Trash2, Download, Activity } from 'lucide-react';
+import { Plus, DollarSign, TrendingUp, TrendingDown, BookOpen, ArrowDownCircle, ArrowUpCircle, LayoutDashboard, BookMarked, Receipt, FileText, Landmark, Edit2, Trash2, Download, Activity, Eye } from 'lucide-react';
 import api from '@/lib/api';
 import InvoiceModal from '@/components/InvoiceModal';
+import AccountingCreditNotesTab from '@/components/accounting/AccountingCreditNotesTab';
+import AccountingVendorBillsTab from '@/components/accounting/AccountingVendorBillsTab';
+import AccountingLedgerPanel from '@/components/accounting/AccountingLedgerPanel';
+import HrConfirmModal from '@/components/hr/HrConfirmModal';
 
 export default function AccountingPage() {
-  const [tab, setTab] = useState<'overview'|'accounts'|'expenses'|'journal'|'ar'|'ap'|'reconciliation'|'pl'|'bs'|'cashflow'|'budget'|'tax'|'trial-balance'|'invoices'|'periods'>('overview');
+  const [tab, setTab] = useState<'overview'|'accounts'|'expenses'|'journal'|'ar'|'ap'|'vendor-bills'|'credit-notes'|'reconciliation'|'pl'|'bs'|'cashflow'|'budget'|'tax'|'trial-balance'|'invoices'|'periods'>('overview');
   const [accounts, setAccounts] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [journal, setJournal] = useState<any[]>([]);
@@ -33,7 +37,9 @@ export default function AccountingPage() {
   const [plLoading, setPlLoading] = useState(false);
   const [plFrom, setPlFrom] = useState('');
   const [plTo, setPlTo] = useState('');
-  const [plSource, setPlSource] = useState<'orders'|'gl'>('orders');
+  const [plSource, setPlSource] = useState<'orders'|'gl'>('gl');
+  const [ledgerAccount, setLedgerAccount] = useState<any>(null);
+  const [acctConfirm, setAcctConfirm] = useState<any>(null);
   const [importModal, setImportModal] = useState(false);
   const [importType, setImportType] = useState<'expenses'|'journal'>('expenses');
   const [importCsv, setImportCsv] = useState('');
@@ -173,6 +179,45 @@ export default function AccountingPage() {
     finally { setReconLoading(false); }
   };
 
+  const saveReconciliation = async () => {
+    if (!reconResult || !parsedLines.length) return;
+    try {
+      await api.post('/accounting/reconciliations', {
+        statement_date: new Date().toISOString().slice(0, 10),
+        opening_balance: reconResult.glTotal - reconResult.bankTotal + reconResult.difference,
+        closing_balance: reconResult.bankTotal,
+        bank_lines: parsedLines.map((line, idx) => ({
+          date: line.date,
+          description: line.description,
+          amount: line.amount,
+          matched: reconResult.matched.some((m: any) => m.bank === line || m.bank?.description === line.description),
+        })),
+        matched_pairs: reconResult.matched.map((m: any) => ({ bank_line_id: m.bank?.description, gl_line_id: m.gl?.id })),
+      });
+      toast.success('Reconciliation session saved');
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Save failed'); }
+  };
+
+  const seedAdvancedCoa = async () => {
+    try {
+      await api.post('/accounting/seed-coa');
+      toast.success('Chart of accounts updated with advanced accounts');
+      load();
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Failed'); }
+  };
+
+  const runDepreciation = async () => {
+    setAcctConfirm({
+      title: 'Run monthly depreciation?',
+      message: 'Post depreciation for all active fixed assets (straight-line, default 10% annual).',
+      confirmLabel: 'Run depreciation',
+      action: async () => {
+        const res = await api.post('/accounting/depreciation/run', { rate: 0.1 });
+        toast.success(`Posted ${res.data.data.posted} depreciation entries`);
+      },
+    });
+  };
+
   const addJeLine = () => setJeForm({ ...jeForm, lines:[...jeForm.lines, {account_id:'',debit:'',credit:'',description:''}] });
   const updateJeLine = (i:number,k:string,v:any) => { const l=[...jeForm.lines]; l[i]={...l[i],[k]:v}; setJeForm({...jeForm,lines:l}); };
 
@@ -256,7 +301,7 @@ export default function AccountingPage() {
       const params = new URLSearchParams();
       if (plFrom) params.append('from', plFrom);
       if (plTo) params.append('to', plTo);
-      if (plSource === 'gl') params.append('source', 'gl');
+      if (plSource === 'orders') params.append('source', 'orders');
       const res = await api.get(`/accounting/pl?${params.toString()}`);
       setPl(res.data.data);
     } finally { setPlLoading(false); }
@@ -604,6 +649,8 @@ export default function AccountingPage() {
               null,
               { t:'ar',             l:'Receivables',    icon:<ArrowDownCircle className="w-3.5 h-3.5"/> },
               { t:'ap',             l:'Payables',       icon:<ArrowUpCircle className="w-3.5 h-3.5"/> },
+              { t:'vendor-bills',   l:'Vendor Bills',   icon:<Receipt className="w-3.5 h-3.5"/> },
+              { t:'credit-notes',   l:'Credit Notes',   icon:<FileText className="w-3.5 h-3.5"/> },
               { t:'reconciliation', l:'Reconciliation', icon:<Landmark className="w-3.5 h-3.5"/> },
               null,
               { t:'pl',             l:'P&L Report',     icon:<FileText className="w-3.5 h-3.5"/> },
@@ -661,6 +708,18 @@ export default function AccountingPage() {
               <StatCard label="Total Expenses" value={`GH₵ ${parseFloat(summary.expenses||0).toFixed(0)}`} icon={<TrendingDown className="w-6 h-6 text-red-600"/>} color="bg-red-50" />
               <StatCard label="Net Profit" value={`GH₵ ${(parseFloat(summary.revenue||0)-parseFloat(summary.expenses||0)).toFixed(0)}`} icon={<DollarSign className="w-6 h-6 text-blue-600"/>} color="bg-blue-50" />
               <StatCard label="Journal Entries" value={journal.length} icon={<BookOpen className="w-6 h-6 text-purple-600"/>} color="bg-purple-50" />
+            </div>
+            <div className="card">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-gray-800">Advanced accounting setup</h3>
+                  <p className="text-sm text-gray-500 mt-1">Add VAT Input, PAYE & SSNIT payable accounts, and run asset depreciation.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button className="btn-secondary text-sm" onClick={seedAdvancedCoa}>Update COA</button>
+                  <button className="btn-secondary text-sm" onClick={runDepreciation}>Run depreciation</button>
+                </div>
+              </div>
             </div>
             <div className="card">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -724,7 +783,10 @@ export default function AccountingPage() {
                       <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{a.name}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3"><span className={`badge text-xs ${typeColors[a.type]}`}>{a.type}</span></td>
                       <td className="px-3 md:px-4 py-2 md:py-3 font-semibold">GH₵ {parseFloat(a.balance||0).toFixed(2)}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3"><button onClick={() => openEditAccount(a)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button></td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 flex gap-1">
+                        <button onClick={() => setLedgerAccount(a)} title="View ledger" className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Eye className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
+                        <button onClick={() => openEditAccount(a)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -822,6 +884,9 @@ export default function AccountingPage() {
         </div>
       )}
 
+      {tab==='vendor-bills' && <AccountingVendorBillsTab accounts={accounts} />}
+      {tab==='credit-notes' && <AccountingCreditNotesTab />}
+
       {/* AP Tab */}
       {tab==='ap' && (
         <div className="space-y-4">
@@ -918,6 +983,7 @@ export default function AccountingPage() {
               <button className="btn-secondary w-full sm:w-auto" onClick={importReconcileCsv} disabled={reconLoading || !bankStatement.trim()}>
                 Import CSV & Reconcile
               </button>
+              {reconResult && <button className="btn-secondary w-full sm:w-auto" onClick={saveReconciliation}>Save session</button>}
               {reconResult && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setReconResult(null); setBankStatement(''); setParsedLines([]); }}>Clear</button>}
             </div>
           </div>
@@ -1256,10 +1322,14 @@ export default function AccountingPage() {
                     {/* Operating */}
                     <div>
                       <div className="text-xs font-bold uppercase tracking-widest text-gray-400 border-b border-gray-200 pb-2 mb-3">Operating Activities</div>
-                      <Row label="Cash received from customers" value={cf.operating.cash_from_sales} indent />
-                      <Row label="Cash paid for expenses" value={cf.operating.cash_paid_expenses} indent />
-                      <Row label="Cash paid to suppliers (POs)" value={cf.operating.cash_paid_suppliers} indent />
-                      <Row label="Cash paid for payroll" value={cf.operating.cash_paid_payroll} indent />
+                      {(cf.operating.items?.length ? cf.operating.items : [
+                        { label: 'Cash received from customers', amount: cf.operating.cash_from_sales },
+                        { label: 'Cash paid for expenses', amount: cf.operating.cash_paid_expenses },
+                        { label: 'Cash paid to suppliers', amount: cf.operating.cash_paid_suppliers },
+                        { label: 'Cash paid for payroll', amount: cf.operating.cash_paid_payroll },
+                      ].filter((r) => r.amount != null && Math.abs(parseFloat(String(r.amount))) > 0.001))
+                        .map((item: any, i: number) => <Row key={i} label={item.label} value={item.amount} indent />)}
+                      {cf.source === 'gl' && <p className="text-xs text-gray-400 pl-6">GL-based cash movement from journal entries</p>}
                       <SectionTotal label="Net Cash from Operating Activities" value={cf.operating.net} />
                     </div>
 
@@ -2140,6 +2210,18 @@ export default function AccountingPage() {
         onClose={() => { setInvoiceModal(false); setInvoiceData(null); }}
         order={invoiceData?.order}
         business={invoiceData?.business}
+      />
+
+      <AccountingLedgerPanel account={ledgerAccount} onClose={() => setLedgerAccount(null)} />
+
+      <HrConfirmModal
+        open={!!acctConfirm}
+        title={acctConfirm?.title || ''}
+        message={acctConfirm?.message || ''}
+        confirmLabel={acctConfirm?.confirmLabel}
+        saving={saving}
+        onClose={() => setAcctConfirm(null)}
+        onConfirm={async () => { await acctConfirm?.action(); setAcctConfirm(null); }}
       />
     </AppLayout>
   );
