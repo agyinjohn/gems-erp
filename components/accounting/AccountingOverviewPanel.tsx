@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import {
   DollarSign, TrendingUp, TrendingDown, Landmark, ArrowDownCircle, ArrowUpCircle,
-  BookOpen, Receipt, AlertTriangle, CheckCircle2, Download,
+  Receipt, AlertTriangle, CheckCircle2, Download,
   Activity, Calendar,
 } from 'lucide-react';
 import { StatCard, Spinner, toast } from '@/components/ui';
@@ -117,9 +117,11 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
   const pos = data?.position || {};
   const aging = data?.ar_aging || {};
   const counts = data?.counts || {};
+  const arDiff = parseFloat(data?.ar_gl_vs_invoice_diff || 0);
+  const showArMismatch = Math.abs(arDiff) > 0.02;
 
   return (
-    <div className="space-y-5 md:space-y-6">
+    <div className={`space-y-5 md:space-y-6 relative ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
       {/* Header: period + fiscal status */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex flex-wrap gap-2">
@@ -138,8 +140,9 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
             </button>
           ))}
         </div>
-        <div className="text-xs text-gray-500">
-          {data?.period_label || 'Year to date'} · GL source · as of {new Date(data?.as_of || Date.now()).toLocaleDateString()}
+        <div className="text-xs text-gray-500 text-right">
+          <div>P&L: {data?.period_label || 'Year to date'} · Position: as of today</div>
+          <div>General ledger · {new Date(data?.as_of || Date.now()).toLocaleString()}</div>
         </div>
       </div>
 
@@ -185,12 +188,20 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
 
       {/* Position KPIs */}
       <div>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Financial position</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Financial position · as of today</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <StatCard label="Cash & Bank" value={fmtCompact(pos.cash)} icon={<Landmark className="w-6 h-6 text-emerald-600" />} color="bg-emerald-50" sub="GL account 1001" />
-          <StatCard label="Receivables" value={fmtCompact(pos.accounts_receivable)} icon={<ArrowDownCircle className="w-6 h-6 text-blue-600" />} color="bg-blue-50" sub={`${counts.open_invoices || 0} open invoices`} />
-          <StatCard label="Payables" value={fmtCompact(pos.accounts_payable)} icon={<ArrowUpCircle className="w-6 h-6 text-orange-600" />} color="bg-orange-50" sub="GL account 2001" />
-          <StatCard label="VAT Net" value={fmtCompact((pos.vat_payable || 0) - (pos.vat_input || 0))} icon={<Receipt className="w-6 h-6 text-violet-600" />} color="bg-violet-50" sub="Output minus input VAT" />
+          <StatCard label="Cash & Bank" value={fmtCompact(pos.cash)} icon={<Landmark className="w-6 h-6 text-emerald-600" />} color="bg-emerald-50" sub="GL 1001 · Cash & Bank" />
+          <StatCard
+            label="Receivables (GL)"
+            value={fmtCompact(pos.accounts_receivable)}
+            icon={<ArrowDownCircle className="w-6 h-6 text-blue-600" />}
+            color="bg-blue-50"
+            sub={showArMismatch
+              ? `Invoices owe ${fmtCompact(data?.invoice_ar_total)} · diff ${fmtCompact(arDiff)}`
+              : `${counts.open_invoices || 0} open invoices · matches GL`}
+          />
+          <StatCard label="Payables (GL)" value={fmtCompact(pos.accounts_payable)} icon={<ArrowUpCircle className="w-6 h-6 text-orange-600" />} color="bg-orange-50" sub="GL 2001 · Accounts Payable" />
+          <StatCard label="VAT Net Payable" value={fmtCompact((pos.vat_payable || 0) - (pos.vat_input || 0))} icon={<Receipt className="w-6 h-6 text-violet-600" />} color="bg-violet-50" sub={`Output ${fmtCompact(pos.vat_payable)} − Input ${fmtCompact(pos.vat_input)}`} />
         </div>
       </div>
 
@@ -203,7 +214,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
           <StatCard label="Revenue" value={fmtCompact(pl.revenue)} icon={<TrendingUp className="w-6 h-6 text-green-600" />} color="bg-green-50" sub="From general ledger" />
           <StatCard label="Gross Profit" value={fmtCompact(pl.gross_profit)} icon={<Activity className="w-6 h-6 text-teal-600" />} color="bg-teal-50" sub={`COGS ${fmtCompact(pl.cogs)}`} />
           <StatCard label="Expenses" value={fmtCompact(pl.total_expenses)} icon={<TrendingDown className="w-6 h-6 text-red-600" />} color="bg-red-50" sub="Operating + COGS" />
-          <StatCard label="Net Profit" value={fmtCompact(pl.net_profit)} icon={<DollarSign className="w-6 h-6 text-blue-600" />} color="bg-blue-50" sub={`${counts.journal_entries || 0} journal entries`} />
+          <StatCard label="Net Profit" value={fmtCompact(pl.net_profit)} icon={<DollarSign className="w-6 h-6 text-blue-600" />} color="bg-blue-50" sub={`${counts.journal_entries_in_period ?? counts.journal_entries ?? 0} entries in period`} />
         </div>
       </div>
 
@@ -231,7 +242,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
 
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Expenses by account</h3>
+            <h3 className="font-semibold text-gray-800">Expenses by GL account</h3>
             <span className="text-xs text-gray-400">{data?.period_label}</span>
           </div>
           {data?.expenses_by_category?.length ? (() => {
@@ -272,13 +283,14 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
             <h3 className="font-semibold text-gray-800">Receivables aging</h3>
             <Link href={accountingHref('ar')} className="text-xs text-blue-600 hover:underline">View all →</Link>
           </div>
+          <p className="text-xs text-gray-400 mb-3">By invoice due date · open invoices only</p>
           {aging.total?.count > 0 ? (
             <div className="space-y-2">
               {[
-                { key: 'current', label: 'Current (≤30 days)' },
-                { key: 'days_31_60', label: '31–60 days' },
-                { key: 'days_61_90', label: '61–90 days' },
-                { key: 'over_90', label: 'Over 90 days' },
+                { key: 'current', label: 'Current (not due / ≤30 days overdue)' },
+                { key: 'days_31_60', label: '31–60 days overdue' },
+                { key: 'days_61_90', label: '61–90 days overdue' },
+                { key: 'over_90', label: 'Over 90 days overdue' },
               ].map(({ key, label }) => {
                 const b = aging[key] || { count: 0, amount: 0 };
                 return (
@@ -294,9 +306,18 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
                 );
               })}
               <div className="flex items-center justify-between pt-2 font-semibold text-sm">
-                <span>Total outstanding</span>
+                <span>Total on invoices</span>
                 <span className="text-blue-700 tabular-nums">{fmt(aging.total?.amount)}</span>
               </div>
+              {showArMismatch && (
+                <div className="mt-2 text-xs text-amber-700 flex items-start gap-1 bg-amber-50 rounded-lg p-2">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>
+                    Invoice total differs from GL receivables (1110) by {fmt(arDiff)}.
+                    Post or sync invoice journals to reconcile.
+                  </span>
+                </div>
+              )}
               {(counts.overdue_invoices || 0) > 0 && (
                 <div className="mt-2 text-xs text-red-600 flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5" />
@@ -392,7 +413,10 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
                   {fmtCompact(t.balance)}
                 </div>
                 <div className="text-xs text-gray-500 capitalize mt-0.5">{t.type}</div>
-                <div className="text-[10px] text-gray-400">{t.count} account{t.count !== 1 ? 's' : ''}</div>
+                <div className="text-[10px] text-gray-400">
+                  {t.count} account{t.count !== 1 ? 's' : ''}
+                  {(t.type === 'revenue' || t.type === 'expense') && ` · ${data?.period_label}`}
+                </div>
               </div>
             ))}
           </div>
