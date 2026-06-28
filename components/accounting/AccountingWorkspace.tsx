@@ -12,6 +12,7 @@ import AccountingReceivablesPanel from '@/components/accounting/AccountingReceiv
 import AccountingPayablesPanel from '@/components/accounting/AccountingPayablesPanel';
 import AccountingCreditNotesPanel from '@/components/accounting/AccountingCreditNotesPanel';
 import AccountingVendorBillsPanel from '@/components/accounting/AccountingVendorBillsPanel';
+import AccountingReconciliationPanel from '@/components/accounting/AccountingReconciliationPanel';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 import type { AccountingSectionSlug } from '@/lib/accountingNav';
 
@@ -26,10 +27,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [bankStatement, setBankStatement] = useState('');
-  const [reconResult, setReconResult] = useState<any>(null);
-  const [reconLoading, setReconLoading] = useState(false);
-  const [reconError, setReconError] = useState('');
   const [invoiceData, setInvoiceData] = useState<{ order: any; business: any } | null>(null);
   const [invoiceModal, setInvoiceModal] = useState(false);
   const [pl, setPl] = useState<any>(null);
@@ -116,57 +113,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
     } catch { toast.error('Could not load invoice'); }
   };
 
-  const parseBankStatement = (text: string) => {
-    return text.split('\n').map(l => l.trim()).filter(Boolean).map((line, i) => {
-      // Extract last number on the line as the amount (avoids matching dates)
-      const nums = line.match(/[-+]?\d+(?:\.\d+)?/g) || [];
-      const amount = nums.length ? parseFloat(nums[nums.length - 1]) : null;
-      // Extract date (YYYY-MM-DD or DD/MM/YYYY)
-      const dateMatch = line.match(/(\d{4}-\d{2}-\d{2})|(\d{2}\/\d{2}\/\d{4})/);
-      const date = dateMatch ? dateMatch[0] : '';
-      // Description = everything between date and amount
-      const desc = line.replace(dateMatch?.[0] || '', '').replace(String(amount), '').replace(/[+\-]/, '').trim();
-      return { id: i, date, description: desc || line, amount };
-    }).filter(l => l.amount !== null);
-  };
-
-  const [parsedLines, setParsedLines] = useState<any[]>([]);
-
-  const handleStatementChange = (text: string) => {
-    setBankStatement(text);
-    setParsedLines(parseBankStatement(text));
-    setReconResult(null);
-  };
-
-  const runReconciliation = async () => {
-    if (!parsedLines.length) { setReconError('No valid lines parsed from statement.'); return; }
-    setReconLoading(true); setReconError('');
-    try {
-      const res = await api.post('/accounting/reconcile', { lines: parsedLines });
-      setReconResult(res.data.data);
-    } catch (e: any) { setReconError(e.response?.data?.message || 'Reconciliation failed.'); }
-    finally { setReconLoading(false); }
-  };
-
-  const saveReconciliation = async () => {
-    if (!reconResult || !parsedLines.length) return;
-    try {
-      await api.post('/accounting/reconciliations', {
-        statement_date: new Date().toISOString().slice(0, 10),
-        opening_balance: reconResult.glTotal - reconResult.bankTotal + reconResult.difference,
-        closing_balance: reconResult.bankTotal,
-        bank_lines: parsedLines.map((line, idx) => ({
-          date: line.date,
-          description: line.description,
-          amount: line.amount,
-          matched: reconResult.matched.some((m: any) => m.bank === line || m.bank?.description === line.description),
-        })),
-        matched_pairs: reconResult.matched.map((m: any) => ({ bank_line_id: m.bank?.description, gl_line_id: m.gl?.id })),
-      });
-      toast.success('Reconciliation session saved');
-    } catch (e: any) { toast.error(e.response?.data?.message || 'Save failed'); }
-  };
-
   const seedAdvancedCoa = async () => {
     try {
       await api.post('/accounting/seed-coa');
@@ -242,23 +188,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
     } catch {
       toast.error('Export failed');
     }
-  };
-
-  const importReconcileCsv = async () => {
-    if (!bankStatement.trim()) { toast.error('Paste bank CSV first'); return; }
-    const rows = bankStatement.trim().split('\n').slice(1).map(line => {
-      const parts = line.split(',').map(p => p.replace(/^"|"$/g, '').trim());
-      return { date: parts[0], description: parts[1], amount: parts[2] };
-    }).filter(r => r.amount);
-    setReconLoading(true);
-    try {
-      const res = await api.post('/accounting/reconcile/import', { rows });
-      setReconResult(res.data.data);
-      setParsedLines(rows.map((r, i) => ({ ...r, id: i, amount: parseFloat(r.amount) })));
-      toast.success(`Imported ${res.data.data.imported} bank lines`);
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Import failed');
-    } finally { setReconLoading(false); }
   };
 
   const runImport = async () => {
@@ -543,150 +472,8 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         <AccountingPayablesPanel onDataChange={load} />
       )}
 
-      {/* Reconciliation Tab */}
       {section==='reconciliation' && (
-        <div className="space-y-4 md:space-y-6">
-          {/* Input */}
-          <div className="card">
-            <h3 className="font-semibold text-gray-800 mb-1">Bank Reconciliation</h3>
-            <p className="text-xs md:text-sm text-gray-500 mb-4">Paste your bank statement below. Each line should contain a date, description, and amount. The last number on each line is used as the amount.</p>
-            <p className="text-xs text-gray-400 mb-3 font-mono">e.g. &nbsp; 2024-01-15 &nbsp; Sales receipt &nbsp; 5000.00 &nbsp;&nbsp;|&nbsp;&nbsp; 2024-01-16 &nbsp; Supplier payment &nbsp; -1200.00</p>
-            <p className="text-xs text-gray-500 mb-3">Or upload CSV with columns: date, description, amount</p>
-            <textarea
-              className="form-input font-mono text-xs"
-              rows={7}
-              placeholder={`2024-01-15  Sales receipt  5000.00\n2024-01-16  Supplier payment  -1200.00\n2024-01-17  Office rent  -4500.00`}
-              value={bankStatement}
-              onChange={e => handleStatementChange(e.target.value)}
-            />
-            {parsedLines.length > 0 && (
-              <div className="mb-3 text-xs text-gray-500">{parsedLines.length} line{parsedLines.length !== 1 ? 's' : ''} parsed — totalling <span className="font-semibold text-gray-700">GH₵ {parsedLines.reduce((s,l)=>s+l.amount,0).toFixed(2)}</span></div>
-            )}
-            {reconError && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-3">{reconError}</div>}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button className="btn-primary w-full sm:w-auto" onClick={runReconciliation} disabled={reconLoading || !parsedLines.length}>
-                {reconLoading ? 'Reconciling…' : 'Run Reconciliation'}
-              </button>
-              <button className="btn-secondary w-full sm:w-auto" onClick={importReconcileCsv} disabled={reconLoading || !bankStatement.trim()}>
-                Import CSV & Reconcile
-              </button>
-              {reconResult && <button className="btn-secondary w-full sm:w-auto" onClick={saveReconciliation}>Save session</button>}
-              {reconResult && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setReconResult(null); setBankStatement(''); setParsedLines([]); }}>Clear</button>}
-            </div>
-          </div>
-
-          {/* Results */}
-          {reconResult && (
-            <div className="space-y-4 md:space-y-5">
-              {/* Summary cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                <div className="card bg-blue-50 border-blue-100">
-                  <div className="text-xs text-blue-600 font-medium mb-1">Bank Statement Total</div>
-                  <div className="text-xl font-bold text-blue-800">GH₵ {reconResult.bankTotal.toFixed(2)}</div>
-                  <div className="text-xs text-blue-500 mt-1">{parsedLines.length} lines</div>
-                </div>
-                <div className="card bg-green-50 border-green-100">
-                  <div className="text-xs text-green-600 font-medium mb-1">System GL Total (Cash)</div>
-                  <div className="text-xl font-bold text-green-800">GH₵ {reconResult.glTotal.toFixed(2)}</div>
-                  <div className="text-xs text-green-500 mt-1">Cash & Bank account</div>
-                </div>
-                <div className={`card ${reconResult.isBalanced ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-                  <div className={`text-xs font-medium mb-1 ${reconResult.isBalanced ? 'text-green-600' : 'text-red-600'}`}>Difference</div>
-                  <div className={`text-xl font-bold ${reconResult.isBalanced ? 'text-green-800' : 'text-red-800'}`}>GH₵ {reconResult.difference.toFixed(2)}</div>
-                  <div className={`text-xs mt-1 ${reconResult.isBalanced ? 'text-green-500' : 'text-red-500'}`}>{reconResult.isBalanced ? '✓ Balanced' : 'Discrepancy'}</div>
-                </div>
-                <div className="card bg-gray-50">
-                  <div className="text-xs text-gray-500 font-medium mb-1">Matched</div>
-                  <div className="text-xl font-bold text-gray-800">{reconResult.matched.length} <span className="text-sm font-normal text-gray-400">/ {parsedLines.length}</span></div>
-                  <div className="text-xs text-gray-400 mt-1">{reconResult.unmatchedBank.length} unmatched bank · {reconResult.unmatchedGl.length} unmatched GL</div>
-                </div>
-              </div>
-
-              {/* Matched transactions */}
-              {reconResult.matched.length > 0 && (
-                <div className="card p-0 overflow-hidden">
-                  <div className="px-3 md:px-4 py-3 border-b bg-green-50 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-                    <span className="font-semibold text-xs md:text-sm text-green-800">Matched Transactions ({reconResult.matched.length})</span>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs md:text-sm">
-                      <thead className="table-header">
-                        <tr>
-                          <th className="px-3 md:px-4 py-2 text-left">Bank Date</th>
-                          <th className="px-3 md:px-4 py-2 text-left">Bank Description</th>
-                          <th className="px-3 md:px-4 py-2 text-left hidden md:table-cell">GL Reference</th>
-                          <th className="px-3 md:px-4 py-2 text-left hidden lg:table-cell">GL Description</th>
-                          <th className="px-3 md:px-4 py-2 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {reconResult.matched.map((m: any, i: number) => (
-                          <tr key={i} className="hover:bg-gray-50">
-                            <td className="px-3 md:px-4 py-2 text-xs text-gray-500">{m.bank.date || '—'}</td>
-                            <td className="px-3 md:px-4 py-2 text-gray-700 max-w-xs truncate">{m.bank.description}</td>
-                            <td className="px-3 md:px-4 py-2 font-mono text-xs text-blue-600 hidden md:table-cell">{m.gl.reference}</td>
-                            <td className="px-3 md:px-4 py-2 text-gray-500 max-w-xs truncate hidden lg:table-cell">{m.gl.description}</td>
-                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${m.bank.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GH₵ {parseFloat(m.bank.amount).toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Unmatched bank lines */}
-              {reconResult.unmatchedBank.length > 0 && (
-                <div className="card p-0 overflow-hidden">
-                  <div className="px-3 md:px-4 py-3 border-b bg-yellow-50 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />
-                    <span className="font-semibold text-xs md:text-sm text-yellow-800">In Bank — Not in System ({reconResult.unmatchedBank.length})</span>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs md:text-sm">
-                      <thead className="table-header"><tr><th className="px-3 md:px-4 py-2 text-left">Date</th><th className="px-3 md:px-4 py-2 text-left">Description</th><th className="px-3 md:px-4 py-2 text-right">Amount</th></tr></thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {reconResult.unmatchedBank.map((l: any, i: number) => (
-                          <tr key={i} className="hover:bg-gray-50">
-                            <td className="px-3 md:px-4 py-2 text-xs text-gray-500">{l.date || '—'}</td>
-                            <td className="px-3 md:px-4 py-2 text-gray-700">{l.description}</td>
-                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${l.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GH₵ {parseFloat(l.amount).toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Unmatched GL lines */}
-              {reconResult.unmatchedGl.length > 0 && (
-                <div className="card p-0 overflow-hidden">
-                  <div className="px-3 md:px-4 py-3 border-b bg-red-50 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
-                    <span className="font-semibold text-xs md:text-sm text-red-800">In System — Not in Bank ({reconResult.unmatchedGl.length})</span>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs md:text-sm">
-                      <thead className="table-header"><tr><th className="px-3 md:px-4 py-2 text-left">Date</th><th className="px-3 md:px-4 py-2 text-left">Reference</th><th className="px-3 md:px-4 py-2 text-left hidden md:table-cell">Description</th><th className="px-3 md:px-4 py-2 text-right">Amount</th></tr></thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {reconResult.unmatchedGl.map((l: any, i: number) => (
-                          <tr key={i} className="hover:bg-gray-50">
-                            <td className="px-3 md:px-4 py-2 text-xs text-gray-500">{new Date(l.date).toLocaleDateString()}</td>
-                            <td className="px-3 md:px-4 py-2 font-mono text-xs text-blue-600">{l.reference}</td>
-                            <td className="px-3 md:px-4 py-2 text-gray-700 hidden md:table-cell">{l.description}</td>
-                            <td className={`px-3 md:px-4 py-2 text-right font-semibold ${l.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>GH₵ {l.amount.toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <AccountingReconciliationPanel onDataChange={load} />
       )}
 
       {section==='journal' && (
