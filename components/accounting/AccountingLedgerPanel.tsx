@@ -9,6 +9,12 @@ interface AccountingLedgerPanelProps {
   onClose: () => void;
 }
 
+function fmt(n: number | string | undefined) {
+  const v = parseFloat(String(n ?? 0));
+  if (Math.abs(v) < 0.001) return '—';
+  return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export default function AccountingLedgerPanel({ account, onClose }: AccountingLedgerPanelProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -23,33 +29,63 @@ export default function AccountingLedgerPanel({ account, onClose }: AccountingLe
 
   if (!account) return null;
 
+  const acc = data?.account || account;
+  const lines = data?.lines || [];
+
   return (
-    <Modal open={!!account} onClose={onClose} title={`Ledger — ${account.code} ${account.name}`} size="lg">
+    <Modal open={!!account} onClose={onClose} title={`Ledger — ${acc.code} ${acc.name}`} size="lg">
       {loading ? <Spinner /> : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="table-header">
-              <tr>{['Date', 'Reference', 'Description', 'Debit', 'Credit', 'Balance'].map((h) => (
-                <th key={h} className="px-3 py-2 text-left">{h}</th>
-              ))}</tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {(data?.lines || []).map((line: any, i: number) => (
-                <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 text-xs text-gray-500">{new Date(line.date).toLocaleDateString()}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{line.reference}</td>
-                  <td className="px-3 py-2">{line.description}</td>
-                  <td className="px-3 py-2 text-right">{line.debit > 0 ? parseFloat(line.debit).toFixed(2) : '—'}</td>
-                  <td className="px-3 py-2 text-right">{line.credit > 0 ? parseFloat(line.credit).toFixed(2) : '—'}</td>
-                  <td className="px-3 py-2 text-right font-semibold">{parseFloat(line.balance).toFixed(2)}</td>
+        <>
+          <div className="flex flex-wrap gap-4 mb-4 text-sm">
+            <div>
+              <span className="text-gray-500">Current balance</span>
+              <div className="font-bold tabular-nums">GH₵ {fmt(acc.display_balance ?? account.display_balance ?? 0)}</div>
+            </div>
+            {data?.totals && (
+              <>
+                <div>
+                  <span className="text-gray-500">Total debits</span>
+                  <div className="font-semibold tabular-nums">GH₵ {fmt(data.totals.debit)}</div>
+                </div>
+                <div>
+                  <span className="text-gray-500">Total credits</span>
+                  <div className="font-semibold tabular-nums">GH₵ {fmt(data.totals.credit)}</div>
+                </div>
+                <div>
+                  <span className="text-gray-500">Journal entries</span>
+                  <div className="font-semibold">{data.totals.entries}</div>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="table-header sticky top-0 bg-white">
+                <tr>
+                  {['Date', 'Reference', 'Source', 'Description', 'Debit', 'Credit', 'Balance'].map((h) => (
+                    <th key={h} className="px-3 py-2 text-left">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {(!data?.lines || data.lines.length === 0) && (
-            <p className="text-center text-gray-400 py-8 text-sm">No journal activity for this account.</p>
-          )}
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {lines.map((line: any, i: number) => (
+                  <tr key={i} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">{new Date(line.date).toLocaleDateString()}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-blue-600">{line.reference}</td>
+                    <td className="px-3 py-2 text-xs"><span className="badge badge-blue">{line.source}</span></td>
+                    <td className="px-3 py-2 max-w-[160px] truncate">{line.description}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{line.debit > 0 ? fmt(line.debit) : '—'}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{line.credit > 0 ? fmt(line.credit) : '—'}</td>
+                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(line.balance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {lines.length === 0 && (
+              <p className="text-center text-gray-400 py-8 text-sm">No journal activity for this account.</p>
+            )}
+          </div>
+        </>
       )}
     </Modal>
   );

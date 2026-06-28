@@ -5,9 +5,9 @@ import { Plus, DollarSign, TrendingUp, TrendingDown, BookOpen, BookMarked, Recei
 import api from '@/lib/api';
 import InvoiceModal from '@/components/InvoiceModal';
 import AccountingOverviewPanel from '@/components/accounting/AccountingOverviewPanel';
+import AccountingAccountsPanel from '@/components/accounting/AccountingAccountsPanel';
 import AccountingCreditNotesTab from '@/components/accounting/AccountingCreditNotesTab';
 import AccountingVendorBillsTab from '@/components/accounting/AccountingVendorBillsTab';
-import AccountingLedgerPanel from '@/components/accounting/AccountingLedgerPanel';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 import type { AccountingSectionSlug } from '@/lib/accountingNav';
 
@@ -28,7 +28,7 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const [poPaySaving, setPoPaySaving] = useState(false);
   const [historyModal, setHistoryModal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState<'expense'|'journal'|'account'|null>(null);
+  const [modal, setModal] = useState<'expense'|'journal'|null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [bankStatement, setBankStatement] = useState('');
@@ -42,8 +42,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const [plFrom, setPlFrom] = useState('');
   const [plTo, setPlTo] = useState('');
   const [plSource, setPlSource] = useState<'orders'|'gl'>('gl');
-  const [ledgerAccount, setLedgerAccount] = useState<any>(null);
-  const [acctConfirm, setAcctConfirm] = useState<any>(null);
   const [importModal, setImportModal] = useState(false);
   const [importType, setImportType] = useState<'expenses'|'journal'>('expenses');
   const [importCsv, setImportCsv] = useState('');
@@ -91,9 +89,8 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const [periodsLoading, setPeriodsLoading] = useState(false);
   const [periodModal, setPeriodModal] = useState(false);
   const [periodForm, setPeriodForm] = useState({ name:'', type:'month', start_date:'', end_date:'' });
-  const [selectedAccount, setSelectedAccount] = useState<any>(null);
+  const [acctConfirm, setAcctConfirm] = useState<any>(null);
   const [selectedExpense, setSelectedExpense] = useState<any>(null);
-  const [accForm, setAccForm] = useState({ code:'', name:'', type:'asset', description:'', opening_balance:'' });
 
   const [expForm, setExpForm] = useState({ title:'', category:'', amount:'', account_id:'', description:'', expense_date: new Date().toISOString().split('T')[0], receipt: null as { file:string; mime_type:string; name:string } | null });
   const [jeForm, setJeForm] = useState({ description:'', entry_date: new Date().toISOString().split('T')[0], lines:[{ account_id:'', debit:'', credit:'', description:'' }] });
@@ -258,44 +255,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
     setSaving(true); setError('');
     try { await api.post('/journal-entries', jeForm); setModal(null); load(); }
     catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
-    finally { setSaving(false); }
-  };
-
-  const saveAccount = async () => {
-    setSaving(true); setError('');
-    try {
-      const accountId = selectedAccount?._id || selectedAccount?.id;
-      if (selectedAccount) await api.put(`/accounts/${accountId}`, accForm);
-      else await api.post('/accounts', accForm);
-
-      const newBalance = parseFloat(accForm.opening_balance || '0');
-      // oldBalance from the GL is raw net (debit - credit).
-      // For credit-normal accounts (liability/equity/revenue) the UI displays it negated.
-      // We must compare in the same space the user sees — displayed balance.
-      const rawNet = parseFloat(selectedAccount?.balance || '0');
-      const isDebitNormal = ['asset','expense'].includes(accForm.type);
-      const oldDisplayed = isDebitNormal ? rawNet : -rawNet;
-      const diff = newBalance - oldDisplayed;
-
-      if (diff !== 0 && selectedAccount) {
-        const equityAcc = accounts.find(a => a.code === '3001');
-        if (!equityAcc) throw new Error("Owner's Equity account (3001) not found.");
-        // To increase a debit-normal account: Dr target, Cr equity
-        // To increase a credit-normal account: Cr target, Dr equity
-        const targetDebit  = isDebitNormal ? (diff > 0 ? Math.abs(diff) : 0) : (diff < 0 ? Math.abs(diff) : 0);
-        const targetCredit = isDebitNormal ? (diff < 0 ? Math.abs(diff) : 0) : (diff > 0 ? Math.abs(diff) : 0);
-        await api.post('/journal-entries', {
-          description: `Balance adjustment — ${accForm.name}`,
-          entry_date: new Date().toISOString().split('T')[0],
-          lines: [
-            { account_id: accountId,    debit: targetDebit,  credit: targetCredit, description: `Adjust ${accForm.name}` },
-            { account_id: equityAcc.id, debit: targetCredit, credit: targetDebit,  description: `Offset — ${accForm.name} adjustment` },
-          ],
-        });
-      }
-
-      setModal(null); load();
-    } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
     finally { setSaving(false); }
   };
 
@@ -613,16 +572,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
     finally { setInvSaving(false); }
   };
 
-  const openAddAccount = () => { setSelectedAccount(null); setAccForm({ code:'', name:'', type:'asset', description:'', opening_balance:'' }); setError(''); setModal('account'); };
-  const openEditAccount = (a: any) => {
-    const isDebitNormal = ['asset','expense'].includes(a.type);
-    const rawNet = parseFloat(a.balance || '0');
-    const displayed = isDebitNormal ? rawNet : -rawNet;
-    setSelectedAccount(a);
-    setAccForm({ code: a.code, name: a.name, type: a.type, description: a.description||'', opening_balance: String(displayed) });
-    setError(''); setModal('account');
-  };
-
   const arAging = () => {
     const now = Date.now();
     const buckets = { current:[] as any[], d30:[] as any[], d60:[] as any[], d90:[] as any[] };
@@ -643,7 +592,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
       {/* Section action bar */}
       <div className="flex flex-wrap justify-end gap-2 mb-4 md:mb-5">
           {section==='expenses'     && <button className="btn-primary text-xs md:text-sm" onClick={() => { setSelectedExpense(null); setExpForm({title:'',category:'',amount:'',account_id:'',description:'',expense_date:new Date().toISOString().split('T')[0],receipt:null}); setError(''); setModal('expense'); }}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Expense</button>}
-          {section==='accounts'     && <button className="btn-primary text-xs md:text-sm" onClick={openAddAccount}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Account</button>}
           {section==='tax'          && <button className="btn-primary text-xs md:text-sm" onClick={openAddTax}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Tax</button>}
           {section==='journal'      && <button className="btn-primary text-xs md:text-sm" onClick={() => { setJeForm({description:'',entry_date:new Date().toISOString().split('T')[0],lines:[{account_id:'',debit:'',credit:'',description:''}]}); setError(''); setModal('journal'); }}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">New </span>Entry</button>}
           {section==='pl'           && pl && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportPlCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('P&L Report','pl-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
@@ -659,31 +607,8 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         <AccountingOverviewPanel onDataChange={load} onImport={() => setImportModal(true)} />
       )}
 
-      {/* Accounts */}
       {section==='accounts' && (
-        <div className="card p-0 overflow-hidden">
-          {loading ? <Spinner /> : accounts.length===0 ? <EmptyState message="No accounts configured" icon={<BookMarked className="w-8 h-8 text-gray-300"/>} /> : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs md:text-sm">
-                <thead className="table-header"><tr>{['Code','Account Name','Type','Balance',''].map(h=><th key={h} className="px-3 md:px-4 py-2 md:py-3 text-left">{h}</th>)}</tr></thead>
-                <tbody className="divide-y divide-gray-50">
-                  {accounts.map(a => (
-                    <tr key={a.id||a._id} className="hover:bg-gray-50">
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-gray-500">{a.code}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{a.name}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3"><span className={`badge text-xs ${typeColors[a.type]}`}>{a.type}</span></td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-semibold">GH₵ {parseFloat(a.balance||0).toFixed(2)}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 flex gap-1">
-                        <button onClick={() => setLedgerAccount(a)} title="View ledger" className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Eye className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
-                        <button onClick={() => openEditAccount(a)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <AccountingAccountsPanel onDataChange={load} />
       )}
 
       {/* Expenses */}
@@ -1654,41 +1579,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         </div>
       </Modal>
 
-      {/* Account Add/Edit Modal */}
-      <Modal open={modal==='account'} onClose={() => setModal(null)} title={selectedAccount ? 'Edit Account' : 'Add Account'} size="md">
-        {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div><label className="form-label">Code *</label><input className="form-input" value={accForm.code} onChange={e => setAccForm({...accForm,code:e.target.value})} placeholder="e.g. 1001" disabled={!!selectedAccount} /></div>
-            <div><label className="form-label">Type *</label>
-              <select className="form-input" value={accForm.type} onChange={e => setAccForm({...accForm,type:e.target.value})}>
-                {['asset','liability','equity','revenue','expense'].map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
-              </select>
-            </div>
-          </div>
-          <div><label className="form-label">Account Name *</label><input className="form-input" value={accForm.name} onChange={e => setAccForm({...accForm,name:e.target.value})} placeholder="e.g. Cash & Bank" /></div>
-          <div><label className="form-label">Description</label><textarea className="form-input" rows={2} value={accForm.description} onChange={e => setAccForm({...accForm,description:e.target.value})} /></div>
-          <div>
-            <label className="form-label">{selectedAccount ? 'Adjust Balance (GH₵)' : 'Opening Balance (GH₵)'}</label>
-            <input
-              type="number"
-              className="form-input"
-              value={accForm.opening_balance}
-              onChange={e => setAccForm({...accForm, opening_balance: e.target.value})}
-              placeholder="0.00"
-            />
-            {selectedAccount && parseFloat(accForm.opening_balance||'0') !== parseFloat(selectedAccount.balance||'0') && (
-              <p className="text-xs text-blue-600 mt-1">
-                A journal entry of GH₵ {Math.abs(parseFloat(accForm.opening_balance||'0') - parseFloat(selectedAccount.balance||'0')).toFixed(2)} will be posted automatically.
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
-          <button className="btn-secondary w-full sm:w-auto" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary w-full sm:w-auto" onClick={saveAccount} disabled={saving}>{saving?'Saving…':selectedAccount?'Update Account':'Add Account'}</button>
-        </div>
-      </Modal>
       {/* Trial Balance Tab */}
       {section==='trial-balance' && (
         <div className="space-y-4 md:space-y-5">
@@ -2101,8 +1991,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         order={invoiceData?.order}
         business={invoiceData?.business}
       />
-
-      <AccountingLedgerPanel account={ledgerAccount} onClose={() => setLedgerAccount(null)} />
 
       <HrConfirmModal
         open={!!acctConfirm}
