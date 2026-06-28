@@ -147,8 +147,8 @@ export default function OrdersPage() {
   return (
     <AppLayout title="Sales & Orders" subtitle="Manage customer orders and track payments" allowedRoles={['business_owner','branch_manager','sales_staff']}>
 
-      <div className="flex flex-wrap items-end gap-3 mb-4">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+        <div className="relative flex-1 min-w-[180px]">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             className="form-input pl-9 w-full"
@@ -157,38 +157,52 @@ export default function OrdersPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="w-full sm:w-auto sm:min-w-[160px]">
-          <label className="form-label">Status</label>
-          <select className="form-input w-full" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-            <option value="">All statuses</option>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-            ))}
-          </select>
-        </div>
-        <div className="w-full sm:w-auto sm:min-w-[160px]">
-          <label className="form-label">Source</label>
-          <select className="form-input w-full" value={filterSource} onChange={(e) => setFilterSource(e.target.value)}>
-            {SOURCE_OPTIONS.map((s) => (
-              <option key={s.value || 'all'} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-        </div>
-        <div className="w-full sm:w-auto">
-          <label className="form-label">From</label>
-          <input type="date" className="form-input w-full sm:w-auto" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-        </div>
-        <div className="w-full sm:w-auto">
-          <label className="form-label">To</label>
-          <input type="date" className="form-input w-full sm:w-auto" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-        </div>
+        <select
+          className="form-input w-32 shrink-0"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          title="Filter by status"
+          aria-label="Filter by status"
+        >
+          <option value="">All statuses</option>
+          {STATUS_OPTIONS.map((s) => (
+            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+          ))}
+        </select>
+        <select
+          className="form-input w-32 shrink-0"
+          value={filterSource}
+          onChange={(e) => setFilterSource(e.target.value)}
+          title="Filter by source"
+          aria-label="Filter by source"
+        >
+          {SOURCE_OPTIONS.map((s) => (
+            <option key={s.value || 'all'} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+        <input
+          type="date"
+          className="form-input w-36 shrink-0"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          title="From date"
+          aria-label="From date"
+        />
+        <input
+          type="date"
+          className="form-input w-36 shrink-0"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          title="To date"
+          aria-label="To date"
+        />
         {hasFilters && (
-          <button type="button" className="btn-secondary shrink-0" onClick={clearFilters}>
-            <X className="w-4 h-4" />Clear
+          <button type="button" className="btn-secondary shrink-0 p-2" onClick={clearFilters} title="Clear filters" aria-label="Clear filters">
+            <X className="w-4 h-4" />
           </button>
         )}
-        <button type="button" className="btn-primary shrink-0" onClick={openNewOrder}>
-          <Plus className="w-4 h-4" />New Order
+        <button type="button" className="btn-primary shrink-0 p-2" onClick={openNewOrder} title="New Order" aria-label="New Order">
+          <Plus className="w-4 h-4" />
         </button>
       </div>
 
