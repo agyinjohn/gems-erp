@@ -25,7 +25,7 @@ interface Props {
   onDataChange?: () => void;
 }
 
-export default function AccountingPlPanel({ onDataChange }: Props) {
+export default function AccountingPlPanel(_: Props) {
   const [period, setPeriod] = useState<PeriodKey>('ytd');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -46,13 +46,12 @@ export default function AccountingPlPanel({ onDataChange }: Props) {
       if (source === 'orders') params.append('source', 'orders');
       const res = await api.get(`/accounting/pl?${params.toString()}`);
       setData(res.data.data);
-      onDataChange?.();
     } catch {
       toast.error('Could not load P&L report');
     } finally {
       setLoading(false);
     }
-  }, [period, from, to, source, onDataChange]);
+  }, [period, from, to, source]);
 
   useEffect(() => { load(); }, [load]);
 
