@@ -75,6 +75,31 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   });
   const [leaveForm, setLeaveForm] = useState({ employee_id:'', leave_type:'annual', start_date:'', end_date:'', reason:'' });
   const [attendanceForm, setAttendanceForm] = useState({ employee_id:'', date: new Date().toISOString().split('T')[0], status:'present', notes:'' });
+  const [attendanceEditing, setAttendanceEditing] = useState(false);
+
+  const getAttendanceEmployeeId = (record: any) => {
+    const id = record?.employee_id?.id ?? record?.employee_id?._id ?? record?.employee_id;
+    return id != null ? String(id) : '';
+  };
+
+  const openRecordAttendance = () => {
+    setAttendanceEditing(false);
+    setAttendanceForm({ employee_id: '', date: attendanceDate, status: 'present', notes: '' });
+    setError('');
+    setModal('add_attendance');
+  };
+
+  const openEditAttendance = (record: any) => {
+    setAttendanceEditing(true);
+    setAttendanceForm({
+      employee_id: getAttendanceEmployeeId(record),
+      date: attendanceDate,
+      status: record.status || 'present',
+      notes: record.notes || '',
+    });
+    setError('');
+    setModal('add_attendance');
+  };
 
   const loadSection = async (sec: HrSectionSlug, date = attendanceDate) => {
     setLoading(true);
@@ -352,7 +377,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
   const saveAttendance = async () => {
     setSaving(true); setError('');
-    try { await api.post('/attendance', attendanceForm); toast.success('Attendance recorded'); setModal(null); reloadSection(); }
+    try { await api.post('/attendance', attendanceForm); toast.success(attendanceEditing ? 'Attendance updated' : 'Attendance recorded'); setModal(null); setAttendanceEditing(false); reloadSection(); }
     catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); throw e; }
     finally { setSaving(false); }
   };
@@ -368,17 +393,25 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         { label: 'Employee', value: emp?.name || '—' },
         { label: 'Date', value: attendanceForm.date },
         { label: 'Status', value: attendanceForm.status.replace('_', ' ') },
+        ...(attendanceForm.notes.trim() ? [{ label: 'Notes', value: attendanceForm.notes.trim() }] : []),
       ],
       action: saveAttendance,
     });
   };
 
   const [bulkStatus, setBulkStatus] = useState<Record<string,string>>({});
+  const [bulkNotes, setBulkNotes] = useState<Record<string, string>>({});
 
   const initBulk = () => {
-    const map: Record<string,string> = {};
-    employees.forEach(e => { map[e.id] = 'present'; });
-    setBulkStatus(map);
+    const statusMap: Record<string, string> = {};
+    const notesMap: Record<string, string> = {};
+    employees.forEach((e) => {
+      const existing = attendance.find((a) => getAttendanceEmployeeId(a) === String(e.id));
+      statusMap[e.id] = existing?.status || 'present';
+      notesMap[e.id] = existing?.notes || '';
+    });
+    setBulkStatus(statusMap);
+    setBulkNotes(notesMap);
   };
 
   const saveBulkAttendance = async () => {
@@ -386,7 +419,12 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     try {
       await Promise.all(
         Object.entries(bulkStatus).map(([employee_id, status]) =>
-          api.post('/attendance', { employee_id, date: attendanceDate, status })
+          api.post('/attendance', {
+            employee_id,
+            date: attendanceDate,
+            status,
+            notes: bulkNotes[employee_id]?.trim() || '',
+          })
         )
       );
       reloadSection();
@@ -647,7 +685,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                 </div>
               )}
             </div>
-            <button type="button" className="btn-primary shrink-0" onClick={() => { setAttendanceForm({ employee_id: '', date: attendanceDate, status: 'present', notes: '' }); setError(''); setModal('add_attendance'); }}>
+            <button type="button" className="btn-primary shrink-0" onClick={openRecordAttendance}>
               <Calendar className="w-4 h-4" />Record Attendance
             </button>
           </div>
@@ -668,18 +706,26 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {employees.map(e => (
-                  <div key={e.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                    <div>
-                      <div className="text-sm font-medium text-gray-800">{e.name}</div>
-                      <div className="text-xs text-gray-400">{e.employee_code}</div>
+                  <div key={e.id} className="bg-gray-50 rounded-lg px-3 py-2 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-800 truncate">{e.name}</div>
+                        <div className="text-xs text-gray-400">{e.employee_code}</div>
+                      </div>
+                      <select
+                        className="text-xs border border-gray-200 rounded px-2 py-1 bg-white shrink-0"
+                        value={bulkStatus[e.id] || 'present'}
+                        onChange={ev => setBulkStatus({ ...bulkStatus, [e.id]: ev.target.value })}
+                      >
+                        {['present','absent','half_day','leave'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
+                      </select>
                     </div>
-                    <select
-                      className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
-                      value={bulkStatus[e.id] || 'present'}
-                      onChange={ev => setBulkStatus({...bulkStatus, [e.id]: ev.target.value})}
-                    >
-                      {['present','absent','half_day','leave'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
-                    </select>
+                    <input
+                      className="form-input text-xs py-1.5"
+                      placeholder="Notes (optional)"
+                      value={bulkNotes[e.id] || ''}
+                      onChange={ev => setBulkNotes({ ...bulkNotes, [e.id]: ev.target.value })}
+                    />
                   </div>
                 ))}
               </div>
@@ -691,14 +737,19 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             {attendance.length === 0 ? <EmptyState message="No attendance records for this date" icon={<Clock className="w-8 h-8 text-gray-300"/>} /> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="table-header"><tr>{['Employee','Date','Status','Notes'].map(h=><th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
+                  <thead className="table-header"><tr>{['Employee','Date','Status','Notes',''].map(h=><th key={h || 'actions'} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
                   <tbody className="divide-y divide-gray-50">
                     {attendance.map((a:any) => (
                       <tr key={a.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-medium">{a.employee_name||'—'}</td>
                         <td className="px-4 py-3 text-gray-500 text-xs">{new Date(a.date).toLocaleDateString()}</td>
                         <td className="px-4 py-3"><Badge status={a.status} /></td>
-                        <td className="px-4 py-3 text-gray-500">{a.notes||'—'}</td>
+                        <td className="px-4 py-3 text-gray-500 max-w-xs">{a.notes?.trim() ? a.notes : '—'}</td>
+                        <td className="px-4 py-3">
+                          <button type="button" onClick={() => openEditAttendance(a)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600" title="Edit attendance">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -784,11 +835,16 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       )}
 
       {/* Add Attendance Modal */}
-      <Modal open={modal==='add_attendance'} onClose={() => setModal(null)} title="Record Attendance" size="md">
+      <Modal open={modal==='add_attendance'} onClose={() => { setModal(null); setAttendanceEditing(false); }} title={attendanceEditing ? 'Edit Attendance' : 'Record Attendance'} size="md">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="space-y-3">
           <div><label className="form-label">Employee *</label>
-            <select className="form-input" value={attendanceForm.employee_id} onChange={e => setAttendanceForm({...attendanceForm,employee_id:e.target.value})}>
+            <select
+              className="form-input"
+              value={attendanceForm.employee_id}
+              disabled={attendanceEditing}
+              onChange={e => setAttendanceForm({...attendanceForm,employee_id:e.target.value})}
+            >
               <option value="">Select employee</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
@@ -801,11 +857,19 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               </select>
             </div>
           </div>
-          <div><label className="form-label">Notes</label><input className="form-input" value={attendanceForm.notes} onChange={e => setAttendanceForm({...attendanceForm,notes:e.target.value})} /></div>
+          <div>
+            <label className="form-label">Notes</label>
+            <textarea
+              className="form-input min-h-[88px] resize-y"
+              placeholder="Optional note (e.g. late arrival, remote work, medical appointment)"
+              value={attendanceForm.notes}
+              onChange={e => setAttendanceForm({ ...attendanceForm, notes: e.target.value })}
+            />
+          </div>
         </div>
         <div className="flex gap-3 justify-end mt-6">
-          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={requestSaveAttendance} disabled={saving}>{saving?'Saving…':'Save'}</button>
+          <button className="btn-secondary" onClick={() => { setModal(null); setAttendanceEditing(false); }}>Cancel</button>
+          <button className="btn-primary" onClick={requestSaveAttendance} disabled={saving}>{saving ? 'Saving…' : attendanceEditing ? 'Save changes' : 'Save'}</button>
         </div>
       </Modal>
 
