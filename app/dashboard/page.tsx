@@ -543,7 +543,7 @@ export default function DashboardPage() {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-800">Recent Leave Requests</h3>
-                <a href="/hr" className="text-xs text-blue-600 hover:underline">View all →</a>
+                <a href="/hr/employees" className="text-xs text-blue-600 hover:underline">View all →</a>
               </div>
               {data?.recent_leave?.length ? (
                 <div className="space-y-2">
@@ -569,10 +569,10 @@ export default function DashboardPage() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: 'Manage Employees',    href: '/hr', color: 'bg-indigo-50 text-indigo-700', icon: <Users className="w-5 h-5" /> },
-                  { label: 'Leave Requests',      href: '/hr', color: 'bg-yellow-50 text-yellow-700', icon: <ClipboardList className="w-5 h-5" /> },
-                  { label: 'Run Payroll',         href: '/hr', color: 'bg-green-50 text-green-700',   icon: <DollarSign className="w-5 h-5" /> },
-                  { label: 'Mark Attendance',     href: '/hr', color: 'bg-blue-50 text-blue-700',     icon: <UserCheck className="w-5 h-5" /> },
+                  { label: 'Manage Employees',    href: '/hr/employees', color: 'bg-indigo-50 text-indigo-700', icon: <Users className="w-5 h-5" /> },
+                  { label: 'Leave Requests',      href: '/hr/leave', color: 'bg-yellow-50 text-yellow-700', icon: <ClipboardList className="w-5 h-5" /> },
+                  { label: 'Run Payroll',         href: '/hr/payroll', color: 'bg-green-50 text-green-700',   icon: <DollarSign className="w-5 h-5" /> },
+                  { label: 'Mark Attendance',     href: '/hr/attendance', color: 'bg-blue-50 text-blue-700',     icon: <UserCheck className="w-5 h-5" /> },
                 ].map(a => (
                   <a key={a.label} href={a.href} className={`flex flex-col items-center gap-2 px-4 py-5 rounded-xl text-sm font-medium text-center ${a.color} hover:opacity-80 transition-opacity`}>
                     {a.icon}{a.label}

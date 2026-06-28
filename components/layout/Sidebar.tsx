@@ -11,11 +11,13 @@ import {
 } from 'lucide-react';
 import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 import { ACCOUNTING_SECTIONS } from '@/lib/accountingNav';
+import { HR_SECTIONS } from '@/lib/hrNav';
 
 /** Sidebar highlight — avoid parent /pos matching /pos/shifts */
 function isNavActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   if (href === '/accounting/overview' && pathname === '/accounting') return true;
+  if (href === '/hr/employees' && pathname === '/hr') return true;
   if (href === '/platform' || href === '/dashboard') return false;
   if (href === '/pos') {
     return (
@@ -87,10 +89,19 @@ const navGroups = [
     ],
   },
   {
+    label: 'HR & Payroll',
+    items: HR_SECTIONS.map((s) => ({
+      href: `/hr/${s.slug}`,
+      label: s.label,
+      icon: s.icon,
+      roles: ['business_owner', 'hr_manager'],
+      permission: 'hr.view',
+    })),
+  },
+  {
     label: 'People',
     items: [
-      { href: '/hr',          label: 'HR & Payroll', icon: Users,     roles: ['business_owner','hr_manager'], permission: 'hr.view' },
-      { href: '/departments', label: 'Departments',  icon: Building2, roles: ['business_owner','hr_manager'], permission: 'hr.view' },
+      { href: '/departments', label: 'Departments', icon: Building2, roles: ['business_owner', 'hr_manager'], permission: 'hr.view' },
     ],
   },
   {
