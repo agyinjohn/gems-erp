@@ -58,6 +58,7 @@ function parseCsvText(text: string) {
 }
 
 type ResultTab = 'summary' | 'matched' | 'bank' | 'gl';
+type SessionDetailTab = 'pairs' | 'bank' | 'gl';
 
 interface Props {
   onDataChange?: () => void;
@@ -83,6 +84,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
   const [savedSessionId, setSavedSessionId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [sessionDetail, setSessionDetail] = useState<any>(null);
+  const [sessionDetailTab, setSessionDetailTab] = useState<SessionDetailTab>('pairs');
 
   const loadView = useCallback(async () => {
     setLoading(true);
@@ -156,6 +158,11 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
         if (raw !== '') return parseFloat(raw);
         return fallback ?? null;
       };
+      const glDate = (value: string | Date | undefined) => {
+        if (!value) return '';
+        if (typeof value === 'string') return value.slice(0, 10);
+        return value.toISOString().slice(0, 10);
+      };
       const payload = {
         ...reconPayload(),
         period_from: periodFrom || reconResult.period?.from,
@@ -163,25 +170,58 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
         opening_balance: parseBalance(openingBalance, summary.opening_balance),
         closing_balance: parseBalance(closingBalance, summary.closing_balance ?? summary.computed_closing),
         bank_lines: parsedLines.map((line) => ({
+          line_id: String(line.id),
           date: line.date,
           description: line.description,
           amount: line.amount,
           matched: matchedByBankId.has(line.id),
           matched_gl_id: matchedByBankId.get(line.id) || undefined,
         })),
+        gl_lines: [
+          ...reconResult.matched.map((m: any) => ({
+            gl_line_id: m.gl?.id,
+            entry_id: m.gl?.entry_id,
+            date: glDate(m.gl?.date),
+            reference: m.gl?.reference,
+            description: m.gl?.description,
+            source: m.gl?.source,
+            amount: m.gl?.amount,
+            matched: true,
+            matched_bank_line_id: String(m.bank?.id),
+          })),
+          ...reconResult.unmatchedGl.map((l: any) => ({
+            gl_line_id: l.id,
+            entry_id: l.entry_id,
+            date: glDate(l.date),
+            reference: l.reference,
+            description: l.description,
+            source: l.source,
+            amount: l.amount,
+            matched: false,
+          })),
+        ],
         matched_pairs: reconResult.matched.map((m: any) => ({
-          bank_line_id: String(m.bank?.id ?? m.bank?.description),
+          bank_line_id: String(m.bank?.id),
           gl_line_id: m.gl?.id,
+          bank_date: m.bank?.date || '',
+          bank_description: m.bank?.description || '',
+          bank_amount: m.bank?.amount,
+          gl_date: glDate(m.gl?.date),
+          gl_reference: m.gl?.reference || '',
+          gl_description: m.gl?.description || '',
+          gl_amount: m.gl?.amount,
+          match_score: m.match_score,
         })),
         summary: {
           bank_total: summary.bank_total,
           gl_period_total: summary.gl_period_total,
           matched_count: summary.matched_count,
           bank_line_count: summary.bank_line_count,
+          gl_line_count: summary.gl_line_count,
           match_rate: summary.match_rate,
           period_difference: summary.period_difference,
         },
-        notes: `Match rate ${summary.match_rate}% · ${summary.matched_count}/${summary.bank_line_count} lines · ${reconResult.period?.from || '—'} → ${reconResult.period?.to || '—'}`,
+        notes: `Match rate ${summary.match_rate}% · ${summary.matched_count}/${summary.bank_line_count} bank · ${summary.gl_line_count} GL · ${reconResult.period?.from || '—'} → ${reconResult.period?.to || '—'}`,
       };
 
       let sessionId = savedSessionId;
@@ -205,6 +245,35 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
       toast.error(e.response?.data?.message || 'Save failed');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const exportSessionDetail = (detail: any) => {
+    const rows: string[][] = [['Section', 'Date', 'Description', 'Reference', 'Amount', 'Matched']];
+    (detail.matched_pairs || []).forEach((p: any) => {
+      rows.push(['Matched bank', p.bank_date || '', p.bank_description || '', '', String(p.bank_amount ?? ''), 'yes']);
+      rows.push(['Matched GL', p.gl_date || '', p.gl_description || '', p.gl_reference || '', String(p.gl_amount ?? ''), 'yes']);
+    });
+    (detail.unmatched_bank_lines || []).forEach((l: any) => {
+      rows.push(['Unmatched bank', l.date || '', l.description || '', '', String(l.amount ?? ''), 'no']);
+    });
+    (detail.unmatched_gl_lines || []).forEach((l: any) => {
+      rows.push(['Unmatched GL', l.date || '', l.description || '', l.reference || '', String(l.amount ?? ''), 'no']);
+    });
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `reconciliation-session-${detail.id || Date.now()}.csv`;
+    a.click();
+  };
+
+  const openSessionDetail = async (sessionId: string) => {
+    try {
+      const r = await api.get(`/accounting/reconciliations/${sessionId}`);
+      setSessionDetailTab('pairs');
+      setSessionDetail(r.data.data);
+    } catch {
+      toast.error('Could not load session');
     }
   };
 
@@ -447,7 +516,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
             <table className="w-full text-xs md:text-sm">
               <thead className="table-header">
                 <tr>
-                  {['Statement', 'Period', 'Status', 'Opening', 'Closing', 'Bank net', 'Lines', 'Matched', 'Rate', ''].map((h) => (
+                  {['Statement', 'Period', 'Status', 'Bank lines', 'GL lines', 'Matched', 'Rate', ''].map((h) => (
                     <th key={h || 'actions'} className="px-3 py-2 text-left">{h}</th>
                   ))}
                 </tr>
@@ -464,14 +533,12 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
                     <td className="px-3 py-2">
                       <span className={`badge text-xs ${s.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{s.status}</span>
                     </td>
-                    <td className="px-3 py-2 tabular-nums">{fmtOptional(s.opening_balance, s.has_opening_balance)}</td>
-                    <td className="px-3 py-2 tabular-nums">{fmtOptional(s.closing_balance, s.has_closing_balance)}</td>
-                    <td className="px-3 py-2 tabular-nums">{s.bank_total != null ? fmt(s.bank_total) : '—'}</td>
                     <td className="px-3 py-2">{s.bank_line_count ?? 0}</td>
+                    <td className="px-3 py-2">{s.gl_line_count ?? '—'}</td>
                     <td className="px-3 py-2">{s.matched_count ?? 0}</td>
                     <td className="px-3 py-2">{s.match_rate != null ? `${s.match_rate}%` : '—'}</td>
                     <td className="px-3 py-2">
-                      <button type="button" onClick={async () => { try { const r = await api.get(`/accounting/reconciliations/${s.id}`); setSessionDetail(r.data.data); } catch { toast.error('Could not load session'); } }} className="p-1.5 hover:bg-gray-100 rounded text-gray-500">
+                      <button type="button" onClick={() => openSessionDetail(s.id)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500">
                         <Eye className="w-3.5 h-3.5" />
                       </button>
                     </td>
@@ -487,42 +554,83 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
         Matching uses amount first, then date proximity and description similarity. Only non-voided GL cash lines (1001) in the statement period are compared.
       </p>
 
-      <Modal open={!!sessionDetail} onClose={() => setSessionDetail(null)} title="Reconciliation session" size="lg">
+      <Modal open={!!sessionDetail} onClose={() => setSessionDetail(null)} title="Reconciliation session" size="xl">
         {sessionDetail && (
           <div className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div><span className="text-gray-500">Statement date</span><p>{displayDate(sessionDetail.statement_date)}</p></div>
-              <div><span className="text-gray-500">Period</span><p>{displayDate(sessionDetail.period_from)} → {displayDate(sessionDetail.period_to)}</p></div>
-              <div><span className="text-gray-500">Status</span><p className="capitalize">{sessionDetail.status}</p></div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1">
+                <div><span className="text-gray-500">Statement</span><p>{displayDate(sessionDetail.statement_date)}</p></div>
+                <div><span className="text-gray-500">Period</span><p>{displayDate(sessionDetail.period_from)} → {displayDate(sessionDetail.period_to)}</p></div>
+                <div><span className="text-gray-500">Status</span><p className="capitalize">{sessionDetail.status}</p></div>
+                <div><span className="text-gray-500">Matched</span><p>{sessionDetail.matched_count ?? 0} / {sessionDetail.bank_line_count ?? 0} bank · {sessionDetail.gl_line_count ?? 0} GL</p></div>
+              </div>
+              <button type="button" className="btn-secondary text-xs shrink-0" onClick={() => exportSessionDetail(sessionDetail)}>
+                <Download className="w-3.5 h-3.5" /> Export all lines
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
               <div><span className="text-gray-500">Opening</span><p>{fmtOptional(sessionDetail.opening_balance, sessionDetail.has_opening_balance)}</p></div>
               <div><span className="text-gray-500">Closing</span><p>{fmtOptional(sessionDetail.closing_balance, sessionDetail.has_closing_balance)}</p></div>
               <div><span className="text-gray-500">Bank net</span><p>{sessionDetail.bank_total != null ? fmt(sessionDetail.bank_total) : '—'}</p></div>
-              <div><span className="text-gray-500">GL net (period)</span><p>{sessionDetail.gl_period_total != null ? fmt(sessionDetail.gl_period_total) : '—'}</p></div>
-              <div><span className="text-gray-500">Matched</span><p>{sessionDetail.matched_count ?? 0} / {sessionDetail.bank_line_count ?? 0} ({sessionDetail.match_rate ?? 0}%)</p></div>
-              <div><span className="text-gray-500">Account</span><p>{sessionDetail.account_code} — {sessionDetail.account_name}</p></div>
+              <div><span className="text-gray-500">GL net</span><p>{sessionDetail.gl_period_total != null ? fmt(sessionDetail.gl_period_total) : '—'}</p></div>
             </div>
+
             {sessionDetail.notes && <p className="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">{sessionDetail.notes}</p>}
             {sessionDetail.completed_by_name && <p className="text-xs text-gray-400">Completed by {sessionDetail.completed_by_name}</p>}
 
-            {(sessionDetail.matched_bank_lines?.length > 0 || sessionDetail.unmatched_bank_lines?.length > 0) && (
-              <div className="space-y-3">
-                {sessionDetail.matched_bank_lines?.length > 0 && (
-                  <ResultTable
-                    headers={['Date', 'Description', 'Amount']}
-                    rows={sessionDetail.matched_bank_lines.map((l: any) => [l.date || '—', l.description, fmt(l.amount)])}
-                    empty=""
-                    headerClass="bg-green-50"
-                  />
-                )}
-                {sessionDetail.unmatched_bank_lines?.length > 0 && (
-                  <ResultTable
-                    headers={['Date', 'Description', 'Amount']}
-                    rows={sessionDetail.unmatched_bank_lines.map((l: any) => [l.date || '—', l.description, fmt(l.amount)])}
-                    empty=""
-                    headerClass="bg-yellow-50"
-                  />
-                )}
-              </div>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { key: 'pairs', label: `Matched pairs (${sessionDetail.matched_pairs?.length || 0})` },
+                { key: 'bank', label: `Bank lines (${sessionDetail.all_bank_lines?.length || sessionDetail.bank_lines?.length || 0})` },
+                { key: 'gl', label: `GL lines (${sessionDetail.all_gl_lines?.length || sessionDetail.gl_lines?.length || 0})` },
+              ] as { key: SessionDetailTab; label: string }[]).map((t) => (
+                <button key={t.key} type="button" onClick={() => setSessionDetailTab(t.key)} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${sessionDetailTab === t.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{t.label}</button>
+              ))}
+            </div>
+
+            {sessionDetailTab === 'pairs' && (
+              <ResultTable
+                headers={['Bank date', 'Bank description', 'GL ref', 'GL description', 'Amount']}
+                rows={(sessionDetail.matched_pairs || []).map((p: any) => [
+                  p.bank_date || '—',
+                  p.bank_description || '—',
+                  p.gl_reference || '—',
+                  p.gl_description || '—',
+                  fmt(p.bank_amount ?? p.gl_amount),
+                ])}
+                empty="No matched pairs recorded"
+                headerClass="bg-green-50"
+              />
+            )}
+
+            {sessionDetailTab === 'bank' && (
+              <ResultTable
+                headers={['Date', 'Description', 'Status', 'Amount']}
+                rows={(sessionDetail.all_bank_lines || sessionDetail.bank_lines || []).map((l: any) => [
+                  l.date || '—',
+                  l.description || '—',
+                  l.matched ? 'Matched' : 'Outstanding',
+                  fmt(l.amount),
+                ])}
+                empty="No bank lines recorded"
+                headerClass="bg-blue-50"
+              />
+            )}
+
+            {sessionDetailTab === 'gl' && (
+              <ResultTable
+                headers={['Date', 'Reference', 'Description', 'Status', 'Amount']}
+                rows={(sessionDetail.all_gl_lines || sessionDetail.gl_lines || []).map((l: any) => [
+                  displayDate(l.date) !== '—' ? displayDate(l.date) : (l.date || '—'),
+                  l.reference || '—',
+                  l.description || '—',
+                  l.matched ? 'Matched' : 'Outstanding',
+                  fmt(l.amount),
+                ])}
+                empty="No GL lines recorded"
+                headerClass="bg-red-50"
+              />
             )}
           </div>
         )}
