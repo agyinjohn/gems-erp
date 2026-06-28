@@ -10,8 +10,8 @@ import AccountingExpensesPanel from '@/components/accounting/AccountingExpensesP
 import AccountingJournalPanel from '@/components/accounting/AccountingJournalPanel';
 import AccountingReceivablesPanel from '@/components/accounting/AccountingReceivablesPanel';
 import AccountingPayablesPanel from '@/components/accounting/AccountingPayablesPanel';
-import AccountingCreditNotesTab from '@/components/accounting/AccountingCreditNotesTab';
-import AccountingVendorBillsTab from '@/components/accounting/AccountingVendorBillsTab';
+import AccountingCreditNotesPanel from '@/components/accounting/AccountingCreditNotesPanel';
+import AccountingVendorBillsPanel from '@/components/accounting/AccountingVendorBillsPanel';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 import type { AccountingSectionSlug } from '@/lib/accountingNav';
 
@@ -532,8 +532,12 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         <AccountingReceivablesPanel onDataChange={load} />
       )}
 
-      {section==='vendor-bills' && <AccountingVendorBillsTab accounts={accounts} />}
-      {section==='credit-notes' && <AccountingCreditNotesTab />}
+      {section==='vendor-bills' && (
+        <AccountingVendorBillsPanel onDataChange={load} />
+      )}
+      {section==='credit-notes' && (
+        <AccountingCreditNotesPanel onDataChange={load} />
+      )}
 
       {section==='ap' && (
         <AccountingPayablesPanel onDataChange={load} />
