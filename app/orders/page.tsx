@@ -1,18 +1,20 @@
 'use client';
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
-import { Plus, Search, Eye, Edit2, Calendar, X, FileText, DollarSign } from 'lucide-react';
+import { Modal, Badge, EmptyState, Spinner, toast, ConfirmDialog } from '@/components/ui';
+import { Plus, Search, Eye, Edit2, X, FileText, DollarSign, ShoppingCart } from 'lucide-react';
 import api from '@/lib/api';
 import InvoiceModal from '@/components/InvoiceModal';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
 
-const SOURCES = [
-  { key: '',            label: 'All Orders' },
-  { key: 'storefront',  label: 'Storefront' },
-  { key: 'internal',    label: 'Internal' },
-  { key: 'pos',         label: 'POS' },
+const SOURCE_OPTIONS = [
+  { value: '', label: 'All sources' },
+  { value: 'storefront', label: 'Storefront' },
+  { value: 'internal', label: 'Internal' },
+  { value: 'pos', label: 'POS' },
 ];
+
+const STATUS_OPTIONS = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 
 export default function OrdersPage() {
   const [orders, setOrders]         = useState<any[]>([]);
@@ -29,6 +31,9 @@ export default function OrdersPage() {
   const [error, setError]           = useState('');
   const [newStatus, setNewStatus]   = useState('');
   const [invoiceData, setInvoiceData] = useState<{ order: any; business: any } | null>(null);
+  const [payModal, setPayModal] = useState<any>(null);
+  const [payMethod, setPayMethod] = useState('cash');
+  const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
   const [form, setForm]             = useState({ customer_name:'', customer_email:'', customer_phone:'', delivery_address:'', payment_status:'paid', payment_method:'cash', items:[{ product_id:'', quantity:1 }] });
 
   const load = async () => {
@@ -48,16 +53,23 @@ export default function OrdersPage() {
     return matchSearch && matchStatus && matchSource && matchFrom && matchTo;
   });
 
-  // Summary counts per source
-  const counts = {
-    '':           orders.length,
-    storefront:   orders.filter(o => o.source === 'storefront').length,
-    internal:     orders.filter(o => o.source === 'internal').length,
-    pos:          orders.filter(o => o.source === 'pos').length,
-  } as Record<string, number>;
+  const clearFilters = () => {
+    setSearch('');
+    setFilterStatus('');
+    setFilterSource('');
+    setDateFrom('');
+    setDateTo('');
+  };
+  const hasFilters = search || filterStatus || filterSource || dateFrom || dateTo;
 
-  const clearFilters = () => { setSearch(''); setFilterStatus(''); setDateFrom(''); setDateTo(''); };
-  const hasFilters = search || filterStatus || dateFrom || dateTo;
+  const openNewOrder = () => {
+    setForm({
+      customer_name: '', customer_email: '', customer_phone: '', delivery_address: '',
+      payment_status: 'paid', payment_method: 'cash', items: [{ product_id: '', quantity: 1 }],
+    });
+    setError('');
+    setModal('add');
+  };
 
   const openInvoice = async (o: any) => {
     try {
@@ -97,9 +109,32 @@ export default function OrdersPage() {
 
   const updateStatus = async () => {
     setSaving(true);
-    try { await api.patch(`/orders/${selected.id}/status`, { status: newStatus }); toast.success('Status updated'); setModal(null); load(); }
-    catch(e:any) { toast.error(e.response?.data?.message || 'Error'); }
-    finally { setSaving(false); }
+    try {
+      await api.patch(`/orders/${selected.id}/status`, { status: newStatus });
+      toast.success('Status updated');
+      setModal(null);
+      setStatusConfirmOpen(false);
+      load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const markOrderPaid = async () => {
+    if (!payModal) return;
+    setSaving(true);
+    try {
+      await api.patch(`/orders/${payModal.id}/pay`, { payment_method: payMethod });
+      toast.success('Order marked as paid');
+      setPayModal(null);
+      load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const sourceLabel: Record<string,string> = { storefront: 'Storefront', internal: 'Internal', pos: 'POS' };
@@ -112,133 +147,100 @@ export default function OrdersPage() {
   return (
     <AppLayout title="Sales & Orders" subtitle="Manage customer orders and track payments" allowedRoles={['business_owner','branch_manager','sales_staff']}>
 
-      {/* ── Header row ── */}
-      <div className="flex items-center justify-between mb-5">
-        <div />
-        <button className="btn-primary" onClick={() => { setForm({ customer_name:'',customer_email:'',customer_phone:'',delivery_address:'',payment_status:'paid',payment_method:'cash',items:[{product_id:'',quantity:1}] }); setError(''); setModal('add'); }}>
-          <Plus className="w-4 h-4" /> New Order
+      <div className="flex flex-wrap items-end gap-3 mb-4">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            className="form-input pl-9 w-full"
+            placeholder="Search order # or customer…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="w-full sm:w-auto sm:min-w-[160px]">
+          <label className="form-label">Status</label>
+          <select className="form-input w-full" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+            <option value="">All statuses</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+            ))}
+          </select>
+        </div>
+        <div className="w-full sm:w-auto sm:min-w-[160px]">
+          <label className="form-label">Source</label>
+          <select className="form-input w-full" value={filterSource} onChange={(e) => setFilterSource(e.target.value)}>
+            {SOURCE_OPTIONS.map((s) => (
+              <option key={s.value || 'all'} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="w-full sm:w-auto">
+          <label className="form-label">From</label>
+          <input type="date" className="form-input w-full sm:w-auto" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+        </div>
+        <div className="w-full sm:w-auto">
+          <label className="form-label">To</label>
+          <input type="date" className="form-input w-full sm:w-auto" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+        </div>
+        {hasFilters && (
+          <button type="button" className="btn-secondary shrink-0" onClick={clearFilters}>
+            <X className="w-4 h-4" />Clear
+          </button>
+        )}
+        <button type="button" className="btn-primary shrink-0" onClick={openNewOrder}>
+          <Plus className="w-4 h-4" />New Order
         </button>
       </div>
 
-      {/* ── Source Tabs ── */}
-      <div className="flex gap-0 border-b border-gray-200 mb-5 -mt-1 overflow-x-auto">
-        {SOURCES.map(s => (
-          <button
-            key={s.key}
-            onClick={() => setFilterSource(s.key)}
-            className={`flex items-center gap-2 px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
-              filterSource === s.key
-                ? 'border-[#0D3B6E] text-[#0D3B6E]'
-                : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
-            }`}
-          >
-            {s.label}
-            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-              filterSource === s.key ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-500'
-            }`}>
-              {counts[s.key] ?? 0}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* ── Filters ── */}
-      <div className="flex flex-col gap-3 mb-5">
-        {/* Search */}
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input className="form-input pl-9" placeholder="Search order # or customer…" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Status */}
-          <select className="form-input w-full sm:w-auto" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="">All Statuses</option>
-            {['pending','processing','shipped','delivered','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-
-          {/* Date From */}
-          <div className="relative flex-1 sm:flex-initial">
-            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="date" className="form-input pl-9 w-full sm:w-40"
-              value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            />
-          </div>
-
-          {/* Date To */}
-          <div className="relative flex-1 sm:flex-initial">
-            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="date" className="form-input pl-9 w-full sm:w-40"
-              value={dateTo} onChange={e => setDateTo(e.target.value)}
-            />
-          </div>
-
-          {/* Clear filters */}
-          {hasFilters && (
-            <button onClick={clearFilters} className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg border border-red-200 transition-colors w-full sm:w-auto">
-              <X className="w-4 h-4" /> Clear
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Results summary ── */}
-      {!loading && (
-        <p className="text-xs text-gray-400 mb-3">
-          Showing <strong className="text-gray-600">{filtered.length}</strong> of {orders.length} orders
-          {filterSource && <span> · <strong>{sourceLabel[filterSource]}</strong></span>}
-          {dateFrom && <span> · From <strong>{dateFrom}</strong></span>}
-          {dateTo   && <span> · To <strong>{dateTo}</strong></span>}
-        </p>
-      )}
-
-      {/* ── Table ── */}
       <div className="card p-0 overflow-hidden">
-        {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No orders found" icon="🛒" /> : (
-          <>
+        {loading ? <Spinner /> : filtered.length === 0 ? (
+          <EmptyState
+            message={orders.length === 0 ? 'No orders yet' : 'No orders match your filters'}
+            icon={<ShoppingCart className="w-8 h-8 text-gray-300" />}
+          />
+        ) : (
             <ResponsiveTable
-              headers={['Order #','Customer','Source','Total','Payment Status','Payment Method','Status','Date','Actions']}
+              headers={['Order #', 'Customer', 'Source', 'Total', 'Payment', 'Method', 'Status', 'Date', '']}
               data={filtered}
               renderRow={(o) => ([
                 <span className="font-mono text-xs font-medium text-blue-700">{o.order_number}</span>,
                 <div>
                   <div className="font-medium text-gray-900">{o.customer_name}</div>
-                  <div className="text-xs text-gray-400">{o.customer_email}</div>
+                  <div className="text-xs text-gray-400">{o.customer_email || '—'}</div>
                 </div>,
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${sourceBadgeColor[o.source] || 'bg-gray-100 text-gray-500'}`}>
                   {sourceLabel[o.source] || o.source || '—'}
                 </span>,
                 <span className="font-semibold">GH₵ {parseFloat(o.total).toFixed(2)}</span>,
                 <Badge status={o.payment_status} />,
-                <span className="text-xs text-gray-600 capitalize">{o.payment_method ? o.payment_method.replace(/_/g,' ') : '—'}</span>,
+                <span className="text-xs text-gray-600 capitalize">{o.payment_method ? o.payment_method.replace(/_/g, ' ') : '—'}</span>,
                 <Badge status={o.status} />,
-                <span className="text-gray-500 text-xs whitespace-nowrap">{new Date(o.created_at || o.createdAt).toLocaleDateString('en-GH', { day:'2-digit', month:'short', year:'numeric' })}</span>,
-                <div className="flex gap-2">
-                  <button onClick={() => openInvoice(o)} className="p-1.5 hover:bg-green-50 rounded text-green-600" title="View Invoice"><FileText className="w-4 h-4" /></button>
-                  <button onClick={() => openView(o)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Eye className="w-4 h-4" /></button>
-                  <button onClick={() => openStatus(o)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4" /></button>
+                <span className="text-gray-500 text-xs whitespace-nowrap">{new Date(o.created_at || o.createdAt).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })}</span>,
+                <div className="flex gap-1">
+                  <button type="button" onClick={() => openInvoice(o)} className="p-1.5 hover:bg-green-50 rounded text-green-600" title="View invoice">
+                    <FileText className="w-4 h-4" />
+                  </button>
+                  <button type="button" onClick={() => openView(o)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="View order">
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button type="button" onClick={() => openStatus(o)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600" title="Update status">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
                   {o.payment_status === 'pending' && o.source === 'internal' && (
                     <button
-                      title="Mark as Paid"
-                      onClick={async () => {
-                        const method = prompt('Payment method? (cash / mobile_money / bank_transfer / card)', 'cash');
-                        if (!method) return;
-                        try {
-                          await api.patch(`/orders/${o.id}/pay`, { payment_method: method });
-                          toast.success('Order marked as paid');
-                          load();
-                        } catch(e:any) { toast.error(e.response?.data?.message || 'Failed'); }
-                      }}
+                      type="button"
+                      title="Mark as paid"
+                      onClick={() => { setPayModal(o); setPayMethod('cash'); }}
                       className="p-1.5 hover:bg-yellow-50 rounded text-yellow-600"
-                    ><DollarSign className="w-4 h-4" /></button>
+                    >
+                      <DollarSign className="w-4 h-4" />
+                    </button>
                   )}
                 </div>
               ])}
             />
-            <div className="px-3 sm:px-4 py-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
-              {filtered.length} order{filtered.length !== 1 ? 's' : ''} · Total: <strong className="text-gray-700">GH₵ {filtered.reduce((s,o) => s + parseFloat(o.total||0), 0).toFixed(2)}</strong>
+            <div className="px-3 sm:px-4 py-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-500">
+              {filtered.length} order{filtered.length !== 1 ? 's' : ''} · Total: <strong className="text-gray-800">GH₵ {filtered.reduce((s, o) => s + parseFloat(o.total || 0), 0).toFixed(2)}</strong>
             </div>
           </>
         )}
@@ -339,14 +341,51 @@ export default function OrdersPage() {
       <Modal open={modal === 'status'} onClose={() => setModal(null)} title="Update Order Status" size="sm">
         <div><label className="form-label">New Status</label>
           <select className="form-input" value={newStatus} onChange={e => setNewStatus(e.target.value)}>
-            {['pending','processing','shipped','delivered','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
           </select>
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={updateStatus} disabled={saving}>{saving ? 'Saving…':'Update Status'}</button>
+          <button className="btn-primary" onClick={() => setStatusConfirmOpen(true)} disabled={saving || newStatus === selected?.status}>
+            {saving ? 'Saving…' : 'Update Status'}
+          </button>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={statusConfirmOpen}
+        onClose={() => setStatusConfirmOpen(false)}
+        onConfirm={updateStatus}
+        title="Update order status?"
+        message={`Change ${selected?.order_number} from "${selected?.status}" to "${newStatus}"?`}
+      />
+
+      <Modal open={!!payModal} onClose={() => setPayModal(null)} title="Mark Order as Paid" size="sm">
+        {payModal && (
+          <>
+            <p className="text-sm text-gray-600 mb-4">
+              Record payment for <strong>{payModal.order_number}</strong> — GH₵ {parseFloat(payModal.total).toFixed(2)}
+            </p>
+            <div>
+              <label className="form-label">Payment Method</label>
+              <select className="form-input" value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
+                <option value="cash">Cash</option>
+                <option value="mobile_money">Mobile Money</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="card">Card</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </div>
+            <div className="flex gap-3 justify-end mt-6">
+              <button type="button" className="btn-secondary" onClick={() => setPayModal(null)}>Cancel</button>
+              <button type="button" className="btn-primary" onClick={markOrderPaid} disabled={saving}>
+                {saving ? 'Saving…' : 'Confirm payment'}
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
+
       <InvoiceModal
         open={modal === 'invoice'}
         onClose={() => { setModal(null); setInvoiceData(null); }}
