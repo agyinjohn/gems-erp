@@ -13,6 +13,7 @@ import AccountingPayablesPanel from '@/components/accounting/AccountingPayablesP
 import AccountingCreditNotesPanel from '@/components/accounting/AccountingCreditNotesPanel';
 import AccountingVendorBillsPanel from '@/components/accounting/AccountingVendorBillsPanel';
 import AccountingReconciliationPanel from '@/components/accounting/AccountingReconciliationPanel';
+import AccountingPlPanel from '@/components/accounting/AccountingPlPanel';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 import type { AccountingSectionSlug } from '@/lib/accountingNav';
 
@@ -29,11 +30,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
   const [error, setError] = useState('');
   const [invoiceData, setInvoiceData] = useState<{ order: any; business: any } | null>(null);
   const [invoiceModal, setInvoiceModal] = useState(false);
-  const [pl, setPl] = useState<any>(null);
-  const [plLoading, setPlLoading] = useState(false);
-  const [plFrom, setPlFrom] = useState('');
-  const [plTo, setPlTo] = useState('');
-  const [plSource, setPlSource] = useState<'orders'|'gl'>('gl');
   const [importModal, setImportModal] = useState(false);
   const [importType, setImportType] = useState<'expenses'|'journal'>('expenses');
   const [importCsv, setImportCsv] = useState('');
@@ -133,18 +129,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
     });
   };
 
-  const loadPl = async () => {
-    setPlLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (plFrom) params.append('from', plFrom);
-      if (plTo) params.append('to', plTo);
-      if (plSource === 'orders') params.append('source', 'orders');
-      const res = await api.get(`/accounting/pl?${params.toString()}`);
-      setPl(res.data.data);
-    } finally { setPlLoading(false); }
-  };
-
   const loadBs = async () => {
     setBsLoading(true);
     try {
@@ -209,23 +193,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
-  };
-
-  const exportPlCsv = () => {
-    if (!pl) return;
-    const rows = [
-      ['P&L Report', plSource === 'gl' ? 'GL-based' : 'Orders-based', plFrom || 'All time', plTo || ''],
-      [],
-      ['Metric', 'Amount (GH₵)'],
-      ['Revenue', pl.revenue],
-      ['Gross Profit', pl.gross_profit],
-      ['Total Expenses', pl.total_expenses],
-      ['Net Profit', pl.net_profit],
-      [],
-      ['Category', 'Amount (GH₵)'],
-      ...(pl.expenses_by_category?.map((c:any) => [c.category, c.total]) || []),
-    ];
-    exportCSV(`pl-report-${plSource}-${Date.now()}.csv`, rows);
   };
 
   const exportBsCsv = () => {
@@ -436,7 +403,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
       {/* Section action bar */}
       <div className="flex flex-wrap justify-end gap-2 mb-4 md:mb-5">
           {section==='tax'          && <button className="btn-primary text-xs md:text-sm" onClick={openAddTax}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Add </span>Tax</button>}
-          {section==='pl'           && pl && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportPlCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('P&L Report','pl-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
           {section==='bs'           && bs && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportBsCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('Balance Sheet','bs-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
           {section==='cashflow'     && cf && <div className="flex gap-2"><button className="btn-secondary text-xs md:text-sm" onClick={exportCfCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button><button className="btn-secondary text-xs md:text-sm" onClick={() => printReport('Cash Flow Statement','cf-print')}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Print/</span>PDF</button></div>}
           {section==='budget'       && <div className="flex gap-2">{budgetData && <button className="btn-secondary text-xs md:text-sm" onClick={exportBudgetCsv}><Download className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Export </span>CSV</button>}<button className="btn-primary text-xs md:text-sm" onClick={() => { setEditingBudget(null); setBudgetForm({ category:'', amount:'', period:budgetPeriod, period_type:budgetPeriodType }); setBudgetModal(true); }}><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Set </span>Budget</button></div>}
@@ -707,78 +673,8 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
         </div>
       )}
 
-            {/* P&L Report Tab */}
       {section==='pl' && (
-        <div className="space-y-4 md:space-y-5">
-          <div className="card">
-            <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3">
-              <div><label className="form-label">From</label><input type="date" className="form-input" value={plFrom} onChange={e => setPlFrom(e.target.value)} /></div>
-              <div><label className="form-label">To</label><input type="date" className="form-input" value={plTo} onChange={e => setPlTo(e.target.value)} /></div>
-              <div>
-                <label className="form-label">Source</label>
-                <select className="form-input" value={plSource} onChange={e => setPlSource(e.target.value as 'orders'|'gl')}>
-                  <option value="orders">Paid orders</option>
-                  <option value="gl">General ledger</option>
-                </select>
-              </div>
-              <button className="btn-primary w-full sm:w-auto" onClick={loadPl} disabled={plLoading}>{plLoading ? 'Loading...' : 'Generate Report'}</button>
-                {pl && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setPlFrom(''); setPlTo(''); setPl(null); }}>Clear</button>}
-            </div>
-          </div>
-          {plLoading && <Spinner />}
-          {pl && (
-            <div id="pl-print" className="space-y-5">
-              <p className="text-xs text-gray-500">
-                Source: <strong>{pl.source === 'gl' ? 'General ledger' : 'Paid orders'}</strong>
-                {pl.source === 'gl' ? ' — revenue and expenses from journal entries.' : ' — revenue from paid orders and expenses from expense records.'}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                <StatCard label="Revenue" value={`GH₵ ${parseFloat(pl.revenue||0).toFixed(2)}`} icon={<TrendingUp className="w-6 h-6 text-green-600"/>} color="bg-green-50" />
-                <StatCard label="Gross Profit" value={`GH₵ ${parseFloat(pl.gross_profit||0).toFixed(2)}`} icon={<DollarSign className="w-6 h-6 text-blue-600"/>} color="bg-blue-50" />
-                <StatCard label="Total Expenses" value={`GH₵ ${parseFloat(pl.total_expenses||0).toFixed(2)}`} icon={<TrendingDown className="w-6 h-6 text-red-600"/>} color="bg-red-50" />
-                <StatCard label="Net Profit" value={`GH₵ ${parseFloat(pl.net_profit||0).toFixed(2)}`} icon={<DollarSign className="w-6 h-6 text-purple-600"/>} color={pl.net_profit >= 0 ? 'bg-green-50' : 'bg-red-50'} />
-              </div>
-              {pl.expenses_by_category?.length > 0 && (
-                <div className="card">
-                  <h3 className="font-semibold text-gray-800 mb-3">Expenses by Category</h3>
-                  <table className="w-full text-sm">
-                    <thead className="table-header"><tr><th className="px-4 py-2 text-left">Category</th><th className="px-4 py-2 text-right">Amount</th><th className="px-4 py-2 text-right">% of Total</th></tr></thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {pl.expenses_by_category.map((c:any) => (
-                        <tr key={c.category} className="hover:bg-gray-50">
-                          <td className="px-4 py-2">{c.category}</td>
-                          <td className="px-4 py-2 text-right font-semibold text-red-600">GH₵ {parseFloat(c.total).toFixed(2)}</td>
-                          <td className="px-4 py-2 text-right text-gray-500">{pl.total_expenses > 0 ? ((c.total/pl.total_expenses)*100).toFixed(1) : 0}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              {pl.monthly?.length > 0 && (
-                <div className="card">
-                  <h3 className="font-semibold text-gray-800 mb-3">Monthly Revenue</h3>
-                  <div className="space-y-2">
-                    {pl.monthly.map((m:any) => {
-                      const max = Math.max(...pl.monthly.map((x:any) => x.revenue));
-                      const pct = max > 0 ? (m.revenue/max)*100 : 0;
-                      return (
-                        <div key={`${m.year}-${m.month}`} className="flex items-center gap-3">
-                          <span className="text-xs text-gray-500 w-16">{m.month} {m.year}</span>
-                          <div className="flex-1 bg-gray-100 rounded-full h-2">
-                            <div className="bg-blue-500 h-2 rounded-full" style={{width:`${pct}%`}} />
-                          </div>
-                          <span className="text-xs font-semibold w-28 text-right">GH₵ {parseFloat(m.revenue).toFixed(2)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          {!pl && !plLoading && <EmptyState message="Select a date range and click Generate Report" icon={<FileText className="w-8 h-8 text-gray-300"/>} />}
-        </div>
+        <AccountingPlPanel onDataChange={load} />
       )}
 
       {/* Budget vs Actual Tab */}
