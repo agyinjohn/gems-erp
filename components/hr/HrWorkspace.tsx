@@ -516,14 +516,6 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         { label: 'Departments', value: departments.length },
       ];
     }
-    if (section === 'attendance') {
-      return [
-        { label: 'Records', value: attendance.length },
-        { label: 'Present', value: attendance.filter((a) => a.status === 'present').length },
-        { label: 'Absent', value: attendance.filter((a) => a.status === 'absent').length },
-        { label: 'On leave', value: attendance.filter((a) => a.status === 'leave').length },
-      ];
-    }
     if (section === 'leave') {
       return [
         { label: 'Pending', value: leave.filter((l) => l.status === 'pending').length },
@@ -560,13 +552,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           ))}
         </div>
       )}
-      {section !== 'employees' && (
+      {section !== 'employees' && section !== 'attendance' && (
         <div className="flex flex-wrap justify-end gap-2 mb-5">
-          {section === 'attendance' && (
-            <button type="button" className="btn-primary" onClick={() => { setAttendanceForm({ employee_id: '', date: attendanceDate, status: 'present', notes: '' }); setError(''); setModal('add_attendance'); }}>
-              <Calendar className="w-4 h-4" />Record Attendance
-            </button>
-          )}
           {section === 'leave' && (
             <button type="button" className="btn-primary" onClick={() => { setLeaveForm({ employee_id: '', leave_type: 'annual', start_date: '', end_date: '', reason: '' }); setError(''); setModal('add_leave'); }}>
               <Plus className="w-4 h-4" />Apply Leave
@@ -645,19 +632,24 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
       {section === 'attendance' && (
         <>
-          <div className="flex items-center gap-3 mb-4">
-            <label className="text-sm font-medium text-gray-700">Date:</label>
-            <input type="date" className="form-input w-auto" value={attendanceDate} onChange={e => setAttendanceDate(e.target.value)} />
-            <span className="text-sm text-gray-500">{attendance.length} records</span>
-            {attendance.length > 0 && (
-              <div className="ml-2 flex gap-3 text-xs">
-                {['present','absent','half_day','leave'].map(s => (
-                  <span key={s} className="text-gray-500">
-                    <span className="font-semibold text-gray-700">{attendance.filter((a:any)=>a.status===s).length}</span> {s.replace('_',' ')}
-                  </span>
-                ))}
-              </div>
-            )}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-sm font-medium text-gray-700">Date:</label>
+              <input type="date" className="form-input w-auto" value={attendanceDate} onChange={e => setAttendanceDate(e.target.value)} />
+              <span className="text-sm text-gray-500">{attendance.length} records</span>
+              {attendance.length > 0 && (
+                <div className="flex flex-wrap gap-3 text-xs">
+                  {['present','absent','half_day','leave'].map(s => (
+                    <span key={s} className="text-gray-500">
+                      <span className="font-semibold text-gray-700">{attendance.filter((a:any)=>a.status===s).length}</span> {s.replace('_',' ')}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button type="button" className="btn-primary shrink-0" onClick={() => { setAttendanceForm({ employee_id: '', date: attendanceDate, status: 'present', notes: '' }); setError(''); setModal('add_attendance'); }}>
+              <Calendar className="w-4 h-4" />Record Attendance
+            </button>
           </div>
 
           {/* Bulk Mark */}
