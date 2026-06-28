@@ -11,7 +11,7 @@ import PoConfirmModal, { PoConfirmAction } from '@/components/procurement/PoConf
 import { printReport } from '@/lib/reportUtils';
 
 export default function ProcurementPage() {
-  const { user } = useAuth();
+  const { user, tenant } = useAuth();
   const role = user?.role || '';
   const isWarehouseOnly = role === 'warehouse_staff';
   const canManagePO = role === 'business_owner' || role === 'procurement_officer';
@@ -51,6 +51,8 @@ export default function ProcurementPage() {
   } | null>(null);
   const [confirmSupplierId, setConfirmSupplierId] = useState<string | null>(null);
 
+  const poId = (po: any) => po?.id || po?._id;
+
   const load = async () => {
     setLoading(true);
     try {
@@ -64,16 +66,27 @@ export default function ProcurementPage() {
       const [p, s, pr, b] = await Promise.all([
         api.get(poUrl).catch(() => ({ data: { data: [] } })),
         isWarehouseOnly ? Promise.resolve({ data: { data: [] } }) : api.get('/suppliers').catch(() => ({ data: { data: [] } })),
-        canManagePO ? api.get('/products?is_active=true') : Promise.resolve({ data: { data: [] } }),
+        canManagePO ? api.get('/products?is_active=true').catch(() => ({ data: { data: [] } })) : Promise.resolve({ data: { data: [] } }),
         api.get('/branches').catch(() => ({ data: { data: [] } })),
       ]);
-      setPOs(p.data.data || []);
-      setSuppliers(s.data.data || []);
-      setProducts(pr.data.data || []);
-      setBranches(b.data.data || []);
+      const list = Array.isArray(p.data.data) ? p.data.data : [];
+      setPOs(list.map((row: any) => ({ ...row, id: row.id || row._id })));
+      setSuppliers(Array.isArray(s.data.data) ? s.data.data.map((row: any) => ({ ...row, id: row.id || row._id })) : []);
+      setProducts(Array.isArray(pr.data.data) ? pr.data.data.map((row: any) => ({ ...row, id: row.id || row._id })) : []);
+      setBranches(Array.isArray(b.data.data) ? b.data.data.map((row: any) => ({ ...row, id: row.id || row._id })) : []);
+    } catch {
+      toast.error('Failed to load procurement data');
+      setPOs([]);
+      setSuppliers([]);
+      setProducts([]);
+      setBranches([]);
     } finally { setLoading(false); }
   };
   useEffect(() => { load(); }, [statusFilter, dateFrom, dateTo, branchFilter]);
+
+  useEffect(() => {
+    if (isWarehouseOnly && tab === 'suppliers') setTab('pos');
+  }, [isWarehouseOnly, tab]);
 
   const addPoItem = () => setPoForm({ ...poForm, items: [...poForm.items, { product_id:'', quantity_ordered:1, unit_cost:'' }] });
   const updatePoItem = (i: number, k: string, v: any) => {
@@ -104,7 +117,8 @@ export default function ProcurementPage() {
   };
 
   const openEditPO = async (po: any) => {
-    const r = await api.get(`/purchase-orders/${po.id}`).catch(() => ({ data: { data: po } }));
+    const id = poId(po);
+    const r = await api.get(`/purchase-orders/${id}`).catch(() => ({ data: { data: po } }));
     const full = r.data.data;
     setEditingPoId(full.id || full._id);
     setPoForm({
@@ -139,7 +153,7 @@ export default function ProcurementPage() {
     if (!selected) return;
     setSaving(true);
     try {
-      await api.patch(`/purchase-orders/${selected.id}/cancel`, { reason: cancelReason || undefined });
+      await api.patch(`/purchase-orders/${poId(selected)}/cancel`, { reason: cancelReason || undefined });
       toast.success('PO cancelled');
       setModal(null);
       load();
@@ -166,12 +180,12 @@ export default function ProcurementPage() {
   };
 
   const openView = async (po: any) => {
-    const r = await api.get(`/purchase-orders/${po.id}`).catch(() => ({ data: { data: po } }));
+    const r = await api.get(`/purchase-orders/${poId(po)}`).catch(() => ({ data: { data: po } }));
     setSelected(r.data.data); setModal('view_po');
   };
 
   const openReceive = async (po: any) => {
-    const r = await api.get(`/purchase-orders/${po.id}`).catch(() => ({ data: { data: po } }));
+    const r = await api.get(`/purchase-orders/${poId(po)}`).catch(() => ({ data: { data: po } }));
     const full = r.data.data;
     setSelected(full);
     setReceiveItems((full.items || []).map((i: any) => ({
@@ -204,7 +218,7 @@ export default function ProcurementPage() {
         product_name: i.product_name,
         receive_qty: i.receive_qty,
       }));
-    await api.post(`/purchase-orders/${selected.id}/receive`, { items });
+    await api.post(`/purchase-orders/${poId(selected)}/receive`, { items });
     toast.success('Goods received');
     setModal(null);
   };
@@ -230,7 +244,7 @@ export default function ProcurementPage() {
     const setBusy = action === 'pay' ? setPoPaySaving : setSaving;
     setBusy(true);
     try {
-      const id = po.id || po._id;
+      const id = poId(po);
       if (action === 'submit') await executeSubmit(id);
       else if (action === 'approve') await executeApprove(id);
       else if (action === 'send') await executeSend(id);
@@ -246,7 +260,7 @@ export default function ProcurementPage() {
   };
 
   const openPrint = async (po: any) => {
-    const r = await api.get(`/purchase-orders/${po.id}`).catch(() => ({ data: { data: po } }));
+    const r = await api.get(`/purchase-orders/${poId(po)}`).catch(() => ({ data: { data: po } }));
     setPrintPo(r.data.data);
     setTimeout(() => printReport(`PO — ${r.data.data.po_number}`, 'po-print'), 50);
   };
@@ -288,7 +302,7 @@ export default function ProcurementPage() {
 
   const executePay = async () => {
     if (!poPayModal) return;
-    const res = await api.patch(`/purchase-orders/${poPayModal.id}/pay`, poPayForm);
+    const res = await api.patch(`/purchase-orders/${poId(poPayModal)}/pay`, poPayForm);
     const { paid, outstanding } = res.data;
     toast.success(`GHS ${parseFloat(paid).toFixed(2)} paid${ outstanding > 0 ? ` — GHS ${parseFloat(outstanding).toFixed(2)} still outstanding` : ' — fully cleared' }`);
     setPoPayModal(null);
@@ -412,7 +426,7 @@ export default function ProcurementPage() {
                     <div className="font-semibold">GH₵ {parseFloat(po.total_cost||0).toFixed(2)}</div>
                     {po.amount_paid > 0 && <div className="text-xs text-green-600">Paid: GH₵ {parseFloat(po.amount_paid||0).toFixed(2)}</div>}
                   </div>,
-                  <Badge status={po.status} />,
+                  <Badge status={po.status || 'draft'} />,
                   <span className={`badge ${
                     po.payment_status === 'paid'    ? 'bg-green-100 text-green-700' :
                     po.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-700' :
@@ -472,7 +486,7 @@ export default function ProcurementPage() {
                 <Badge status={s.is_active ? 'active':'inactive'} />,
                 <div className="flex gap-1">
                   <button onClick={() => { setSelectedSupplier(s); setSupForm({ name:s.name, email:s.email||'', phone:s.phone||'', address:s.address||'', payment_terms:s.payment_terms||'Net 30', notes:s.notes||'' }); setError(''); setModal('add_supplier'); }} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-4 h-4" /></button>
-                  <button onClick={() => setConfirmSupplierId(s.id)} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => setConfirmSupplierId(poId(s))} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ]}
             />
@@ -543,7 +557,7 @@ export default function ProcurementPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div><span className="text-gray-500">Supplier</span><div className="font-medium">{selected.supplier_id?.name || '—'}</div></div>
-              <div><span className="text-gray-500">Status</span><div><Badge status={selected.status} /></div></div>
+              <div><span className="text-gray-500">Status</span><div><Badge status={selected.status || 'draft'} /></div></div>
               <div><span className="text-gray-500">Total Cost</span><div className="font-semibold">GH₵ {parseFloat(selected.total_cost||0).toFixed(2)}</div></div>
               <div><span className="text-gray-500">Payment</span><div><Badge status={selected.payment_status || 'unpaid'} /></div></div>
               {selected.expected_date && <div><span className="text-gray-500">Expected</span><div>{new Date(selected.expected_date).toLocaleDateString()}</div></div>}
@@ -674,7 +688,7 @@ export default function ProcurementPage() {
 
       {/* Hidden print template */}
       <div className="hidden">
-        <PoPrintView po={printPo} businessName={user?.tenant_name} />
+        <PoPrintView po={printPo} businessName={tenant?.business_name} />
       </div>
 
       <PoConfirmModal

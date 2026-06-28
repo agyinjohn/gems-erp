@@ -24,6 +24,10 @@ interface PropsWithHeaders {
 
 type Props = PropsWithColumns | PropsWithHeaders;
 
+function rowKey(row: any, keyField: string, index: number) {
+  return row?.[keyField] ?? row?._id ?? row?.id ?? index;
+}
+
 export default function ResponsiveTable(props: Props) {
   const { data, keyField = 'id' } = props;
 
@@ -43,8 +47,8 @@ export default function ResponsiveTable(props: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {data.map(row => (
-                <tr key={row[keyField]} className="hover:bg-gray-50 transition-colors">
+              {data.map((row, index) => (
+                <tr key={rowKey(row, keyField, index)} className="hover:bg-gray-50 transition-colors">
                   {renderRow(row).map((cell, idx) => (
                     <td key={idx} className="px-4 py-3">{cell}</td>
                   ))}
@@ -56,8 +60,8 @@ export default function ResponsiveTable(props: Props) {
 
         {/* Mobile Cards */}
         <div className="md:hidden space-y-3 p-3">
-          {data.map(row => (
-            <div key={row[keyField]} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+          {data.map((row, index) => (
+            <div key={rowKey(row, keyField, index)} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
               {renderRow(row).map((cell, idx) => (
                 <div key={idx} className="flex justify-between items-start gap-3">
                   <span className="text-xs font-semibold text-gray-500 uppercase">{headers[idx]}</span>
@@ -88,8 +92,8 @@ export default function ResponsiveTable(props: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {data.map(row => (
-              <tr key={row[keyField]} className="hover:bg-gray-50">
+            {data.map((row, index) => (
+              <tr key={rowKey(row, keyField, index)} className="hover:bg-gray-50">
                 {columns.map(col => (
                   <td key={col.key} className="px-4 py-3 text-sm text-gray-700">
                     {col.render ? col.render(row[col.key], row) : row[col.key]}
@@ -103,8 +107,8 @@ export default function ResponsiveTable(props: Props) {
 
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
-        {data.map(row => (
-          <div key={row[keyField]} className="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+        {data.map((row, index) => (
+          <div key={rowKey(row, keyField, index)} className="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
             {columns.map(col => (
               <div key={col.key} className="flex justify-between items-start gap-3">
                 <span className="text-xs font-semibold text-gray-500 uppercase">{col.label}</span>

@@ -87,8 +87,9 @@ const badgeMap: Record<string, string> = {
   new: 'badge-purple', proposal: 'badge-purple', negotiation: 'badge-purple',
 };
 export function Badge({ status }: { status: string }) {
-  const cls = badgeMap[status] || 'badge-gray';
-  return <span className={`badge ${cls}`}>{status.replace(/_/g, ' ')}</span>;
+  const label = String(status ?? 'unknown');
+  const cls = badgeMap[label] || 'badge-gray';
+  return <span className={`badge ${cls}`}>{label.replace(/_/g, ' ')}</span>;
 }
 
 // ── EMPTY STATE ───────────────────────────────────────────────────────────────
