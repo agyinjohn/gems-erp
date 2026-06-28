@@ -199,6 +199,7 @@ export default function OrdersPage() {
             icon={<ShoppingCart className="w-8 h-8 text-gray-300" />}
           />
         ) : (
+          <>
             <ResponsiveTable
               headers={['Order #', 'Customer', 'Source', 'Total', 'Payment', 'Method', 'Status', 'Date', '']}
               data={filtered}
