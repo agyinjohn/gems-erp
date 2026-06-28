@@ -50,6 +50,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const [search, setSearch] = useState('');
   const [leaveSearch, setLeaveSearch] = useState('');
   const [leaveFilter, setLeaveFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [leaveDateFrom, setLeaveDateFrom] = useState('');
+  const [leaveDateTo, setLeaveDateTo] = useState('');
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
 
   const [empStep, setEmpStep] = useState(1);
@@ -167,8 +169,16 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
   const filtered = employees.filter(e => !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.employee_code?.toLowerCase().includes(search.toLowerCase()));
 
+  const toDateOnly = (value: string | Date) => {
+    const d = new Date(value);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  };
+
   const filteredLeave = leave.filter((l) => {
     if (leaveFilter !== 'all' && l.status !== leaveFilter) return false;
+    if (leaveDateFrom && toDateOnly(l.end_date) < toDateOnly(leaveDateFrom)) return false;
+    if (leaveDateTo && toDateOnly(l.start_date) > toDateOnly(leaveDateTo)) return false;
     if (!leaveSearch.trim()) return true;
     const q = leaveSearch.toLowerCase();
     return (
@@ -180,7 +190,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   });
 
   const leaveFilterOptions: { value: typeof leaveFilter; label: string }[] = [
-    { value: 'all', label: 'All' },
+    { value: 'all', label: 'All statuses' },
     { value: 'pending', label: 'Pending' },
     { value: 'approved', label: 'Approved' },
     { value: 'rejected', label: 'Rejected' },
@@ -793,8 +803,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
       {section === 'leave' && (
         <>
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="relative flex-1 min-w-[220px]">
+          <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 className="form-input pl-9 w-full"
@@ -803,21 +813,21 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                 onChange={(e) => setLeaveSearch(e.target.value)}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              {leaveFilterOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setLeaveFilter(option.value)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                    leaveFilter === option.value
-                      ? 'bg-blue-700 text-white border-blue-700'
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div className="w-full sm:w-auto sm:min-w-[160px]">
+              <label className="form-label">Status</label>
+              <select className="form-input w-full" value={leaveFilter} onChange={(e) => setLeaveFilter(e.target.value as typeof leaveFilter)}>
+                {leaveFilterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="w-full sm:w-auto">
+              <label className="form-label">From</label>
+              <input type="date" className="form-input w-full sm:w-auto" value={leaveDateFrom} onChange={(e) => setLeaveDateFrom(e.target.value)} />
+            </div>
+            <div className="w-full sm:w-auto">
+              <label className="form-label">To</label>
+              <input type="date" className="form-input w-full sm:w-auto" value={leaveDateTo} onChange={(e) => setLeaveDateTo(e.target.value)} />
             </div>
             <button type="button" className="btn-primary shrink-0" onClick={openApplyLeave}>
               <Plus className="w-4 h-4" />Apply Leave
