@@ -111,7 +111,7 @@ export default function ReportPanels({ data, periodLabel }: Props) {
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="left" tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
-                <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: string) => [name === 'orders' ? v : fmtGhs(v), name === 'orders' ? 'Orders' : 'Revenue']} />
+                <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: any) => [name === 'orders' ? v : fmtGhs(v), name === 'orders' ? 'Orders' : 'Revenue']} />
                 <Legend />
                 <Area yAxisId="left" type="monotone" dataKey="revenue" name="Revenue" stroke="#1A6BB5" fill="url(#revGrad)" strokeWidth={2} />
                 <Line yAxisId="right" type="monotone" dataKey="orders" name="Orders" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
@@ -134,7 +134,7 @@ export default function ReportPanels({ data, periodLabel }: Props) {
                     innerRadius={55}
                     outerRadius={90}
                     paddingAngle={2}
-                    label={({ source, percent }) => `${source} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                    label={({ name, percent }: any) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                   >
                     {sales.by_source.map((_: any, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
@@ -166,7 +166,7 @@ export default function ReportPanels({ data, periodLabel }: Props) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                 <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={130} />
-                <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: string) => [name === 'units' ? v : fmtGhs(v), name === 'units' ? 'Units sold' : 'Revenue']} />
+                <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: any) => [name === 'units' ? v : fmtGhs(v), name === 'units' ? 'Units sold' : 'Revenue']} />
                 <Bar dataKey="revenue" name="Revenue" fill="#1A6BB5" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -181,7 +181,7 @@ export default function ReportPanels({ data, periodLabel }: Props) {
                 <XAxis dataKey="branch" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="left" tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
-                <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: string) => [name === 'orders' ? v : fmtGhs(v), name === 'orders' ? 'Orders' : 'Revenue']} />
+                <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: any) => [name === 'orders' ? v : fmtGhs(v), name === 'orders' ? 'Orders' : 'Revenue']} />
                 <Legend />
                 <Bar yAxisId="left" dataKey="revenue" name="Revenue" fill="#0D3B6E" radius={[4, 4, 0, 0]} />
                 <Bar yAxisId="right" dataKey="orders" name="Orders" fill="#60A5FA" radius={[4, 4, 0, 0]} />
@@ -208,7 +208,7 @@ export default function ReportPanels({ data, periodLabel }: Props) {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis dataKey="code" type="category" tick={{ fontSize: 11 }} width={80} />
-                  <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: string) => [name === 'orders' ? v : fmtGhs(v), name === 'orders' ? 'Orders' : 'Discount given']} />
+                  <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: any) => [name === 'orders' ? v : fmtGhs(v), name === 'orders' ? 'Orders' : 'Discount given']} />
                   <Bar dataKey="orders" name="Orders" fill="#a855f7" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -271,7 +271,7 @@ export default function ReportPanels({ data, periodLabel }: Props) {
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
-                    label={({ category, percent }) => `${category} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                    label={({ name, percent }: any) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                   >
                     {finance.expenses_by_category.map((_: any, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
@@ -391,7 +391,7 @@ export default function ReportPanels({ data, periodLabel }: Props) {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="type" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: string) => [v, name === 'qty' ? 'Units moved' : 'Transactions']} />
+                  <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: any) => [v, name === 'qty' ? 'Units moved' : 'Transactions']} />
                   <Legend />
                   <Bar dataKey="count" name="Transactions" fill="#0D3B6E" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="qty" name="Units moved" fill="#60A5FA" radius={[4, 4, 0, 0]} />
@@ -408,7 +408,7 @@ export default function ReportPanels({ data, periodLabel }: Props) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11 }} />
                 <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={120} />
-                <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: string) => [v, name === 'qty' ? 'Units' : 'Moves']} />
+                <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: any) => [v, name === 'qty' ? 'Units' : 'Moves']} />
                 <Bar dataKey="qty" name="Units" fill="#1A6BB5" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>

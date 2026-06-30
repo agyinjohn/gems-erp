@@ -161,6 +161,14 @@ const navGroups = [
   },
 ];
 
+type NavItem = {
+  href: string;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  roles: string[];
+  permission: string | null;
+};
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -209,7 +217,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
 
   const toggle = (gi: number) => setOpenGroups(prev => ({ ...prev, [gi]: !prev[gi] }));
 
-  const filterByProductMode = (items: typeof navGroups[0]['items']) =>
+  const filterByProductMode = (items: NavItem[]) =>
     items.filter((item) => isNavAllowed(item.href));
 
   const renderContent = (isCollapsed: boolean) => (
@@ -252,7 +260,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
           if (isCustom) {
             const seen = new Set<string>();
             const items = filterByProductMode(
-              navGroups.flatMap(g => g.items).filter(item => {
+              (navGroups.flatMap(g => g.items as NavItem[])).filter(item => {
                 if (!item.permission) return false;
                 if (seen.has(item.href)) return false;
                 if (!perms.includes(item.permission)) return false;
@@ -335,7 +343,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
 
           // ── Other roles: flat list ──
           // Non-admin/owner: flat list, no labels, My Portal always last
-          const allItems = navGroups.flatMap(g => g.items);
+          const allItems = navGroups.flatMap(g => g.items as NavItem[]);
           const seen = new Set<string>();
           const flat = filterByProductMode(allItems.filter(item => {
             if (!user || !item.roles.includes(user.role)) return false;

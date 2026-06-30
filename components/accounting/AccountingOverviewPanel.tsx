@@ -235,7 +235,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: number) => [fmt(v), 'Revenue']} />
+                <Tooltip formatter={(v: any) => [fmt(Number(v ?? 0)), 'Revenue']} />
                 <Bar dataKey="revenue" fill="#1A6BB5" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
