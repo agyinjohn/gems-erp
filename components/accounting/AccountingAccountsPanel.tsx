@@ -164,7 +164,7 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
       a.entry_count ?? 0,
       a.last_activity ? new Date(a.last_activity).toLocaleDateString() : '',
     ]);
-    const csv = [header, ...body].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [header, ...body].map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `chart-of-accounts-${Date.now()}.csv`;

@@ -260,7 +260,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
     (detail.unmatched_gl_lines || []).forEach((l: any) => {
       rows.push(['Unmatched GL', l.date || '', l.description || '', l.reference || '', String(l.amount ?? ''), 'no']);
     });
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = rows.map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `reconciliation-session-${detail.id || Date.now()}.csv`;
@@ -286,7 +286,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
     });
     reconResult.unmatchedBank.forEach((l: any) => rows.push(['Unmatched Bank', l.date, l.description, '', String(l.amount)]));
     reconResult.unmatchedGl.forEach((l: any) => rows.push(['Unmatched GL', new Date(l.date).toLocaleDateString(), l.description, l.reference, String(l.amount)]));
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = rows.map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `bank-reconciliation-${Date.now()}.csv`;

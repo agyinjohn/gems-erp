@@ -109,7 +109,7 @@ export default function AccountingBalanceSheetPanel(_: Props) {
     rows.push(['Total Liabilities', String(data.liabilities?.total ?? 0)], [], ['EQUITY', '']);
     (data.equity?.lines || []).forEach((l: any) => rows.push([l.name, String(l.amount)]));
     rows.push(['Total Equity', String(data.equity?.total ?? 0)]);
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = rows.map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `balance-sheet-${data.as_of || Date.now()}.csv`;

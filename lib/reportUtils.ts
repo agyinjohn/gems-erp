@@ -62,7 +62,7 @@ export const fmtGhs = (n: unknown) => `GH₵ ${parseFloat(String(n ?? 0)).toFixe
 
 export function exportCsv(filename: string, rows: string[][]) {
 
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const csv = rows.map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
 
   const a = document.createElement('a');
 

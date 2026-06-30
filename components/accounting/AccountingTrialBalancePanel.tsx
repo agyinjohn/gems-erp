@@ -64,7 +64,7 @@ export default function AccountingTrialBalancePanel(_: Props) {
       [],
       ['TOTALS', '', '', String(totals.debit ?? 0), String(totals.credit ?? 0)],
     ];
-    const csv = csvRows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = csvRows.map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `trial-balance-${data.as_of || Date.now()}.csv`;

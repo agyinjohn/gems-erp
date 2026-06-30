@@ -105,7 +105,7 @@ export default function AccountingPayablesPanel({ onDataChange }: Props) {
       e.due_date ? new Date(e.due_date).toLocaleDateString() : '',
       e.days_past_due,
     ]);
-    const csv = [header, ...body].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [header, ...body].map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `payables-${Date.now()}.csv`;

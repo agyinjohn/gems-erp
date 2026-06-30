@@ -203,7 +203,7 @@ export default function AccountingExpensesPanel({ onDataChange }: Props) {
       e.created_by?.name || '',
       e.receipt?.file ? 'Yes' : 'No',
     ]);
-    const csv = [header, ...body].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [header, ...body].map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `expenses-${Date.now()}.csv`;

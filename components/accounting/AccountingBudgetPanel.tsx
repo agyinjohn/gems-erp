@@ -110,7 +110,7 @@ export default function AccountingBudgetPanel(_: Props) {
       [],
       ['TOTAL', String(data.totals?.budgeted ?? 0), String(data.totals?.actual ?? 0), String(data.totals?.variance ?? 0), ''],
     ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = rows.map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `budget-${data.period}-${Date.now()}.csv`;

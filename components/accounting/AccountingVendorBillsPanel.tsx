@@ -193,7 +193,7 @@ export default function AccountingVendorBillsPanel({ onDataChange }: Props) {
       b.gl_reference || '',
       b.expense_account_code || '',
     ]);
-    const csv = [header, ...body].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [header, ...body].map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `vendor-bills-${Date.now()}.csv`;

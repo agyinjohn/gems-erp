@@ -211,7 +211,7 @@ export default function AccountingJournalPanel({ onDataChange }: Props) {
       e.line_count || e.lines?.length || 0,
       e.created_by?.name || '',
     ]);
-    const csv = [header, ...body].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [header, ...body].map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `journal-${Date.now()}.csv`;

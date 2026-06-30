@@ -86,7 +86,7 @@ export default function AccountingCashFlowPanel(_: Props) {
       ['Net change', String(data.net_change ?? 0)],
       ['Closing balance', String(data.closing_balance ?? 0)],
     ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = rows.map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `cashflow-${Date.now()}.csv`;

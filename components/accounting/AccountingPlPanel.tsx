@@ -96,7 +96,7 @@ export default function AccountingPlPanel(_: Props) {
       rows.push([], ['Revenue Account', 'Amount (GH₵)']);
       data.revenue_by_account.forEach((r: any) => rows.push([r.name, String(r.total)]));
     }
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = rows.map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `pl-report-${data.source}-${Date.now()}.csv`;

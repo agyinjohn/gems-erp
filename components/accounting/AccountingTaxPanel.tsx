@@ -144,7 +144,7 @@ export default function AccountingTaxPanel(_: Props) {
       ['GL VAT Payable balance', String(vat.gl_balances?.vat_payable ?? 0)],
       ['GL VAT Input balance', String(vat.gl_balances?.vat_input ?? 0)],
     ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = rows.map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `vat-return-${Date.now()}.csv`;
