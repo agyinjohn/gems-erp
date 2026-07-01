@@ -115,7 +115,7 @@ export default function TenantStorefrontPage() {
   const [openSections, setOpenSections] = useState<Record<string,boolean>>({ categories: true, price: true, availability: true, sort: true });
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StorefrontSettings>({ ...DEFAULT_STOREFRONT_SETTINGS });
-  const [pendingPayment, setPendingPayment] = useState<{ orderIds: string[]; reference: string; email: string; grandTotal: number } | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<{ orderIds: string[]; reference: string; email: string; grandTotal: number; paystackKey: string } | null>(null);
   const [verifyError, setVerifyError] = useState('');
   const toggleSection = (key: string) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
