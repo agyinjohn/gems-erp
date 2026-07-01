@@ -362,20 +362,23 @@
 /* Product image gallery (detail + future carousel) */
 .store-image-gallery { @apply flex flex-col gap-3; }
 .store-image-gallery-main {
-  @apply aspect-square max-h-96 lg:max-h-none lg:min-h-[320px] w-full;
+  @apply w-full rounded-2xl overflow-hidden;
+  aspect-ratio: 4/3;
+  min-height: 260px;
+  max-height: 520px;
 }
 .store-image-gallery-nav {
-  @apply absolute top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-gray-800 shadow-md
-    flex items-center justify-center hover:bg-white transition-colors border border-gray-100/80;
+  @apply absolute top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 text-gray-800 shadow-lg
+    flex items-center justify-center hover:bg-white transition-colors border border-gray-100;
 }
-.store-image-gallery-nav-prev { @apply left-2; }
-.store-image-gallery-nav-next { @apply right-2; }
+.store-image-gallery-nav-prev { @apply left-3; }
+.store-image-gallery-nav-next { @apply right-3; }
 .store-image-gallery-counter {
   @apply absolute bottom-3 right-3 inline-flex items-center gap-1 text-[10px] font-semibold
-    text-white bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full;
+    text-white bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full;
 }
 .store-image-gallery-thumbs {
-  @apply flex gap-2 overflow-x-auto pb-1;
+  @apply flex gap-2 overflow-x-auto pb-1 pt-0.5 px-0.5;
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
@@ -383,11 +386,11 @@
   display: none;
 }
 .store-image-gallery-thumb {
-  @apply flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden ring-2 ring-transparent
-    border border-gray-200 opacity-70 hover:opacity-100 transition-all focus:outline-none focus-visible:ring-[#0D3B6E];
+  @apply flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden ring-2 ring-transparent
+    border border-gray-200 opacity-60 hover:opacity-90 transition-all cursor-pointer focus:outline-none focus-visible:ring-[#0D3B6E];
 }
 .store-image-gallery-thumb-active {
-  @apply ring-[#0D3B6E] opacity-100 border-[#0D3B6E];
+  @apply ring-[#0D3B6E] ring-offset-1 opacity-100 border-[#0D3B6E];
 }
 
 @media (prefers-reduced-motion: reduce) {

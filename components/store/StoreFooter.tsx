@@ -4,11 +4,12 @@ import { Package, Truck, ShieldCheck, BadgeCheck, Search } from 'lucide-react';
 interface Props {
   businessName?: string;
   categories: { id: string; name: string }[];
+  freeDeliveryThreshold: number;
   onCategorySelect: (name: string) => void;
   onTrackOrder: () => void;
 }
 
-export default function StoreFooter({ businessName, categories, onCategorySelect, onTrackOrder }: Props) {
+export default function StoreFooter({ businessName, categories, freeDeliveryThreshold, onCategorySelect, onTrackOrder }: Props) {
   const storeName = businessName || 'GEMS Store';
 
   return (
@@ -16,7 +17,7 @@ export default function StoreFooter({ businessName, categories, onCategorySelect
       <div className="border-b border-white/5 bg-white/[0.02]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-2 md:grid-cols-4 gap-5 sm:gap-6">
           {[
-            { icon: <Truck className="w-5 h-5" />, title: 'Free Delivery', sub: 'On orders over GH₵ 500' },
+            { icon: <Truck className="w-5 h-5" />, title: 'Free Delivery', sub: `On orders over GH₵ ${freeDeliveryThreshold.toLocaleString()}` },
             { icon: <ShieldCheck className="w-5 h-5" />, title: 'Secure Checkout', sub: 'Paystack — card & mobile money' },
             { icon: <BadgeCheck className="w-5 h-5" />, title: 'Quality Guaranteed', sub: 'Verified inventory' },
             { icon: <Search className="w-5 h-5" />, title: 'Order Tracking', sub: 'Track your purchase' },

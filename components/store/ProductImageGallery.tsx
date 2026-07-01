@@ -34,7 +34,7 @@ export default function ProductImageGallery({ product, gradientClass = 'from-sla
               key={images[activeIndex]}
               src={images[activeIndex]}
               alt={`${product.name}${hasMultiple ? ` — image ${activeIndex + 1} of ${images.length}` : ''}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain transition-opacity duration-200"
             />
             {hasMultiple && (
               <>

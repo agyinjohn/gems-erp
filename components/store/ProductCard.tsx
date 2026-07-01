@@ -8,12 +8,13 @@ interface Props {
   product: any;
   inCartQty?: number;
   showBranch?: boolean;
+  cartLoading?: boolean;
   onOpen: () => void;
   onAdd: () => void;
   onUpdateQty: (delta: number) => void;
 }
 
-export default function ProductCard({ product: p, inCartQty, showBranch, onOpen, onAdd, onUpdateQty }: Props) {
+export default function ProductCard({ product: p, inCartQty, showBranch, cartLoading, onOpen, onAdd, onUpdateQty }: Props) {
   const outOfStock = p.stock_qty <= 0;
   const lowStock = p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5);
   const multiImage = getProductImages(p).length > 1;
@@ -85,9 +86,10 @@ export default function ProductCard({ product: p, inCartQty, showBranch, onOpen,
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); onAdd(); }}
-                className="store-btn store-btn-primary store-btn-sm w-full"
+                disabled={cartLoading}
+                className="store-btn store-btn-primary store-btn-sm w-full disabled:opacity-60"
               >
-                Add to Cart
+                {cartLoading ? '…' : 'Add to Cart'}
               </button>
             )}
           </div>

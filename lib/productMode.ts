@@ -3,7 +3,7 @@ export type ProductMode = 'full' | 'pos' | 'storefront' | 'accounting';
 export const PRODUCT_MODE = (process.env.NEXT_PUBLIC_PRODUCT_MODE || 'full').toLowerCase() as ProductMode;
 
 export const PRODUCT_LABELS: Record<ProductMode, string> = {
-  full: 'GEMS ERP',
+  full: 'GEMS',
   pos: 'GEMS POS',
   storefront: 'GEMS Store',
   accounting: 'GEMS Accounting',

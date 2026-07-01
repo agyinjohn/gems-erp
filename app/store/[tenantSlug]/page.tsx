@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, ChevronDown, SlidersHorizontal, User, Tag } from 'lucide-react';
+import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, SlidersHorizontal, Tag } from 'lucide-react';
+import StoreAuthModal from '@/components/store/StoreAuthModal';
 import { publicApi } from '@/lib/api';
 import ProductCard from '@/components/store/ProductCard';
 import StoreNavbar from '@/components/store/StoreNavbar';
@@ -11,6 +12,7 @@ import MobileBottomBar from '@/components/store/MobileBottomBar';
 import ProductImageGallery from '@/components/store/ProductImageGallery';
 import ProductCardSkeleton from '@/components/store/ProductCardSkeleton';
 import OrderTrackingPanel from '@/components/store/OrderTrackingPanel';
+import LocationPickerModal from '@/components/store/LocationPickerModal';
 import { categoryGradient, categoryIconColor, formatGhs } from '@/components/store/theme';
 import {
   DEFAULT_STOREFRONT_SETTINGS,
@@ -20,13 +22,27 @@ import {
   fetchPublicStoreSettings,
   trackStoreOrder,
   type StorefrontSettings,
+  type StoreProduct,
+  type StoreTenant,
+  type StoreBranch,
+  type StoreCustomer,
+  type StoreOrder,
 } from '@/lib/storefrontSettings';
 import { useStoreProductFeed } from '@/hooks/useStoreProductFeed';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
-interface CartItem { product: any; quantity: number; branch_id: string; branch_name: string; }
+interface CartItem { product: StoreProduct; quantity: number; branch_id: string; branch_name: string; }
 
-const CART_ID_KEY = 'gems_cart_id';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateCheckoutForm(form: { customer_name: string; customer_email: string; customer_phone: string; delivery_address: string }) {
+  if (!form.customer_name.trim()) return 'Full name is required.';
+  if (!form.customer_email.trim()) return 'Email address is required.';
+  if (!EMAIL_RE.test(form.customer_email.trim())) return 'Please enter a valid email address.';
+  return null;
+}
+
+const cartIdKey = (slug: string) => `gems_cart_id_${slug}`;
 const customerTokenKey = (slug: string) => `gems_store_customer_${slug}`;
 
 const customerApi = (token: string) => {
@@ -57,21 +73,20 @@ const toCartItem = (item: any): CartItem => ({
 
 export default function TenantStorefrontPage() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
-  const [tenant, setTenant]   = useState<any>(null);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [activeBranch, setActiveBranch] = useState<any>(null); // null = all branches
+  const [tenant, setTenant]   = useState<StoreTenant | null>(null);
+  const [branches, setBranches] = useState<StoreBranch[]>([]);
+  const [activeBranch, setActiveBranch] = useState<StoreBranch | null>(null); // null = all branches
   const [showBranchMenu, setShowBranchMenu] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartId, setCartId] = useState<string>('');
-  const [cartLoading, setCartLoading] = useState(false);
+  const [cartLoadingIds, setCartLoadingIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [showCart, setShowCart] = useState(false);
   const [step, setStep] = useState<'shop'|'detail'|'checkout'|'success'|'track'|'orders'>('shop');
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(null);
   const [paying, setPaying] = useState(false);
-  const [orderId, setOrderId] = useState<number|null>(null);
   const [orderNumber, setOrderNumber] = useState('');
   const [form, setForm] = useState({ customer_name:'', customer_email:'', customer_phone:'', delivery_address:'' });
   const [error, setError] = useState('');
@@ -80,8 +95,6 @@ export default function TenantStorefrontPage() {
   const [completedTotal, setCompletedTotal] = useState(0);
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [showLocationModal, setShowLocationModal] = useState(false);
-  const [locationInput, setLocationInput] = useState('');
-  const [locationDetecting, setLocationDetecting] = useState(false);
   const [trackInput, setTrackInput] = useState('');
   const [trackResult, setTrackResult] = useState<any>(null);
   const [trackLoading, setTrackLoading] = useState(false);
@@ -91,13 +104,9 @@ export default function TenantStorefrontPage() {
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [couponMessage, setCouponMessage] = useState('');
   const [customerToken, setCustomerToken] = useState('');
-  const [storeCustomer, setStoreCustomer] = useState<any>(null);
+  const [storeCustomer, setStoreCustomer] = useState<StoreCustomer | null>(null);
   const [showAccountModal, setShowAccountModal] = useState(false);
-  const [accountMode, setAccountMode] = useState<'login'|'register'>('login');
-  const [accountForm, setAccountForm] = useState({ name: '', email: '', password: '', phone: '' });
-  const [accountError, setAccountError] = useState('');
-  const [accountLoading, setAccountLoading] = useState(false);
-  const [myOrders, setMyOrders] = useState<any[]>([]);
+  const [myOrders, setMyOrders] = useState<StoreOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [priceMax, setPriceMax] = useState<number|''>('');
   const [inStockOnly, setInStockOnly] = useState(false);
@@ -138,7 +147,7 @@ export default function TenantStorefrontPage() {
 
   useEffect(() => {
     publicApi.get('/categories', { params: { tenant_slug: tenantSlug } }).then(c => setCategories(c.data.data)).catch(() => {});
-    const savedId = localStorage.getItem(CART_ID_KEY) || '';
+    const savedId = localStorage.getItem(cartIdKey(tenantSlug)) || '';
     setCartId(savedId);
     if (savedId) {
       publicApi.get(`/storefront/cart/${savedId}`).then(r => {
@@ -160,6 +169,15 @@ export default function TenantStorefrontPage() {
     });
   }, [tenantSlug]);
 
+  // Preload Paystack script eagerly so it's ready when user clicks Pay
+  useEffect(() => {
+    if ((window as any).PaystackPop) return;
+    const s = document.createElement('script');
+    s.src = 'https://js.paystack.co/v1/inline.js';
+    s.async = true;
+    document.body.appendChild(s);
+  }, []);
+
   // Close branch menu on outside click
   useEffect(() => {
     if (!showBranchMenu) return;
@@ -171,29 +189,32 @@ export default function TenantStorefrontPage() {
   const syncCart = (data: any) => {
     if (data.cart_id) {
       setCartId(data.cart_id);
-      localStorage.setItem(CART_ID_KEY, data.cart_id);
+      localStorage.setItem(cartIdKey(tenantSlug), data.cart_id);
     }
     setCart(data.items.map(toCartItem));
   };
 
-  const addToCart = async (product: any) => {
-    setCartLoading(true);
+  const setProductLoading = (id: string, loading: boolean) =>
+    setCartLoadingIds(prev => { const s = new Set(prev); loading ? s.add(id) : s.delete(id); return s; });
+
+  const addToCart = async (product: StoreProduct, quantity = 1) => {
+    setProductLoading(product.id, true);
     try {
       const r = await publicApi.post('/storefront/cart/add', {
-        cart_id: cartId || localStorage.getItem(CART_ID_KEY) || '',
-        product_id: product.id || product._id,
-        quantity: 1,
+        cart_id: cartId || localStorage.getItem(cartIdKey(tenantSlug)) || '',
+        product_id: product.id,
+        quantity,
         tenant_id: tenant?.id,
       });
       syncCart(r.data.data);
-    } finally { setCartLoading(false); }
+    } finally { setProductLoading(product.id, false); }
   };
 
-  const updateQty = async (productId: any, delta: number) => {
+  const updateQty = async (productId: string, delta: number) => {
     const item = cart.find(i => String(i.product.id) === String(productId));
     if (!item) return;
     const newQty = item.quantity + delta;
-    setCartLoading(true);
+    setProductLoading(productId, true);
     try {
       const r = await publicApi.patch('/storefront/cart/update', {
         cart_id: cartId,
@@ -201,11 +222,11 @@ export default function TenantStorefrontPage() {
         quantity: newQty,
       });
       syncCart(r.data.data);
-    } finally { setCartLoading(false); }
+    } finally { setProductLoading(productId, false); }
   };
 
-  const removeFromCart = async (productId: any) => {
-    setCartLoading(true);
+  const removeFromCart = async (productId: string) => {
+    setProductLoading(productId, true);
     try {
       const r = await publicApi.patch('/storefront/cart/update', {
         cart_id: cartId,
@@ -213,12 +234,14 @@ export default function TenantStorefrontPage() {
         quantity: 0,
       });
       syncCart(r.data.data);
-    } finally { setCartLoading(false); }
+    } finally { setProductLoading(productId, false); }
   };
 
   const clearCart = async () => {
     if (cartId) await publicApi.delete(`/storefront/cart/${cartId}`);
     setCart([]);
+    setCartId('');
+    localStorage.removeItem(cartIdKey(tenantSlug));
   };
 
 
@@ -259,25 +282,12 @@ export default function TenantStorefrontPage() {
     }
   };
 
-  const submitAccount = async () => {
-    setAccountLoading(true); setAccountError('');
-    try {
-      const path = accountMode === 'register'
-        ? `/storefront/${tenantSlug}/customers/register`
-        : `/storefront/${tenantSlug}/customers/login`;
-      const body = accountMode === 'register'
-        ? accountForm
-        : { email: accountForm.email, password: accountForm.password };
-      const r = await publicApi.post(path, body);
-      const { token, customer } = r.data.data;
-      localStorage.setItem(customerTokenKey(tenantSlug), token);
-      setCustomerToken(token);
-      setStoreCustomer(customer);
-      setForm(f => ({ ...f, customer_name: customer.name, customer_email: customer.email, customer_phone: customer.phone || f.customer_phone }));
-      setShowAccountModal(false);
-    } catch (e: any) {
-      setAccountError(e.response?.data?.message || 'Account action failed.');
-    } finally { setAccountLoading(false); }
+  const handleAuthSuccess = (customer: StoreCustomer, token: string) => {
+    localStorage.setItem(customerTokenKey(tenantSlug), token);
+    setCustomerToken(token);
+    setStoreCustomer(customer);
+    setForm(f => ({ ...f, customer_name: customer.name, customer_email: customer.email, customer_phone: customer.phone || f.customer_phone }));
+    setShowAccountModal(false);
   };
 
   const logoutCustomer = () => {
@@ -288,7 +298,7 @@ export default function TenantStorefrontPage() {
   };
 
   const loadMyOrders = async () => {
-    if (!customerToken) { setShowAccountModal(true); setAccountMode('login'); return; }
+    if (!customerToken) { setShowAccountModal(true); return; }
     setOrdersLoading(true);
     setStep('orders');
     try {
@@ -303,55 +313,50 @@ export default function TenantStorefrontPage() {
     if (storeCustomer) {
       loadMyOrders();
     } else {
-      setAccountMode('login');
       setShowAccountModal(true);
     }
   };
 
-  const openPaystackCheckout = (payload: { orderIds: string[]; reference: string; email: string; grandTotal: number; paystackKey: string }) => {
+  const openPaystackPopup = (payload: { orderIds: string[]; reference: string; email: string; grandTotal: number; paystackKey: string }) => {
     const { orderIds, reference, email, grandTotal, paystackKey } = payload;
-    setPendingPayment(payload);
-    setVerifyError('');
-
-    const openPaystack = () => {
-      const handler = (window as any).PaystackPop.setup({
-        key: paystackKey,
-        email,
-        amount: Math.round(grandTotal * 100),
-        currency: 'GHS',
-        ref: reference,
-        onClose: () => {
-          setPaying(false);
-          setVerifyError('Payment window closed. You can retry without creating a new order.');
-        },
-        callback: async (response: any) => {
-          try {
-            await publicApi.post('/storefront/verify-payment', { reference: response.reference, order_ids: orderIds });
+    const PaystackPop = (window as any).PaystackPop;
+    if (!PaystackPop) {
+      setError('Paystack failed to load. Please refresh and try again.');
+      setPaying(false);
+      return;
+    }
+    PaystackPop.setup({
+      key: paystackKey,
+      email,
+      amount: Math.round(grandTotal * 100),
+      currency: 'GHS',
+      ref: reference,
+      onClose: () => {
+        setPaying(false);
+        setVerifyError('Payment window closed. You can retry below without creating a new order.');
+      },
+      callback: (transaction: any) => {
+        publicApi.post('/storefront/verify-payment', { reference, order_ids: orderIds })
+          .then(() => {
             setPendingPayment(null);
             setVerifyError('');
             setCompletedCart([...cart]);
             setCompletedTotal(orderTotal);
-            setCart([]);
-            setStep('success');
-          } catch (e: any) {
+            clearCart().then(() => setStep('success'));
+          })
+          .catch((e: any) => {
             setVerifyError(e.response?.data?.message || 'Payment verification failed. Your payment may still have gone through — use Retry Verify.');
-          } finally {
-            setPaying(false);
-          }
-        },
-      });
-      handler.openIframe();
-    };
+          })
+          .finally(() => setPaying(false));
+      },
+    }).openIframe();
+  };
 
-    if ((window as any).PaystackPop) {
-      openPaystack();
-    } else {
-      const script = document.createElement('script');
-      script.src = 'https://js.paystack.co/v1/inline.js';
-      script.onload = openPaystack;
-      script.onerror = () => { setError('Failed to load Paystack. Check your connection.'); setPaying(false); };
-      document.body.appendChild(script);
-    }
+  const retryPayment = () => {
+    if (!pendingPayment) return;
+    setPaying(true);
+    setVerifyError('');
+    openPaystackPopup(pendingPayment);
   };
 
   const retryPaymentVerification = async () => {
@@ -366,7 +371,7 @@ export default function TenantStorefrontPage() {
       setPendingPayment(null);
       setCompletedCart([...cart]);
       setCompletedTotal(orderTotal);
-      setCart([]);
+      await clearCart();
       setStep('success');
     } catch (e: any) {
       setVerifyError(e.response?.data?.message || 'Verification still failed. Contact support with your payment reference.');
@@ -381,7 +386,8 @@ export default function TenantStorefrontPage() {
       setError(`Minimum order amount is ${formatGhs(storeSettings.min_order_amount)}.`);
       return;
     }
-    if (!form.customer_name || !form.customer_email) { setError('Name and email are required.'); return; }
+    const validationError = validateCheckoutForm(form);
+    if (validationError) { setError(validationError); return; }
     if (cart.length === 0) { setError('Your cart is empty.'); return; }
     setPaying(true); setError(''); setVerifyError('');
     try {
@@ -401,7 +407,9 @@ export default function TenantStorefrontPage() {
       const orderIds = orders.map((o: any) => o.order_id);
       const orderNums = orders.map((o: any) => o.order_number);
       setOrderNumber(orderNums.join(', '));
-      openPaystackCheckout({ orderIds, reference, email, grandTotal: grand_total, paystackKey: paystack_public_key });
+      const payload = { orderIds, reference, email, grandTotal: grand_total, paystackKey: paystack_public_key };
+      setPendingPayment(payload);
+      openPaystackPopup(payload);
     } catch (e: any) {
       setError(e.response?.data?.message || 'Checkout error. Please try again.');
       setPaying(false);
@@ -470,7 +478,8 @@ export default function TenantStorefrontPage() {
                     <div key={i.product.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
                       <div className="w-11 h-11 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 ring-1 ring-gray-100">
                         {i.product.images?.[0] ? (
-                          <img src={i.product.images[0]} alt={i.product.name} className="w-full h-full object-cover" />
+                          <img src={i.product.images[0]} alt={i.product.name} className="w-full h-full object-cover"
+                            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                         ) : <Package className="w-5 h-5 text-gray-300 m-auto mt-3" />}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -492,7 +501,7 @@ export default function TenantStorefrontPage() {
               <Truck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div>
                 <div className="text-sm font-semibold text-blue-800">Estimated Delivery</div>
-                <div className="text-xs text-blue-600 mt-0.5">3 – 5 business days after payment confirmation</div>
+                <div className="text-xs text-blue-600 mt-0.5">{storeSettings.delivery_estimate || '3 – 5 business days'} after payment confirmation</div>
                 {form.delivery_address && <div className="text-xs text-blue-500 mt-1">To: {form.delivery_address}</div>}
               </div>
             </div>
@@ -539,7 +548,7 @@ export default function TenantStorefrontPage() {
         onResetPage={resetPage}
         onGoHome={() => setStep('shop')}
         onOpenCart={() => setShowCart(true)}
-        onOpenLocation={() => { setLocationInput(deliveryLocation); setShowLocationModal(true); }}
+        onOpenLocation={() => setShowLocationModal(true)}
         onToggleBranchMenu={() => setShowBranchMenu(b => !b)}
         onSelectBranch={b => { setActiveBranch(b); setShowBranchMenu(false); }}
         onOpenMobileFilters={() => setShowMobileFilters(true)}
@@ -666,6 +675,7 @@ export default function TenantStorefrontPage() {
                         inCartQty={inCart?.quantity}
                         showBranch={!activeBranch}
                         onOpen={() => { setSelectedProduct(p); setStep('detail'); }}
+                        cartLoading={cartLoadingIds.has(p.id)}
                         onAdd={() => addToCart(p)}
                         onUpdateQty={delta => updateQty(p.id, delta)}
                       />
@@ -706,8 +716,8 @@ export default function TenantStorefrontPage() {
               <span className="text-gray-800 font-medium truncate max-w-[200px] sm:max-w-xs">{selectedProduct.name}</span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              <div className="lg:col-span-3">
                 <ProductImageGallery
                   key={selectedProduct.id}
                   product={selectedProduct}
@@ -715,38 +725,39 @@ export default function TenantStorefrontPage() {
                 />
               </div>
 
-              <div className="lg:col-span-1 store-filter-panel p-6">
-                <div className="text-[10px] text-[#1A5294] font-bold uppercase tracking-widest mb-2">{selectedProduct.category_name || 'General'}</div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug mb-4">{selectedProduct.name}</h1>
-                <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-gray-100">
-                  {selectedProduct.stock_qty > 0 ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full ring-1 ring-emerald-100">
-                      <BadgeCheck className="w-3.5 h-3.5" /> In stock · {selectedProduct.stock_qty} available
-                    </span>
-                  ) : (
-                    <span className="inline-flex text-xs font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded-full ring-1 ring-red-100">Out of stock</span>
-                  )}
-                  <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#0D3B6E]" /> Secure checkout
-                  </span>
-                </div>
-                <div className="mb-4">
-                  <div className="text-3xl font-extrabold text-gray-900 tracking-tight">{formatGhs(parseFloat(selectedProduct.price))}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">Inclusive of all taxes</div>
-                </div>
-                <div className="text-sm text-gray-600 leading-relaxed mb-4 pb-4 border-b border-gray-100">
-                  {selectedProduct.description || 'Quality product from our verified catalog. All items are sourced from trusted suppliers.'}
-                </div>
-                <div className="text-xs text-gray-400">SKU: <span className="font-mono text-gray-600">{selectedProduct.sku || '—'}</span></div>
-              </div>
+              <div className="lg:col-span-2">
+                <div className="store-filter-panel p-6 sticky top-24 space-y-5">
+                  <div>
+                    <div className="text-[10px] text-[#1A5294] font-bold uppercase tracking-widest mb-1.5">{selectedProduct.category_name || 'General'}</div>
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug mb-3">{selectedProduct.name}</h1>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {selectedProduct.stock_qty > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full ring-1 ring-emerald-100">
+                          <BadgeCheck className="w-3.5 h-3.5" /> In stock · {selectedProduct.stock_qty} available
+                        </span>
+                      ) : (
+                        <span className="inline-flex text-xs font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded-full ring-1 ring-red-100">Out of stock</span>
+                      )}
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#0D3B6E]" /> Secure checkout
+                      </span>
+                    </div>
+                  </div>
 
-              <div className="lg:col-span-1">
-                <div className="store-filter-panel p-6 sticky top-24">
-                  <div className="text-2xl font-extrabold text-gray-900 mb-1">{formatGhs(parseFloat(selectedProduct.price))}</div>
-                  <div className="text-xs text-gray-400 mb-4">Free delivery on orders over {formatGhs(storeSettings.free_delivery_threshold)}</div>
+                  <div className="border-t border-gray-100 pt-4">
+                    <div className="text-3xl font-extrabold text-gray-900 tracking-tight">{formatGhs(parseFloat(selectedProduct.price))}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">Inclusive of all taxes</div>
+                  </div>
+
+                  <div className="text-sm text-gray-600 leading-relaxed">
+                    {selectedProduct.description || 'Quality product from our verified catalog. All items are sourced from trusted suppliers.'}
+                  </div>
+
+                  <div className="text-xs text-gray-400 pb-1 border-b border-gray-100">SKU: <span className="font-mono text-gray-600">{selectedProduct.sku || '—'}</span></div>
+
                   {selectedProduct.stock_qty > 0 ? (
                     <>
-                      <div className="bg-slate-50 rounded-xl p-3 mb-4 space-y-2 ring-1 ring-slate-100">
+                      <div className="bg-slate-50 rounded-xl p-3 space-y-2 ring-1 ring-slate-100">
                         <div className="flex items-center gap-2 text-sm text-gray-700">
                           <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                           <span><strong>Free delivery</strong> on orders over {formatGhs(storeSettings.free_delivery_threshold)}</span>
@@ -757,7 +768,7 @@ export default function TenantStorefrontPage() {
                         </div>
                       </div>
                       {!inCart ? (
-                        <div className="mb-4">
+                        <div>
                           <label className="text-xs font-semibold text-gray-600 mb-2 block">Quantity</label>
                           <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2 w-fit ring-1 ring-slate-100">
                             <button type="button" onClick={() => setDetailQty(q => Math.max(1, q - 1))} className="store-qty-btn">
@@ -770,7 +781,7 @@ export default function TenantStorefrontPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="mb-4">
+                        <div>
                           <label className="text-xs font-semibold text-gray-600 mb-2 block">In Cart</label>
                           <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2 w-fit ring-1 ring-slate-100">
                             <button type="button" onClick={() => updateQty(selectedProduct.id, -1)} className="store-qty-btn">
@@ -784,17 +795,17 @@ export default function TenantStorefrontPage() {
                         </div>
                       )}
                       {!inCart ? (
-                        <button type="button" onClick={() => { for (let i = 0; i < detailQty; i++) addToCart(selectedProduct); setDetailQty(1); }} className="store-btn store-btn-primary w-full mb-3">
+                        <button type="button" onClick={() => { addToCart(selectedProduct, detailQty); setDetailQty(1); }} className="store-btn store-btn-primary w-full">
                           Add to Cart
                         </button>
                       ) : (
-                        <button type="button" onClick={() => setShowCart(true)} className="store-btn store-btn-primary w-full mb-3">
+                        <button type="button" onClick={() => setShowCart(true)} className="store-btn store-btn-primary w-full">
                           View Cart ({inCart.quantity} item{inCart.quantity !== 1 ? 's' : ''})
                         </button>
                       )}
                       <button
                         type="button"
-                        onClick={() => { if (!inCart) { for (let i = 0; i < detailQty; i++) addToCart(selectedProduct); } setStep('checkout'); if (deliveryLocation) setForm(f => ({ ...f, delivery_address: f.delivery_address || deliveryLocation })); }}
+                        onClick={() => { if (!inCart) { addToCart(selectedProduct, detailQty); } setStep('checkout'); if (deliveryLocation) setForm(f => ({ ...f, delivery_address: f.delivery_address || deliveryLocation })); }}
                         className="store-btn w-full bg-amber-400 hover:bg-amber-300 text-gray-900 shadow-md shadow-amber-900/10"
                       >
                         Buy Now
@@ -858,9 +869,15 @@ export default function TenantStorefrontPage() {
                   <div className="bg-amber-50 text-amber-900 px-3 py-3 rounded-xl text-sm mb-4 ring-1 ring-amber-100 space-y-2">
                     <p>{verifyError}</p>
                     {pendingPayment && (
-                      <button type="button" onClick={retryPaymentVerification} disabled={paying} className="text-sm font-semibold text-[#0D3B6E] hover:underline">
-                        {paying ? 'Verifying…' : 'Retry payment verification'}
-                      </button>
+                      <div className="flex gap-3">
+                        <button type="button" onClick={retryPayment} disabled={paying} className="text-sm font-semibold text-[#0D3B6E] hover:underline">
+                          {paying ? 'Opening…' : 'Complete payment'}
+                        </button>
+                        <span className="text-amber-300">·</span>
+                        <button type="button" onClick={retryPaymentVerification} disabled={paying} className="text-sm text-gray-600 hover:underline">
+                          Already paid? Verify
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -875,7 +892,7 @@ export default function TenantStorefrontPage() {
                   </div>
                   <div>
                     <label className="form-label">Phone Number</label>
-                    <input className="form-input" placeholder="+233 XX XXX XXXX" value={form.customer_phone} onChange={e => setForm({...form, customer_phone: e.target.value})} />
+                    <input className="form-input" placeholder={storeSettings.phone_placeholder || 'Phone number'} value={form.customer_phone} onChange={e => setForm({...form, customer_phone: e.target.value})} />
                   </div>
                   <div className="sm:col-span-2">
                     <label className="form-label">Delivery Address</label>
@@ -904,16 +921,16 @@ export default function TenantStorefrontPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={initiateCheckout}
+                  onClick={pendingPayment ? retryPayment : initiateCheckout}
                   disabled={paying}
                   className="store-btn w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-60 text-gray-900 py-3.5 flex items-center justify-center gap-2 shadow-md shadow-amber-900/10"
                 >
                   <Lock className="w-4 h-4" />
-                  {paying ? 'Processing…' : `Pay ${formatGhs(orderTotal)} with Paystack`}
+                  {paying ? 'Processing…' : pendingPayment ? `Complete Payment — ${formatGhs(pendingPayment.grandTotal)}` : `Pay ${formatGhs(orderTotal)} with Paystack`}
                 </button>
                 {pendingPayment && !paying && (
                   <button type="button" onClick={retryPaymentVerification} className="w-full mt-2 text-sm font-semibold text-[#0D3B6E] hover:underline">
-                    Retry verify payment
+                    Already paid? Click to verify
                   </button>
                 )}
                 <p className="text-[10px] text-gray-400 text-center mt-2">You will be redirected to Paystack to complete payment securely</p>
@@ -929,7 +946,8 @@ export default function TenantStorefrontPage() {
                       <div className="relative flex-shrink-0">
                         <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-50 ring-1 ring-gray-100">
                           {i.product.images?.[0] ? (
-                            <img src={i.product.images[0]} alt={i.product.name} className="w-full h-full object-cover" />
+                            <img src={i.product.images[0]} alt={i.product.name} className="w-full h-full object-cover"
+                              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           ) : <Package className="w-5 h-5 text-gray-300 m-auto mt-3" />}
                         </div>
                         <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#0D3B6E] text-white text-[9px] font-bold rounded-full flex items-center justify-center">{i.quantity}</span>
@@ -1021,6 +1039,7 @@ export default function TenantStorefrontPage() {
         <StoreFooter
           businessName={tenant?.business_name}
           categories={categories}
+          freeDeliveryThreshold={storeSettings.free_delivery_threshold}
           onCategorySelect={name => { setFilterCat(name); setStep('shop'); resetPage(); }}
           onTrackOrder={() => { setTrackInput(''); setTrackResult(null); setTrackError(''); setStep('track'); }}
         />
@@ -1028,116 +1047,15 @@ export default function TenantStorefrontPage() {
 
       {/* Location Modal */}
       {showLocationModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLocationModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-
-            {/* Header */}
-            <div className="bg-[#0D3B6E] px-6 py-5 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <MapPin className="w-5 h-5 text-yellow-400" />
-                <h2 className="font-bold text-white text-base">Set Delivery Location</h2>
-              </div>
-              <button onClick={() => setShowLocationModal(false)} className="text-white/60 hover:text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-gray-500">Your location helps us show delivery availability and pre-fills your checkout address.</p>
-
-              {/* Detect button */}
-              <button
-                onClick={() => {
-                  if (!navigator.geolocation) return;
-                  setLocationDetecting(true);
-                  navigator.geolocation.getCurrentPosition(
-                    async pos => {
-                      try {
-                        const { latitude, longitude } = pos.coords;
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-                        const data = await res.json();
-                        const addr = data.address;
-                        const label = [addr.suburb || addr.neighbourhood, addr.city || addr.town || addr.village, addr.country].filter(Boolean).join(', ');
-                        setLocationInput(label);
-                      } catch { setLocationInput(''); }
-                      finally { setLocationDetecting(false); }
-                    },
-                    () => setLocationDetecting(false)
-                  );
-                }}
-                disabled={locationDetecting}
-                className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-[#0D3B6E]/30 hover:border-[#0D3B6E] text-[#0D3B6E] font-semibold text-sm py-3 rounded-xl transition-all disabled:opacity-50"
-              >
-                <MapPin className="w-4 h-4" />
-                {locationDetecting ? 'Detecting…' : 'Use my current location'}
-              </button>
-
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-400">or enter manually</span>
-                <div className="flex-1 h-px bg-gray-200" />
-              </div>
-
-              {/* Manual input */}
-              <input
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0D3B6E] transition-colors"
-                placeholder="e.g. East Legon, Accra"
-                value={locationInput}
-                onChange={e => setLocationInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && locationInput.trim()) {
-                    setDeliveryLocation(locationInput.trim());
-                    setShowLocationModal(false);
-                  }
-                }}
-              />
-
-              {/* Quick picks */}
-              <div>
-                <p className="text-xs text-gray-400 mb-2">Popular areas</p>
-                <div className="flex flex-wrap gap-2">
-                  {['East Legon', 'Osu', 'Tema', 'Kumasi', 'Takoradi', 'Tamale'].map(area => (
-                    <button
-                      key={area}
-                      onClick={() => setLocationInput(area + ', Ghana')}
-                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                        locationInput === area + ', Ghana'
-                          ? 'bg-[#0D3B6E] text-white border-[#0D3B6E]'
-                          : 'border-gray-200 text-gray-600 hover:border-[#0D3B6E] hover:text-[#0D3B6E]'
-                      }`}
-                    >
-                      {area}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-1">
-                {deliveryLocation && (
-                  <button
-                    onClick={() => { setDeliveryLocation(''); setLocationInput(''); setShowLocationModal(false); }}
-                    className="flex-1 border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium text-sm py-3 rounded-xl transition-colors"
-                  >
-                    Clear
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    if (locationInput.trim()) {
-                      setDeliveryLocation(locationInput.trim());
-                      setForm(f => ({ ...f, delivery_address: locationInput.trim() }));
-                    }
-                    setShowLocationModal(false);
-                  }}
-                  className="flex-1 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold text-sm py-3 rounded-xl transition-colors"
-                >
-                  Confirm Location
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <LocationPickerModal
+          initial={deliveryLocation}
+          onConfirm={(addr) => {
+            setDeliveryLocation(addr);
+            if (addr) setForm(f => ({ ...f, delivery_address: f.delivery_address || addr }));
+            setShowLocationModal(false);
+          }}
+          onClose={() => setShowLocationModal(false)}
+        />
       )}
 
       {/* Mobile filter sheet */}
@@ -1238,7 +1156,8 @@ export default function TenantStorefrontPage() {
                       <div key={i.product.id} className="flex items-start gap-3 bg-white rounded-2xl p-3 border border-gray-100 mb-2 shadow-sm">
                         <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-slate-50 ring-1 ring-gray-100">
                           {i.product.images?.[0] ? (
-                            <img src={i.product.images[0]} alt={i.product.name} className="w-full h-full object-cover" />
+                            <img src={i.product.images[0]} alt={i.product.name} className="w-full h-full object-cover"
+                              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center"><Package className="w-5 h-5 text-gray-300"/></div>
                           )}
@@ -1307,73 +1226,96 @@ export default function TenantStorefrontPage() {
         </div>
       )}
 
+      {/* ── Account Panel (slide-in drawer) ── */}
       {step === 'orders' && (
-        <div className="max-w-2xl mx-auto px-4 py-8 pb-24">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">My Orders</h1>
-              <p className="text-sm text-gray-500">{storeCustomer?.email}</p>
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setStep('shop')} />
+          <div className="relative bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
+            {/* Header */}
+            <div className="store-nav-bar flex items-center justify-between px-5 py-4 flex-shrink-0">
+              <div className="flex items-center gap-3 text-white">
+                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm">
+                  {storeCustomer?.name?.[0]?.toUpperCase() || '?'}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm leading-tight">{storeCustomer?.name}</p>
+                  <p className="text-white/60 text-xs">{storeCustomer?.email}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setStep('shop')} className="text-white/70 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="flex gap-2">
-              <button type="button" className="btn-secondary text-xs" onClick={() => setStep('shop')}>Back to shop</button>
-              <button type="button" className="btn-secondary text-xs" onClick={logoutCustomer}>Sign out</button>
+
+            {/* Orders list */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <h2 className="font-bold text-gray-900 mb-4">My Orders</h2>
+              {ordersLoading ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-500 py-12">
+                  <svg className="animate-spin w-4 h-4 text-[#0D3B6E]" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Loading orders…
+                </div>
+              ) : myOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <ShoppingCart className="w-12 h-12 mb-3 opacity-30" />
+                  <p className="text-sm font-medium">No orders yet</p>
+                  <p className="text-xs mt-1">Your orders will appear here</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {myOrders.map(o => (
+                    <div key={o._id || o.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <p className="font-mono font-semibold text-[#0D3B6E] text-sm">{o.order_number}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {new Date(o.createdAt || o.created_at || '').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-sm">{formatGhs(o.total)}</p>
+                          <p className="text-xs capitalize text-gray-400 mt-0.5">{o.status} · {o.payment_status}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer actions */}
+            <div className="p-4 border-t border-gray-100 flex-shrink-0 space-y-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <button
+                type="button"
+                onClick={() => { setStep('shop'); setShowCart(false); }}
+                className="store-btn store-btn-primary w-full py-3"
+              >
+                Continue Shopping
+              </button>
+              <button
+                type="button"
+                onClick={() => { logoutCustomer(); setStep('shop'); }}
+                className="w-full text-sm text-red-500 hover:text-red-700 font-medium py-2 transition-colors"
+              >
+                Sign out
+              </button>
             </div>
           </div>
-          {ordersLoading ? (
-            <p className="text-sm text-gray-500">Loading orders…</p>
-          ) : myOrders.length === 0 ? (
-            <p className="text-sm text-gray-500">No orders yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {myOrders.map(o => (
-                <div key={o._id || o.id} className="store-filter-panel p-4">
-                  <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <p className="font-mono font-semibold text-[#0D3B6E]">{o.order_number}</p>
-                      <p className="text-xs text-gray-500 mt-1">{new Date(o.createdAt).toLocaleDateString()}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold">{formatGhs(o.total)}</p>
-                      <p className="text-xs capitalize text-gray-500">{o.status} · {o.payment_status}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
       {showAccountModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowAccountModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-lg flex items-center gap-2"><User className="w-5 h-5" /> {accountMode === 'login' ? 'Sign in' : 'Create account'}</h2>
-              <button type="button" onClick={() => setShowAccountModal(false)}><X className="w-5 h-5 text-gray-400" /></button>
-            </div>
-            {accountError && <p className="text-sm text-red-600 mb-3">{accountError}</p>}
-            <div className="space-y-3">
-              {accountMode === 'register' && (
-                <>
-                  <input className="form-input" placeholder="Full name" value={accountForm.name} onChange={e => setAccountForm({ ...accountForm, name: e.target.value })} />
-                  <input className="form-input" placeholder="Phone (optional)" value={accountForm.phone} onChange={e => setAccountForm({ ...accountForm, phone: e.target.value })} />
-                </>
-              )}
-              <input type="email" className="form-input" placeholder="Email" value={accountForm.email} onChange={e => setAccountForm({ ...accountForm, email: e.target.value })} />
-              <input type="password" className="form-input" placeholder="Password" value={accountForm.password} onChange={e => setAccountForm({ ...accountForm, password: e.target.value })} />
-              <button type="button" className="store-btn store-btn-primary w-full py-3" onClick={submitAccount} disabled={accountLoading}>
-                {accountLoading ? 'Please wait…' : accountMode === 'login' ? 'Sign in' : 'Register'}
-              </button>
-              <button type="button" className="w-full text-sm text-[#0D3B6E]" onClick={() => setAccountMode(accountMode === 'login' ? 'register' : 'login')}>
-                {accountMode === 'login' ? 'Need an account? Register' : 'Already have an account? Sign in'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <StoreAuthModal
+          tenantSlug={tenantSlug}
+          onSuccess={handleAuthSuccess}
+          onClose={() => setShowAccountModal(false)}
+        />
       )}
 
-      {(step === 'shop' || step === 'detail' || step === 'track') && (
+      {(step === 'shop' || step === 'detail' || step === 'track' || step === 'orders') && (
         <MobileBottomBar
           cartCount={cartCount}
           filterCount={activeFilterCount}

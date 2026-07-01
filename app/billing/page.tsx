@@ -10,7 +10,7 @@ const DEFAULT_PLANS = [
   {
     key:       'starter',
     label:     'Starter',
-    price:     29,
+    price:     350,
     color:     'border-blue-200 bg-blue-50',
     badge:     'bg-blue-100 text-blue-700',
     highlight: 'text-blue-600',
@@ -19,7 +19,7 @@ const DEFAULT_PLANS = [
   {
     key:       'pro',
     label:     'Pro',
-    price:     79,
+    price:     850,
     color:     'border-purple-200 bg-purple-50',
     badge:     'bg-purple-100 text-purple-700',
     highlight: 'text-purple-600',
@@ -29,13 +29,31 @@ const DEFAULT_PLANS = [
   {
     key:       'enterprise',
     label:     'Enterprise',
-    price:     199,
+    price:     2000,
     color:     'border-orange-200 bg-orange-50',
     badge:     'bg-orange-100 text-orange-700',
     highlight: 'text-orange-600',
     features:  ['Unlimited Branches', 'Unlimited Users', 'All modules', 'Storefront', 'POS', 'Dedicated support'],
   },
 ];
+
+const MODULE_PRICES: Record<string, { label: string; price: number; desc: string }> = {
+  pos:         { label: 'POS Terminal',  price: 80,  desc: 'Point-of-sale & receipts' },
+  storefront:  { label: 'Online Store',  price: 60,  desc: 'Public storefront & checkout' },
+  inventory:   { label: 'Inventory',     price: 50,  desc: 'Stock & warehouse management' },
+  crm:         { label: 'CRM',           price: 50,  desc: 'Customers & leads' },
+  accounting:  { label: 'Accounting',    price: 80,  desc: 'Ledger, invoices & reports' },
+  hr:          { label: 'HR & Payroll',  price: 80,  desc: 'Staff, attendance & payroll' },
+  procurement: { label: 'Procurement',   price: 60,  desc: 'Purchase orders & suppliers' },
+  reports:     { label: 'Reports',       price: 40,  desc: 'Analytics & exports' },
+};
+
+const ADDON_PRICES: Record<string, { label: string; price: number; desc: string }> = {
+  extra_branch:     { label: 'Extra Branch',    price: 40, desc: '+1 branch location' },
+  extra_users:      { label: '+10 Users',        price: 30, desc: 'Expand user seats by 10' },
+  api_access:       { label: 'API Access',       price: 50, desc: 'REST API & webhooks' },
+  priority_support: { label: 'Priority Support', price: 60, desc: 'Dedicated support channel' },
+};
 
 const DURATIONS = [
   { days: 30,  label: '1 Month',  discount: 0 },
@@ -62,6 +80,20 @@ export default function BillingPage() {
   const [selectedDuration, setSelectedDuration] = useState(30);
   const [paying, setPaying]              = useState(false);
   const [cardSaving, setCardSaving]      = useState(false);
+  const [billingTab, setBillingTab]      = useState<'plans' | 'custom'>('plans');
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [selectedAddons, setSelectedAddons]   = useState<string[]>([]);
+  const [customDuration, setCustomDuration]   = useState(30);
+  const [customPaying, setCustomPaying]       = useState(false);
+
+  // Preload Paystack script on mount
+  useEffect(() => {
+    if (document.querySelector('script[src*="paystack"]')) return;
+    const s = document.createElement('script');
+    s.src = 'https://js.paystack.co/v1/inline.js';
+    s.async = true;
+    document.body.appendChild(s);
+  }, []);
 
   // Auto-save card after Paystack redirect back with ?card_saved=true&reference=xxx
   useEffect(() => {
@@ -110,40 +142,64 @@ export default function BillingPage() {
     return ((base * (days / 30)) * (1 - disc / 100)).toFixed(2);
   };
 
+  const openPaystack = (amount: number, email: string, reference: string, pubKey: string, transaction_id: string) => {
+    const handler = (window as any).PaystackPop.setup({
+      key:      pubKey || 'pk_test_demo',
+      email,
+      amount:   Math.round(amount * 100),
+      currency: 'GHS',
+      channels: ['card'],
+      ref:      reference,
+      onClose:  () => { setPaying(false); setCustomPaying(false); },
+      callback: (response: any) => {
+        api.post('/billing/verify', { reference: response.reference, transaction_id })
+          .then(() => { toast.success('Payment successful! Subscription activated.'); load(); })
+          .catch(() => toast.error('Payment verification failed. Contact support.'))
+          .finally(() => { setPaying(false); setCustomPaying(false); });
+      },
+    });
+    handler.openIframe();
+  };
+
   const handlePay = async () => {
     if (!selectedPlan) return;
     setPaying(true);
     try {
       const r = await api.post('/billing/subscribe', { plan: selectedPlan, duration_days: selectedDuration });
       const { transaction_id, amount, email, paystack_public_key, reference } = r.data.data;
-
-      const script = document.createElement('script');
-      script.src = 'https://js.paystack.co/v1/inline.js';
-      script.onload = () => {
-        const handler = (window as any).PaystackPop.setup({
-          key:      paystack_public_key || 'pk_test_demo',
-          email,
-          amount:   Math.round(parseFloat(amount) * 100),
-          currency: 'GHS',
-          ref:      reference,
-          onClose:  () => setPaying(false),
-          callback: async (response: any) => {
-            try {
-              await api.post('/billing/verify', { reference: response.reference, transaction_id });
-              toast.success('Payment successful! Subscription activated.');
-              load();
-            } catch { toast.error('Payment verification failed. Contact support.'); }
-            finally { setPaying(false); }
-          },
-        });
-        handler.openIframe();
-      };
-      document.body.appendChild(script);
+      openPaystack(amount, email, reference, paystack_public_key, transaction_id);
     } catch(e: any) {
       toast.error(e.response?.data?.message || 'Failed to initiate payment');
       setPaying(false);
     }
   };
+
+  const handleCustomPay = async () => {
+    if (!selectedModules.length) { toast.error('Select at least one module.'); return; }
+    setCustomPaying(true);
+    try {
+      const r = await api.post('/billing/subscribe', {
+        subscription_type: 'custom',
+        modules: selectedModules,
+        addons:  selectedAddons,
+        duration_days: customDuration,
+      });
+      const { transaction_id, amount, email, paystack_public_key, reference } = r.data.data;
+      openPaystack(amount, email, reference, paystack_public_key, transaction_id);
+    } catch(e: any) {
+      toast.error(e.response?.data?.message || 'Failed to initiate payment');
+      setCustomPaying(false);
+    }
+  };
+
+  const customTotal = (modules: string[], addons: string[], days: number) => {
+    const base = modules.reduce((s, m) => s + (MODULE_PRICES[m]?.price || 0), 0)
+               + addons.reduce((s, a)  => s + (ADDON_PRICES[a]?.price  || 0), 0);
+    return (base * (days / 30)).toFixed(2);
+  };
+
+  const toggleItem = <T extends string>(list: T[], item: T, set: (v: T[]) => void) =>
+    set(list.includes(item) ? list.filter(x => x !== item) : [...list, item]);
 
   if (loading) return (
     <AppLayout title="Billing" subtitle="Manage your subscription" allowedRoles={['business_owner']}>
@@ -189,7 +245,7 @@ export default function BillingPage() {
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="text-xs text-gray-400 mb-1">Current Plan</div>
                 <div className="font-bold text-gray-900 capitalize text-lg">{status?.plan}</div>
-                <div className="text-xs text-gray-400">${status?.plan_price}/mo</div>
+                <div className="text-xs text-gray-400">GHS {status?.plan_price}/mo</div>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="text-xs text-gray-400 mb-1">Expires</div>
@@ -225,59 +281,6 @@ export default function BillingPage() {
               </div>
             )}
 
-            {/* Saved card + auto-renew status */}
-            <div className="mt-5 pt-5 border-t border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {card ? (
-                  <>
-                    <div className="w-10 h-7 bg-gray-800 rounded flex items-center justify-center">
-                      <CreditCard className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-gray-800 capitalize">{card.card_type} •••• {card.last4}</div>
-                      <div className="text-xs text-gray-400">{card.bank} · Expires {card.exp_month}/{card.exp_year}</div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-sm text-orange-600 font-medium flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" /> No card saved — add one to enable auto-renewal
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                {!card && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const r = await api.post('/billing/authorize-card');
-                        window.location.href = r.data.data.authorization_url;
-                      } catch(e: any) { toast.error(e.response?.data?.message || 'Failed'); }
-                    }}
-                    className="text-xs font-bold text-[#0D3B6E] hover:underline"
-                  >
-                    + Add Card
-                  </button>
-                )}
-                {status?.auto_renew && card && (
-                  <button
-                    onClick={async () => {
-                      if (!confirm('Cancel auto-renewal? Your subscription will expire at the end of the current period.')) return;
-                      try {
-                        await api.post('/billing/cancel');
-                        toast.success('Auto-renewal cancelled.');
-                        load();
-                      } catch(e: any) { toast.error(e.response?.data?.message || 'Failed'); }
-                    }}
-                    className="text-xs text-red-500 hover:underline font-medium"
-                  >
-                    Cancel Auto-Renewal
-                  </button>
-                )}
-                {!status?.auto_renew && (
-                  <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Auto-renewal off</span>
-                )}
-              </div>
-            </div>
             {daysLeft !== null && daysLeft <= 7 && daysLeft > 0 && (
               <div className="mt-4 flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-sm text-orange-700">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
@@ -291,7 +294,7 @@ export default function BillingPage() {
               </div>
             )}
 
-            {/* Saved card + auto-renew */}
+            {/* Card + actions */}
             <div className="mt-5 pt-5 border-t border-gray-100 flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 {card ? (
@@ -310,7 +313,7 @@ export default function BillingPage() {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {!card && (
                   <button
                     onClick={async () => {
@@ -327,20 +330,32 @@ export default function BillingPage() {
                 {status?.auto_renew && card && (
                   <button
                     onClick={async () => {
-                      if (!confirm('Cancel auto-renewal? Your subscription will expire at the end of the current period.')) return;
-                      try {
-                        await api.post('/billing/cancel');
-                        toast.success('Auto-renewal cancelled.');
-                        load();
-                      } catch(e: any) { toast.error(e.response?.data?.message || 'Failed'); }
+                      if (!confirm('Turn off auto-renewal? Your subscription will stay active until it expires, then stop.')) return;
+                      try { await api.post('/billing/cancel'); toast.success('Auto-renewal cancelled.'); load(); }
+                      catch(e: any) { toast.error(e.response?.data?.message || 'Failed'); }
                     }}
-                    className="text-xs text-red-500 hover:underline font-medium"
+                    className="text-xs text-gray-500 hover:underline font-medium"
                   >
-                    Cancel Auto-Renewal
+                    Turn off auto-renewal
                   </button>
                 )}
                 {!status?.auto_renew && (
                   <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Auto-renewal off</span>
+                )}
+                {status?.subscription_status === 'active' && (
+                  <button
+                    onClick={async () => {
+                      if (!confirm('Cancel your subscription? Access will be revoked immediately and cannot be undone.')) return;
+                      try {
+                        await api.post('/billing/cancel');
+                        toast.success('Subscription cancelled.');
+                        load();
+                      } catch(e: any) { toast.error(e.response?.data?.message || 'Failed'); }
+                    }}
+                    className="text-xs font-bold text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    Cancel Subscription
+                  </button>
                 )}
               </div>
             </div>
@@ -361,7 +376,7 @@ export default function BillingPage() {
               <div className={`bg-gradient-to-br ${next.gradient} rounded-xl p-5 text-white`}>
                 <Zap className="w-6 h-6 text-yellow-400 mb-3" />
                 <h3 className="font-bold text-lg mb-1">Upgrade to {next.label}</h3>
-                <p className="text-white/70 text-sm mb-4">Get {next.features} for just ${next.price}/month.</p>
+                <p className="text-white/70 text-sm mb-4">Get {next.features} for just GHS {next.price}/month.</p>
                 <button
                   onClick={() => { setSelectedPlan(next.key); setSelectedDuration(30); }}
                   className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-sm px-4 py-2 rounded-lg transition-colors"
@@ -378,8 +393,124 @@ export default function BillingPage() {
 
       {/* Plan selection — full width */}
       <div className="bg-white rounded-xl border border-gray-100 p-6 mt-6">
-        <h2 className="font-bold text-gray-900 mb-1">Choose a Plan</h2>
-        <p className="text-sm text-gray-400 mb-5">Select a plan to renew or upgrade your subscription.</p>
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="font-bold text-gray-900">Choose a Plan</h2>
+            <p className="text-sm text-gray-400 mt-0.5">Select a plan to renew or upgrade your subscription.</p>
+          </div>
+          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setBillingTab('plans')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                billingTab === 'plans' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >Standard Plans</button>
+            <button
+              onClick={() => setBillingTab('custom')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                billingTab === 'custom' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >Custom</button>
+          </div>
+        </div>
+
+        {billingTab === 'custom' ? (
+          <div className="space-y-6">
+            {/* Module picker */}
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-3">Pick your modules <span className="text-gray-400 font-normal">(GHS/mo each)</span></p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Object.entries(MODULE_PRICES).map(([key, m]) => {
+                  const on = selectedModules.includes(key);
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => toggleItem(selectedModules, key, setSelectedModules)}
+                      className={`rounded-xl border-2 p-4 text-left transition-all ${
+                        on ? 'border-[#0D3B6E] bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`text-sm font-bold mb-0.5 ${on ? 'text-[#0D3B6E]' : 'text-gray-800'}`}>{m.label}</div>
+                      <div className="text-xs text-gray-400 mb-2">{m.desc}</div>
+                      <div className={`text-base font-extrabold ${on ? 'text-[#0D3B6E]' : 'text-gray-700'}`}>GHS {m.price}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Addons */}
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-3">Add-ons <span className="text-gray-400 font-normal">(optional)</span></p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Object.entries(ADDON_PRICES).map(([key, a]) => {
+                  const on = selectedAddons.includes(key);
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => toggleItem(selectedAddons, key, setSelectedAddons)}
+                      className={`rounded-xl border-2 p-4 text-left transition-all ${
+                        on ? 'border-purple-500 bg-purple-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`text-sm font-bold mb-0.5 ${on ? 'text-purple-700' : 'text-gray-800'}`}>{a.label}</div>
+                      <div className="text-xs text-gray-400 mb-2">{a.desc}</div>
+                      <div className={`text-base font-extrabold ${on ? 'text-purple-700' : 'text-gray-700'}`}>GHS {a.price}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Duration */}
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-3">Billing Duration</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {DURATIONS.map(d => (
+                  <button
+                    key={d.days}
+                    onClick={() => setCustomDuration(d.days)}
+                    className={`py-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                      customDuration === d.days ? 'border-[#0D3B6E] bg-[#0D3B6E] text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    {d.label}
+                    {d.discount > 0 && (
+                      <div className={`text-xs mt-0.5 ${customDuration === d.days ? 'text-yellow-300' : 'text-green-600'}`}>
+                        Save {d.discount}%
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Summary + Pay */}
+            <div className="bg-gray-50 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="text-sm text-gray-500">
+                  {selectedModules.length ? selectedModules.map(m => MODULE_PRICES[m]?.label).join(', ') : 'No modules selected'}
+                  {selectedAddons.length ? ` + ${selectedAddons.map(a => ADDON_PRICES[a]?.label).join(', ')}` : ''}
+                </div>
+                <div className="text-3xl font-extrabold text-gray-900 mt-1">
+                  GHS {customTotal(selectedModules, selectedAddons, customDuration)}
+                  <span className="text-sm font-normal text-gray-400 ml-2">· {DURATIONS.find(d => d.days === customDuration)?.label}</span>
+                </div>
+              </div>
+              <button
+                onClick={handleCustomPay}
+                disabled={customPaying || !selectedModules.length}
+                className="btn-primary px-8 py-4 text-base disabled:opacity-50 w-full sm:w-auto"
+              >
+                {customPaying ? (
+                  <><RefreshCw className="w-4 h-4 animate-spin" /> Processing…</>
+                ) : (
+                  <><CreditCard className="w-4 h-4" /> Pay with Paystack</>
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (<>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {plans.map(p => (
@@ -397,7 +528,7 @@ export default function BillingPage() {
               )}
               <div className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mb-3 ${p.badge}`}>{p.label}</div>
               <div className={`text-3xl font-extrabold ${selectedPlan === p.key ? p.highlight : 'text-gray-900'}`}>
-                ${p.price}<span className="text-sm font-normal text-gray-400">/mo</span>
+                GHS {p.price}<span className="text-sm font-normal text-gray-400">/mo</span>
               </div>
               <ul className="mt-4 space-y-1.5">
                 {p.features.map(f => (
@@ -441,7 +572,7 @@ export default function BillingPage() {
               {DURATIONS.find(d => d.days === selectedDuration)?.label}
             </div>
             <div className="text-3xl font-extrabold text-gray-900 mt-1">
-              ${getAmount(selectedPlan, selectedDuration)}
+              GHS {getAmount(selectedPlan, selectedDuration)}
               {DURATIONS.find(d => d.days === selectedDuration)?.discount ? (
                 <span className="text-base font-normal text-green-600 ml-2">
                   {DURATIONS.find(d => d.days === selectedDuration)?.discount}% off
@@ -461,6 +592,7 @@ export default function BillingPage() {
             )}
           </button>
         </div>
+        </>)}
       </div>
 
       {/* Payment History — full width */}
@@ -497,7 +629,7 @@ export default function BillingPage() {
                       }`}>{t.plan}</span>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{t.duration_days} days</td>
-                    <td className="px-6 py-4 font-semibold text-gray-900">${parseFloat(t.amount).toFixed(2)}</td>
+                    <td className="px-6 py-4 font-semibold text-gray-900">GHS {parseFloat(t.amount).toFixed(2)}</td>
                     <td className="px-6 py-4 font-mono text-xs text-gray-400">{t.payment_ref || '—'}</td>
                     <td className="px-6 py-4">
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${

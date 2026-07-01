@@ -9,6 +9,65 @@ export interface StorefrontSettings {
   tax_rate?: number;
   tax_name?: string;
   custom_domain?: string;
+  delivery_estimate?: string;       // e.g. "3 – 5 business days"
+  location_suggestions?: string[];  // e.g. ["Accra", "Kumasi"]
+  phone_placeholder?: string;       // e.g. "+233 XX XXX XXXX"
+}
+
+// ── Shared TypeScript interfaces ────────────────────────────────────────────
+export interface StoreProduct {
+  id: string;
+  name: string;
+  price: number;
+  cost_price?: number;
+  compare_price?: number;
+  description?: string;
+  sku?: string;
+  images: string[];
+  stock_qty: number;
+  low_stock_threshold: number;
+  category_name?: string;
+  branch_id?: string;
+  branch_name?: string;
+  branch_slug?: string;
+  is_active: boolean;
+}
+
+export interface StoreTenant {
+  id: string;
+  business_name: string;
+  slug: string;
+  logo?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
+export interface StoreBranch {
+  id: string;
+  name: string;
+  slug: string;
+  address?: string;
+}
+
+export interface StoreCustomer {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+}
+
+export interface StoreOrder {
+  id: string;
+  _id?: string;
+  order_number: string;
+  status: string;
+  payment_status: string;
+  total: number;
+  createdAt?: string;
+  created_at?: string;
+  items?: Array<{ product_name: string; quantity: number; unit_price: number }>;
+  delivery_address?: string;
 }
 
 export const DEFAULT_STOREFRONT_SETTINGS: StorefrontSettings = {
@@ -17,6 +76,9 @@ export const DEFAULT_STOREFRONT_SETTINGS: StorefrontSettings = {
   store_enabled: true,
   announcement: '',
   min_order_amount: 0,
+  delivery_estimate: '3 – 5 business days',
+  location_suggestions: [],
+  phone_placeholder: '',
 };
 
 export function normalizeStorefrontSettings(raw: Partial<StorefrontSettings> | null | undefined): StorefrontSettings {
@@ -29,12 +91,15 @@ export function normalizeStorefrontSettings(raw: Partial<StorefrontSettings> | n
     tax_rate: Number(raw?.tax_rate ?? 0),
     tax_name: raw?.tax_name ?? '',
     custom_domain: String(raw?.custom_domain ?? '').toLowerCase().trim(),
+    delivery_estimate: raw?.delivery_estimate ?? DEFAULT_STOREFRONT_SETTINGS.delivery_estimate,
+    location_suggestions: Array.isArray(raw?.location_suggestions) ? raw.location_suggestions : [],
+    phone_placeholder: raw?.phone_placeholder ?? '',
   };
 }
 
 export function calcTaxAmount(subtotal: number, taxRatePct = 0): number {
   if (!subtotal || !taxRatePct) return 0;
-  return Math.round(subtotal * taxRatePct) / 100;
+  return Math.round(subtotal * taxRatePct / 100);
 }
 
 export function calcDeliveryFee(subtotal: number, settings: StorefrontSettings): number {
