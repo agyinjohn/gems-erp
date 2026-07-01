@@ -66,24 +66,24 @@ const navGroups = [
   {
     label: null,
     items: [
-      { href: '/platform',               label: 'Dashboard',     icon: LayoutDashboard, roles: ['platform_admin'],                                          permission: null },
-      { href: '/platform/tenants',       label: 'Businesses',    icon: Building2,       roles: ['platform_admin'],                                          permission: null },
-      { href: '/platform/subscriptions', label: 'Subscriptions', icon: Calculator,      roles: ['platform_admin'],                                          permission: null },
-      { href: '/platform/revenue',       label: 'Revenue',       icon: TrendingUp,      roles: ['platform_admin'],                                          permission: null },
-      { href: '/platform/activity',      label: 'Activity',      icon: BarChart2,       roles: ['platform_admin'],                                          permission: null },
-      { href: '/platform/settings',      label: 'Settings',      icon: Settings,        roles: ['platform_admin'],                                          permission: null },
-      { href: '/platform/support',       label: 'Support Chat',  icon: MessageCircle,   roles: ['platform_admin'],                                          permission: null },
-      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['business_owner','branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer'], permission: 'dashboard.view' },
-      { href: '/ess',       label: 'My Portal', icon: UserCircle,      roles: ['branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer','employee'],      permission: 'ess.view' },
+      { href: '/platform', label: 'Dashboard', icon: LayoutDashboard, roles: ['platform_admin'], permission: null },
+      { href: '/platform/tenants', label: 'Businesses', icon: Building2, roles: ['platform_admin'], permission: null },
+      { href: '/platform/subscriptions', label: 'Subscriptions', icon: Calculator, roles: ['platform_admin'], permission: null },
+      { href: '/platform/revenue', label: 'Revenue', icon: TrendingUp, roles: ['platform_admin'], permission: null },
+      { href: '/platform/activity', label: 'Activity', icon: BarChart2, roles: ['platform_admin'], permission: null },
+      { href: '/platform/settings', label: 'Settings', icon: Settings, roles: ['platform_admin'], permission: null },
+      { href: '/platform/support', label: 'Support Chat', icon: MessageCircle, roles: ['platform_admin'], permission: null },
+      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['business_owner', 'branch_manager', 'warehouse_staff', 'accountant', 'hr_manager', 'procurement_officer'], permission: 'dashboard.view' },
+      { href: '/ess', label: 'My Portal', icon: UserCircle, roles: ['branch_manager', 'warehouse_staff', 'accountant', 'hr_manager', 'procurement_officer', 'employee'], permission: 'ess.view' },
     ],
   },
   {
     label: 'Sales',
     items: [
-      { href: '/pos',    label: 'POS Terminal', icon: Monitor,      roles: ['sales_staff'], permission: 'pos.view' },
+      { href: '/pos', label: 'POS Terminal', icon: Monitor, roles: ['sales_staff'], permission: 'pos.view' },
       { href: '/pos/shifts', label: 'Shift History', icon: History, roles: ['sales_staff'], permission: 'pos.view' },
-      { href: '/orders', label: 'Orders',       icon: ShoppingCart, roles: ['sales_staff'], permission: 'orders.view' },
-      { href: '/crm',    label: 'Customers',    icon: UserCheck,    roles: ['sales_staff'], permission: 'crm.view' },
+      { href: '/orders', label: 'Orders', icon: ShoppingCart, roles: ['sales_staff'], permission: 'orders.view' },
+      { href: '/crm', label: 'Customers', icon: UserCheck, roles: ['sales_staff'], permission: 'crm.view' },
     ],
   },
   {
@@ -95,12 +95,12 @@ const navGroups = [
   {
     label: 'Operations',
     items: [
-      { href: '/pos',         label: 'POS',         icon: Monitor,      roles: ['business_owner','branch_manager'],                    permission: 'pos.view' },
-      { href: '/pos/shifts',  label: 'Shift History', icon: History,    roles: ['business_owner','branch_manager'],                    permission: 'pos.view' },
-      { href: '/orders',      label: 'Sales',       icon: ShoppingCart, roles: ['business_owner','branch_manager'],                    permission: 'orders.view' },
-      { href: '/inventory',   label: 'Inventory',   icon: Package,      roles: ['business_owner','branch_manager','warehouse_staff'],  permission: 'inventory.view' },
-      { href: '/assets',      label: 'Assets',      icon: Wrench,       roles: ['business_owner','branch_manager','warehouse_staff'],  permission: 'inventory.view' },
-      { href: '/procurement', label: 'Procurement', icon: Truck,        roles: ['business_owner','procurement_officer','warehouse_staff'], permission: 'procurement.view' },
+      { href: '/pos', label: 'POS', icon: Monitor, roles: ['business_owner', 'branch_manager'], permission: 'pos.view' },
+      { href: '/pos/shifts', label: 'Shift History', icon: History, roles: ['business_owner', 'branch_manager'], permission: 'pos.view' },
+      { href: '/orders', label: 'Sales', icon: ShoppingCart, roles: ['business_owner', 'branch_manager'], permission: 'orders.view' },
+      { href: '/inventory', label: 'Inventory', icon: Package, roles: ['business_owner', 'branch_manager', 'warehouse_staff'], permission: 'inventory.view' },
+      { href: '/assets', label: 'Assets', icon: Wrench, roles: ['business_owner', 'branch_manager', 'warehouse_staff'], permission: 'inventory.view' },
+      { href: '/procurement', label: 'Procurement', icon: Truck, roles: ['business_owner', 'procurement_officer', 'warehouse_staff'], permission: 'procurement.view' },
     ],
   },
   {
@@ -126,37 +126,37 @@ const navGroups = [
   {
     label: 'Finance',
     items: [
-      { href: '/payment-logs', label: 'Payments',   icon: CreditCard, roles: ['business_owner','accountant'], permission: 'accounting.view' },
+      { href: '/payment-logs', label: 'Payments', icon: CreditCard, roles: ['business_owner', 'accountant'], permission: 'accounting.view' },
     ],
   },
   {
     label: 'Approvals',
     items: [
-      { href: '/approvals', label: 'Approvals', icon: CheckSquare, roles: ['business_owner','accountant','hr_manager'], permission: 'accounting.view' },
+      { href: '/approvals', label: 'Approvals', icon: CheckSquare, roles: ['business_owner', 'accountant', 'hr_manager'], permission: 'accounting.view' },
     ],
   },
   {
     label: 'Reports',
     items: [
-      { href: '/reports', label: 'Reports', icon: BarChart2, roles: ['business_owner','accountant','hr_manager'], permission: 'reports.view' },
+      { href: '/reports', label: 'Reports', icon: BarChart2, roles: ['business_owner', 'accountant', 'hr_manager'], permission: 'reports.view' },
     ],
   },
   {
     label: 'Customers',
     items: [
-      { href: '/crm', label: 'CRM', icon: UserCheck, roles: ['business_owner','branch_manager'], permission: 'crm.view' },
+      { href: '/crm', label: 'CRM', icon: UserCheck, roles: ['business_owner', 'branch_manager'], permission: 'crm.view' },
     ],
   },
   {
     label: 'Settings',
     items: [
       { href: '/store-settings', label: 'Online Store', icon: ShoppingBag, roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },
-      { href: '/catalog',         label: 'Catalog',      icon: Package,      roles: ['business_owner', 'branch_manager', 'warehouse_staff'], permission: 'inventory.view' },
-      { href: '/branches',     label: 'Branches',     icon: Store,      roles: ['business_owner'],                   permission: 'branches.manage' },
-      { href: '/departments',  label: 'Departments',  icon: Building2,  roles: ['business_owner', 'hr_manager'],     permission: 'hr.view' },
-      { href: '/users',        label: 'Users',        icon: Settings,   roles: ['business_owner'],                   permission: 'users.manage' },
-      { href: '/billing',      label: 'Billing',      icon: Calculator, roles: ['business_owner'],                   permission: 'billing.view' },
-      { href: '/api-docs',     label: 'Store API',    icon: BookOpen,   roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },
+      { href: '/catalog', label: 'Catalog', icon: Package, roles: ['business_owner', 'branch_manager', 'warehouse_staff'], permission: 'inventory.view' },
+      { href: '/branches', label: 'Branches', icon: Store, roles: ['business_owner'], permission: 'branches.manage' },
+      { href: '/departments', label: 'Departments', icon: Building2, roles: ['business_owner', 'hr_manager'], permission: 'hr.view' },
+      { href: '/users', label: 'Users', icon: Settings, roles: ['business_owner'], permission: 'users.manage' },
+      { href: '/billing', label: 'Billing', icon: Calculator, roles: ['business_owner'], permission: 'billing.view' },
+      // { href: '/api-docs',     label: 'Store API',    icon: BookOpen,   roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },
     ],
   },
 ];
@@ -224,9 +224,8 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
     <aside className="h-full w-full flex flex-col bg-white border-r border-gray-200">
 
       {/* Logo */}
-      <div className={`border-b border-gray-200 flex items-center shrink-0 ${
-        isCollapsed ? 'justify-center px-2 py-4' : 'px-4 py-4 justify-between gap-2'
-      }`}>
+      <div className={`border-b border-gray-200 flex items-center shrink-0 ${isCollapsed ? 'justify-center px-2 py-4' : 'px-4 py-4 justify-between gap-2'
+        }`}>
         {isCollapsed ? (
           <div className="w-9 h-9 bg-blue-700 rounded-lg flex items-center justify-center" title="GEMS">
             <Building2 className="w-5 h-5 text-white" />
@@ -269,7 +268,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
               }),
             );
             const main = items.filter(i => i.href !== '/ess');
-            const ess  = items.find(i => i.href === '/ess');
+            const ess = items.find(i => i.href === '/ess');
             return (
               <div className="space-y-0.5">
                 {main.map(item => {
@@ -384,9 +383,8 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
             target="_blank"
             rel="noopener noreferrer"
             title={isCollapsed ? 'GEMS Store' : undefined}
-            className={`flex items-center rounded-lg text-sm font-medium text-gray-800 bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:text-gray-900 transition-colors ${
-              isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
-            }`}
+            className={`flex items-center rounded-lg text-sm font-medium text-gray-800 bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:text-gray-900 transition-colors ${isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
+              }`}
           >
             <Store className="w-4 h-4 flex-shrink-0 text-gray-600" />
             {!isCollapsed && 'GEMS Store'}
@@ -420,9 +418,8 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
     <>
       {/* Desktop: fixed sidebar */}
       <div
-        className={`hidden lg:block fixed left-0 top-0 h-dvh z-30 transition-[width] duration-300 ease-in-out ${
-          collapsed ? 'w-[72px]' : 'w-64'
-        }`}
+        className={`hidden lg:block fixed left-0 top-0 h-dvh z-30 transition-[width] duration-300 ease-in-out ${collapsed ? 'w-[72px]' : 'w-64'
+          }`}
       >
         {renderContent(collapsed)}
       </div>
