@@ -65,6 +65,7 @@ const toCartItem = (item: any): CartItem => ({
     sku: item.sku,
     branch_id: item.branch_id,
     branch_name: item.branch_name,
+    is_active: item.is_active ?? true,
   },
   quantity: item.quantity,
   branch_id: item.branch_id || '',
