@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import {
   Mail, Lock, Eye, EyeOff, Loader2, ArrowRight,
-  ChevronRight, Package, BarChart3, ShoppingCart,
+  ChevronRight, Package,
   Users, Calculator, Truck, UserCheck, Shield, Sparkles,
-  CheckCircle2,
+  CheckCircle2, ShoppingCart,
 } from 'lucide-react';
 
 /* ─── constants ──────────────────────────────────────────────────────────── */
@@ -30,16 +30,33 @@ const MODULES = [
   { icon: UserCheck, label: 'CRM', color: 'text-emerald-400' },
 ];
 
-const TESTIMONIALS = [
-  { quote: 'GEMS transformed how we run our 3 branches. Inventory is always accurate and our staff love the POS.', name: 'Kwame Asante', role: 'Owner, Asante Electronics' },
-  { quote: 'The online storefront alone was worth it. We went from zero online sales to 40% of our revenue in 2 months.', name: 'Abena Mensah', role: 'Manager, Chic Boutique' },
-  { quote: 'Finally an ERP that just works. Real-time reports and role-based access made all the difference.', name: 'Kofi Boateng', role: 'CFO, ProTools Ltd' },
-  { quote: 'Payroll used to take us two days every month. With GEMS HR it takes under an hour. Game changer.', name: 'Efua Darko', role: 'HR Manager, Goldfields Trading' },
-  { quote: 'Our procurement team now raises and approves purchase orders in minutes. Suppliers love the paperwork too.', name: 'Yaw Amponsah', role: 'Operations Director, BuildRight Ghana' },
-  { quote: 'The accounting module gives me a live P&L at any time. I no longer wait for month-end reports.', name: 'Akosua Frimpong', role: 'Accountant, Sunrise Retail Ltd' },
-  { quote: 'Setting up our branded storefront took less than a day. Customers are already ordering online.', name: 'Nana Adjei', role: 'Founder, Kente & Co.' },
-  { quote: 'Role-based access means every staff member sees exactly what they need — nothing more, nothing less.', name: 'Kwesi Acheampong', role: 'IT Lead, Metro Distributors' },
+const STATS = [
+  { value: '100+', label: 'Businesses' },
+  { value: '12+', label: 'Modules' },
+  { value: '99.9%', label: 'Uptime' },
 ];
+
+const METRIC_CARDS = [
+  { label: "Today's Revenue", value: 'GH₵ 8,420', change: '+12%', up: true },
+  { label: 'Orders', value: '34', change: '+5', up: true },
+  { label: 'Low Stock Items', value: '7', change: '-2', up: false },
+  { label: 'Active Staff', value: '12', change: '', up: true },
+];
+
+const RECENT_ORDERS = [
+  { ref: 'ORD-2041', customer: 'Abena M.', amount: 'GH₵ 340', status: 'paid' },
+  { ref: 'ORD-2040', customer: 'Kwame A.', amount: 'GH₵ 820', status: 'processing' },
+  { ref: 'ORD-2039', customer: 'Efua D.', amount: 'GH₵ 155', status: 'paid' },
+  { ref: 'ORD-2038', customer: 'Yaw K.', amount: 'GH₵ 610', status: 'shipped' },
+];
+
+const STATUS_COLOR: Record<string, string> = {
+  paid: 'bg-emerald-100 text-emerald-700',
+  processing: 'bg-amber-100 text-amber-700',
+  shipped: 'bg-blue-100 text-blue-700',
+};
+
+const BAR_HEIGHTS = [35, 55, 42, 70, 60, 85, 65, 90, 75, 88, 72, 95];
 
 /* ─── main page ─────────────────────────────────────────────────────────── */
 export default function LoginPage() {
@@ -51,16 +68,10 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [tIdx, setTIdx] = useState(0);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 80);
     return () => clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => setTIdx(i => (i + 1) % TESTIMONIALS.length), 4500);
-    return () => clearInterval(id);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,26 +139,65 @@ export default function LoginPage() {
             ))}
           </div>
 
-          {/* Testimonial */}
-          <div className="mt-10 p-5 rounded-2xl bg-white/[0.06] border border-white/10 backdrop-blur-sm">
-            <div className="text-2xl text-amber-400/60 leading-none mb-3">&ldquo;</div>
-            <p className="text-sm text-white/80 leading-relaxed min-h-[60px] transition-all duration-500">
-              {TESTIMONIALS[tIdx].quote}
-            </p>
-            <div className="mt-4 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                {TESTIMONIALS[tIdx].name[0]}
+          {/* Dashboard mockup */}
+          <div className="mt-10 rounded-2xl bg-white/[0.06] border border-white/10 backdrop-blur-sm overflow-hidden">
+            {/* Mockup top bar */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-red-400/70" />
+                <div className="w-2 h-2 rounded-full bg-amber-400/70" />
+                <div className="w-2 h-2 rounded-full bg-green-400/70" />
               </div>
-              <div>
-                <div className="text-xs font-semibold text-white/90">{TESTIMONIALS[tIdx].name}</div>
-                <div className="text-[10px] text-blue-300/50 mt-0.5">{TESTIMONIALS[tIdx].role}</div>
+              <span className="text-[10px] text-white/30 font-mono">gems · dashboard</span>
+              <div className="w-12" />
+            </div>
+
+            <div className="p-4 space-y-3">
+              {/* Metric cards */}
+              <div className="grid grid-cols-2 gap-2">
+                {METRIC_CARDS.map(m => (
+                  <div key={m.label} className="bg-white/[0.05] rounded-xl px-3 py-2.5 border border-white/8">
+                    <div className="text-[9px] text-white/40 uppercase tracking-wider mb-1">{m.label}</div>
+                    <div className="text-sm font-bold text-white">{m.value}</div>
+                    {m.change && (
+                      <div className={`text-[9px] font-semibold mt-0.5 ${m.up ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {m.up ? '▲' : '▼'} {m.change} vs yesterday
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-              <div className="ml-auto flex gap-1">
-                {TESTIMONIALS.map((_, i) => (
-                  <button key={i} onClick={() => setTIdx(i)}
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === tIdx ? 'bg-amber-400 w-4' : 'bg-white/20 hover:bg-white/40'
-                      }`}
-                  />
+
+              {/* Mini bar chart */}
+              <div className="bg-white/[0.04] rounded-xl px-3 pt-3 pb-2 border border-white/8">
+                <div className="text-[9px] text-white/40 uppercase tracking-wider mb-2">Revenue — last 12 days</div>
+                <div className="flex items-end gap-1 h-10">
+                  {BAR_HEIGHTS.map((h, i) => (
+                    <div
+                      key={i}
+                      className="flex-1 rounded-sm bg-blue-400/40"
+                      style={{ height: `${h}%`, opacity: i === BAR_HEIGHTS.length - 1 ? 1 : 0.5 + (i / BAR_HEIGHTS.length) * 0.5 }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Recent orders */}
+              <div className="bg-white/[0.04] rounded-xl border border-white/8 overflow-hidden">
+                <div className="px-3 py-2 border-b border-white/8">
+                  <span className="text-[9px] text-white/40 uppercase tracking-wider">Recent orders</span>
+                </div>
+                {RECENT_ORDERS.map((o, i) => (
+                  <div key={o.ref} className={`flex items-center justify-between px-3 py-1.5 ${i !== RECENT_ORDERS.length - 1 ? 'border-b border-white/5' : ''}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-mono text-white/50">{o.ref}</span>
+                      <span className="text-[9px] text-white/70">{o.customer}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-semibold text-white/80">{o.amount}</span>
+                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${STATUS_COLOR[o.status]}`}>{o.status}</span>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -155,11 +205,7 @@ export default function LoginPage() {
 
           {/* Stats footer */}
           <div className="mt-auto pt-10 flex items-center gap-8 border-t border-white/8">
-            {[
-              { value: '100+', label: 'Businesses' },
-              { value: '12+', label: 'Modules' },
-              { value: '99.9%', label: 'Uptime' },
-            ].map(s => (
+            {STATS.map(s => (
               <div key={s.label}>
                 <div className="text-xl font-bold text-white tabular-nums">{s.value}</div>
                 <div className="text-[10px] text-blue-300/50 uppercase tracking-wider mt-0.5">{s.label}</div>

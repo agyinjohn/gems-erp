@@ -14,7 +14,7 @@ import {
 
 interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; }
 interface CartItem { product: Product; quantity: number; }
-interface Receipt { order_number: string; items: CartItem[]; total: number; payment_method: string; payment_ref?: string; amount_tendered: number; change: number; customer_name: string; customer_phone: string; createdAt: string; }
+interface Receipt { order_number: string; items: CartItem[]; subtotal: number; tax_amount: number; total: number; payment_method: string; payment_ref?: string; amount_tendered: number; change: number; customer_name: string; customer_phone: string; createdAt: string; }
 
 const PAYMENT_METHODS = [
   { value: 'cash',          label: 'Cash',           icon: Banknote },
@@ -119,6 +119,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
     }).catch(() => {});
     setTimeout(() => barcodeRef.current?.focus(), 300);
     loadShift();
+    api.get('/storefront/settings').then(r => setTaxRate(Number(r.data.data?.tax_rate || 0))).catch(() => {});
   }, [loadShift]);
 
   useEffect(() => {
@@ -238,9 +239,12 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
     setTimeout(() => barcodeRef.current?.focus(), 100);
   };
 
-  const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+  const cartSubtotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
-  const change = paymentMethod === 'cash' && amountTendered ? parseFloat(amountTendered) - cartTotal : 0;
+  const [taxRate, setTaxRate] = useState(0);
+  const taxAmount = taxRate > 0 ? Math.round(cartSubtotal * taxRate / 100 * 100) / 100 : 0;
+  const cartTotal = cartSubtotal + taxAmount;
+  const change = paymentMethod === 'cash' && amountTendered ? Math.max(0, parseFloat(amountTendered) - cartTotal) : 0;
 
   const requireShift = useCallback(() => {
     if (currentShift) return true;
@@ -279,6 +283,8 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
       setReceipt({
         order_number: data.order_number,
         items: opts.saleItems,
+        subtotal: opts.saleTotal ?? data.total,
+        tax_amount: 0,
         total: opts.saleTotal ?? data.total,
         payment_method: method,
         payment_ref: data.payment_ref || reference,
@@ -505,6 +511,8 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
       setReceipt({
         order_number: data.order_number,
         items: [...cart],
+        subtotal: cartSubtotal,
+        tax_amount: taxAmount,
         total: cartTotal,
         payment_method: paymentMethod,
         payment_ref: data.payment_ref || undefined,
@@ -962,8 +970,14 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
             <div className="px-5 py-3 space-y-1.5 border-b border-gray-100">
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Items ({cartCount})</span>
-                <span className="tabular-nums">GH₵ {cartTotal.toFixed(2)}</span>
+                <span className="tabular-nums">GH₵ {cartSubtotal.toFixed(2)}</span>
               </div>
+              {taxAmount > 0 && (
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>Tax ({taxRate}%)</span>
+                  <span className="tabular-nums">GH₵ {taxAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-base font-extrabold text-gray-900 pt-1">
                 <span>Total</span>
                 <span className="tabular-nums text-[#0D3B6E]">GH₵ {cartTotal.toFixed(2)}</span>
@@ -1189,6 +1203,18 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
 
               {/* Totals */}
               <div className="border-t border-dashed border-gray-200 pt-3 space-y-1.5">
+                {receipt.tax_amount > 0 && (
+                  <>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Subtotal</span>
+                      <span className="tabular-nums">GH₵ {receipt.subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Tax</span>
+                      <span className="tabular-nums">GH₵ {receipt.tax_amount.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between font-extrabold text-gray-900 text-base">
                   <span>Total Paid</span>
                   <span className="tabular-nums">GH₵ {receipt.total.toFixed(2)}</span>

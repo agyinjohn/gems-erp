@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Spinner, toast } from '@/components/ui';
-import { ExternalLink, Save, Store, Truck, Megaphone, Tag, Plus, Trash2 } from 'lucide-react';
+import { ExternalLink, Save, Store, Truck, Megaphone, Tag, Plus, Trash2, Wallet, Star } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import api from '@/lib/api';
 import {
@@ -13,6 +13,22 @@ import {
 } from '@/lib/storefrontSettings';
 import { formatGhs } from '@/components/store/theme';
 
+const MOMO_NETWORKS = [
+  { label: 'MTN Mobile Money', code: 'MTN' },
+  { label: 'Vodafone Cash', code: 'VOD' },
+  { label: 'AirtelTigo Money', code: 'ATL' },
+];
+
+interface PayoutMethod {
+  id: string;
+  type: 'mobile_money' | 'bank';
+  label: string;
+  account_number: string;
+  account_name: string;
+  bank_code: string;
+  is_default: boolean;
+}
+
 export default function StoreSettingsPage() {
   const { tenant } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -20,12 +36,16 @@ export default function StoreSettingsPage() {
   const [form, setForm] = useState<StorefrontSettings>({ ...DEFAULT_STOREFRONT_SETTINGS });
   const [coupons, setCoupons] = useState<any[]>([]);
   const [couponForm, setCouponForm] = useState({ code: '', discount_type: 'percent', discount_value: '10', min_order_amount: '0', max_uses: '0' });
+  const [payoutMethods, setPayoutMethods] = useState<PayoutMethod[]>([]);
+  const [payoutForm, setPayoutForm] = useState({ type: 'mobile_money', account_number: '', account_name: '', bank_code: 'MTN' });
+  const [payoutSaving, setPayoutSaving] = useState(false);
 
   useEffect(() => {
     fetchMerchantStoreSettings()
       .then(setForm)
       .finally(() => setLoading(false));
     api.get('/coupons').then(r => setCoupons(r.data.data || [])).catch(() => {});
+    api.get('/payout-methods').then(r => setPayoutMethods(r.data.data || [])).catch(() => {});
   }, []);
 
   const set = <K extends keyof StorefrontSettings>(key: K, value: StorefrontSettings[K]) => {
@@ -69,6 +89,43 @@ export default function StoreSettingsPage() {
       toast.success('Coupon deleted');
     } catch {
       toast.error('Could not delete coupon');
+    }
+  };
+
+  const addPayoutMethod = async () => {
+    if (!payoutForm.account_number.trim() || !payoutForm.account_name.trim()) {
+      toast.error('Account number and name are required');
+      return;
+    }
+    setPayoutSaving(true);
+    try {
+      const r = await api.post('/payout-methods', payoutForm);
+      setPayoutMethods(prev => [...prev, r.data.data]);
+      setPayoutForm({ type: 'mobile_money', account_number: '', account_name: '', bank_code: 'MTN' });
+      toast.success('Payout method added');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not add payout method');
+    } finally {
+      setPayoutSaving(false);
+    }
+  };
+
+  const setDefaultPayout = async (id: string) => {
+    try {
+      await api.patch(`/payout-methods/${id}/default`);
+      setPayoutMethods(prev => prev.map(m => ({ ...m, is_default: m.id === id })));
+    } catch {
+      toast.error('Could not update default');
+    }
+  };
+
+  const deletePayoutMethod = async (id: string) => {
+    try {
+      await api.delete(`/payout-methods/${id}`);
+      setPayoutMethods(prev => prev.filter(m => m.id !== id));
+      toast.success('Payout method removed');
+    } catch {
+      toast.error('Could not remove payout method');
     }
   };
 
@@ -157,6 +214,28 @@ export default function StoreSettingsPage() {
                   />
                   <p className="form-hint">Set to 0 for no minimum</p>
                 </div>
+                <div>
+                  <label className="form-label">Tax rate (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    className="form-input"
+                    value={form.tax_rate ?? 0}
+                    onChange={e => set('tax_rate', Math.max(0, Number(e.target.value) || 0))}
+                  />
+                  <p className="form-hint">Applied to POS and storefront orders. Set to 0 to disable.</p>
+                </div>
+                <div>
+                  <label className="form-label">Tax label</label>
+                  <input
+                    className="form-input"
+                    placeholder="e.g. VAT, NHIL, Tax"
+                    value={form.tax_name ?? ''}
+                    onChange={e => set('tax_name', e.target.value)}
+                  />
+                </div>
               </div>
             </div>
 
@@ -241,6 +320,81 @@ export default function StoreSettingsPage() {
                 />
                 <span className="text-sm font-medium text-gray-700">Store is open for orders</span>
               </label>
+            </div>
+
+            {/* Payout Methods */}
+            <div className="card">
+              <div className="flex items-start gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                  <Wallet className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">Payout methods</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Where storefront payments are sent after each order</p>
+                </div>
+              </div>
+
+              {/* Existing methods */}
+              {payoutMethods.length > 0 && (
+                <div className="space-y-2 mb-5">
+                  {payoutMethods.map(m => (
+                    <div key={m.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 ring-1 ring-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm">
+                          <p className="font-semibold text-gray-800">{m.account_name}</p>
+                          <p className="text-gray-500 text-xs">{m.label} · {m.type === 'mobile_money' ? 'Mobile Money' : 'Bank'}</p>
+                        </div>
+                        {m.is_default && (
+                          <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">Default</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!m.is_default && (
+                          <button type="button" onClick={() => setDefaultPayout(m.id)} className="text-gray-400 hover:text-[#0D3B6E]" title="Set as default">
+                            <Star className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button type="button" onClick={() => deletePayoutMethod(m.id)} className="text-gray-400 hover:text-red-500">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add new method form */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="form-label">Type</label>
+                  <select className="form-input" value={payoutForm.type} onChange={e => setPayoutForm(p => ({ ...p, type: e.target.value, bank_code: e.target.value === 'mobile_money' ? 'MTN' : '' }))}>
+                    <option value="mobile_money">Mobile Money</option>
+                    <option value="bank">Bank Account</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">{payoutForm.type === 'mobile_money' ? 'Network' : 'Bank code'}</label>
+                  {payoutForm.type === 'mobile_money' ? (
+                    <select className="form-input" value={payoutForm.bank_code} onChange={e => setPayoutForm(p => ({ ...p, bank_code: e.target.value }))}>
+                      {MOMO_NETWORKS.map(n => <option key={n.code} value={n.code}>{n.label}</option>)}
+                    </select>
+                  ) : (
+                    <input className="form-input" placeholder="e.g. 030100" value={payoutForm.bank_code} onChange={e => setPayoutForm(p => ({ ...p, bank_code: e.target.value }))} />
+                  )}
+                </div>
+                <div>
+                  <label className="form-label">{payoutForm.type === 'mobile_money' ? 'Phone number' : 'Account number'}</label>
+                  <input className="form-input" placeholder={payoutForm.type === 'mobile_money' ? '024XXXXXXX' : 'Account number'} value={payoutForm.account_number} onChange={e => setPayoutForm(p => ({ ...p, account_number: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="form-label">Account name</label>
+                  <input className="form-input" placeholder="Name on account" value={payoutForm.account_name} onChange={e => setPayoutForm(p => ({ ...p, account_name: e.target.value }))} />
+                </div>
+              </div>
+              <button type="button" className="btn-secondary mt-3" onClick={addPayoutMethod} disabled={payoutSaving}>
+                <Plus className="w-4 h-4" /> {payoutSaving ? 'Adding…' : 'Add payout method'}
+              </button>
+              <p className="text-xs text-gray-400 mt-2">Paystack transfer fees are deducted from each payout. The default method receives payment immediately after each order.</p>
             </div>
 
             <button type="button" onClick={save} disabled={saving} className="btn-primary">
