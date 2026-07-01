@@ -134,7 +134,7 @@ export default function TenantStorefrontPage() {
     branchSlug: activeBranch?.slug,
   });
 
-  const maxProductPrice = Math.ceil(Math.max(0, ...products.map(p => parseFloat(p.price) || 0)) / 100) * 100 || 5000;
+  const maxProductPrice = Math.ceil(Math.max(0, ...products.map(p => p.price || 0)) / 100) * 100 || 5000;
   const activeFilterCount = [filterCat, inStockOnly, priceMax !== '' || priceMin > 0].filter(Boolean).length;
 
   // Load tenant + branches on mount
@@ -249,11 +249,11 @@ export default function TenantStorefrontPage() {
   const filtered = products.filter(p =>
     (!filterCat || p.category_name === filterCat) &&
     (!inStockOnly || p.stock_qty > 0) &&
-    (priceMin === 0 || parseFloat(p.price) >= priceMin) &&
-    (priceMax === '' || parseFloat(p.price) <= priceMax)
+    (priceMin === 0 || p.price >= priceMin) &&
+    (priceMax === '' || p.price <= priceMax)
   ).sort((a, b) => {
-    if (sortBy === 'price_asc') return parseFloat(a.price) - parseFloat(b.price);
-    if (sortBy === 'price_desc') return parseFloat(b.price) - parseFloat(a.price);
+    if (sortBy === 'price_asc') return a.price - b.price;
+    if (sortBy === 'price_desc') return b.price - a.price;
     if (sortBy === 'name') return a.name.localeCompare(b.name);
     return 0;
   });
@@ -746,7 +746,7 @@ export default function TenantStorefrontPage() {
                   </div>
 
                   <div className="border-t border-gray-100 pt-4">
-                    <div className="text-3xl font-extrabold text-gray-900 tracking-tight">{formatGhs(parseFloat(selectedProduct.price))}</div>
+                    <div className="text-3xl font-extrabold text-gray-900 tracking-tight">{formatGhs(selectedProduct.price)}</div>
                     <div className="text-xs text-gray-400 mt-0.5">Inclusive of all taxes</div>
                   </div>
 
@@ -836,7 +836,7 @@ export default function TenantStorefrontPage() {
                         </div>
                         <div className="p-3">
                           <p className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1">{p.name}</p>
-                          <p className="text-sm font-extrabold text-gray-900">{formatGhs(parseFloat(p.price))}</p>
+                          <p className="text-sm font-extrabold text-gray-900">{formatGhs(p.price)}</p>
                         </div>
                       </button>
                     ))}
@@ -955,7 +955,7 @@ export default function TenantStorefrontPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-medium text-gray-800 truncate">{i.product.name}</div>
-                        <div className="text-xs text-gray-400">{formatGhs(parseFloat(i.product.price))} each</div>
+                        <div className="text-xs text-gray-400">{formatGhs(i.product.price)} each</div>
                       </div>
                       <div className="text-sm font-semibold text-gray-900 flex-shrink-0">{formatGhs(i.product.price * i.quantity)}</div>
                     </div>
@@ -1165,7 +1165,7 @@ export default function TenantStorefrontPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-semibold text-gray-800 line-clamp-2">{i.product.name}</div>
-                          <div className="text-xs text-gray-400 mt-0.5">{formatGhs(parseFloat(i.product.price))} each</div>
+                          <div className="text-xs text-gray-400 mt-0.5">{formatGhs(i.product.price)} each</div>
                           <div className="text-sm font-bold text-gray-900 mt-1">{formatGhs(i.product.price * i.quantity)}</div>
                           <div className="flex items-center gap-2 mt-2">
                             <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-2 py-1 ring-1 ring-slate-100">
