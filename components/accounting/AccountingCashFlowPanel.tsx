@@ -156,7 +156,7 @@ export default function AccountingCashFlowPanel(_: Props) {
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn-primary text-xs" onClick={load} disabled={loading || customNeedsDates}>
+            <button type="button" className="btn-primary text-xs" onClick={() => load()} disabled={loading || customNeedsDates}>
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> {loading ? 'Loading…' : 'Refresh'}
             </button>
             {cf && (

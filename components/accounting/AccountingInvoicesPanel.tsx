@@ -199,7 +199,7 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
             </select>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn-primary text-xs" onClick={load} disabled={loading}>
+            <button type="button" className="btn-primary text-xs" onClick={() => load()} disabled={loading}>
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
             </button>
             <button type="button" className="btn-primary text-xs" onClick={() => setCreateOpen(true)}>

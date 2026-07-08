@@ -102,7 +102,7 @@ export default function AccountingTrialBalancePanel(_: Props) {
             Hide zero balances
           </label>
           <div className="flex flex-wrap gap-2 lg:ml-auto">
-            <button type="button" className="btn-primary text-xs" onClick={load} disabled={loading}>
+            <button type="button" className="btn-primary text-xs" onClick={() => load()} disabled={loading}>
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
             </button>
             {data && (

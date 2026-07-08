@@ -151,7 +151,7 @@ export default function AccountingBalanceSheetPanel(_: Props) {
             <p className="text-xs text-gray-500 mt-1">Balances include all journal entries through this date.</p>
           </div>
           <div className="flex flex-wrap gap-2 sm:ml-auto">
-            <button type="button" className="btn-primary text-xs" onClick={load} disabled={loading}>
+            <button type="button" className="btn-primary text-xs" onClick={() => load()} disabled={loading}>
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Loading…' : 'Refresh'}
             </button>
