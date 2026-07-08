@@ -138,7 +138,7 @@ const navGroups = [
   {
     label: 'Reports',
     items: [
-      { href: '/reports', label: 'Reports', icon: BarChart2, roles: ['business_owner', 'accountant', 'hr_manager'], permission: 'reports.view' },
+      { href: '/reports', label: 'Reports', icon: BarChart2, roles: ['business_owner', 'accountant'], permission: 'reports.view' },
     ],
   },
   {
