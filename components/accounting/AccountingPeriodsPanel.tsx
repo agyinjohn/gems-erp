@@ -118,7 +118,7 @@ export default function AccountingPeriodsPanel({ onDataChange }: Props) {
       {data && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <StatCard label="Total periods" value={String(summary.total ?? 0)} icon={<Calendar className="w-5 h-5 text-blue-600" />} color="bg-blue-50" />
+            <StatCard label="Total periods" value={String(summary.total ?? 0)} icon={<Calendar className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
             <StatCard label="Open" value={String(summary.open ?? 0)} icon={<Unlock className="w-5 h-5 text-green-600" />} color="bg-green-50" />
             <StatCard label="Closed" value={String(summary.closed ?? 0)} icon={<Lock className="w-5 h-5 text-gray-600" />} color="bg-gray-50" />
           </div>
@@ -138,7 +138,7 @@ export default function AccountingPeriodsPanel({ onDataChange }: Props) {
                     {rows.map((p: any) => (
                       <tr key={p.id} className="hover:bg-gray-50/80">
                         <td className="px-3 md:px-4 py-2 font-medium">{p.name}</td>
-                        <td className="px-3 md:px-4 py-2"><span className="badge badge-blue text-xs">{p.type}</span></td>
+                        <td className="px-3 md:px-4 py-2"><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#0D3B6E]/8 text-[#0D3B6E]">{p.type}</span></td>
                         <td className="px-3 md:px-4 py-2 text-xs text-gray-500">{new Date(p.start_date).toLocaleDateString()}</td>
                         <td className="px-3 md:px-4 py-2 text-xs text-gray-500 hidden md:table-cell">{new Date(p.end_date).toLocaleDateString()}</td>
                         <td className="px-3 md:px-4 py-2">
@@ -151,9 +151,9 @@ export default function AccountingPeriodsPanel({ onDataChange }: Props) {
                             )}
                             {p.status === 'closed' && (
                               <>
-                                <button type="button" onClick={() => reopenPeriod(p)} className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded-lg">Reopen</button>
+                                <button type="button" onClick={() => reopenPeriod(p)} className="text-xs font-semibold text-white bg-[#0D3B6E] hover:bg-[#1A5294] px-2 py-1 rounded-lg">Reopen</button>
                                 {p.type === 'year' && (
-                                  <button type="button" onClick={() => yearEndClose(p)} className="text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded-lg hidden md:inline-block">Year-end close</button>
+                                  <button type="button" onClick={() => yearEndClose(p)} className="text-xs font-semibold text-white bg-[#0D3B6E] hover:bg-[#1A5294] px-2 py-1 rounded-lg hidden md:inline-block">Year-end close</button>
                                 )}
                               </>
                             )}

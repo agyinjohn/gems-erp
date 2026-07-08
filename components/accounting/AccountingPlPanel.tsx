@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   TrendingUp, TrendingDown, DollarSign, Download, FileText, RefreshCw, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
+
+const CedisIcon = ({ className }: { className?: string }) => (
+  <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
+);
 import { EmptyState, Spinner, StatCard, toast } from '@/components/ui';
 import api from '@/lib/api';
 
@@ -143,7 +147,7 @@ export default function AccountingPlPanel(_: Props) {
                     key={p.key}
                     type="button"
                     onClick={() => setPreset(p.key)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === p.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === p.key ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                   >
                     {p.label}
                   </button>
@@ -151,7 +155,7 @@ export default function AccountingPlPanel(_: Props) {
                 <button
                   type="button"
                   onClick={() => setPeriod('custom')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === 'custom' ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                 >
                   Custom
                 </button>
@@ -240,10 +244,10 @@ export default function AccountingPlPanel(_: Props) {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            <StatCard label="Revenue" value={fmt(pl.revenue)} icon={<TrendingUp className="w-6 h-6 text-green-600" />} color="bg-green-50" />
-            <StatCard label="Gross Profit" value={fmt(pl.gross_profit)} icon={<DollarSign className="w-6 h-6 text-blue-600" />} color="bg-blue-50" sub={pl.cogs ? `COGS ${fmtAbs(pl.cogs)}` : undefined} />
+            <StatCard label="Revenue" value={fmt(pl.revenue)} icon={<TrendingUp className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
+            <StatCard label="Gross Profit" value={fmt(pl.gross_profit)} icon={<CedisIcon className="w-6 h-6 text-[#0D3B6E] text-base" />} color="bg-[#0D3B6E]/8" sub={pl.cogs ? `COGS ${fmtAbs(pl.cogs)}` : undefined} />
             <StatCard label="Total Expenses" value={fmtAbs(pl.total_expenses)} icon={<TrendingDown className="w-6 h-6 text-red-600" />} color="bg-red-50" sub={pl.operating_expenses != null ? `Operating ${fmtAbs(pl.operating_expenses)}` : undefined} />
-            <StatCard label="Net Profit" value={fmt(pl.net_profit)} icon={<DollarSign className="w-6 h-6 text-purple-600" />} color={netPositive ? 'bg-green-50' : 'bg-red-50'} />
+            <StatCard label="Net Profit" value={fmt(pl.net_profit)} icon={<CedisIcon className="w-6 h-6 text-[#0D3B6E] text-base" />} color={netPositive ? 'bg-[#0D3B6E]/8' : 'bg-red-50'} />
           </div>
 
           {pl.statement?.length > 0 && (
@@ -366,7 +370,7 @@ export default function AccountingPlPanel(_: Props) {
                     <div key={`${m.year}-${m.month}`} className="flex items-center gap-3">
                       <span className="text-xs text-gray-500 w-20 shrink-0">{m.label || `${m.month} ${m.year}`}</span>
                       <div className="flex-1 bg-gray-100 rounded-full h-2">
-                        <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                        <div className="bg-[#0D3B6E]/80 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
                       <span className="text-xs font-semibold w-28 text-right tabular-nums">{fmt(m.revenue)}</span>
                     </div>

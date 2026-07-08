@@ -284,7 +284,7 @@ export default function UsersPage() {
               className={`tab-btn ${tab === t.key ? 'tab-btn-active' : ''}`}>
               {tab === t.key && <span className="tab-indicator" />}
               {t.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${tab === t.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${tab === t.key ? 'bg-[#0D3B6E]/15 text-[#0D3B6E]' : 'bg-gray-100 text-gray-500'}`}>
                 {t.count}
               </span>
             </button>
@@ -311,13 +311,13 @@ export default function UsersPage() {
                     const branch = branches.find(b => b.id === (u.branch_id?._id || u.branch_id));
                     return [
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-700 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-[#0D3B6E] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                           {u.name.charAt(0).toUpperCase()}
                         </div>
                         <span className="font-medium">{u.name}</span>
                       </div>,
                       <span className="text-gray-500">{u.email}</span>,
-                      <span className="badge badge-blue">{getRoleLabel(u)}</span>,
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#0D3B6E]/8 text-[#0D3B6E]">{getRoleLabel(u)}</span>,
                       <span className="text-gray-500 text-xs">{branch ? branch.name : <span className="text-gray-300">Company-wide</span>}</span>,
                       <Badge status={u.is_active ? 'active' : 'inactive'} />,
                       <span className="text-gray-400 text-xs">{new Date(u.created_at).toLocaleDateString()}</span>,
@@ -367,8 +367,8 @@ export default function UsersPage() {
                     <div key={role.id} className="card flex flex-col gap-3">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                            <Shield className="w-5 h-5 text-blue-600" />
+                          <div className="w-10 h-10 rounded-xl bg-[#0D3B6E]/8 flex items-center justify-center flex-shrink-0">
+                            <Shield className="w-5 h-5 text-[#0D3B6E]" />
                           </div>
                           <div>
                             <div className="font-bold text-gray-900">{role.name}</div>
@@ -384,7 +384,7 @@ export default function UsersPage() {
                         {role.permissions.length === 0
                           ? <span className="text-xs text-gray-400">No permissions assigned</span>
                           : role.permissions.map((p: string) => (
-                            <span key={p} className="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">{p}</span>
+                            <span key={p} className="text-[11px] bg-[#0D3B6E]/8 text-[#0D3B6E] px-2 py-0.5 rounded-full font-medium">{p}</span>
                           ))}
                       </div>
                     </div>
@@ -415,7 +415,7 @@ export default function UsersPage() {
               )}
             </select>
             {customRoles.length === 0 && (
-              <p className="form-hint">No custom roles yet — <button type="button" className="text-blue-600 hover:underline" onClick={() => { setUserModal(null); setTab('roles'); }}>create one in the Roles tab</button>.</p>
+              <p className="form-hint">No custom roles yet — <button type="button" className="text-[#0D3B6E] hover:underline" onClick={() => { setUserModal(null); setTab('roles'); }}>create one in the Roles tab</button>.</p>
             )}
           </div>
 
@@ -444,7 +444,7 @@ export default function UsersPage() {
 
           {userModal === 'edit' && (
             <div className="flex items-center gap-3">
-              <input type="checkbox" id="is_active" checked={userForm.is_active} onChange={e => setUserForm({ ...userForm, is_active: e.target.checked })} className="w-4 h-4 text-blue-600" />
+              <input type="checkbox" id="is_active" checked={userForm.is_active} onChange={e => setUserForm({ ...userForm, is_active: e.target.checked })} className="w-4 h-4 text-[#0D3B6E]" />
               <label htmlFor="is_active" className="text-sm text-gray-700">Account Active</label>
             </div>
           )}
@@ -478,9 +478,9 @@ export default function UsersPage() {
                       className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors"
                     >
                       <span className="text-sm font-semibold text-gray-700">{group.group}</span>
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${allOn ? 'bg-blue-600 border-blue-600' : someOn ? 'bg-blue-200 border-blue-400' : 'border-gray-300'}`}>
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${allOn ? 'bg-[#0D3B6E] border-[#0D3B6E]' : someOn ? 'bg-[#0D3B6E]/20 border-[#0D3B6E]/40' : 'border-gray-300'}`}>
                         {allOn && <span className="text-white text-xs">✓</span>}
-                        {someOn && !allOn && <span className="text-blue-600 text-xs">–</span>}
+                        {someOn && !allOn && <span className="text-[#0D3B6E] text-xs">–</span>}
                       </div>
                     </button>
                     <div className="px-4 py-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -490,7 +490,7 @@ export default function UsersPage() {
                             type="checkbox"
                             checked={roleForm.permissions.includes(perm.key)}
                             onChange={() => togglePerm(perm.key)}
-                            className="w-4 h-4 text-blue-600 rounded"
+                            className="w-4 h-4 text-[#0D3B6E] rounded"
                           />
                           <span className="text-sm text-gray-600">{perm.label}</span>
                         </label>
@@ -525,16 +525,16 @@ export default function UsersPage() {
                 className={`w-full text-left flex items-center justify-between px-4 py-3 rounded-xl border transition-all group ${
                   alreadyImported
                     ? 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
-                    : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer'
+                    : 'border-gray-200 hover:border-[#0D3B6E]/40 hover:bg-[#0D3B6E]/5 cursor-pointer'
                 }`}
               >
                 <div>
-                  <div className={`font-semibold ${alreadyImported ? 'text-gray-400' : 'text-gray-800 group-hover:text-blue-700'}`}>{tpl.name}</div>
+                  <div className={`font-semibold ${alreadyImported ? 'text-gray-400' : 'text-gray-800 group-hover:text-[#0D3B6E]'}`}>{tpl.name}</div>
                   <div className="text-xs text-gray-400 mt-0.5">{tpl.permissions.length} permissions</div>
                 </div>
                 {alreadyImported
                   ? <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full font-medium">Already imported</span>
-                  : <span className="text-xs text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">Use this →</span>
+                  : <span className="text-xs text-[#0D3B6E] font-medium opacity-0 group-hover:opacity-100 transition-opacity">Use this →</span>
                 }
               </button>
             );

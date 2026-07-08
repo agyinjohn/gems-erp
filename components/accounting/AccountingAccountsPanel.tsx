@@ -10,11 +10,11 @@ import api from '@/lib/api';
 import AccountingLedgerPanel from '@/components/accounting/AccountingLedgerPanel';
 
 const TYPE_COLORS: Record<string, string> = {
-  asset: 'bg-green-100 text-green-800',
+  asset: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
   liability: 'bg-red-100 text-red-800',
-  equity: 'bg-blue-100 text-blue-800',
-  revenue: 'bg-purple-100 text-purple-800',
-  expense: 'bg-yellow-100 text-yellow-800',
+  equity: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
+  revenue: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
+  expense: 'bg-amber-50 text-amber-800',
 };
 
 const TYPE_OPTIONS = ['', 'asset', 'liability', 'equity', 'revenue', 'expense'];
@@ -185,10 +185,10 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
       {/* Summary */}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-          <StatCard label="Total accounts" value={summary.total} icon={<BookMarked className="w-5 h-5 text-blue-600" />} color="bg-blue-50" sub={`${summary.posting} posting · ${summary.groups} groups`} />
-          <StatCard label="With activity" value={summary.with_activity} icon={<CheckCircle2 className="w-5 h-5 text-green-600" />} color="bg-green-50" sub="Posting accounts used in GL" />
+          <StatCard label="Total accounts" value={summary.total} icon={<BookMarked className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${summary.posting} posting · ${summary.groups} groups`} />
+          <StatCard label="With activity" value={summary.with_activity} icon={<CheckCircle2 className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="Posting accounts used in GL" />
           {(summary.by_type || []).slice(0, 3).map((t: any) => (
-            <StatCard key={t.type} label={t.type.charAt(0).toUpperCase() + t.type.slice(1)} value={t.count} icon={<FolderTree className="w-5 h-5 text-gray-600" />} color="bg-gray-50" sub={t.count ? fmt(t.balance) : 'No balance'} />
+            <StatCard key={t.type} label={t.type.charAt(0).toUpperCase() + t.type.slice(1)} value={t.count} icon={<FolderTree className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub={t.count ? fmt(t.balance) : 'No balance'} />
           ))}
         </div>
       )}
@@ -230,7 +230,7 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
       <div className="card p-0 overflow-hidden">
         {syncingCoa ? (
           <div className="flex flex-col items-center justify-center py-20 px-6">
-            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            <Loader2 className="w-8 h-8 text-[#0D3B6E] animate-spin" />
             <p className="text-sm text-gray-600 mt-3 font-medium">Syncing chart of accounts…</p>
             <p className="text-xs text-gray-400 mt-1">Adding standard GL accounts and parent links</p>
           </div>
@@ -289,7 +289,7 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
                       <td className="px-3 md:px-4 py-2 md:py-3">
                         {!a.is_group && (
                           <div className="flex gap-1 justify-end">
-                            <button type="button" onClick={() => setLedgerAccount(a)} title="View ledger" className="p-1.5 hover:bg-blue-50 rounded text-blue-600">
+                            <button type="button" onClick={() => setLedgerAccount(a)} title="View ledger" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]">
                               <Eye className="w-3.5 h-3.5" />
                             </button>
                             <button type="button" onClick={() => openEdit(a)} title="Edit" className="p-1.5 hover:bg-gray-100 rounded text-gray-500">
@@ -368,12 +368,12 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
               placeholder="0.00"
             />
             {selected && balanceDiff > 0.001 && (
-              <p className="text-xs text-blue-600 mt-1">
+              <p className="text-xs text-[#0D3B6E] mt-1">
                 A balancing journal entry of {fmt(balanceDiff)} will be posted to Owner&apos;s Equity (3001).
               </p>
             )}
             {!selected && parseFloat(form.opening_balance || '0') !== 0 && (
-              <p className="text-xs text-blue-600 mt-1">Opening balance posts via journal entry to equity account 3001.</p>
+              <p className="text-xs text-[#0D3B6E] mt-1">Opening balance posts via journal entry to equity account 3001.</p>
             )}
           </div>
         </div>

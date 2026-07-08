@@ -694,7 +694,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                       <tr key={e.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-700 flex items-center justify-center flex-shrink-0">
+                            <div className="w-9 h-9 rounded-full overflow-hidden bg-[#0D3B6E] flex items-center justify-center flex-shrink-0">
                               {e.photo
                                 ? <img src={e.photo} alt={e.name} className="w-full h-full object-cover" />
                                 : <span className="text-white text-sm font-bold">{e.name?.charAt(0).toUpperCase()}</span>}
@@ -717,7 +717,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
                             <button onClick={() => openEditEmp(e)} title="Edit" className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4"/></button>
-                            <button onClick={() => openDetail(e)} title="Documents" className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><FileText className="w-4 h-4"/></button>
+                            <button onClick={() => openDetail(e)} title="Documents" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"><FileText className="w-4 h-4"/></button>
                             {e.status !== 'terminated' && (
                               <button onClick={() => openTerminate(e)} title="Terminate" className="p-1.5 hover:bg-red-50 rounded text-red-500"><UserX className="w-4 h-4"/></button>
                             )}
@@ -811,7 +811,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                         <td className="px-4 py-3"><Badge status={a.status} /></td>
                         <td className="px-4 py-3 text-gray-500 max-w-xs">{a.notes?.trim() ? a.notes : '—'}</td>
                         <td className="px-4 py-3">
-                          <button type="button" onClick={() => openEditAttendance(a)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600" title="Edit attendance">
+                          <button type="button" onClick={() => openEditAttendance(a)} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]" title="Edit attendance">
                             <Edit2 className="w-4 h-4" />
                           </button>
                         </td>
@@ -1105,7 +1105,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               </div>
               <div>
                 <label className="form-label">Passport Photo</label>
-                <input type="file" accept="image/*" className="text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                <input type="file" accept="image/*" className="text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#0D3B6E]/8 file:text-[#0D3B6E] hover:file:bg-[#0D3B6E]/15"
                   onChange={e => {
                     const file = e.target.files?.[0];
                     if (!file) return;
@@ -1249,7 +1249,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           />
           <p className="text-xs text-gray-500">Each allowance and deduction is stored by name on the payslip.</p>
           {payForm.employee_id && (
-            <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-800">
+            <div className="bg-[#0D3B6E]/8 rounded-lg p-3 text-sm text-[#0D3B6E]">
               Employee gross: GH₵ {employees.find(e=>e.id==payForm.employee_id)?.gross_salary || 0}
             </div>
           )}
@@ -1316,9 +1316,9 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                     <span className="font-medium text-red-600">- GH₵ {parseFloat(line.amount).toFixed(2)}</span>
                   </div>
                 ))}
-                <div className="flex justify-between px-4 py-3 bg-blue-50">
+                <div className="flex justify-between px-4 py-3 bg-[#0D3B6E]/8">
                   <span className="font-bold text-gray-900">Net pay</span>
-                  <span className="font-extrabold text-blue-700">GH₵ {parseFloat(payrollDetail.net_salary).toFixed(2)}</span>
+                  <span className="font-extrabold text-[#0D3B6E]">GH₵ {parseFloat(payrollDetail.net_salary).toFixed(2)}</span>
                 </div>
               </div>
             </div>

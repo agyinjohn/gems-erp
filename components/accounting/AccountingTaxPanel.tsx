@@ -177,7 +177,7 @@ export default function AccountingTaxPanel(_: Props) {
                     key={p.key}
                     type="button"
                     onClick={() => { setPeriod(p.key); setFrom(''); setTo(''); }}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === p.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === p.key ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-600'}`}
                   >
                     {p.label}
                   </button>
@@ -185,7 +185,7 @@ export default function AccountingTaxPanel(_: Props) {
                 <button
                   type="button"
                   onClick={() => setPeriod('custom')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === 'custom' ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-600'}`}
                 >
                   Custom
                 </button>
@@ -232,8 +232,8 @@ export default function AccountingTaxPanel(_: Props) {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <StatCard label="Output VAT (collected)" value={fmt(vat.output_vat)} icon={<Receipt className="w-5 h-5 text-blue-600" />} color="bg-blue-50" sub="VAT charged to customers" />
-            <StatCard label="Input VAT (paid)" value={fmt(vat.input_vat)} icon={<Receipt className="w-5 h-5 text-orange-600" />} color="bg-orange-50" sub="VAT paid to suppliers" />
+            <StatCard label="Output VAT (collected)" value={fmt(vat.output_vat)} icon={<CedisIcon className="w-5 h-5 text-[#0D3B6E] text-sm" />} color="bg-[#0D3B6E]/8" sub="VAT charged to customers" />
+            <StatCard label="Input VAT (paid)" value={fmt(vat.input_vat)} icon={<CedisIcon className="w-5 h-5 text-[#0D3B6E] text-sm" />} color="bg-[#0D3B6E]/8" sub="VAT paid to suppliers" />
             <StatCard
               label={`Net VAT ${vat.status === 'payable' ? 'payable' : 'reclaimable'}`}
               value={fmt(vat.net_vat_payable)}
@@ -246,18 +246,18 @@ export default function AccountingTaxPanel(_: Props) {
           <div id="vat-print" className="card">
             <h4 className="font-semibold text-gray-800 mb-3">VAT movement detail</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-4 space-y-2">
-                <p className="font-medium text-blue-800">Output VAT — {vat.accounts?.vat_payable_name}</p>
+              <div className="rounded-lg bg-[#0D3B6E]/5 border border-[#0D3B6E]/15 p-4 space-y-2">
+                <p className="font-medium text-[#0D3B6E]">Output VAT — {vat.accounts?.vat_payable_name}</p>
                 <div className="flex justify-between"><span className="text-gray-600">Credits (collected)</span><span className="tabular-nums">{fmt(vat.breakdown?.output?.credits)}</span></div>
                 <div className="flex justify-between"><span className="text-gray-600">Debits (adjustments)</span><span className="tabular-nums">{fmt(vat.breakdown?.output?.debits)}</span></div>
-                <div className="flex justify-between font-semibold border-t border-blue-100 pt-2"><span>Net output</span><span className="tabular-nums">{fmt(vat.output_vat)}</span></div>
+                <div className="flex justify-between font-semibold border-t border-[#0D3B6E]/15 pt-2"><span>Net output</span><span className="tabular-nums">{fmt(vat.output_vat)}</span></div>
                 <p className="text-xs text-gray-500">{vat.breakdown?.output?.entry_count ?? 0} journal entries</p>
               </div>
-              <div className="rounded-lg bg-orange-50/60 border border-orange-100 p-4 space-y-2">
-                <p className="font-medium text-orange-800">Input VAT — {vat.accounts?.vat_input_name}</p>
+              <div className="rounded-lg bg-[#0D3B6E]/5 border border-[#0D3B6E]/15 p-4 space-y-2">
+                <p className="font-medium text-[#0D3B6E]">Input VAT — {vat.accounts?.vat_input_name}</p>
                 <div className="flex justify-between"><span className="text-gray-600">Debits (paid)</span><span className="tabular-nums">{fmt(vat.breakdown?.input?.debits)}</span></div>
                 <div className="flex justify-between"><span className="text-gray-600">Credits (reversals)</span><span className="tabular-nums">{fmt(vat.breakdown?.input?.credits)}</span></div>
-                <div className="flex justify-between font-semibold border-t border-orange-100 pt-2"><span>Net input</span><span className="tabular-nums">{fmt(vat.input_vat)}</span></div>
+                <div className="flex justify-between font-semibold border-t border-[#0D3B6E]/15 pt-2"><span>Net input</span><span className="tabular-nums">{fmt(vat.input_vat)}</span></div>
                 <p className="text-xs text-gray-500">{vat.breakdown?.input?.entry_count ?? 0} journal entries</p>
               </div>
             </div>
@@ -303,9 +303,9 @@ export default function AccountingTaxPanel(_: Props) {
                 {rates.map((t: any) => (
                   <tr key={t.id} className="hover:bg-gray-50/80">
                     <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{t.name}</td>
-                    <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-blue-700 tabular-nums">{parseFloat(t.rate).toFixed(2)}%</td>
+                    <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-[#0D3B6E] tabular-nums">{parseFloat(t.rate).toFixed(2)}%</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 hidden md:table-cell">
-                      <span className="badge badge-blue text-xs">{t.applies_to}</span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#0D3B6E]/8 text-[#0D3B6E]">{t.applies_to}</span>
                     </td>
                     <td className="px-3 md:px-4 py-2 md:py-3">
                       {t.is_active

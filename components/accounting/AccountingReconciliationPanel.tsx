@@ -316,23 +316,23 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
         <StatCard
           label="GL cash balance"
           value={fmt(viewSummary.gl_book_balance)}
-          icon={<Landmark className="w-5 h-5 text-green-600" />}
-          color="bg-green-50"
+          icon={<Landmark className="w-5 h-5 text-[#0D3B6E]" />}
+          color="bg-[#0D3B6E]/8"
           sub={viewData?.cash_account ? `${viewData.cash_account.code} — ${viewData.cash_account.name}` : 'Account 1001'}
         />
         <StatCard label="Draft sessions" value={String(viewSummary.draft_sessions ?? 0)} icon={<FileText className="w-5 h-5 text-amber-600" />} color="bg-amber-50" sub="In progress" />
         <StatCard
           label="Last completed"
           value={viewSummary.last_statement_date ? displayDate(viewSummary.last_statement_date) : '—'}
-          icon={<CheckCircle2 className="w-5 h-5 text-blue-600" />}
-          color="bg-blue-50"
+          icon={<CheckCircle2 className="w-5 h-5 text-[#0D3B6E]" />}
+          color="bg-[#0D3B6E]/8"
           sub={`${viewSummary.completed_sessions ?? 0} completed`}
         />
         <StatCard
           label="Last match rate"
           value={summary ? `${summary.match_rate}%` : '—'}
-          icon={<RefreshCw className="w-5 h-5 text-purple-600" />}
-          color="bg-purple-50"
+          icon={<RefreshCw className="w-5 h-5 text-[#0D3B6E]" />}
+          color="bg-[#0D3B6E]/8"
           sub={summary ? `${summary.matched_count}/${summary.bank_line_count} lines` : 'Run reconciliation'}
         />
       </div>
@@ -422,7 +422,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
       {reconResult && summary && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="card bg-blue-50 border-blue-100"><div className="text-xs text-blue-600 font-medium mb-1">Bank net (period)</div><div className="text-xl font-bold text-blue-800">{fmt(summary.bank_total)}</div></div>
+            <div className="card bg-[#0D3B6E]/8 border-[#0D3B6E]/15"><div className="text-xs text-[#0D3B6E] font-medium mb-1">Bank net (period)</div><div className="text-xl font-bold text-[#0D3B6E]">{fmt(summary.bank_total)}</div></div>
             <div className="card bg-green-50 border-green-100"><div className="text-xs text-green-600 font-medium mb-1">GL net (period)</div><div className="text-xl font-bold text-green-800">{fmt(summary.gl_period_total)}</div></div>
             <div className={`card ${summary.is_period_balanced ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
               <div className={`text-xs font-medium mb-1 ${summary.is_period_balanced ? 'text-green-600' : 'text-red-600'}`}>Period difference</div>
@@ -451,7 +451,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
               { key: 'bank', label: `Bank only (${reconResult.unmatchedBank.length})` },
               { key: 'gl', label: `GL only (${reconResult.unmatchedGl.length})` },
             ] as { key: ResultTab; label: string }[]).map((t) => (
-              <button key={t.key} type="button" onClick={() => setResultTab(t.key)} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${resultTab === t.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{t.label}</button>
+              <button key={t.key} type="button" onClick={() => setResultTab(t.key)} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${resultTab === t.key ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-600'}`}>{t.label}</button>
             ))}
           </div>
 
@@ -585,7 +585,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
                 { key: 'bank', label: `Bank lines (${sessionDetail.all_bank_lines?.length || sessionDetail.bank_lines?.length || 0})` },
                 { key: 'gl', label: `GL lines (${sessionDetail.all_gl_lines?.length || sessionDetail.gl_lines?.length || 0})` },
               ] as { key: SessionDetailTab; label: string }[]).map((t) => (
-                <button key={t.key} type="button" onClick={() => setSessionDetailTab(t.key)} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${sessionDetailTab === t.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{t.label}</button>
+                <button key={t.key} type="button" onClick={() => setSessionDetailTab(t.key)} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${sessionDetailTab === t.key ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-600'}`}>{t.label}</button>
               ))}
             </div>
 
@@ -614,7 +614,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
                   fmt(l.amount),
                 ])}
                 empty="No bank lines recorded"
-                headerClass="bg-blue-50"
+                headerClass="bg-[#0D3B6E]/8"
               />
             )}
 

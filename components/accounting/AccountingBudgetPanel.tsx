@@ -175,7 +175,7 @@ export default function AccountingBudgetPanel(_: Props) {
       {data && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard label="Total budgeted" value={fmt(totals.budgeted)} icon={<TrendingUp className="w-5 h-5 text-blue-600" />} color="bg-blue-50" />
+            <StatCard label="Total budgeted" value={fmt(totals.budgeted)} icon={<TrendingUp className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
             <StatCard label="Total actual" value={fmt(totals.actual)} icon={<TrendingUp className="w-5 h-5 text-red-600" />} color="bg-red-50" />
             <StatCard label="Variance" value={fmt(totals.variance)} icon={<TrendingUp className="w-5 h-5 text-green-600" />} color={totals.variance >= 0 ? 'bg-green-50' : 'bg-red-50'} sub={totals.pct != null ? `${totals.pct}% used` : undefined} />
             <StatCard label="Over budget" value={String(summary.over_budget_count ?? 0)} icon={<AlertTriangle className="w-5 h-5 text-amber-600" />} color="bg-amber-50" sub={`${summary.budgeted_categories ?? 0} budgeted categories`} />

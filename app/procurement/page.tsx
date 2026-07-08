@@ -329,8 +329,8 @@ export default function ProcurementPage() {
         {!isWarehouseOnly && (
           <>
         <div className="card flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <ClipboardList className="w-5 h-5 text-blue-600" />
+          <div className="w-11 h-11 rounded-xl bg-[#0D3B6E]/8 flex items-center justify-center flex-shrink-0">
+            <ClipboardList className="w-5 h-5 text-[#0D3B6E]" />
           </div>
           <div>
             <div className="text-2xl font-extrabold text-gray-900">{loading ? '—' : pos.length}</div>
@@ -338,8 +338,8 @@ export default function ProcurementPage() {
           </div>
         </div>
         <div className="card flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-yellow-50 flex items-center justify-center flex-shrink-0">
-            <CheckCircle className="w-5 h-5 text-yellow-600" />
+          <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <CheckCircle className="w-5 h-5 text-amber-500" />
           </div>
           <div>
             <div className="text-2xl font-extrabold text-gray-900">{loading ? '—' : pendingApproval}</div>
@@ -349,8 +349,8 @@ export default function ProcurementPage() {
           </>
         )}
         <div className="card flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-cyan-50 flex items-center justify-center flex-shrink-0">
-            <Truck className="w-5 h-5 text-cyan-600" />
+          <div className="w-11 h-11 rounded-xl bg-[#0D3B6E]/8 flex items-center justify-center flex-shrink-0">
+            <Truck className="w-5 h-5 text-[#0D3B6E]" />
           </div>
           <div>
             <div className="text-2xl font-extrabold text-gray-900">{loading ? '—' : pendingReceipt}</div>
@@ -376,7 +376,7 @@ export default function ProcurementPage() {
           { t: 'pos', l: 'Purchase Orders', icon: <ClipboardList className="w-4 h-4" /> },
           ...(!isWarehouseOnly ? [{ t: 'suppliers', l: 'Suppliers', icon: <Building2 className="w-4 h-4" /> }] : []),
         ]).map(({ t, l, icon }) => (
-          <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 w-full sm:w-auto ${tab===t ? 'bg-blue-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>
+          <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 w-full sm:w-auto ${tab===t ? 'bg-[#0D3B6E] text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>
         ))}
         <div className="sm:ml-auto flex gap-2 w-full sm:w-auto">
           {tab === 'pos' && canManagePO && <button className="btn-primary w-full sm:w-auto" onClick={() => { resetPoForm(); setModal('add_po'); }}><Plus className="w-4 h-4" />New PO</button>}
@@ -420,39 +420,39 @@ export default function ProcurementPage() {
                 headers={['PO Number','Supplier','Total Cost','Status','Payment','Expected','Actions']}
                 data={filtered}
                 renderRow={(po) => [
-                  <span className="font-mono text-xs font-medium text-blue-700">{po.po_number}</span>,
+                  <span className="font-mono text-xs font-medium text-[#0D3B6E]">{po.po_number}</span>,
                   <span className="font-medium">{po.supplier_name || po.supplier_id?.name || '—'}</span>,
                   <div>
                     <div className="font-semibold">GH₵ {parseFloat(po.total_cost||0).toFixed(2)}</div>
-                    {po.amount_paid > 0 && <div className="text-xs text-green-600">Paid: GH₵ {parseFloat(po.amount_paid||0).toFixed(2)}</div>}
+                    {po.amount_paid > 0 && <div className="text-xs text-[#0D3B6E]">Paid: GH₵ {parseFloat(po.amount_paid||0).toFixed(2)}</div>}
                   </div>,
                   <Badge status={po.status || 'draft'} />,
                   <span className={`badge ${
-                    po.payment_status === 'paid'    ? 'bg-green-100 text-green-700' :
-                    po.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-700' :
+                    po.payment_status === 'paid'    ? 'bg-[#0D3B6E]/8 text-[#0D3B6E]' :
+                    po.payment_status === 'partial' ? 'bg-amber-50 text-amber-600' :
                     'bg-gray-100 text-gray-500'
                   }`}>{po.payment_status || 'unpaid'}</span>,
                   <span className="text-gray-500 text-xs">{po.expected_date ? new Date(po.expected_date).toLocaleDateString() : '—'}</span>,
                   <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => openView(po)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600" title="View"><Eye className="w-4 h-4" /></button>
-                    <button onClick={() => openPrint(po)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Print"><Printer className="w-4 h-4" /></button>
+                    <button onClick={() => openView(po)} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]" title="View"><Eye className="w-4 h-4" /></button>
+                    <button onClick={() => openPrint(po)} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]" title="Print"><Printer className="w-4 h-4" /></button>
                     {po.status === 'draft' && canManagePO && (
                       <>
-                        <button onClick={() => openEditPO(po)} title="Edit draft" className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4" /></button>
-                        <button onClick={() => submitPO(po)} title="Submit for approval" className="p-1.5 hover:bg-indigo-50 rounded text-indigo-600"><Send className="w-4 h-4" /></button>
+                        <button onClick={() => openEditPO(po)} title="Edit draft" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"><Edit2 className="w-4 h-4" /></button>
+                        <button onClick={() => submitPO(po)} title="Submit for approval" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"><Send className="w-4 h-4" /></button>
                       </>
                     )}
                     {po.status === 'pending_approval' && canApprove && (
-                      <button onClick={() => approvePO(po)} title="Approve PO" className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4" /></button>
+                      <button onClick={() => approvePO(po)} title="Approve PO" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"><CheckCircle className="w-4 h-4" /></button>
                     )}
                     {po.status === 'draft' && canApprove && (
-                      <button onClick={() => approvePO(po)} title="Approve PO (skip submit)" className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4" /></button>
+                      <button onClick={() => approvePO(po)} title="Approve PO (skip submit)" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"><CheckCircle className="w-4 h-4" /></button>
                     )}
                     {canManagePO && canCancelPO(po) && (
                       <button onClick={() => openCancel(po)} title="Cancel PO" className="p-1.5 hover:bg-red-50 rounded text-red-500"><XCircle className="w-4 h-4" /></button>
                     )}
-                    {po.status === 'approved' && canManagePO && <button onClick={() => sendPO(po)} title="Mark as Sent to Supplier" className="p-1.5 hover:bg-purple-50 rounded text-purple-600"><Send className="w-4 h-4" /></button>}
-                    {['approved','sent','partially_received'].includes(po.status) && canReceive && <button onClick={() => openReceive(po)} title="Receive Goods" className="p-1.5 hover:bg-yellow-50 rounded text-yellow-600"><Truck className="w-4 h-4" /></button>}
+                    {po.status === 'approved' && canManagePO && <button onClick={() => sendPO(po)} title="Mark as Sent to Supplier" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"><Send className="w-4 h-4" /></button>}
+                    {['approved','sent','partially_received'].includes(po.status) && canReceive && <button onClick={() => openReceive(po)} title="Receive Goods" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"><Truck className="w-4 h-4" /></button>}
                     {['sent','partially_received','completed'].includes(po.status) && po.payment_status !== 'paid' && canPay && (
                       <button
                         onClick={() => {
@@ -461,7 +461,7 @@ export default function ProcurementPage() {
                           setPoPayForm({ amount: outstanding.toFixed(2), method:'bank_transfer', reference:'', note:'' });
                         }}
                         title="Record Payment"
-                        className="p-1.5 hover:bg-green-50 rounded text-green-600"
+                        className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"
                       ><CreditCard className="w-4 h-4" /></button>
                     )}
                   </div>
@@ -485,7 +485,7 @@ export default function ProcurementPage() {
                 <span className="text-gray-500">{s.payment_terms||'—'}</span>,
                 <Badge status={s.is_active ? 'active':'inactive'} />,
                 <div className="flex gap-1">
-                  <button onClick={() => { setSelectedSupplier(s); setSupForm({ name:s.name, email:s.email||'', phone:s.phone||'', address:s.address||'', payment_terms:s.payment_terms||'Net 30', notes:s.notes||'' }); setError(''); setModal('add_supplier'); }} className="p-1.5 hover:bg-gray-100 rounded text-gray-500"><Edit2 className="w-4 h-4" /></button>
+                  <button onClick={() => { setSelectedSupplier(s); setSupForm({ name:s.name, email:s.email||'', phone:s.phone||'', address:s.address||'', payment_terms:s.payment_terms||'Net 30', notes:s.notes||'' }); setError(''); setModal('add_supplier'); }} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"><Edit2 className="w-4 h-4" /></button>
                   <button onClick={() => setConfirmSupplierId(poId(s))} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ]}
@@ -634,7 +634,7 @@ export default function ProcurementPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Already Paid</span>
-                <span className="font-medium text-green-600">GHS {parseFloat(poPayModal.amount_paid||0).toFixed(2)}</span>
+                <span className="font-medium text-[#0D3B6E]">GHS {parseFloat(poPayModal.amount_paid||0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between border-t pt-1">
                 <span className="text-gray-500 font-semibold">Outstanding</span>
@@ -650,10 +650,10 @@ export default function ProcurementPage() {
                 max={poPayModal.outstanding}
               />
               {parseFloat(poPayForm.amount||'0') > 0 && parseFloat(poPayForm.amount||'0') < poPayModal.outstanding && (
-                <p className="text-xs text-yellow-600 mt-1">Partial payment — GHS {(poPayModal.outstanding - parseFloat(poPayForm.amount)).toFixed(2)} will remain outstanding.</p>
+                <p className="text-xs text-amber-600 mt-1">Partial payment — GHS {(poPayModal.outstanding - parseFloat(poPayForm.amount)).toFixed(2)} will remain outstanding.</p>
               )}
               {parseFloat(poPayForm.amount||'0') >= poPayModal.outstanding && (
-                <p className="text-xs text-green-600 mt-1">✓ Full payment — payable will be cleared.</p>
+                <p className="text-xs text-[#0D3B6E] mt-1">✓ Full payment — payable will be cleared.</p>
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

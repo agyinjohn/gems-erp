@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Search, Download, ArrowUpCircle, AlertTriangle, Eye, DollarSign,
 } from 'lucide-react';
+
+const CedisIcon = ({ className }: { className?: string }) => (
+  <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
+);
 import { Modal, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
 import api from '@/lib/api';
 
@@ -13,8 +17,8 @@ function fmt(n: number | string | undefined) {
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  purchase: 'bg-orange-100 text-orange-800',
-  vendor_bill: 'bg-blue-100 text-blue-800',
+  purchase: 'bg-amber-50 text-amber-800',
+  vendor_bill: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
 };
 
 const AGING_LABELS: Record<string, string> = {
@@ -25,9 +29,9 @@ const AGING_LABELS: Record<string, string> = {
 };
 
 const AGING_COLORS: Record<string, string> = {
-  current: 'bg-green-50 border-green-200 text-green-700',
-  days_31_60: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-  days_61_90: 'bg-orange-50 border-orange-200 text-orange-700',
+  current: 'bg-[#0D3B6E]/8 border-[#0D3B6E]/20 text-[#0D3B6E]',
+  days_31_60: 'bg-amber-50 border-amber-200 text-amber-700',
+  days_61_90: 'bg-amber-50 border-amber-300 text-amber-800',
   over_90: 'bg-red-50 border-red-200 text-red-700',
 };
 
@@ -122,10 +126,10 @@ export default function AccountingPayablesPanel({ onDataChange }: Props) {
   return (
     <div className={`space-y-5 relative ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Open payables" value={String(summary.count ?? 0)} icon={<ArrowUpCircle className="w-5 h-5 text-orange-600" />} color="bg-orange-50" sub="GL account 2001" />
-        <StatCard label="Total outstanding" value={fmt(summary.total_outstanding)} icon={<DollarSign className="w-5 h-5 text-red-600" />} color="bg-red-50" sub="Amount still owed" />
+        <StatCard label="Open payables" value={String(summary.count ?? 0)} icon={<ArrowUpCircle className="w-5 h-5 text-red-600" />} color="bg-red-50" sub="GL account 2001" />
+        <StatCard label="Total outstanding" value={fmt(summary.total_outstanding)} icon={<CedisIcon className="w-5 h-5 text-red-600 text-sm" />} color="bg-red-50" sub="Amount still owed" />
         <StatCard label="Overdue" value={String(summary.overdue_count ?? 0)} icon={<AlertTriangle className="w-5 h-5 text-amber-600" />} color="bg-amber-50" sub="Past expected due date" />
-        <StatCard label="GL AP (2001)" value={fmt(summary.gl_accounts_payable)} icon={<ArrowUpCircle className="w-5 h-5 text-indigo-600" />} color="bg-indigo-50" sub="General ledger balance" />
+        <StatCard label="GL AP (2001)" value={fmt(summary.gl_accounts_payable)} icon={<ArrowUpCircle className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="General ledger balance" />
       </div>
 
       {Math.abs(summary.gl_vs_entries_diff || 0) > 0.02 && (
@@ -188,7 +192,7 @@ export default function AccountingPayablesPanel({ onDataChange }: Props) {
                   const ageColor = e.days_past_due > 90 ? 'text-red-600 font-bold' : e.days_past_due > 60 ? 'text-orange-500 font-semibold' : e.days_past_due > 30 ? 'text-yellow-600' : 'text-green-600';
                   return (
                     <tr key={e.id} className="hover:bg-gray-50/80">
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{e.reference}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-[#0D3B6E]">{e.reference}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{e.supplier || '—'}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs hidden md:table-cell">{e.document_number || '—'}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600 tabular-nums">{fmt(e.outstanding)}</td>

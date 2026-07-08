@@ -2,10 +2,14 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, toast, ConfirmDialog } from '@/components/ui';
-import { Plus, Search, Eye, Edit2, X, FileText, DollarSign, ShoppingCart } from 'lucide-react';
+import { Plus, Search, Eye, Edit2, X, FileText, ShoppingCart } from 'lucide-react';
 import api from '@/lib/api';
 import InvoiceModal from '@/components/InvoiceModal';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
+
+const CedisIcon = ({ className }: { className?: string }) => (
+  <span className={`font-bold leading-none flex items-center justify-center ${className}`} style={{ fontFamily: 'serif' }}>₵</span>
+);
 
 const SOURCE_OPTIONS = [
   { value: '', label: 'All sources' },
@@ -139,9 +143,9 @@ export default function OrdersPage() {
 
   const sourceLabel: Record<string,string> = { storefront: 'Storefront', internal: 'Internal', pos: 'POS' };
   const sourceBadgeColor: Record<string,string> = {
-    storefront: 'bg-blue-50 text-blue-700',
-    internal:   'bg-purple-50 text-purple-700',
-    pos:        'bg-green-50 text-green-700',
+    storefront: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
+    internal:   'bg-[#0D3B6E]/8 text-[#0D3B6E]',
+    pos:        'bg-[#0D3B6E]/8 text-[#0D3B6E]',
   };
 
   return (
@@ -218,7 +222,7 @@ export default function OrdersPage() {
               headers={['Order #', 'Customer', 'Source', 'Total', 'Payment', 'Method', 'Status', 'Date', '']}
               data={filtered}
               renderRow={(o) => ([
-                <span className="font-mono text-xs font-medium text-blue-700">{o.order_number}</span>,
+                <span className="font-mono text-xs font-medium text-[#0D3B6E]">{o.order_number}</span>,
                 <div>
                   <div className="font-medium text-gray-900">{o.customer_name}</div>
                   <div className="text-xs text-gray-400">{o.customer_email || '—'}</div>
@@ -232,13 +236,13 @@ export default function OrdersPage() {
                 <Badge status={o.status} />,
                 <span className="text-gray-500 text-xs whitespace-nowrap">{new Date(o.created_at || o.createdAt).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })}</span>,
                 <div className="flex gap-1">
-                  <button type="button" onClick={() => openInvoice(o)} className="p-1.5 hover:bg-green-50 rounded text-green-600" title="View invoice">
+                  <button type="button" onClick={() => openInvoice(o)} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]" title="View invoice">
                     <FileText className="w-4 h-4" />
                   </button>
-                  <button type="button" onClick={() => openView(o)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="View order">
+                  <button type="button" onClick={() => openView(o)} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]" title="View order">
                     <Eye className="w-4 h-4" />
                   </button>
-                  <button type="button" onClick={() => openStatus(o)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600" title="Update status">
+                  <button type="button" onClick={() => openStatus(o)} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]" title="Update status">
                     <Edit2 className="w-4 h-4" />
                   </button>
                   {o.payment_status === 'pending' && o.source === 'internal' && (
@@ -246,9 +250,9 @@ export default function OrdersPage() {
                       type="button"
                       title="Mark as paid"
                       onClick={() => { setPayModal(o); setPayMethod('cash'); }}
-                      className="p-1.5 hover:bg-yellow-50 rounded text-yellow-600"
+                      className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"
                     >
-                      <DollarSign className="w-4 h-4" />
+                      <CedisIcon className="w-4 h-4 text-sm" />
                     </button>
                   )}
                 </div>
@@ -296,7 +300,7 @@ export default function OrdersPage() {
             )}
           </div>
           {form.payment_status === 'pending' && (
-            <p className="text-xs text-yellow-600 mt-2 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">⏳ Order will appear in Accounts Receivable until payment is collected.</p>
+            <p className="text-xs text-[#0D3B6E] mt-2 bg-[#0D3B6E]/8 border border-[#0D3B6E]/15 rounded-lg px-3 py-2">⏳ Order will appear in Accounts Receivable until payment is collected.</p>
           )}
         </div>
         <div className="border-t pt-4">

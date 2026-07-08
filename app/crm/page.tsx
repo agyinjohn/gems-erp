@@ -8,7 +8,7 @@ import ResponsiveTable from '@/components/ui/ResponsiveTable';
 
 const STAGES = ['new','contacted','qualified','proposal','negotiation','won','lost'];
 const STAGE_COLORS: Record<string,string> = {
-  new:'bg-purple-100 text-purple-800', contacted:'bg-blue-100 text-blue-800', qualified:'bg-teal-100 text-teal-800',
+  new:'bg-purple-100 text-purple-800', contacted:'bg-[#0D3B6E]/8 text-[#0D3B6E]', qualified:'bg-teal-100 text-teal-800',
   proposal:'bg-yellow-100 text-yellow-800', negotiation:'bg-orange-100 text-orange-800', won:'bg-green-100 text-green-800', lost:'bg-red-100 text-red-800'
 };
 
@@ -107,15 +107,15 @@ export default function CRMPage() {
       {/* Summary bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         <div className="card py-3 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center"><User className="w-5 h-5 text-blue-600"/></div>
+          <div className="w-10 h-10 rounded-xl bg-[#0D3B6E]/8 flex items-center justify-center"><User className="w-5 h-5 text-[#0D3B6E]"/></div>
           <div><div className="text-xl font-bold">{customers.length}</div><div className="text-xs text-gray-500">Total Customers</div></div>
         </div>
         <div className="card py-3 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-purple-600"/></div>
+          <div className="w-10 h-10 rounded-xl bg-[#0D3B6E]/8 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-[#0D3B6E]"/></div>
           <div><div className="text-xl font-bold">{leads.filter(l=>!['won','lost'].includes(l.stage)).length}</div><div className="text-xs text-gray-500">Active Leads</div></div>
         </div>
         <div className="card py-3 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center"><span className="text-green-600 font-bold text-sm">₵</span></div>
+          <div className="w-10 h-10 rounded-xl bg-[#0D3B6E]/8 flex items-center justify-center"><span className="text-[#0D3B6E] font-bold text-sm">₵</span></div>
           <div><div className="text-xl font-bold">GH₵ {totalPipelineValue.toFixed(0)}</div><div className="text-xs text-gray-500">Pipeline Value</div></div>
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function CRMPage() {
       {/* Tabs */}
       <div className="flex flex-col sm:flex-row flex-wrap gap-2 mb-5">
         {([{t:'customers',l:'Customers',icon:<Users className="w-4 h-4"/>},{t:'leads',l:'Leads & Pipeline',icon:<Target className="w-4 h-4"/>},{t:'contacts',l:'Contact History',icon:<MessageSquare className="w-4 h-4"/>}]).map(({t,l,icon}) => (
-          <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 w-full sm:w-auto ${tab===t?'bg-blue-700 text-white':'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>
+          <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 w-full sm:w-auto ${tab===t?'bg-[#0D3B6E] text-white':'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>
         ))}
         <div className="sm:ml-auto flex gap-2 w-full sm:w-auto">
           {tab==='customers' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setCustForm({name:'',email:'',phone:'',company:'',address:'',segment:'general',notes:''}); setError(''); setModal('add_customer'); }}><Plus className="w-4 h-4"/>Add Customer</button>}
@@ -155,7 +155,7 @@ export default function CRMPage() {
               data={contacts}
               renderRow={(c) => [
                 <span className="font-medium">{c.customer_name||'—'}</span>,
-                <span className="badge badge-blue capitalize">{c.type}</span>,
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#0D3B6E]/8 text-[#0D3B6E] capitalize">{c.type}</span>,
                 <span className="text-gray-500 max-w-xs truncate">{c.notes||'—'}</span>,
                 <span className="text-gray-400 text-xs">{new Date(c.contact_date).toLocaleDateString()}</span>
               ]}
@@ -176,7 +176,7 @@ export default function CRMPage() {
                 <span className="text-gray-500">{c.company||'—'}</span>,
                 <span className="text-gray-500">{c.email||'—'}</span>,
                 <span className="text-gray-500">{c.phone||'—'}</span>,
-                <span className="badge badge-blue capitalize">{c.segment}</span>,
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#0D3B6E]/8 text-[#0D3B6E] capitalize">{c.segment}</span>,
                 <span className="text-gray-400 text-xs">{new Date(c.created_at).toLocaleDateString()}</span>
               ]}
             />
@@ -244,7 +244,7 @@ export default function CRMPage() {
             <label className="form-label">Contact Type</label>
             <div className="grid grid-cols-5 gap-2">
               {([
-                { type: 'call',      icon: Phone,          label: 'Call',      color: 'text-blue-600 bg-blue-50 border-blue-200' },
+                { type: 'call',      icon: Phone,          label: 'Call',      color: 'text-[#0D3B6E] bg-[#0D3B6E]/8 border-[#0D3B6E]/30' },
                 { type: 'sms',       icon: MessageCircle,  label: 'SMS',       color: 'text-green-600 bg-green-50 border-green-200' },
                 { type: 'whatsapp',  icon: MessageSquare,  label: 'WhatsApp',  color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
                 { type: 'email',     icon: Mail,           label: 'Email',     color: 'text-purple-600 bg-purple-50 border-purple-200' },
@@ -311,10 +311,10 @@ export default function CRMPage() {
 
           {(contactForm.type === 'call' || contactForm.type === 'meeting') && (
             <div className={`space-y-3 rounded-xl p-4 border ${
-              contactForm.type === 'call' ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'
+              contactForm.type === 'call' ? 'bg-[#0D3B6E]/8 border-[#0D3B6E]/15' : 'bg-orange-50 border-orange-100'
             }`}>
               <div className={`flex items-center gap-2 text-xs font-bold mb-1 ${
-                contactForm.type === 'call' ? 'text-blue-700' : 'text-orange-700'
+                contactForm.type === 'call' ? 'text-[#0D3B6E]' : 'text-orange-700'
               }`}>
                 {contactForm.type === 'call' ? <Phone className="w-3.5 h-3.5" /> : <Video className="w-3.5 h-3.5" />}
                 {contactForm.type === 'call' ? 'Call Notes' : 'Meeting Notes'}

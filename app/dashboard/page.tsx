@@ -3,7 +3,11 @@ import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, Badge, Spinner } from '@/components/ui';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Package, ShoppingCart, Users, DollarSign, AlertTriangle, TrendingUp, UserCheck, Receipt, Truck, ClipboardList, ArrowDown, ArrowUp, RefreshCw, Building2, CreditCard } from 'lucide-react';
+import { Package, ShoppingCart, Users, AlertTriangle, TrendingUp, UserCheck, Truck, ClipboardList, ArrowDown, ArrowUp, RefreshCw, Building2 } from 'lucide-react';
+
+const CedisIcon = ({ className }: { className?: string }) => (
+  <span className={`font-bold leading-none flex items-center justify-center ${className}`} style={{ fontFamily: 'serif' }}>₵</span>
+);
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -38,7 +42,7 @@ export default function DashboardPage() {
     const typeColors: Record<string, string> = {
       sale:       'bg-red-100 text-red-700',
       purchase:   'bg-green-100 text-green-700',
-      adjustment: 'bg-blue-100 text-blue-700',
+      adjustment: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
       transfer:   'bg-purple-100 text-purple-700',
     };
     return (
@@ -47,12 +51,12 @@ export default function DashboardPage() {
 
         {/* ── KPI Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <StatCard label="Total Products"  value={kpis.total_products ?? '—'} icon={<Package className="w-6 h-6 text-blue-600" />}        color="bg-blue-50"   sub="Active SKUs" />
-          <StatCard label="Healthy Stock"   value={kpis.healthy_stock  ?? '—'} icon={<Package className="w-6 h-6 text-green-600" />}       color="bg-green-50"  sub="Above threshold" />
-          <StatCard label="Low Stock"        value={kpis.low_stock      ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-yellow-600" />} color="bg-yellow-50" sub="Below threshold" />
-          <StatCard label="Out of Stock"     value={kpis.out_of_stock   ?? '—'} icon={<Package className="w-6 h-6 text-red-600" />}         color="bg-red-50"    sub="Zero quantity" />
-          <StatCard label="Inventory Value"  value={`GH₵ ${(kpis.stock_value || 0).toLocaleString('en-GH', { minimumFractionDigits: 0 })}`} icon={<DollarSign className="w-6 h-6 text-indigo-600" />} color="bg-indigo-50" sub="At cost price" />
-          <StatCard label="Pending Deliveries" value={kpis.pending_pos ?? '—'} icon={<Truck className="w-6 h-6 text-cyan-600" />}          color="bg-cyan-50"   sub="POs awaiting receipt" />
+          <StatCard label="Total Products"    value={kpis.total_products ?? '—'} icon={<Package className="w-6 h-6 text-[#0D3B6E]" />}       color="bg-[#0D3B6E]/8" sub="Active SKUs" />
+          <StatCard label="Healthy Stock"     value={kpis.healthy_stock  ?? '—'} icon={<Package className="w-6 h-6 text-[#0D3B6E]" />}       color="bg-[#0D3B6E]/8" sub="Above threshold" />
+          <StatCard label="Low Stock"         value={kpis.low_stock      ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-amber-500" />}  color="bg-amber-50"    sub="Below threshold" />
+          <StatCard label="Out of Stock"      value={kpis.out_of_stock   ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-red-500" />}    color="bg-red-50"      sub="Zero quantity" />
+          <StatCard label="Inventory Value"   value={`GH₵ ${(kpis.stock_value || 0).toLocaleString('en-GH', { minimumFractionDigits: 0 })}`} icon={<CedisIcon className="w-6 h-6 text-[#0D3B6E] text-xl" />} color="bg-[#0D3B6E]/8" sub="At cost price" />
+          <StatCard label="Pending Deliveries" value={kpis.pending_pos ?? '—'} icon={<Truck className="w-6 h-6 text-[#0D3B6E]" />}           color="bg-[#0D3B6E]/8" sub="POs awaiting receipt" />
         </div>
 
         {/* ── Stock Health Donut + 7-day Trend ── */}
@@ -127,7 +131,7 @@ export default function DashboardPage() {
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800">Low Stock Alerts</h3>
-              <a href="/inventory" className="text-xs text-blue-600 hover:underline">View all →</a>
+              <a href="/inventory" className="text-xs text-[#0D3B6E] hover:underline">View all →</a>
             </div>
             {lowStockItems.length ? (
               <div className="space-y-3">
@@ -187,7 +191,7 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-6 flex-shrink-0" />
                         <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
+                          <div className="h-full bg-[#0D3B6E] rounded-full" style={{ width: `${pct}%` }} />
                         </div>
                         <span className={`text-xs flex-shrink-0 font-medium px-2 py-0.5 rounded-full ${p.stock_qty === 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
                           {p.stock_qty} in stock
@@ -206,7 +210,7 @@ export default function DashboardPage() {
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800">Recent Stock Movements</h3>
-              <a href="/inventory" className="text-xs text-blue-600 hover:underline">Inventory →</a>
+              <a href="/inventory" className="text-xs text-[#0D3B6E] hover:underline">Inventory →</a>
             </div>
             {movements.length ? (
               <div className="space-y-2">
@@ -235,12 +239,12 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {[
-                { label: 'View Inventory',    href: '/inventory',   color: 'bg-blue-50 text-blue-700',    icon: <Package className="w-5 h-5" /> },
-                { label: 'Adjust Stock',      href: '/inventory',   color: 'bg-yellow-50 text-yellow-700', icon: <RefreshCw className="w-5 h-5" /> },
-                { label: 'Low Stock Items',   href: '/inventory',   color: 'bg-red-50 text-red-700',      icon: <AlertTriangle className="w-5 h-5" /> },
-                { label: 'Receive Goods',     href: '/procurement', color: 'bg-green-50 text-green-700',  icon: <Truck className="w-5 h-5" /> },
+                { label: 'View Inventory',  href: '/inventory',   icon: <Package className="w-5 h-5" /> },
+                { label: 'Adjust Stock',    href: '/inventory',   icon: <RefreshCw className="w-5 h-5" /> },
+                { label: 'Low Stock Items', href: '/inventory',   icon: <AlertTriangle className="w-5 h-5" /> },
+                { label: 'Receive Goods',   href: '/procurement', icon: <Truck className="w-5 h-5" /> },
               ].map(a => (
-                <a key={a.label} href={a.href} className={`flex flex-col items-center gap-2 px-4 py-5 rounded-xl text-sm font-medium text-center ${a.color} hover:opacity-80 transition-opacity`}>
+                <a key={a.label} href={a.href} className="flex flex-col items-center gap-2 px-4 py-5 rounded-xl text-sm font-medium text-center bg-[#0D3B6E]/8 text-[#0D3B6E] hover:bg-[#0D3B6E]/15 transition-colors">
                   {a.icon}{a.label}
                 </a>
               ))}
@@ -274,60 +278,51 @@ export default function DashboardPage() {
 
         {/* Revenue — admin, sales (accountant has own dashboard) */}
         {can('super_admin','business_owner','branch_manager','sales_staff') && (
-          <StatCard label="Total Revenue" value={fmt(kpis.total_revenue)} icon={<DollarSign className="w-6 h-6 text-green-600" />} color="bg-green-50" sub="All time paid orders" />
+          <StatCard label="Total Revenue" value={fmt(kpis.total_revenue)} icon={<CedisIcon className="w-6 h-6 text-[#0D3B6E] text-xl" />} color="bg-[#0D3B6E]/8" sub="All time paid orders" />
         )}
 
-        {/* Orders — admin, sales */}
         {can('super_admin','business_owner','branch_manager','sales_staff') && (
-          <StatCard label="Total Orders" value={kpis.total_orders} icon={<ShoppingCart className="w-6 h-6 text-blue-600" />} color="bg-blue-50" sub="Paid orders" />
+          <StatCard label="Total Orders" value={kpis.total_orders} icon={<ShoppingCart className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="Paid orders" />
         )}
 
-        {/* Products — admin, warehouse */}
         {can('super_admin','business_owner','branch_manager','warehouse_staff') && (
-          <StatCard label="Products" value={kpis.total_products} icon={<Package className="w-6 h-6 text-purple-600" />} color="bg-purple-50" sub={`${kpis.low_stock_items} low stock`} />
+          <StatCard label="Products" value={kpis.total_products} icon={<Package className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${kpis.low_stock_items} low stock`} />
         )}
 
-        {/* Customers — admin, sales */}
         {can('super_admin','business_owner','branch_manager','sales_staff') && (
-          <StatCard label="Customers" value={kpis.total_customers} icon={<UserCheck className="w-6 h-6 text-orange-600" />} color="bg-orange-50" sub={`${kpis.active_leads} active leads`} />
+          <StatCard label="Customers" value={kpis.total_customers} icon={<UserCheck className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${kpis.active_leads} active leads`} />
         )}
 
-        {/* Employees — admin, hr */}
         {can('super_admin','business_owner','branch_manager','hr_manager') && (
-          <StatCard label="Employees" value={kpis.total_employees} icon={<Users className="w-6 h-6 text-indigo-600" />} color="bg-indigo-50" sub="Active staff" />
+          <StatCard label="Employees" value={kpis.total_employees} icon={<Users className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="Active staff" />
         )}
 
-        {/* Monthly Expenses — admin only (accountant has own dashboard) */}
         {can('super_admin','business_owner','branch_manager') && (
-          <StatCard label="Monthly Expenses" value={fmt(kpis.monthly_expenses)} icon={<Receipt className="w-6 h-6 text-red-600" />} color="bg-red-50" sub="This month" />
+          <StatCard label="Monthly Expenses" value={fmt(kpis.monthly_expenses)} icon={<CedisIcon className="w-6 h-6 text-red-500 text-xl" />} color="bg-red-50" sub="This month" />
         )}
 
-        {/* Active Leads — admin, sales */}
         {can('super_admin','business_owner','branch_manager','sales_staff') && (
-          <StatCard label="Active Leads" value={kpis.active_leads} icon={<TrendingUp className="w-6 h-6 text-teal-600" />} color="bg-teal-50" sub="In pipeline" />
+          <StatCard label="Active Leads" value={kpis.active_leads} icon={<TrendingUp className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="In pipeline" />
         )}
 
-        {/* Low Stock — admin, warehouse */}
         {can('super_admin','business_owner','branch_manager','warehouse_staff') && (
-          <StatCard label="Low Stock Alerts" value={kpis.low_stock_items} icon={<AlertTriangle className="w-6 h-6 text-yellow-600" />} color="bg-yellow-50" sub="Need reorder" />
+          <StatCard label="Low Stock Alerts" value={kpis.low_stock_items} icon={<AlertTriangle className="w-6 h-6 text-amber-500" />} color="bg-amber-50" sub="Need reorder" />
         )}
 
-        {/* Procurement KPIs */}
         {can('procurement_officer') && (
           <>
-            <StatCard label="Total POs"           value={kpis.total_pos       ?? '—'} icon={<ClipboardList className="w-6 h-6 text-blue-600" />}   color="bg-blue-50"   sub="All purchase orders" />
-            <StatCard label="Pending Action"       value={kpis.pending_pos     ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-yellow-600" />} color="bg-yellow-50" sub="Draft, approved & sent" />
-            <StatCard label="Active Suppliers"     value={kpis.total_suppliers ?? '—'} icon={<Building2 className="w-6 h-6 text-cyan-600" />}      color="bg-cyan-50"   sub="Registered suppliers" />
-            <StatCard label="Total Spend"          value={fmt(kpis.total_spend || 0)}  icon={<CreditCard className="w-6 h-6 text-green-600" />}    color="bg-green-50"  sub="Completed POs" />
+            <StatCard label="Total POs"       value={kpis.total_pos       ?? '—'} icon={<ClipboardList className="w-6 h-6 text-[#0D3B6E]" />}  color="bg-[#0D3B6E]/8" sub="All purchase orders" />
+            <StatCard label="Pending Action"  value={kpis.pending_pos     ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-amber-500" />} color="bg-amber-50"    sub="Draft, approved & sent" />
+            <StatCard label="Active Suppliers" value={kpis.total_suppliers ?? '—'} icon={<Building2 className="w-6 h-6 text-[#0D3B6E]" />}    color="bg-[#0D3B6E]/8" sub="Registered suppliers" />
+            <StatCard label="Total Spend"     value={fmt(kpis.total_spend || 0)}   icon={<CedisIcon className="w-6 h-6 text-[#0D3B6E] text-xl" />} color="bg-[#0D3B6E]/8" sub="Completed POs" />
           </>
         )}
 
-        {/* HR-only KPIs */}
         {can('hr_manager') && (
           <>
-            <StatCard label="Total Employees"  value={kpis.total_employees ?? '—'} icon={<Users className="w-6 h-6 text-indigo-600" />}      color="bg-indigo-50" sub="Active staff" />
-            <StatCard label="On Leave"         value={kpis.on_leave        ?? '—'} icon={<Receipt className="w-6 h-6 text-yellow-600" />}    color="bg-yellow-50" sub="Currently away" />
-            <StatCard label="Pending Leave"    value={kpis.pending_leave   ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-red-500" />} color="bg-red-50"    sub="Awaiting approval" />
+            <StatCard label="Total Employees" value={kpis.total_employees ?? '—'} icon={<Users className="w-6 h-6 text-[#0D3B6E]" />}         color="bg-[#0D3B6E]/8" sub="Active staff" />
+            <StatCard label="On Leave"        value={kpis.on_leave        ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-amber-500" />} color="bg-amber-50"    sub="Currently away" />
+            <StatCard label="Pending Leave"   value={kpis.pending_leave   ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-red-500" />}   color="bg-red-50"     sub="Awaiting approval" />
           </>
         )}
       </div>
@@ -337,10 +332,10 @@ export default function DashboardPage() {
         <>
           {/* KPI row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <StatCard label="Total Revenue"    value={fmt(data?.kpis?.total_revenue  || 0)} icon={<TrendingUp className="w-6 h-6 text-green-600"/>}  color="bg-green-50"  sub="All paid orders" />
-            <StatCard label="Total Expenses"   value={fmt(data?.kpis?.total_expenses || 0)} icon={<Receipt className="w-6 h-6 text-red-600"/>}      color="bg-red-50"    sub="All time" />
-            <StatCard label="Net Profit"       value={fmt(data?.kpis?.net_profit     || 0)} icon={<DollarSign className="w-6 h-6 text-blue-600"/>}  color="bg-blue-50"   sub="Revenue minus expenses" />
-            <StatCard label="This Month Spend" value={fmt(data?.kpis?.month_expenses || 0)} icon={<Receipt className="w-6 h-6 text-orange-600"/>}   color="bg-orange-50" sub="Current month" />
+            <StatCard label="Total Revenue"    value={fmt(data?.kpis?.total_revenue  || 0)} icon={<CedisIcon className="w-6 h-6 text-[#0D3B6E] text-xl" />} color="bg-[#0D3B6E]/8" sub="All paid orders" />
+            <StatCard label="Total Expenses"   value={fmt(data?.kpis?.total_expenses || 0)} icon={<CedisIcon className="w-6 h-6 text-red-500 text-xl" />}     color="bg-red-50"      sub="All time" />
+            <StatCard label="Net Profit"        value={fmt(data?.kpis?.net_profit     || 0)} icon={<TrendingUp className="w-6 h-6 text-[#0D3B6E]" />}           color="bg-[#0D3B6E]/8" sub="Revenue minus expenses" />
+            <StatCard label="This Month Spend" value={fmt(data?.kpis?.month_expenses || 0)} icon={<CedisIcon className="w-6 h-6 text-amber-500 text-xl" />}    color="bg-amber-50"    sub="Current month" />
           </div>
 
           {/* Revenue chart + Expenses by category */}
@@ -377,7 +372,7 @@ export default function DashboardPage() {
                             <span className="text-gray-900 font-semibold">{fmt(c.total)} <span className="text-gray-400 font-normal text-xs">({share}%)</span></span>
                           </div>
                           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-red-400 rounded-full" style={{ width: `${pct}%` }} />
+                            <div className="h-full bg-[#0D3B6E] rounded-full" style={{ width: `${pct}%` }} />
                           </div>
                         </div>
                       );
@@ -393,7 +388,7 @@ export default function DashboardPage() {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-800">Recent Expenses</h3>
-                <a href="/accounting/expenses" className="text-xs text-blue-600 hover:underline">View all →</a>
+                <a href="/accounting/expenses" className="text-xs text-[#0D3B6E] hover:underline">View all →</a>
               </div>
               {data?.recent_expenses?.length ? (
                 <div className="space-y-2">
@@ -414,14 +409,14 @@ export default function DashboardPage() {
               <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: 'Record Expense',  href: '/accounting/expenses',  color: 'bg-red-50 text-red-700' },
-                  { label: 'Journal Entry',   href: '/accounting/journal',  color: 'bg-purple-50 text-purple-700' },
-                  { label: 'Balance Sheet',   href: '/accounting/bs',  color: 'bg-green-50 text-green-700' },
-                  { label: 'P&L Report',      href: '/accounting/pl',  color: 'bg-blue-50 text-blue-700' },
-                  { label: 'Trial Balance',   href: '/accounting/trial-balance',  color: 'bg-indigo-50 text-indigo-700' },
-                  { label: 'Approvals',       href: '/approvals',   color: 'bg-orange-50 text-orange-700' },
+                  { label: 'Record Expense', href: '/accounting/expenses' },
+                  { label: 'Journal Entry',  href: '/accounting/journal' },
+                  { label: 'Balance Sheet',  href: '/accounting/bs' },
+                  { label: 'P&L Report',     href: '/accounting/pl' },
+                  { label: 'Trial Balance',  href: '/accounting/trial-balance' },
+                  { label: 'Approvals',      href: '/approvals' },
                 ].map(a => (
-                  <a key={a.label} href={a.href} className={`flex items-center justify-between px-3 py-3 rounded-xl text-sm font-medium ${a.color} hover:opacity-80 transition-opacity`}>
+                  <a key={a.label} href={a.href} className="flex items-center justify-between px-3 py-3 rounded-xl text-sm font-medium bg-[#0D3B6E]/8 text-[#0D3B6E] hover:bg-[#0D3B6E]/15 transition-colors">
                     {a.label} <span className="text-xs">→</span>
                   </a>
                 ))}
@@ -523,7 +518,7 @@ export default function DashboardPage() {
                           <div className="w-6 flex-shrink-0" />
                           <div className="flex-1 flex items-center gap-2">
                             <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                              <div className="h-full bg-[#0D3B6E] rounded-full transition-all" style={{ width: `${pct}%` }} />
                             </div>
                             <span className="text-xs text-gray-400 flex-shrink-0 w-16 text-right">{p.units_sold} units</span>
                           </div>
@@ -543,7 +538,7 @@ export default function DashboardPage() {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-800">Recent Leave Requests</h3>
-                <a href="/hr/employees" className="text-xs text-blue-600 hover:underline">View all →</a>
+                <a href="/hr/employees" className="text-xs text-[#0D3B6E] hover:underline">View all →</a>
               </div>
               {data?.recent_leave?.length ? (
                 <div className="space-y-2">
@@ -569,12 +564,12 @@ export default function DashboardPage() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: 'Manage Employees',    href: '/hr/employees', color: 'bg-indigo-50 text-indigo-700', icon: <Users className="w-5 h-5" /> },
-                  { label: 'Leave Requests',      href: '/hr/leave', color: 'bg-yellow-50 text-yellow-700', icon: <ClipboardList className="w-5 h-5" /> },
-                  { label: 'Run Payroll',         href: '/hr/payroll', color: 'bg-green-50 text-green-700',   icon: <DollarSign className="w-5 h-5" /> },
-                  { label: 'Mark Attendance',     href: '/hr/attendance', color: 'bg-blue-50 text-blue-700',     icon: <UserCheck className="w-5 h-5" /> },
+                  { label: 'Manage Employees', href: '/hr/employees',  icon: <Users className="w-5 h-5" /> },
+                  { label: 'Leave Requests',   href: '/hr/leave',      icon: <ClipboardList className="w-5 h-5" /> },
+                  { label: 'Run Payroll',      href: '/hr/payroll',    icon: <CedisIcon className="w-5 h-5 text-lg" /> },
+                  { label: 'Mark Attendance',  href: '/hr/attendance', icon: <UserCheck className="w-5 h-5" /> },
                 ].map(a => (
-                  <a key={a.label} href={a.href} className={`flex flex-col items-center gap-2 px-4 py-5 rounded-xl text-sm font-medium text-center ${a.color} hover:opacity-80 transition-opacity`}>
+                  <a key={a.label} href={a.href} className="flex flex-col items-center gap-2 px-4 py-5 rounded-xl text-sm font-medium text-center bg-[#0D3B6E]/8 text-[#0D3B6E] hover:bg-[#0D3B6E]/15 transition-colors">
                     {a.icon}{a.label}
                   </a>
                 ))}
@@ -591,7 +586,7 @@ export default function DashboardPage() {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-800">Recent Purchase Orders</h3>
-                <a href="/procurement" className="text-xs text-blue-600 hover:underline">View all →</a>
+                <a href="/procurement" className="text-xs text-[#0D3B6E] hover:underline">View all →</a>
               </div>
               {data?.recent_pos?.length ? (
                 <div className="space-y-2">
@@ -614,12 +609,12 @@ export default function DashboardPage() {
               <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: 'New Purchase Order', href: '/procurement', color: 'bg-blue-50 text-blue-700',   icon: <ClipboardList className="w-5 h-5" /> },
-                  { label: 'View Suppliers',      href: '/procurement', color: 'bg-cyan-50 text-cyan-700',   icon: <Building2 className="w-5 h-5" /> },
-                  { label: 'Receive Goods',       href: '/procurement', color: 'bg-green-50 text-green-700', icon: <Truck className="w-5 h-5" /> },
-                  { label: 'Pending Approvals',   href: '/procurement', color: 'bg-yellow-50 text-yellow-700', icon: <AlertTriangle className="w-5 h-5" /> },
+                  { label: 'New Purchase Order', href: '/procurement', icon: <ClipboardList className="w-5 h-5" /> },
+                  { label: 'View Suppliers',     href: '/procurement', icon: <Building2 className="w-5 h-5" /> },
+                  { label: 'Receive Goods',      href: '/procurement', icon: <Truck className="w-5 h-5" /> },
+                  { label: 'Pending Approvals',  href: '/procurement', icon: <AlertTriangle className="w-5 h-5" /> },
                 ].map(a => (
-                  <a key={a.label} href={a.href} className={`flex flex-col items-center gap-2 px-4 py-5 rounded-xl text-sm font-medium text-center ${a.color} hover:opacity-80 transition-opacity`}>
+                  <a key={a.label} href={a.href} className="flex flex-col items-center gap-2 px-4 py-5 rounded-xl text-sm font-medium text-center bg-[#0D3B6E]/8 text-[#0D3B6E] hover:bg-[#0D3B6E]/15 transition-colors">
                     {a.icon}{a.label}
                   </a>
                 ))}

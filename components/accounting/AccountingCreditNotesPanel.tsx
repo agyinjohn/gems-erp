@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Plus, Search, Download, FileText, RotateCcw, Eye, DollarSign,
 } from 'lucide-react';
+
+const CedisIcon = ({ className }: { className?: string }) => (
+  <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
+);
 import { Modal, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
 import api from '@/lib/api';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
@@ -125,9 +129,9 @@ export default function AccountingCreditNotesPanel({ onDataChange }: Props) {
     <div className={`space-y-5 relative ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard label="Credit notes" value={String(summary.count ?? 0)} icon={<RotateCcw className="w-5 h-5 text-purple-600" />} color="bg-purple-50" sub={`${summary.applied ?? 0} applied`} />
-        <StatCard label="Total credited" value={fmt(summary.total_credited)} icon={<DollarSign className="w-5 h-5 text-red-600" />} color="bg-red-50" sub="All time" />
-        <StatCard label="Month to date" value={String(summary.mtd_count ?? 0)} icon={<FileText className="w-5 h-5 text-indigo-600" />} color="bg-indigo-50" sub={fmt(summary.mtd_amount)} />
-        <StatCard label="Eligible invoices" value={String(eligibleInvoices.length)} icon={<FileText className="w-5 h-5 text-blue-600" />} color="bg-blue-50" sub="With payments to refund" />
+        <StatCard label="Total credited" value={fmt(summary.total_credited)} icon={<CedisIcon className="w-5 h-5 text-red-600 text-sm" />} color="bg-red-50" sub="All time" />
+        <StatCard label="Month to date" value={String(summary.mtd_count ?? 0)} icon={<FileText className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={fmt(summary.mtd_amount)} />
+        <StatCard label="Eligible invoices" value={String(eligibleInvoices.length)} icon={<FileText className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="With payments to refund" />
       </div>
 
       <div className="card space-y-3">
@@ -168,8 +172,8 @@ export default function AccountingCreditNotesPanel({ onDataChange }: Props) {
               <tbody className="divide-y divide-gray-50">
                 {notes.map((n) => (
                   <tr key={n.id} className="hover:bg-gray-50/80">
-                    <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-purple-700">{n.credit_note_number}</td>
-                    <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{n.invoice_number || '—'}</td>
+                    <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-[#0D3B6E]">{n.credit_note_number}</td>
+                    <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-[#0D3B6E]">{n.invoice_number || '—'}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{n.customer_name}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600 tabular-nums">{fmt(n.amount)}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 max-w-[160px] truncate hidden md:table-cell">{n.reason}</td>

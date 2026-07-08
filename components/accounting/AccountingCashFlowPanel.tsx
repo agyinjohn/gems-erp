@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Activity, Download, FileText, RefreshCw, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown, DollarSign,
 } from 'lucide-react';
+
+const CedisIcon = ({ className }: { className?: string }) => (
+  <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
+);
 import { EmptyState, Spinner, StatCard, toast } from '@/components/ui';
 import api from '@/lib/api';
 
@@ -132,9 +136,9 @@ export default function AccountingCashFlowPanel(_: Props) {
               <label className="form-label">Period</label>
               <div className="flex flex-wrap gap-2">
                 {PERIOD_PRESETS.map((p) => (
-                  <button key={p.key} type="button" onClick={() => { setPeriod(p.key); setFrom(''); setTo(''); }} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === p.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{p.label}</button>
+                  <button key={p.key} type="button" onClick={() => { setPeriod(p.key); setFrom(''); setTo(''); }} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === p.key ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-600'}`}>{p.label}</button>
                 ))}
-                <button type="button" onClick={() => setPeriod('custom')} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>Custom</button>
+                <button type="button" onClick={() => setPeriod('custom')} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${period === 'custom' ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-600'}`}>Custom</button>
               </div>
             </div>
             {period === 'custom' && (
@@ -180,9 +184,9 @@ export default function AccountingCashFlowPanel(_: Props) {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard label="Operating" value={fmt(cf.operating?.net)} icon={<TrendingUp className="w-5 h-5 text-blue-600" />} color="bg-blue-50" />
+            <StatCard label="Operating" value={fmt(cf.operating?.net)} icon={<TrendingUp className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
             <StatCard label="Investing" value={fmt(cf.investing?.net)} icon={<Activity className="w-5 h-5 text-purple-600" />} color="bg-purple-50" />
-            <StatCard label="Financing" value={fmt(cf.financing?.net)} icon={<DollarSign className="w-5 h-5 text-orange-600" />} color="bg-orange-50" />
+            <StatCard label="Financing" value={fmt(cf.financing?.net)} icon={<CedisIcon className="w-5 h-5 text-[#0D3B6E] text-sm" />} color="bg-[#0D3B6E]/8" />
             <StatCard label="Net change" value={fmt(cf.net_change)} icon={<TrendingDown className="w-5 h-5 text-green-600" />} color={isPos(cf.net_change) ? 'bg-green-50' : 'bg-red-50'} sub={`Closing ${fmt(cf.closing_balance)}`} />
           </div>
 

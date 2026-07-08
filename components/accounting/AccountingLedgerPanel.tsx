@@ -71,8 +71,8 @@ export default function AccountingLedgerPanel({ account, onClose }: AccountingLe
                 {lines.map((line: any, i: number) => (
                   <tr key={i} className="hover:bg-gray-50">
                     <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">{new Date(line.date).toLocaleDateString()}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-blue-600">{line.reference}</td>
-                    <td className="px-3 py-2 text-xs"><span className="badge badge-blue">{line.source}</span></td>
+                    <td className="px-3 py-2 font-mono text-xs text-[#0D3B6E]">{line.reference}</td>
+                    <td className="px-3 py-2 text-xs"><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#0D3B6E]/8 text-[#0D3B6E]">{line.source}</span></td>
                     <td className="px-3 py-2 max-w-[160px] truncate">{line.description}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{line.debit > 0 ? fmt(line.debit) : '—'}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{line.credit > 0 ? fmt(line.credit) : '—'}</td>

@@ -12,11 +12,11 @@ type PeriodKey = 'all' | 'mtd' | 'ytd' | 'custom';
 
 const SOURCE_COLORS: Record<string, string> = {
   manual: 'bg-gray-100 text-gray-700',
-  sale: 'bg-green-100 text-green-800',
-  purchase: 'bg-orange-100 text-orange-800',
-  payroll: 'bg-purple-100 text-purple-800',
-  expense: 'bg-yellow-100 text-yellow-800',
-  vendor_bill: 'bg-blue-100 text-blue-800',
+  sale: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
+  purchase: 'bg-amber-50 text-amber-800',
+  payroll: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
+  expense: 'bg-red-50 text-red-700',
+  vendor_bill: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
 };
 
 function fmt(n: number | string | undefined) {
@@ -226,9 +226,9 @@ export default function AccountingJournalPanel({ onDataChange }: Props) {
   return (
     <div className={`space-y-5 relative ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Entries (filtered)" value={String(summary.count ?? 0)} icon={<BookOpen className="w-5 h-5 text-blue-600" />} color="bg-blue-50" sub={`${summary.posted ?? 0} posted · ${summary.voided ?? 0} voided`} />
+        <StatCard label="Entries (filtered)" value={String(summary.count ?? 0)} icon={<BookOpen className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${summary.posted ?? 0} posted · ${summary.voided ?? 0} voided`} />
         <StatCard label="Posted volume" value={fmt(summary.total_debit)} icon={<TrendingUp className="w-5 h-5 text-green-600" />} color="bg-green-50" sub="Debits = credits on posted entries" />
-        <StatCard label="Month to date" value={String(summary.mtd_count ?? 0)} icon={<FileText className="w-5 h-5 text-indigo-600" />} color="bg-indigo-50" sub={fmt(summary.mtd_debit)} />
+        <StatCard label="Month to date" value={String(summary.mtd_count ?? 0)} icon={<FileText className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={fmt(summary.mtd_debit)} />
         <StatCard label="Manual vs system" value={`${summary.manual_count ?? 0} / ${summary.system_count ?? 0}`} icon={<CheckCircle2 className="w-5 h-5 text-purple-600" />} color="bg-purple-50" sub="Manual · auto-posted" />
       </div>
 
@@ -245,7 +245,7 @@ export default function AccountingJournalPanel({ onDataChange }: Props) {
               type="button"
               onClick={() => setPeriod(p.key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                period === p.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                period === p.key ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               {p.label}
@@ -325,7 +325,7 @@ export default function AccountingJournalPanel({ onDataChange }: Props) {
                 {entries.map((e) => (
                   <tr key={e.id} className={`hover:bg-gray-50/80 ${e.status === 'voided' ? 'opacity-60' : ''}`}>
                     <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 whitespace-nowrap">{new Date(e.entry_date).toLocaleDateString()}</td>
-                    <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{e.reference}</td>
+                    <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-[#0D3B6E]">{e.reference}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 max-w-[200px]">
                       <div className="font-medium text-gray-900 truncate">{e.description}</div>
                       <div className="text-xs text-gray-400">{e.line_count || e.lines?.length || 0} lines</div>

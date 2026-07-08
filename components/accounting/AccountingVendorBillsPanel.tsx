@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Plus, Search, Download, FileText, AlertTriangle, Eye, Ban, CheckCircle2, DollarSign,
 } from 'lucide-react';
+
+const CedisIcon = ({ className }: { className?: string }) => (
+  <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
+);
 import { Modal, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
 import api from '@/lib/api';
 
@@ -14,7 +18,7 @@ function fmt(n: number | string | undefined) {
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-600',
-  posted: 'bg-blue-100 text-blue-700',
+  posted: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
   partially_paid: 'bg-yellow-100 text-yellow-700',
   paid: 'bg-green-100 text-green-700',
   void: 'bg-red-50 text-red-400',
@@ -209,8 +213,8 @@ export default function AccountingVendorBillsPanel({ onDataChange }: Props) {
   return (
     <div className={`space-y-5 relative ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Total bills" value={String(summary.count ?? 0)} icon={<FileText className="w-5 h-5 text-blue-600" />} color="bg-blue-50" sub={`${summary.draft ?? 0} draft · ${summary.open ?? 0} open`} />
-        <StatCard label="Outstanding" value={fmt(summary.total_outstanding)} icon={<DollarSign className="w-5 h-5 text-red-600" />} color="bg-red-50" sub="Posted & partially paid" />
+        <StatCard label="Total bills" value={String(summary.count ?? 0)} icon={<FileText className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${summary.draft ?? 0} draft · ${summary.open ?? 0} open`} />
+        <StatCard label="Outstanding" value={fmt(summary.total_outstanding)} icon={<CedisIcon className="w-5 h-5 text-red-600 text-sm" />} color="bg-red-50" sub="Posted & partially paid" />
         <StatCard label="Overdue" value={String(summary.overdue ?? 0)} icon={<AlertTriangle className="w-5 h-5 text-orange-600" />} color="bg-orange-50" sub="Past due date" />
         <StatCard label="Paid" value={String(summary.paid ?? 0)} icon={<CheckCircle2 className="w-5 h-5 text-green-600" />} color="bg-green-50" sub={`${summary.mtd_posted ?? 0} posted MTD`} />
       </div>
@@ -276,7 +280,7 @@ export default function AccountingVendorBillsPanel({ onDataChange }: Props) {
               <tbody className="divide-y divide-gray-50">
                 {bills.map((b) => (
                   <tr key={b.id} className={`hover:bg-gray-50/80 ${b.status === 'void' ? 'opacity-60' : ''}`}>
-                    <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-700">{b.bill_number}</td>
+                    <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-[#0D3B6E]">{b.bill_number}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 font-medium">{b.vendor_name}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 tabular-nums">{fmt(b.total)}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 whitespace-nowrap hidden md:table-cell">{new Date(b.due_date).toLocaleDateString()}</td>
@@ -292,7 +296,7 @@ export default function AccountingVendorBillsPanel({ onDataChange }: Props) {
                         </button>
                         {b.status === 'draft' && (
                           <>
-                            <button type="button" onClick={() => postBill(b)} className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded-lg">Post</button>
+                            <button type="button" onClick={() => postBill(b)} className="text-xs font-semibold text-white bg-[#0D3B6E] hover:bg-[#1A5294] px-2 py-1 rounded-lg">Post</button>
                             <button type="button" onClick={() => setVoidTarget(b)} className="p-1.5 hover:bg-red-50 rounded text-red-400" title="Void">
                               <Ban className="w-3.5 h-3.5" />
                             </button>

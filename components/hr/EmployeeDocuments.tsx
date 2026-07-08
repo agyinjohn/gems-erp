@@ -87,7 +87,7 @@ export default function EmployeeDocuments({ employeeId, documents, onChange }: E
                 <div className="font-medium truncate">{doc.name}</div>
                 <div className="text-xs text-gray-400 capitalize">{(doc.type || 'other').replace(/_/g, ' ')}</div>
               </div>
-              <a href={doc.file} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">View</a>
+              <a href={doc.file} target="_blank" rel="noreferrer" className="text-xs text-[#0D3B6E] hover:underline">View</a>
               <button type="button" onClick={() => remove(doc._id || doc.id)} className="p-1 text-red-400 hover:bg-red-50 rounded">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

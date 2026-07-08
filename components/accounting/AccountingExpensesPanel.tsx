@@ -220,9 +220,9 @@ export default function AccountingExpensesPanel({ onDataChange }: Props) {
       {/* Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard label="Total (filtered)" value={fmt(summary.total)} icon={<TrendingDown className="w-5 h-5 text-red-600" />} color="bg-red-50" sub={`${summary.count || 0} records`} />
-        <StatCard label="Month to date" value={fmt(summary.mtd)} icon={<Receipt className="w-5 h-5 text-orange-600" />} color="bg-orange-50" sub="Calendar month" />
-        <StatCard label="Year to date" value={fmt(summary.ytd)} icon={<Receipt className="w-5 h-5 text-amber-600" />} color="bg-amber-50" sub="Calendar year" />
-        <StatCard label="GL posted" value={summary.posted ?? 0} icon={<CheckCircle2 className="w-5 h-5 text-green-600" />} color="bg-green-50" sub={`${summary.with_receipts || 0} with receipts`} />
+        <StatCard label="Month to date" value={fmt(summary.mtd)} icon={<Receipt className="w-5 h-5 text-amber-600" />} color="bg-amber-50" sub="Calendar month" />
+        <StatCard label="Year to date" value={fmt(summary.ytd)} icon={<Receipt className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="Calendar year" />
+        <StatCard label="GL posted" value={summary.posted ?? 0} icon={<CheckCircle2 className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${summary.with_receipts || 0} with receipts`} />
       </div>
 
       {(summary.unposted || 0) > 0 && (
@@ -248,7 +248,7 @@ export default function AccountingExpensesPanel({ onDataChange }: Props) {
               type="button"
               onClick={() => setPeriod(p.key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                period === p.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                period === p.key ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               {p.label}
@@ -336,13 +336,13 @@ export default function AccountingExpensesPanel({ onDataChange }: Props) {
                         : <span className="text-gray-300">Auto</span>}
                     </td>
                     <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600 tabular-nums whitespace-nowrap">{fmt(e.amount)}</td>
-                    <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-blue-600 hidden md:table-cell">
+                    <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-[#0D3B6E] hidden md:table-cell">
                       {e.gl_reference || (e.is_posted ? '—' : <span className="text-amber-600">Unposted</span>)}
                     </td>
                     <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 hidden lg:table-cell">{e.created_by?.name || '—'}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 hidden sm:table-cell">
                       {e.receipt?.file ? (
-                        <a href={e.receipt.file} download={e.receipt.name} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
+                        <a href={e.receipt.file} download={e.receipt.name} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[#0D3B6E] hover:underline">
                           <Paperclip className="w-3.5 h-3.5" />
                           <span className="truncate max-w-[80px]">{e.receipt.name}</span>
                         </a>
@@ -415,20 +415,20 @@ export default function AccountingExpensesPanel({ onDataChange }: Props) {
           <div>
             <label className="form-label">Receipt / attachment</label>
             {form.receipt?.file ? (
-              <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="flex items-center gap-3 p-3 bg-[#0D3B6E]/8 border border-[#0D3B6E]/20 rounded-xl">
                 {form.receipt.mime_type?.startsWith('image/') ? (
-                  <img src={form.receipt.file} alt="receipt" className="w-12 h-12 object-cover rounded-lg border border-blue-200" />
+                  <img src={form.receipt.file} alt="receipt" className="w-12 h-12 object-cover rounded-lg border border-[#0D3B6E]/20" />
                 ) : (
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center"><FileText className="w-6 h-6 text-blue-500" /></div>
+                  <div className="w-12 h-12 bg-[#0D3B6E]/8 rounded-lg flex items-center justify-center"><FileText className="w-6 h-6 text-[#0D3B6E]" /></div>
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-gray-700 truncate">{form.receipt.name}</p>
-                  <a href={form.receipt.file} download={form.receipt.name} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">Download</a>
+                  <a href={form.receipt.file} download={form.receipt.name} target="_blank" rel="noreferrer" className="text-xs text-[#0D3B6E] hover:underline">Download</a>
                 </div>
                 <button type="button" onClick={() => setForm({ ...form, receipt: null })} className="text-red-400 hover:text-red-600 text-xs font-semibold px-2 py-1 rounded hover:bg-red-50">Remove</button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-colors">
+              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-[#0D3B6E]/40 hover:bg-[#0D3B6E]/8 transition-colors">
                 <Download className="w-5 h-5 text-gray-400 mb-1" />
                 <span className="text-xs text-gray-500">Click to upload receipt</span>
                 <span className="text-xs text-gray-400">PNG, JPG, PDF up to 5MB</span>

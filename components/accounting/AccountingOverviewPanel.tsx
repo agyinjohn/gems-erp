@@ -10,6 +10,10 @@ import {
   Receipt, AlertTriangle, CheckCircle2, Download,
   Activity, Calendar, Loader2,
 } from 'lucide-react';
+
+const CedisIcon = ({ className }: { className?: string }) => (
+  <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
+);
 import { StatCard, Spinner, toast } from '@/components/ui';
 import api from '@/lib/api';
 import { accountingHref } from '@/lib/accountingNav';
@@ -30,11 +34,11 @@ function fmtCompact(n: number | string | undefined) {
 }
 
 const QUICK_ACTIONS = [
-  { label: 'Journal Entry', href: accountingHref('journal'), color: 'bg-purple-50 text-purple-700' },
+  { label: 'Journal Entry', href: accountingHref('journal'), color: 'bg-[#0D3B6E]/8 text-[#0D3B6E]' },
   { label: 'Record Expense', href: accountingHref('expenses'), color: 'bg-red-50 text-red-700' },
-  { label: 'New Invoice', href: accountingHref('invoices'), color: 'bg-blue-50 text-blue-700' },
-  { label: 'P&L Report', href: accountingHref('pl'), color: 'bg-green-50 text-green-700' },
-  { label: 'Trial Balance', href: accountingHref('trial-balance'), color: 'bg-indigo-50 text-indigo-700' },
+  { label: 'New Invoice', href: accountingHref('invoices'), color: 'bg-[#0D3B6E]/8 text-[#0D3B6E]' },
+  { label: 'P&L Report', href: accountingHref('pl'), color: 'bg-[#0D3B6E]/8 text-[#0D3B6E]' },
+  { label: 'Trial Balance', href: accountingHref('trial-balance'), color: 'bg-[#0D3B6E]/8 text-[#0D3B6E]' },
   { label: 'Bank Recon', href: accountingHref('reconciliation'), color: 'bg-amber-50 text-amber-800' },
 ];
 
@@ -45,11 +49,11 @@ const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
 ];
 
 const TYPE_COLORS: Record<string, string> = {
-  asset: 'text-green-700',
+  asset: 'text-[#0D3B6E]',
   liability: 'text-red-700',
-  equity: 'text-blue-700',
-  revenue: 'text-purple-700',
-  expense: 'text-orange-700',
+  equity: 'text-[#0D3B6E]',
+  revenue: 'text-[#0D3B6E]',
+  expense: 'text-red-600',
 };
 
 interface Props {
@@ -134,11 +138,10 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
               key={p.key}
               type="button"
               onClick={() => setPeriod(p.key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                period === p.key
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${period === p.key
+                ? 'bg-[#0D3B6E] text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               {p.label}
             </button>
@@ -161,7 +164,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
                 {new Date(data.current_period.start_date).toLocaleDateString()} – {new Date(data.current_period.end_date).toLocaleDateString()}
               </div>
             </div>
-            <Link href={accountingHref('periods')} className="ml-auto text-xs text-blue-600 hover:underline shrink-0">Manage</Link>
+            <Link href={accountingHref('periods')} className="ml-auto text-xs text-[#0D3B6E] hover:underline shrink-0">Manage</Link>
           </div>
         ) : (
           <div className="card flex items-start gap-3 border-l-4 border-l-amber-500 py-3">
@@ -170,7 +173,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
               <div className="text-sm font-semibold text-gray-800">No open fiscal period</div>
               <div className="text-xs text-gray-500 mt-0.5">Create or reopen a period before posting entries.</div>
             </div>
-            <Link href={accountingHref('periods')} className="ml-auto text-xs text-blue-600 hover:underline shrink-0">Set up</Link>
+            <Link href={accountingHref('periods')} className="ml-auto text-xs text-[#0D3B6E] hover:underline shrink-0">Set up</Link>
           </div>
         )}
 
@@ -186,7 +189,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
               Assets {fmtCompact(pos.total_assets)} · Liabilities + Equity {fmtCompact((pos.total_liabilities || 0) + (pos.total_equity || 0))}
             </div>
           </div>
-          <Link href={accountingHref('bs')} className="ml-auto text-xs text-blue-600 hover:underline shrink-0">Balance Sheet</Link>
+          <Link href={accountingHref('bs')} className="ml-auto text-xs text-[#0D3B6E] hover:underline shrink-0">Balance Sheet</Link>
         </div>
       </div>
 
@@ -194,18 +197,18 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
       <div>
         <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Financial position · as of today</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <StatCard label="Cash & Bank" value={fmtCompact(pos.cash)} icon={<Landmark className="w-6 h-6 text-emerald-600" />} color="bg-emerald-50" sub="GL 1001 · Cash & Bank" />
+          <StatCard label="Cash & Bank" value={fmtCompact(pos.cash)} icon={<Landmark className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="GL 1001 · Cash & Bank" />
           <StatCard
             label="Receivables (GL)"
             value={fmtCompact(pos.accounts_receivable)}
-            icon={<ArrowDownCircle className="w-6 h-6 text-blue-600" />}
-            color="bg-blue-50"
+            icon={<ArrowDownCircle className="w-6 h-6 text-[#0D3B6E]" />}
+            color="bg-[#0D3B6E]/8"
             sub={showArMismatch
               ? `Invoices owe ${fmtCompact(data?.invoice_ar_total)} · diff ${fmtCompact(arDiff)}`
               : `${counts.open_invoices || 0} open invoices · matches GL`}
           />
-          <StatCard label="Payables (GL)" value={fmtCompact(pos.accounts_payable)} icon={<ArrowUpCircle className="w-6 h-6 text-orange-600" />} color="bg-orange-50" sub="GL 2001 · Accounts Payable" />
-          <StatCard label="VAT Net Payable" value={fmtCompact((pos.vat_payable || 0) - (pos.vat_input || 0))} icon={<Receipt className="w-6 h-6 text-violet-600" />} color="bg-violet-50" sub={`Output ${fmtCompact(pos.vat_payable)} − Input ${fmtCompact(pos.vat_input)}`} />
+          <StatCard label="Payables (GL)" value={fmtCompact(pos.accounts_payable)} icon={<ArrowUpCircle className="w-6 h-6 text-red-600" />} color="bg-red-50" sub="GL 2001 · Accounts Payable" />
+          <StatCard label="VAT Net Payable" value={fmtCompact((pos.vat_payable || 0) - (pos.vat_input || 0))} icon={<CedisIcon className="w-6 h-6 text-[#0D3B6E] text-base" />} color="bg-[#0D3B6E]/8" sub={`Output ${fmtCompact(pos.vat_payable)} − Input ${fmtCompact(pos.vat_input)}`} />
         </div>
       </div>
 
@@ -215,10 +218,10 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
           Profit & loss · {data?.period_label}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <StatCard label="Revenue" value={fmtCompact(pl.revenue)} icon={<TrendingUp className="w-6 h-6 text-green-600" />} color="bg-green-50" sub="From general ledger" />
-          <StatCard label="Gross Profit" value={fmtCompact(pl.gross_profit)} icon={<Activity className="w-6 h-6 text-teal-600" />} color="bg-teal-50" sub={`COGS ${fmtCompact(pl.cogs)}`} />
+          <StatCard label="Revenue" value={fmtCompact(pl.revenue)} icon={<TrendingUp className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="From general ledger" />
+          <StatCard label="Gross Profit" value={fmtCompact(pl.gross_profit)} icon={<Activity className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`COGS ${fmtCompact(pl.cogs)}`} />
           <StatCard label="Expenses" value={fmtCompact(pl.total_expenses)} icon={<TrendingDown className="w-6 h-6 text-red-600" />} color="bg-red-50" sub="Operating + COGS" />
-          <StatCard label="Net Profit" value={fmtCompact(pl.net_profit)} icon={<DollarSign className="w-6 h-6 text-blue-600" />} color="bg-blue-50" sub={`${counts.journal_entries_in_period ?? counts.journal_entries ?? 0} entries in period`} />
+          <StatCard label="Net Profit" value={fmtCompact(pl.net_profit)} icon={<CedisIcon className="w-6 h-6 text-[#0D3B6E] text-base" />} color="bg-[#0D3B6E]/8" sub={`${counts.journal_entries_in_period ?? counts.journal_entries ?? 0} entries in period`} />
         </div>
       </div>
 
@@ -285,7 +288,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800">Receivables aging</h3>
-            <Link href={accountingHref('ar')} className="text-xs text-blue-600 hover:underline">View all →</Link>
+            <Link href={accountingHref('ar')} className="text-xs text-[#0D3B6E] hover:underline">View all →</Link>
           </div>
           <p className="text-xs text-gray-400 mb-3">By invoice due date · open invoices only</p>
           {aging.total?.count > 0 ? (
@@ -311,7 +314,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
               })}
               <div className="flex items-center justify-between pt-2 font-semibold text-sm">
                 <span>Total on invoices</span>
-                <span className="text-blue-700 tabular-nums">{fmt(aging.total?.amount)}</span>
+                <span className="text-[#0D3B6E] tabular-nums">{fmt(aging.total?.amount)}</span>
               </div>
               {showArMismatch && (
                 <div className="mt-2 text-xs text-amber-700 flex items-start gap-1 bg-amber-50 rounded-lg p-2">
@@ -351,7 +354,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
         <div className="card p-0 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <h3 className="font-semibold text-gray-800">Recent journal entries</h3>
-            <Link href={accountingHref('journal')} className="text-xs text-blue-600 hover:underline">View all →</Link>
+            <Link href={accountingHref('journal')} className="text-xs text-[#0D3B6E] hover:underline">View all →</Link>
           </div>
           {data?.recent_journal?.length ? (
             <div className="overflow-x-auto">
@@ -367,7 +370,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
                   {data.recent_journal.map((j: any) => (
                     <tr key={j.id} className="border-t border-gray-50 hover:bg-gray-50/50">
                       <td className="px-3 md:px-4 py-2 text-gray-500 whitespace-nowrap">{new Date(j.entry_date).toLocaleDateString()}</td>
-                      <td className="px-3 md:px-4 py-2 font-mono text-xs text-blue-600">{j.reference}</td>
+                      <td className="px-3 md:px-4 py-2 font-mono text-xs text-[#0D3B6E]">{j.reference}</td>
                       <td className="px-3 md:px-4 py-2 text-gray-700 max-w-[140px] truncate">{j.description}</td>
                       <td className="px-3 md:px-4 py-2 text-right tabular-nums font-medium">{fmt(j.total_debit)}</td>
                     </tr>
@@ -383,7 +386,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
         <div className="card p-0 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <h3 className="font-semibold text-gray-800">Recent expenses</h3>
-            <Link href={accountingHref('expenses')} className="text-xs text-blue-600 hover:underline">View all →</Link>
+            <Link href={accountingHref('expenses')} className="text-xs text-[#0D3B6E] hover:underline">View all →</Link>
           </div>
           {data?.recent_expenses?.length ? (
             <div className="divide-y divide-gray-50">
@@ -408,7 +411,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800">Chart of accounts summary</h3>
-            <Link href={accountingHref('accounts')} className="text-xs text-blue-600 hover:underline">Manage accounts →</Link>
+            <Link href={accountingHref('accounts')} className="text-xs text-[#0D3B6E] hover:underline">Manage accounts →</Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {data.accounts_by_type.map((t: any) => (

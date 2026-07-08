@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Landmark, Scale, Download, FileText, RefreshCw, AlertTriangle, CheckCircle2, DollarSign, TrendingDown,
 } from 'lucide-react';
+
+const CedisIcon = ({ className }: { className?: string }) => (
+  <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
+);
 import { EmptyState, Spinner, StatCard, toast } from '@/components/ui';
 import api from '@/lib/api';
 
@@ -165,7 +169,7 @@ export default function AccountingBalanceSheetPanel(_: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard label="Total assets" value={fmt(bs.summary?.total_assets ?? bs.assets?.total)} icon={<Landmark className="w-5 h-5 text-green-600" />} color="bg-green-50" />
             <StatCard label="Total liabilities" value={fmt(bs.summary?.total_liabilities ?? bs.liabilities?.total)} icon={<TrendingDown className="w-5 h-5 text-red-600" />} color="bg-red-50" />
-            <StatCard label="Total equity" value={fmt(bs.summary?.total_equity ?? bs.equity?.total)} icon={<DollarSign className="w-5 h-5 text-blue-600" />} color="bg-blue-50" />
+            <StatCard label="Total equity" value={fmt(bs.summary?.total_equity ?? bs.equity?.total)} icon={<CedisIcon className="w-5 h-5 text-[#0D3B6E] text-sm" />} color="bg-[#0D3B6E]/8" />
             <StatCard
               label="Balance check"
               value={bs.is_balanced ? 'Balanced' : 'Out of balance'}

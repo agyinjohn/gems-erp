@@ -598,8 +598,8 @@ export default function InventoryPage() {
 
       {/* Low stock alert */}
       {products.filter(p => p.stock_qty <= p.low_stock_threshold).length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-3 sm:px-4 py-3 flex items-start sm:items-center gap-2 sm:gap-3 mb-4 sm:mb-5 text-xs sm:text-sm text-yellow-800">
-          <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+        <div className="bg-[#0D3B6E]/8 border border-[#0D3B6E]/15 rounded-xl px-3 sm:px-4 py-3 flex items-start sm:items-center gap-2 sm:gap-3 mb-4 sm:mb-5 text-xs sm:text-sm text-[#0D3B6E]">
+          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
           <span><strong>{products.filter(p => p.stock_qty <= p.low_stock_threshold).length} products</strong> are at or below their low stock threshold.</span>
         </div>
       )}
@@ -623,7 +623,7 @@ export default function InventoryPage() {
                 key: 'category',
                 label: 'Category',
                 render: (_, p) => p.category_name
-                  ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">{p.category_name}</span>
+                  ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#0D3B6E]/8 text-[#0D3B6E]">{p.category_name}</span>
                   : <span className="text-gray-300">—</span>
               },
               {
@@ -642,7 +642,7 @@ export default function InventoryPage() {
                 render: (_, p) => {
                   const margin = p.price > 0 ? Math.round(((p.price - p.cost_price) / p.price) * 100) : 0;
                   return (
-                    <span className={`font-semibold text-sm ${ margin >= 30 ? 'text-green-600' : margin >= 15 ? 'text-yellow-600' : 'text-red-500' }`}>
+                    <span className={`font-semibold text-sm ${ margin >= 30 ? 'text-[#0D3B6E]' : margin >= 15 ? 'text-amber-500' : 'text-red-500' }`}>
                       {margin}%
                     </span>
                   );
@@ -655,9 +655,9 @@ export default function InventoryPage() {
                   const isLow = p.stock_qty <= p.low_stock_threshold;
                   const isOut = p.stock_qty === 0;
                   const stockPct = Math.min(100, Math.round((p.stock_qty / Math.max(p.low_stock_threshold * 3, 1)) * 100));
-                  const stockColor = isOut ? 'bg-red-500' : isLow ? 'bg-yellow-400' : 'bg-green-500';
+                  const stockColor = isOut ? 'bg-red-500' : isLow ? 'bg-amber-400' : 'bg-[#0D3B6E]';
                   const stockLabel = isOut ? 'Out of stock' : isLow ? 'Low stock' : 'In stock';
-                  const stockTextColor = isOut ? 'text-red-600' : isLow ? 'text-yellow-600' : 'text-green-600';
+                  const stockTextColor = isOut ? 'text-red-500' : isLow ? 'text-amber-500' : 'text-[#0D3B6E]';
                   return (
                     <div className="flex flex-col gap-1 min-w-[110px]">
                       <div className="flex items-center justify-between">
@@ -681,9 +681,9 @@ export default function InventoryPage() {
                 label: 'Actions',
                 render: (_, p) => (
                   <div className="flex items-center justify-end gap-1">
-                    <button onClick={() => { setLabelProduct(p); setLabelQty(1); }} title="Print Label" className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500 transition-colors"><Tag className="w-4 h-4" /></button>
-                    <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"><TrendingDown className="w-4 h-4" /></button>
-                    <button onClick={() => openEdit(p)} title="Edit" className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"><Edit2 className="w-4 h-4" /></button>
+                    <button onClick={() => { setLabelProduct(p); setLabelQty(1); }} title="Print Label" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Tag className="w-4 h-4" /></button>
+                    <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><TrendingDown className="w-4 h-4" /></button>
+                    <button onClick={() => openEdit(p)} title="Edit" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Edit2 className="w-4 h-4" /></button>
                     <button onClick={() => setConfirm({ id: p.id, name: p.name })} title="Delete" className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 )
@@ -789,7 +789,7 @@ export default function InventoryPage() {
         <div className="flex rounded-lg border border-gray-200 overflow-hidden mb-5">
           <button
             onClick={() => setAdjustType('add')}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${ adjustType === 'add' ? 'bg-green-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50' }`}
+            className={`flex-1 py-2 text-sm font-medium transition-colors ${ adjustType === 'add' ? 'bg-[#0D3B6E] text-white' : 'bg-white text-gray-500 hover:bg-gray-50' }`}
           >+ Add Stock</button>
           <button
             onClick={() => setAdjustType('remove')}
@@ -805,7 +805,7 @@ export default function InventoryPage() {
             />
             {/* Live preview */}
             {adjustQty && parseInt(adjustQty) > 0 && (
-              <div className={`mt-2 text-xs px-3 py-2 rounded-lg ${ adjustType === 'add' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700' }`}>
+              <div className={`mt-2 text-xs px-3 py-2 rounded-lg ${ adjustType === 'add' ? 'bg-[#0D3B6E]/8 text-[#0D3B6E]' : 'bg-red-50 text-red-700' }`}>
                 {selected?.stock_qty} → <strong>{adjustType === 'add'
                   ? selected?.stock_qty + parseInt(adjustQty)
                   : Math.max(0, selected?.stock_qty - parseInt(adjustQty))
@@ -860,7 +860,7 @@ export default function InventoryPage() {
                       <tr key={c.id} className="hover:bg-gray-50">
                         <td className="px-5 py-3.5">
                           <span className="inline-flex items-center gap-2 font-medium text-gray-900">
-                            <span className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />
+                            <span className="w-2 h-2 rounded-full bg-[#0D3B6E]/40 flex-shrink-0" />
                             {c.name}
                           </span>
                         </td>
@@ -872,7 +872,7 @@ export default function InventoryPage() {
                             ? <span className="text-gray-300 text-xs">None</span>
                             : <div className="flex items-center gap-1.5 flex-wrap">
                                 {fields.slice(0, 3).map(f => (
-                                  <span key={f.key} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full whitespace-nowrap">{f.label}</span>
+                                  <span key={f.key} className="text-xs bg-[#0D3B6E]/8 text-[#0D3B6E] px-2 py-0.5 rounded-full whitespace-nowrap">{f.label}</span>
                                 ))}
                                 {fields.length > 3 && (
                                   <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">+{fields.length - 3}</span>
@@ -887,7 +887,7 @@ export default function InventoryPage() {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => { setSelectedCat(c); setCatForm({ name: c.name, description: c.description || '', custom_fields: c.custom_fields || [] }); setSelectedTemplate(''); setModal('cat-edit'); }}
-                              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500"
+                              className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E]"
                             ><Edit2 className="w-4 h-4" /></button>
                             <button
                               onClick={() => setCatConfirm(c)}
@@ -941,7 +941,7 @@ export default function InventoryPage() {
                         <td className="px-5 py-3.5"><span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{count} product{count !== 1 ? 's' : ''}</span></td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center justify-end gap-1">
-                            <button onClick={() => { setSelectedLoc(l); setLocForm({ name:l.name, code:l.code||'', type:l.type, description:l.description||'' }); setModal('loc-edit'); }} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500"><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={() => { setSelectedLoc(l); setLocForm({ name:l.name, code:l.code||'', type:l.type, description:l.description||'' }); setModal('loc-edit'); }} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E]"><Edit2 className="w-4 h-4" /></button>
                             <button onClick={() => setLocConfirm(l)} className="p-1.5 hover:bg-red-50 rounded-lg text-red-400"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </td>

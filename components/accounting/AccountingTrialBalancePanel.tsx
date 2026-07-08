@@ -6,11 +6,11 @@ import { EmptyState, Spinner, StatCard, toast } from '@/components/ui';
 import api from '@/lib/api';
 
 const TYPE_COLORS: Record<string, string> = {
-  asset: 'bg-green-100 text-green-800',
+  asset: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
   liability: 'bg-red-100 text-red-800',
-  equity: 'bg-blue-100 text-blue-800',
-  revenue: 'bg-purple-100 text-purple-800',
-  expense: 'bg-yellow-100 text-yellow-800',
+  equity: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
+  revenue: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
+  expense: 'bg-amber-50 text-amber-800',
 };
 
 function displayAsOf(value?: string | null) {
@@ -114,8 +114,8 @@ export default function AccountingTrialBalancePanel(_: Props) {
       {data && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <StatCard label="Total debits" value={`GH₵ ${parseFloat(totals.debit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={<Scale className="w-5 h-5 text-blue-600" />} color="bg-blue-50" />
-            <StatCard label="Total credits" value={`GH₵ ${parseFloat(totals.credit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={<Scale className="w-5 h-5 text-purple-600" />} color="bg-purple-50" />
+            <StatCard label="Total debits" value={`GH₵ ${parseFloat(totals.debit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={<Scale className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
+            <StatCard label="Total credits" value={`GH₵ ${parseFloat(totals.credit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={<Scale className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
             <StatCard label="Accounts" value={String(summary.account_count ?? 0)} icon={<BookOpen className="w-5 h-5 text-gray-600" />} color="bg-gray-50" sub={`${summary.with_balance ?? 0} with balance`} />
           </div>
 

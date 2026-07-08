@@ -37,7 +37,7 @@ export default function PayrollLineEditor({ label, lines, onChange, presets = []
             <button
               key={preset}
               type="button"
-              className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+              className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-[#0D3B6E]/8 hover:text-[#0D3B6E]"
               onClick={() => onChange([...lines, { name: preset, amount: '' }])}
             >
               + {preset}

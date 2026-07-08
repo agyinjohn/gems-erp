@@ -4,12 +4,9 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import {
   Mail, Lock, Eye, EyeOff, Loader2, ArrowRight,
-  ChevronRight, Package,
-  Users, Calculator, Truck, UserCheck, Shield, Sparkles,
-  CheckCircle2, ShoppingCart,
+  ChevronRight, Package, Shield, Sparkles, CheckCircle2,
+  BarChart3, Users, Calculator, Truck, UserCheck, ShoppingCart,
 } from 'lucide-react';
-
-/* ─── constants ──────────────────────────────────────────────────────────── */
 
 const DEMO_ACCOUNTS = [
   { label: 'Business Owner', email: 'owner@gems-store.com', password: 'Admin@1234', color: 'bg-violet-100 text-violet-700' },
@@ -20,45 +17,15 @@ const DEMO_ACCOUNTS = [
   { label: 'Procurement', email: 'procurement@gthink.com', password: 'Staff@1234', color: 'bg-orange-100 text-orange-700' },
 ];
 
-const MODULES = [
-  { icon: Package, label: 'Stocks & Inventory', color: 'text-blue-400' },
-  { icon: ShoppingCart, label: 'Sales, POS & eCommerce', color: 'text-violet-400' },
-  { icon: Calculator, label: 'Accounting & Finance', color: 'text-amber-400' },
-  { icon: Shield, label: 'Payment System', color: 'text-green-400' },
-  { icon: Truck, label: 'Procurement', color: 'text-cyan-400' },
-  { icon: Users, label: 'HR & Payroll', color: 'text-pink-400' },
-  { icon: UserCheck, label: 'CRM', color: 'text-emerald-400' },
+const FEATURES = [
+  { icon: ShoppingCart, label: 'Sales & POS', desc: 'Orders, invoices & storefront' },
+  { icon: BarChart3, label: 'Accounting', desc: 'GL, AP/AR & financial reports' },
+  { icon: Package, label: 'Inventory', desc: 'Stock tracking & procurement' },
+  { icon: Users, label: 'HR & Payroll', desc: 'Staff, leave & payslips' },
+  { icon: UserCheck, label: 'CRM', desc: 'Customers & relationships' },
+  { icon: Calculator, label: 'Reports', desc: 'Insights across all modules' },
 ];
 
-const STATS = [
-  { value: '100+', label: 'Businesses' },
-  { value: '12+', label: 'Modules' },
-  { value: '99.9%', label: 'Uptime' },
-];
-
-const METRIC_CARDS = [
-  { label: "Today's Revenue", value: 'GH₵ 8,420', change: '+12%', up: true },
-  { label: 'Orders', value: '34', change: '+5', up: true },
-  { label: 'Low Stock Items', value: '7', change: '-2', up: false },
-  { label: 'Active Staff', value: '12', change: '', up: true },
-];
-
-const RECENT_ORDERS = [
-  { ref: 'ORD-2041', customer: 'Abena M.', amount: 'GH₵ 340', status: 'paid' },
-  { ref: 'ORD-2040', customer: 'Kwame A.', amount: 'GH₵ 820', status: 'processing' },
-  { ref: 'ORD-2039', customer: 'Efua D.', amount: 'GH₵ 155', status: 'paid' },
-  { ref: 'ORD-2038', customer: 'Yaw K.', amount: 'GH₵ 610', status: 'shipped' },
-];
-
-const STATUS_COLOR: Record<string, string> = {
-  paid: 'bg-emerald-100 text-emerald-700',
-  processing: 'bg-amber-100 text-amber-700',
-  shipped: 'bg-blue-100 text-blue-700',
-};
-
-const BAR_HEIGHTS = [35, 55, 42, 70, 60, 85, 65, 90, 75, 88, 72, 95];
-
-/* ─── main page ─────────────────────────────────────────────────────────── */
 export default function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -70,7 +37,7 @@ export default function LoginPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 80);
+    const t = setTimeout(() => setMounted(true), 60);
     return () => clearTimeout(t);
   }, []);
 
@@ -81,327 +48,284 @@ export default function LoginPage() {
     try {
       await login(email, password);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid email or password. Please try again.');
+      setError(err.response?.data?.message || 'Invalid email or password.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-dvh flex flex-col lg:flex-row bg-[#060d1a]">
+    <>
+      <style>{`
+        .dot-bg {
+          background-color: #060d1a;
+          background-image: radial-gradient(circle, rgba(255,255,255,0.11) 1px, transparent 1px);
+          background-size: 26px 26px;
+        }
+        .glow-orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(80px);
+          pointer-events: none;
+        }
+      `}</style>
 
-      {/* ── LEFT: immersive brand panel ────────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] relative flex-col overflow-hidden">
+      <div className="flex flex-col lg:flex-row h-dvh lg:overflow-hidden">
 
-        {/* Background photo */}
-        <div className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1497366216548-37526070297c?w=1400&q=80&auto=format&fit=crop')" }} />
+        {/* ── LEFT: dark branded panel ─────────────────────────────────────── */}
+        <div className="dot-bg hidden lg:flex lg:w-[52%] xl:w-[55%] flex-col relative overflow-hidden h-full">
 
-        {/* Dark gradient overlay — keeps text legible */}
-        <div className="absolute inset-0"
-          style={{ background: 'linear-gradient(145deg, rgba(6,13,26,0.92) 0%, rgba(10,22,40,0.88) 40%, rgba(13,59,110,0.80) 100%)' }} />
+          {/* Glow orbs for depth */}
+          <div className="glow-orb w-[420px] h-[420px] bg-blue-600/20 top-[-80px] left-[-80px]" />
+          <div className="glow-orb w-[300px] h-[300px] bg-indigo-500/15 bottom-[10%] right-[-60px]" />
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col h-full px-10 xl:px-14 py-10">
+          <div className="relative z-10 flex flex-col h-full px-12 xl:px-16 py-12">
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group w-fit">
-            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center group-hover:bg-white/15 transition-colors backdrop-blur-sm">
-              <Package className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="text-white font-bold text-lg leading-none tracking-tight">GEMS</div>
-              <div className="text-[10px] text-blue-300/60 font-medium tracking-wide mt-0.5">GTHINK Enterprise Management System</div>
-            </div>
-          </Link>
-
-          {/* Hero text */}
-          <div className="mt-12 xl:mt-16">
-            <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-amber-400/90 mb-4">
-              <BarChart3 className="w-3.5 h-3.5" />
-              Smart Workplace
-            </div>
-            <h1 className="text-3xl xl:text-4xl font-bold text-white leading-tight tracking-tight">
-              Your entire business.<br />
-              <span className="text-blue-300/80 font-normal">One smart system.</span>
-            </h1>
-
-          </div>
-
-          {/* Module chips */}
-          <div className="mt-8 flex flex-wrap gap-2">
-            {MODULES.map(({ icon: Icon, label, color }) => (
-              <div key={label}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.07] border border-white/10 backdrop-blur-sm">
-                <Icon className={`w-3 h-3 ${color}`} />
-                <span className="text-[11px] font-medium text-white/75">{label}</span>
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center backdrop-blur-sm">
+                <Package className="w-5 h-5 text-white" />
               </div>
-            ))}
-          </div>
-
-          {/* Dashboard mockup */}
-          <div className="mt-10 rounded-2xl bg-white/[0.06] border border-white/10 backdrop-blur-sm overflow-hidden">
-            {/* Mockup top bar */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-400/70" />
-                <div className="w-2 h-2 rounded-full bg-amber-400/70" />
-                <div className="w-2 h-2 rounded-full bg-green-400/70" />
-              </div>
-              <span className="text-[10px] text-white/30 font-mono">gems · dashboard</span>
-              <div className="w-12" />
-            </div>
-
-            <div className="p-4 space-y-3">
-              {/* Metric cards */}
-              <div className="grid grid-cols-2 gap-2">
-                {METRIC_CARDS.map(m => (
-                  <div key={m.label} className="bg-white/[0.05] rounded-xl px-3 py-2.5 border border-white/8">
-                    <div className="text-[9px] text-white/40 uppercase tracking-wider mb-1">{m.label}</div>
-                    <div className="text-sm font-bold text-white">{m.value}</div>
-                    {m.change && (
-                      <div className={`text-[9px] font-semibold mt-0.5 ${m.up ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {m.up ? '▲' : '▼'} {m.change} vs yesterday
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Mini bar chart */}
-              <div className="bg-white/[0.04] rounded-xl px-3 pt-3 pb-2 border border-white/8">
-                <div className="text-[9px] text-white/40 uppercase tracking-wider mb-2">Revenue — last 12 days</div>
-                <div className="flex items-end gap-1 h-10">
-                  {BAR_HEIGHTS.map((h, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 rounded-sm bg-blue-400/40"
-                      style={{ height: `${h}%`, opacity: i === BAR_HEIGHTS.length - 1 ? 1 : 0.5 + (i / BAR_HEIGHTS.length) * 0.5 }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Recent orders */}
-              <div className="bg-white/[0.04] rounded-xl border border-white/8 overflow-hidden">
-                <div className="px-3 py-2 border-b border-white/8">
-                  <span className="text-[9px] text-white/40 uppercase tracking-wider">Recent orders</span>
-                </div>
-                {RECENT_ORDERS.map((o, i) => (
-                  <div key={o.ref} className={`flex items-center justify-between px-3 py-1.5 ${i !== RECENT_ORDERS.length - 1 ? 'border-b border-white/5' : ''}`}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-mono text-white/50">{o.ref}</span>
-                      <span className="text-[9px] text-white/70">{o.customer}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-semibold text-white/80">{o.amount}</span>
-                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${STATUS_COLOR[o.status]}`}>{o.status}</span>
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <div className="text-white font-bold text-lg leading-none tracking-tight">GEMS</div>
+                <div className="text-[10px] text-blue-300/60 font-medium tracking-wide mt-0.5">GTHINK Enterprise Management System</div>
               </div>
             </div>
-          </div>
 
-          {/* Stats footer */}
-          <div className="mt-auto pt-10 flex items-center gap-8 border-t border-white/8">
-            {STATS.map(s => (
-              <div key={s.label}>
-                <div className="text-xl font-bold text-white tabular-nums">{s.value}</div>
-                <div className="text-[10px] text-blue-300/50 uppercase tracking-wider mt-0.5">{s.label}</div>
+            {/* Hero */}
+            <div className="mt-16 xl:mt-20">
+              <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-amber-400/80 mb-4">
+                <span className="w-4 h-px bg-amber-400/60" />
+                All-in-one ERP
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── RIGHT: login form ───────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col bg-white">
-
-        {/* Mobile top bar */}
-        <header className="lg:hidden flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#0D3B6E] flex items-center justify-center">
-              <Package className="w-4.5 h-4.5 text-white" />
-            </div>
-            <div>
-              <div className="font-bold text-[#0D3B6E] text-base leading-none">GEMS</div>
-              <div className="text-[9px] text-gray-400 font-medium tracking-wide mt-0.5">GTHINK Enterprise Management System</div>
-            </div>
-          </Link>
-          <Link href="/register"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D3B6E] bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-colors">
-            Sign up <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        </header>
-
-        {/* Form area */}
-        <div className="flex-1 flex items-center justify-center px-5 sm:px-10 lg:px-12 xl:px-16 py-10">
-          <div
-            className={`w-full max-w-[420px] transition-all duration-700 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
-            style={{ transitionDelay: '100ms' }}
-          >
-            {/* Desktop header — hidden on mobile (shown in top bar) */}
-            {/* <div className="hidden lg:block mb-8">
-              <Link href="/" className="inline-flex items-center gap-2.5 group mb-8">
-                <div className="w-10 h-10 rounded-xl bg-[#0D3B6E] flex items-center justify-center group-hover:bg-[#134a82] transition-colors">
-                  <Package className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <div className="font-bold text-[#0D3B6E] text-lg leading-none">GEMS</div>
-                  <div className="text-[10px] text-gray-400 font-medium tracking-wide mt-0.5">GTHINK Enterprise Management System</div>
-                </div>
-              </Link>
-            </div> */}
-
-            {/* Heading */}
-            <div className="mb-7 lg:mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Welcome</h2>
-              <p className="text-gray-500 text-sm mt-1.5 leading-relaxed">
-                Sign in to access your business workspace.
+              <h1 className="text-4xl xl:text-5xl font-bold text-white leading-[1.15] tracking-tight">
+                Run your entire<br />
+                <span className="text-blue-300/80 font-light">business smarter.</span>
+              </h1>
+              <p className="mt-4 text-sm text-white/45 leading-relaxed max-w-sm">
+                From inventory to payroll, sales to accounting — everything your team needs in one place.
               </p>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Feature grid */}
+            <div className="mt-12 grid grid-cols-2 gap-3">
+              {FEATURES.map(({ icon: Icon, label, desc }) => (
+                <div key={label} className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] transition-colors">
+                  <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Icon className="w-3.5 h-3.5 text-blue-300" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-white/85">{label}</div>
+                    <div className="text-[10px] text-white/35 mt-0.5 leading-snug">{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
+            {/* Bottom stats */}
+            <div className="mt-auto pt-10">
+              <div className="flex items-center gap-px mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <svg key={i} className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+                <span className="ml-2 text-xs text-white/40">Trusted by 100+ businesses</span>
+              </div>
+              <p className="text-[11px] text-white/25">
+                © {new Date().getFullYear()} GTHINK Company Limited
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── RIGHT: white form panel ───────────────────────────────────────── */}
+        <div className="flex-1 bg-white flex flex-col lg:overflow-hidden">
+
+          {/* Mobile top bar */}
+          <header className="lg:hidden flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#0D3B6E] flex items-center justify-center">
+                <Package className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <div className="font-bold text-[#0D3B6E] text-base leading-none">GEMS</div>
+                <div className="text-[9px] text-gray-400 tracking-wide mt-0.5">GTHINK Enterprise Management System</div>
+              </div>
+            </div>
+            <Link href="/register" className="text-xs font-semibold text-[#0D3B6E] bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-colors inline-flex items-center gap-1">
+              Sign up <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </header>
+
+          {/* Form area — vertically centered */}
+          <div className="flex-1 flex items-center justify-center px-8 sm:px-12 lg:px-14 xl:px-20 py-12 lg:overflow-y-auto">
+            <div
+              className={`w-full max-w-[400px] transition-all duration-500 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+            >
+              {/* Desktop logo — hidden on mobile */}
+              {/* <div className="hidden lg:flex items-center gap-3 mb-10">
+                <div className="w-9 h-9 rounded-xl bg-[#0D3B6E] flex items-center justify-center shadow-md shadow-[#0D3B6E]/20">
+                  <Package className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <div className="font-bold text-[#0D3B6E] text-base leading-none">GEMS</div>
+                  <div className="text-[10px] text-gray-400 tracking-wide mt-0.5">GTHINK Enterprise Management System</div>
+                </div>
+              </div> */}
+
+              {/* Heading */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Welcome</h2>
+                <p className="text-gray-400 text-sm mt-1">Access your business workspace.</p>
+              </div>
+
+              {/* Error */}
               {error && (
-                <div role="alert"
-                  className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200/80 text-red-700 text-sm animate-pop-in">
+                <div role="alert" className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm mb-5">
                   <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">!</span>
                   <span>{error}</span>
                 </div>
               )}
 
-              {/* Email */}
-              <div className="space-y-1.5">
-                <label htmlFor="email" className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Email 
-                </label>
-                <div className="relative group">
-                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#0D3B6E] transition-colors pointer-events-none" />
-                  <input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    autoFocus
-                    placeholder="name@company.com"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 bg-gray-50/60 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-[#0D3B6E]/50 focus:ring-4 focus:ring-[#0D3B6E]/8 transition-all"
-                  />
-                </div>
-              </div>
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-5">
 
-              {/* Password */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Password
+                <div className="space-y-1.5">
+                  <label htmlFor="email" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Email address
                   </label>
-                  <Link href="/forgot-password"
-                    className="text-xs font-semibold text-[#0D3B6E] hover:text-[#134a82] transition-colors">
-                    Forgot password?
-                  </Link>
+                  <div className="relative group">
+                    <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#0D3B6E] transition-colors pointer-events-none" />
+                    <input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      autoFocus
+                      placeholder="name@company.com"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-[#0D3B6E]/60 focus:ring-4 focus:ring-[#0D3B6E]/8 transition-all"
+                    />
+                  </div>
                 </div>
-                <div className="relative group">
-                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#0D3B6E] transition-colors pointer-events-none" />
-                  <input
-                    id="password"
-                    type={showPw ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    required
-                    placeholder="••••••••••"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full h-12 pl-10 pr-12 rounded-xl border border-gray-200 bg-gray-50/60 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-[#0D3B6E]/50 focus:ring-4 focus:ring-[#0D3B6E]/8 transition-all"
-                  />
-                  <button type="button"
-                    onClick={() => setShowPw(v => !v)}
-                    aria-label={showPw ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
-                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-shine w-full h-12 rounded-xl bg-[#0D3B6E] hover:bg-[#134a82] active:scale-[0.99] disabled:opacity-55 disabled:pointer-events-none text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#0D3B6E]/30 transition-all mt-2"
-              >
-                {loading
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Authenticating…</>
-                  : <>Sign in to dashboard <ArrowRight className="w-4 h-4" /></>
-                }
-              </button>
-            </form>
-
-            {/* Demo accounts */}
-            <div className="mt-5">
-              <button
-                type="button"
-                onClick={() => setShowDemo(v => !v)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-gray-200 hover:border-[#0D3B6E]/30 hover:bg-blue-50/40 transition-all text-left group"
-              >
-                <span className="w-8 h-8 rounded-lg bg-[#0D3B6E]/8 text-[#0D3B6E] flex items-center justify-center shrink-0 group-hover:bg-[#0D3B6E]/12 transition-colors">
-                  <Sparkles className="w-4 h-4" />
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block text-sm font-semibold text-gray-800">Try with a demo account</span>
-                  <span className="block text-xs text-gray-400 mt-0.5">Auto-fill credentials by role</span>
-                </span>
-                <ChevronRight className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${showDemo ? 'rotate-90' : ''}`} />
-              </button>
-
-              {showDemo && (
-                <div className="mt-2 rounded-xl border border-gray-100 bg-gray-50/60 divide-y divide-gray-100 overflow-hidden animate-panel-in">
-                  {DEMO_ACCOUNTS.map(acc => (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="password" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Password
+                    </label>
+                    <Link href="/forgot-password" className="text-xs font-semibold text-[#0D3B6E] hover:underline">
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <div className="relative group">
+                    <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#0D3B6E] transition-colors pointer-events-none" />
+                    <input
+                      id="password"
+                      type={showPw ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      required
+                      placeholder="••••••••••"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className="w-full h-12 pl-10 pr-12 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-[#0D3B6E]/60 focus:ring-4 focus:ring-[#0D3B6E]/8 transition-all"
+                    />
                     <button
-                      key={acc.email}
                       type="button"
-                      onClick={() => { setEmail(acc.email); setPassword(acc.password); setShowDemo(false); setError(''); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white transition-colors text-left group"
+                      onClick={() => setShowPw(v => !v)}
+                      aria-label={showPw ? 'Hide password' : 'Show password'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                     >
-                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${acc.color}`}>
-                        {acc.label}
-                      </span>
-                      <span className="text-xs text-gray-400 truncate flex-1">{acc.email}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#0D3B6E] shrink-0 transition-colors" />
+                      {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
-                  ))}
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Footer */}
-            <div className="mt-7 pt-6 border-t border-gray-100 flex flex-col gap-3">
-              <div className="flex items-center justify-center gap-5 text-xs text-gray-400">
-                <span className="inline-flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5 text-[#0D3B6E]/50" /> SSL secured
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500/70" /> 14-day free trial
-                </span>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-12 rounded-xl bg-[#0D3B6E] hover:bg-[#134a82] active:scale-[0.99] disabled:opacity-55 disabled:pointer-events-none text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#0D3B6E]/20 transition-all"
+                >
+                  {loading
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Authenticating…</>
+                    : <>Sign in to dashboard <ArrowRight className="w-4 h-4" /></>
+                  }
+                </button>
+              </form>
+
+              {/* Divider */}
+              {/* <div className="flex items-center gap-3 my-5">
+                <div className="flex-1 h-px bg-gray-100" />
+                <span className="text-xs text-gray-400">or</span>
+                <div className="flex-1 h-px bg-gray-100" />
+              </div> */}
+
+              {/* Demo accounts */}
+              {/* <div>
+                <button
+                  type="button"
+                  onClick={() => setShowDemo(v => !v)}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-gray-200 hover:border-[#0D3B6E]/30 hover:bg-blue-50/40 transition-all text-left group"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-[#0D3B6E]/8 text-[#0D3B6E] flex items-center justify-center shrink-0">
+                    <Sparkles className="w-4 h-4" />
+                  </span>
+                  <span className="flex-1">
+                    <span className="block text-sm font-semibold text-gray-700">Try a demo account</span>
+                    <span className="block text-xs text-gray-400 mt-0.5">Auto-fill credentials by role</span>
+                  </span>
+                  <ChevronRight className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${showDemo ? 'rotate-90' : ''}`} />
+                </button>
+
+                {showDemo && (
+                  <div className="mt-2 rounded-xl border border-gray-100 bg-gray-50 divide-y divide-gray-100 overflow-hidden">
+                    {DEMO_ACCOUNTS.map(acc => (
+                      <button
+                        key={acc.email}
+                        type="button"
+                        onClick={() => { setEmail(acc.email); setPassword(acc.password); setShowDemo(false); setError(''); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white transition-colors text-left group"
+                      >
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${acc.color}`}>
+                          {acc.label}
+                        </span>
+                        <span className="text-xs text-gray-400 truncate flex-1">{acc.email}</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#0D3B6E] shrink-0 transition-colors" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div> */}
+
+              {/* Footer */}
+              <div className="mt-8 pt-6 border-t border-gray-100 space-y-3">
+                <div className="flex items-center justify-center gap-6 text-xs text-gray-400">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-[#0D3B6E]/40" /> SSL secured
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500/60" /> 14-day free trial
+                  </span>
+                </div>
+                <p className="text-center text-xs text-gray-400">
+                  Don&apos;t have an account?{' '}
+                  <Link href="/register" className="font-semibold text-[#0D3B6E] hover:underline">
+                    Create one free
+                  </Link>
+                </p>
               </div>
-              <p className="text-center text-xs text-gray-400">
-                Don&apos;t have an account?{' '}
-                <Link href="/register" className="font-semibold text-[#0D3B6E] hover:underline">
-                  Create one free
-                </Link>
-              </p>
             </div>
           </div>
+
+          {/* Bottom copyright */}
+          <footer className="px-8 py-3 border-t border-gray-100 text-center text-[11px] text-gray-300">
+            © {new Date().getFullYear()} GTHINK Company Limited · GEMS — GTHINK Enterprise Management System
+          </footer>
         </div>
 
-        {/* Bottom copyright */}
-        <footer className="px-6 py-3 text-center text-[11px] text-gray-300 border-t border-gray-100">
-          © {new Date().getFullYear()} GTHINK Company Limited · GEMS — GTHINK Enterprise Management System
-        </footer>
       </div>
-
-    </div>
+    </>
   );
 }

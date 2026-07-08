@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Download, RefreshCw, Trash2, FileText, Search, DollarSign } from 'lucide-react';
+
+const CedisIcon = ({ className }: { className?: string }) => (
+  <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
+);
 import { EmptyState, Modal, Spinner, StatCard, toast } from '@/components/ui';
 import api from '@/lib/api';
 
@@ -12,9 +16,9 @@ function fmt(n: number | string | undefined | null) {
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-600',
-  sent: 'bg-blue-100 text-blue-700',
-  partially_paid: 'bg-yellow-100 text-yellow-700',
-  paid: 'bg-green-100 text-green-700',
+  sent: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
+  partially_paid: 'bg-amber-50 text-amber-700',
+  paid: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
   overdue: 'bg-red-100 text-red-700',
   void: 'bg-red-50 text-red-400',
 };
@@ -199,10 +203,10 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
       {data && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard label="Outstanding" value={fmt(summary.total_outstanding)} icon={<DollarSign className="w-5 h-5 text-red-600" />} color="bg-red-50" />
-            <StatCard label="Overdue" value={String(summary.overdue ?? 0)} icon={<FileText className="w-5 h-5 text-orange-600" />} color="bg-orange-50" />
+            <StatCard label="Outstanding" value={fmt(summary.total_outstanding)} icon={<CedisIcon className="w-5 h-5 text-red-600 text-sm" />} color="bg-red-50" />
+            <StatCard label="Overdue" value={String(summary.overdue ?? 0)} icon={<FileText className="w-5 h-5 text-amber-600" />} color="bg-amber-50" />
             <StatCard label="Draft" value={String(summary.draft ?? 0)} icon={<FileText className="w-5 h-5 text-gray-600" />} color="bg-gray-50" />
-            <StatCard label="Total billed" value={fmt(summary.total_billed)} icon={<DollarSign className="w-5 h-5 text-blue-600" />} color="bg-blue-50" sub={`${summary.count ?? 0} invoices`} />
+            <StatCard label="Total billed" value={fmt(summary.total_billed)} icon={<CedisIcon className="w-5 h-5 text-[#0D3B6E] text-sm" />} color="bg-[#0D3B6E]/8" sub={`${summary.count ?? 0} invoices`} />
           </div>
 
           {rows.length === 0 ? (
@@ -221,7 +225,7 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
                   <tbody className="divide-y divide-gray-50">
                     {rows.map((inv: any) => (
                       <tr key={inv.id} className={`hover:bg-gray-50/80 ${inv.status === 'void' ? 'opacity-50' : ''}`}>
-                        <td className="px-3 md:px-4 py-2 font-mono text-xs text-blue-700">{inv.invoice_number}</td>
+                        <td className="px-3 md:px-4 py-2 font-mono text-xs text-[#0D3B6E]">{inv.invoice_number}</td>
                         <td className="px-3 md:px-4 py-2 font-medium">
                           <div>{inv.customer_name}</div>
                           {inv.customer_email && <div className="text-xs text-gray-400 hidden md:block">{inv.customer_email}</div>}
@@ -238,13 +242,13 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
                         <td className="px-3 md:px-4 py-2">
                           <div className="flex flex-wrap gap-1 justify-end">
                             {inv.status === 'draft' && (
-                              <button type="button" onClick={() => sendInvoice(inv.id)} className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded-lg">Send</button>
+                              <button type="button" onClick={() => sendInvoice(inv.id)} className="text-xs font-semibold text-white bg-[#0D3B6E] hover:bg-[#1A5294] px-2 py-1 rounded-lg">Send</button>
                             )}
                             {['sent', 'partially_paid', 'overdue'].includes(inv.status) && (
                               <button type="button" onClick={() => { setPayTarget(inv); setPayForm({ amount: String(inv.amount_due), method: 'cash', reference: '', note: '' }); }} className="text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-2 py-1 rounded-lg">Pay</button>
                             )}
                             {inv.payments?.length > 0 && (
-                              <button type="button" onClick={() => setHistoryTarget(inv)} className="text-xs text-blue-600 hover:bg-blue-50 px-2 py-1 rounded hidden md:inline-block">History</button>
+                              <button type="button" onClick={() => setHistoryTarget(inv)} className="text-xs text-[#0D3B6E] hover:bg-[#0D3B6E]/8 px-2 py-1 rounded hidden md:inline-block">History</button>
                             )}
                             {['draft', 'sent', 'overdue'].includes(inv.status) && (
                               <button type="button" onClick={() => voidInvoice(inv.id)} className="text-xs text-red-500 hover:bg-red-50 px-2 py-1 rounded hidden md:inline-block">Void</button>
@@ -338,7 +342,7 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
                         <td className="px-4 py-2 text-gray-400 text-xs">{i + 1}</td>
                         <td className="px-4 py-2 text-xs">{p.date ? new Date(p.date).toLocaleDateString() : '—'}</td>
                         <td className="px-4 py-2 font-semibold text-green-700">{fmt(p.amount)}</td>
-                        <td className="px-4 py-2"><span className="badge bg-blue-50 text-blue-700">{(p.method || 'cash').replace('_', ' ')}</span></td>
+                        <td className="px-4 py-2"><span className="badge bg-[#0D3B6E]/8 text-[#0D3B6E]">{(p.method || 'cash').replace('_', ' ')}</span></td>
                         <td className="px-4 py-2 font-mono text-xs">{p.reference || '—'}</td>
                         <td className="px-4 py-2 text-xs text-gray-500">{p.note || '—'}</td>
                       </tr>
