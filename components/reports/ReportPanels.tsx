@@ -71,27 +71,27 @@ export default function ReportPanels({ data, periodLabel }: Props) {
       <ReportSection id="summary" title="Executive summary" subtitle={`Key metrics for ${periodLabel}`}>
         <MetricGrid>
           <div>
-            <StatCard label="Revenue" value={fmtGhs(overview.revenue)} icon={<TrendingUp className="w-6 h-6 text-green-600" />} color="bg-green-50" />
+            <StatCard label="Revenue" value={fmtGhs(overview.revenue)} icon={<TrendingUp className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
             <ChangeBadge value={overview.revenue_change} />
           </div>
           <div>
-            <StatCard label="Orders" value={String(overview.orders ?? 0)} icon={<ShoppingCart className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
+            <StatCard label="Orders" value={String(overview.orders ?? 0)} icon={<ShoppingCart className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
             <ChangeBadge value={overview.orders_change} />
           </div>
           <StatCard
             label="Net profit"
             value={fmtGhs(overview.net_profit)}
-            icon={<DollarSign className="w-6 h-6 text-indigo-600" />}
-            color="bg-indigo-50"
+            icon={<DollarSign className="w-6 h-6 text-gray-500" />}
+            color="bg-gray-50"
             sub={`Margin ${pctMargin(overview.revenue, overview.net_profit)}`}
           />
-          <StatCard label="Avg order" value={fmtGhs(overview.avg_order_value)} icon={<ShoppingCart className="w-6 h-6 text-purple-600" />} color="bg-purple-50" />
+          <StatCard label="Avg order" value={fmtGhs(overview.avg_order_value)} icon={<ShoppingCart className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
         </MetricGrid>
         <MetricGrid>
-          <StatCard label="Expenses" value={fmtGhs(overview.expenses)} icon={<TrendingDown className="w-6 h-6 text-red-600" />} color="bg-red-50" />
-          <StatCard label="Refunds" value={fmtGhs(overview.refunds)} icon={<TrendingDown className="w-6 h-6 text-amber-600" />} color="bg-amber-50" />
-          <StatCard label="Pipeline" value={fmtGhs(overview.pipeline_value)} icon={<Handshake className="w-6 h-6 text-cyan-600" />} color="bg-cyan-50" sub={`${overview.pipeline_leads ?? 0} active leads`} />
-          <StatCard label="Stock value" value={fmtGhs(inventory.total_value)} icon={<Package className="w-6 h-6 text-teal-600" />} color="bg-teal-50" sub={`${inventory.low_stock_count ?? 0} low · ${inventory.out_of_stock ?? 0} out`} />
+          <StatCard label="Expenses" value={fmtGhs(overview.expenses)} icon={<TrendingDown className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Refunds" value={fmtGhs(overview.refunds)} icon={<TrendingDown className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Pipeline" value={fmtGhs(overview.pipeline_value)} icon={<Handshake className="w-6 h-6 text-gray-500" />} color="bg-gray-50" sub={`${overview.pipeline_leads ?? 0} active leads`} />
+          <StatCard label="Stock value" value={fmtGhs(inventory.total_value)} icon={<Package className="w-6 h-6 text-gray-500" />} color="bg-gray-50" sub={`${inventory.low_stock_count ?? 0} low · ${inventory.out_of_stock ?? 0} out`} />
         </MetricGrid>
       </ReportSection>
 
@@ -194,10 +194,10 @@ export default function ReportPanels({ data, periodLabel }: Props) {
       {/* Tax & promotions */}
       <ReportSection id="tax-promo" title="Tax & promotions" subtitle="VAT collected, discounts and coupon performance">
         <MetricGrid>
-          <StatCard label="Subtotal" value={fmtGhs(sales.subtotal)} icon={<Receipt className="w-6 h-6 text-gray-600" />} color="bg-gray-50" sub="Before tax" />
-          <StatCard label="Tax collected" value={fmtGhs(sales.tax_total)} icon={<Receipt className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
-          <StatCard label="Discounts" value={fmtGhs(sales.discount_total)} icon={<Tag className="w-6 h-6 text-purple-600" />} color="bg-purple-50" />
-          <StatCard label="Coupon orders" value={String(overview.coupon_orders ?? 0)} icon={<Tag className="w-6 h-6 text-indigo-600" />} color="bg-indigo-50" sub={fmtGhs(overview.coupon_discount_total)} />
+          <StatCard label="Subtotal" value={fmtGhs(sales.subtotal)} icon={<Receipt className="w-6 h-6 text-gray-500" />} color="bg-gray-50" sub="Before tax" />
+          <StatCard label="Tax collected" value={fmtGhs(sales.tax_total)} icon={<Receipt className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Discounts" value={fmtGhs(sales.discount_total)} icon={<Tag className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Coupon orders" value={String(overview.coupon_orders ?? 0)} icon={<Tag className="w-6 h-6 text-gray-500" />} color="bg-gray-50" sub={fmtGhs(overview.coupon_discount_total)} />
         </MetricGrid>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
@@ -209,7 +209,7 @@ export default function ReportPanels({ data, periodLabel }: Props) {
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis dataKey="code" type="category" tick={{ fontSize: 11 }} width={80} />
                   <Tooltip {...CHART_TOOLTIP} formatter={(v: any, name: any) => [name === 'orders' ? v : fmtGhs(v), name === 'orders' ? 'Orders' : 'Discount given']} />
-                  <Bar dataKey="orders" name="Orders" fill="#a855f7" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="orders" name="Orders" fill="#0D3B6E" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ReportBlock>
@@ -284,10 +284,10 @@ export default function ReportPanels({ data, periodLabel }: Props) {
         </div>
 
         <MetricGrid>
-          <StatCard label="Gross revenue" value={fmtGhs(finance.revenue)} icon={<TrendingUp className="w-6 h-6 text-green-600" />} color="bg-green-50" />
-          <StatCard label="Total expenses" value={fmtGhs(finance.total_expenses)} icon={<TrendingDown className="w-6 h-6 text-red-600" />} color="bg-red-50" />
-          <StatCard label="Net profit" value={fmtGhs(finance.net_profit)} icon={<DollarSign className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
-          <StatCard label="Profit margin" value={pctMargin(finance.revenue, finance.net_profit)} icon={<Percent className="w-6 h-6 text-indigo-600" />} color="bg-indigo-50" />
+          <StatCard label="Gross revenue" value={fmtGhs(finance.revenue)} icon={<TrendingUp className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Total expenses" value={fmtGhs(finance.total_expenses)} icon={<TrendingDown className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Net profit" value={fmtGhs(finance.net_profit)} icon={<DollarSign className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Profit margin" value={pctMargin(finance.revenue, finance.net_profit)} icon={<Percent className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
         </MetricGrid>
 
         {finance.gl_summary?.available && (
@@ -327,10 +327,10 @@ export default function ReportPanels({ data, periodLabel }: Props) {
       {/* Inventory */}
       <ReportSection id="inventory" title="Inventory" subtitle="Stock levels and warehouse activity">
         <MetricGrid>
-          <StatCard label="Products" value={String(inventory.total_products ?? 0)} icon={<Package className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
-          <StatCard label="Stock value" value={fmtGhs(inventory.total_value)} icon={<DollarSign className="w-6 h-6 text-green-600" />} color="bg-green-50" />
-          <StatCard label="Low stock" value={String(inventory.low_stock_count ?? 0)} icon={<AlertTriangle className="w-6 h-6 text-amber-600" />} color="bg-amber-50" />
-          <StatCard label="Out of stock" value={String(inventory.out_of_stock ?? 0)} icon={<AlertTriangle className="w-6 h-6 text-red-600" />} color="bg-red-50" />
+          <StatCard label="Products" value={String(inventory.total_products ?? 0)} icon={<Package className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Stock value" value={fmtGhs(inventory.total_value)} icon={<DollarSign className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Low stock" value={String(inventory.low_stock_count ?? 0)} icon={<AlertTriangle className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Out of stock" value={String(inventory.out_of_stock ?? 0)} icon={<AlertTriangle className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
         </MetricGrid>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
@@ -419,10 +419,10 @@ export default function ReportPanels({ data, periodLabel }: Props) {
       {/* Procurement */}
       <ReportSection id="procurement" title="Procurement" subtitle="Purchase orders and supplier spend">
         <MetricGrid>
-          <StatCard label="Total POs" value={String(procurement.total_pos ?? 0)} icon={<ShoppingCart className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
-          <StatCard label="Spend" value={fmtGhs(procurement.total_spend)} icon={<DollarSign className="w-6 h-6 text-red-600" />} color="bg-red-50" />
-          <StatCard label="Pending delivery" value={String(procurement.pending_delivery ?? 0)} icon={<AlertTriangle className="w-6 h-6 text-amber-600" />} color="bg-amber-50" />
-          <StatCard label="Completed" value={String(procurement.completed_pos ?? 0)} icon={<TrendingUp className="w-6 h-6 text-green-600" />} color="bg-green-50" />
+          <StatCard label="Total POs" value={String(procurement.total_pos ?? 0)} icon={<ShoppingCart className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Spend" value={fmtGhs(procurement.total_spend)} icon={<DollarSign className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Pending delivery" value={String(procurement.pending_delivery ?? 0)} icon={<AlertTriangle className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Completed" value={String(procurement.completed_pos ?? 0)} icon={<TrendingUp className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
         </MetricGrid>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
@@ -454,10 +454,10 @@ export default function ReportPanels({ data, periodLabel }: Props) {
       {/* People & customers */}
       <ReportSection id="people" title="People & customers" subtitle="Workforce, pipeline and buyer insights">
         <MetricGrid>
-          <StatCard label="Employees" value={String(hr.total_employees ?? 0)} icon={<Users className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${hr.active ?? 0} active`} />
-          <StatCard label="On leave today" value={String(hr.on_leave ?? 0)} icon={<AlertTriangle className="w-6 h-6 text-amber-600" />} color="bg-amber-50" />
-          <StatCard label="Customers" value={String(crm.total_customers ?? 0)} icon={<Handshake className="w-6 h-6 text-cyan-600" />} color="bg-cyan-50" />
-          <StatCard label="Pipeline" value={fmtGhs(crm.pipeline_value)} icon={<DollarSign className="w-6 h-6 text-purple-600" />} color="bg-purple-50" sub={`${crm.active_leads ?? 0} active · ${crm.won_leads ?? 0} won`} />
+          <StatCard label="Employees" value={String(hr.total_employees ?? 0)} icon={<Users className="w-6 h-6 text-gray-500" />} color="bg-gray-50" sub={`${hr.active ?? 0} active`} />
+          <StatCard label="On leave today" value={String(hr.on_leave ?? 0)} icon={<AlertTriangle className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Customers" value={String(crm.total_customers ?? 0)} icon={<Handshake className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
+          <StatCard label="Pipeline" value={fmtGhs(crm.pipeline_value)} icon={<DollarSign className="w-6 h-6 text-gray-500" />} color="bg-gray-50" sub={`${crm.active_leads ?? 0} active · ${crm.won_leads ?? 0} won`} />
         </MetricGrid>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
@@ -483,7 +483,7 @@ export default function ReportPanels({ data, periodLabel }: Props) {
                   <XAxis dataKey="stage" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip {...CHART_TOOLTIP} />
-                  <Bar dataKey="count" fill="#a855f7" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="#0D3B6E" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ReportBlock>

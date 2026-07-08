@@ -9,7 +9,7 @@ const CedisIcon = ({ className }: { className?: string }) => (
   <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
 );
 import { EmptyState, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 function fmt(n: number | string | undefined | null) {
   const v = parseFloat(String(n ?? 0));
@@ -73,16 +73,23 @@ export default function AccountingBalanceSheetPanel(_: Props) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    const params = new URLSearchParams();
+    if (asOf) params.append('as_of', asOf);
+    const key = `/accounting/balance-sheet?${params.toString()}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (asOf) params.append('as_of', asOf);
-      const res = await api.get(`/accounting/balance-sheet?${params.toString()}`);
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setData(res.data.data);
     } catch {
-      toast.error('Could not load balance sheet');
-      setData(null);
+      if (!cached) { toast.error('Could not load balance sheet'); setData(null); }
     } finally {
       setLoading(false);
     }

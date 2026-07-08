@@ -6,15 +6,15 @@ import {
   Ban, CheckCircle2, FolderTree, Loader2,
 } from 'lucide-react';
 import { Modal, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import AccountingLedgerPanel from '@/components/accounting/AccountingLedgerPanel';
 
 const TYPE_COLORS: Record<string, string> = {
-  asset: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-  liability: 'bg-red-100 text-red-800',
-  equity: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-  revenue: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-  expense: 'bg-amber-50 text-amber-800',
+  asset: 'text-gray-700',
+  liability: 'text-gray-700',
+  equity: 'text-gray-700',
+  revenue: 'text-gray-700',
+  expense: 'text-gray-700',
 };
 
 const TYPE_OPTIONS = ['', 'asset', 'liability', 'equity', 'revenue', 'expense'];
@@ -45,16 +45,24 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
     code: '', name: '', type: 'asset', description: '', opening_balance: '', parent_id: '',
   });
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    const params = new URLSearchParams({ view: 'coa', include_groups: String(showGroups) });
+    if (typeFilter) params.set('type', typeFilter);
+    if (search.trim()) params.set('search', search.trim());
+    const key = `/accounts?${params.toString()}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const params = new URLSearchParams({ view: 'coa', include_groups: String(showGroups) });
-      if (typeFilter) params.set('type', typeFilter);
-      if (search.trim()) params.set('search', search.trim());
-      const res = await api.get(`/accounts?${params.toString()}`);
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setData(res.data.data);
     } catch {
-      toast.error('Could not load chart of accounts');
+      if (!cached) toast.error('Could not load chart of accounts');
     } finally {
       setLoading(false);
     }
@@ -111,6 +119,7 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
         toast.success('Account created');
       }
       setModalOpen(false);
+      apiCache.invalidate('/accounts');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -128,6 +137,7 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
     try {
       await api.patch(`/accounts/${a.id}/active`, { is_active: next });
       toast.success(`Account ${label}d`);
+      apiCache.invalidate('/accounts');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -140,6 +150,7 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
     try {
       await api.post('/accounting/seed-coa');
       toast.success('Standard chart of accounts synced');
+      apiCache.invalidate('/accounts');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -185,8 +196,8 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
       {/* Summary */}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-          <StatCard label="Total accounts" value={summary.total} icon={<BookMarked className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${summary.posting} posting · ${summary.groups} groups`} />
-          <StatCard label="With activity" value={summary.with_activity} icon={<CheckCircle2 className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="Posting accounts used in GL" />
+          <StatCard label="Total accounts" value={summary.total} icon={<BookMarked className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub={`${summary.posting} posting · ${summary.groups} groups`} />
+          <StatCard label="With activity" value={summary.with_activity} icon={<CheckCircle2 className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub="Posting accounts used in GL" />
           {(summary.by_type || []).slice(0, 3).map((t: any) => (
             <StatCard key={t.type} label={t.type.charAt(0).toUpperCase() + t.type.slice(1)} value={t.count} icon={<FolderTree className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub={t.count ? fmt(t.balance) : 'No balance'} />
           ))}
@@ -266,7 +277,7 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
                         {a.parent_code && <div className="text-[10px] text-gray-400">Under {a.parent_code}</div>}
                       </td>
                       <td className="px-3 md:px-4 py-2 md:py-3">
-                        <span className={`badge text-xs ${TYPE_COLORS[a.type] || 'bg-gray-100 text-gray-800'}`}>
+                        <span className="text-xs text-gray-600 capitalize">
                           {a.type}{a.is_group ? ' · group' : ''}
                         </span>
                         {a.is_system && !a.is_group && (

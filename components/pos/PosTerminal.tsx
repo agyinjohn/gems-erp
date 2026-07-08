@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import PendingPaymentChip, { PendingPayment } from '@/components/pos/PendingPaymentChip';
 import { toast } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -96,8 +96,9 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
     } catch { setCurrentShift(null); }
   }, []);
 
-  const loadProducts = useCallback(async () => {
-    setLoading(true);
+  const loadProducts = useCallback(async (silent = false) => {
+    const cacheKey = `/pos/products?search=${search}&cat=${filterCat}`;
+    if (!silent) setLoading(true);
     setFetchError('');
     try {
       const params: any = {};
@@ -105,6 +106,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
       if (filterCat) params.category = filterCat;
       const r = await api.get('/pos/products', { params });
       const data: Product[] = r.data.data;
+      apiCache.set(cacheKey, data);
       setProducts(data);
     } catch (e: any) {
       setFetchError(e.response?.data?.message || 'Failed to load products. Check your connection.');
@@ -113,13 +115,28 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
 
   // Load categories once on mount
   useEffect(() => {
-    api.get('/pos/products').then(r => {
-      const cats = [...new Set((r.data.data as Product[]).map(p => p.category_name).filter(Boolean))].sort();
-      setCategories(cats as string[]);
-    }).catch(() => {});
+    const cachedCats = apiCache.get('/pos/categories');
+    if (cachedCats) {
+      setCategories(cachedCats);
+    } else {
+      api.get('/pos/products').then(r => {
+        const cats = [...new Set((r.data.data as Product[]).map(p => p.category_name).filter(Boolean))].sort() as string[];
+        apiCache.set('/pos/categories', cats);
+        setCategories(cats);
+      }).catch(() => {});
+    }
     setTimeout(() => barcodeRef.current?.focus(), 300);
     loadShift();
-    api.get('/storefront/settings').then(r => setTaxRate(Number(r.data.data?.tax_rate || 0))).catch(() => {});
+    const cachedTax = apiCache.get('/storefront/settings');
+    if (cachedTax !== null) {
+      setTaxRate(Number(cachedTax));
+    } else {
+      api.get('/storefront/settings').then(r => {
+        const rate = Number(r.data.data?.tax_rate || 0);
+        apiCache.set('/storefront/settings', rate);
+        setTaxRate(rate);
+      }).catch(() => {});
+    }
   }, [loadShift]);
 
   useEffect(() => {
@@ -129,7 +146,17 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
     }).catch(() => setVtConfigured(null));
   }, []);
 
-  useEffect(() => { loadProducts(); }, [loadProducts]);
+  useEffect(() => {
+    const cacheKey = `/pos/products?search=${search}&cat=${filterCat}`;
+    const cached = apiCache.get(cacheKey);
+    if (cached) {
+      setProducts(cached);
+      setLoading(false);
+      loadProducts(true);
+    } else {
+      loadProducts();
+    }
+  }, [loadProducts]);
 
   const loadPendingPayments = useCallback(async () => {
     try {
@@ -524,6 +551,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
       });
       setShowPayModal(false);
       clearCart();
+      apiCache.invalidate('/pos/products');
       loadProducts();
       loadShift();
     } catch (e: any) {
@@ -542,6 +570,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
       setRefundMessage(r.data.message || 'Refund processed.');
       setRefundOrderNumber('');
       setRefundReason('');
+      apiCache.invalidate('/pos/products');
       loadProducts();
     } catch (e: any) {
       setRefundMessage(e.response?.data?.message || 'Refund failed.');

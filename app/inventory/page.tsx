@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast, ResponsiveTable } from '@/components/ui';
 import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen, X, ChevronDown, MapPin } from 'lucide-react';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import ProductImageUpload from '@/components/inventory/ProductImageUpload';
 
 // ── Category field templates ──────────────────────────────────────────────────
@@ -394,10 +394,10 @@ const BLANK_FIELD: FieldDef = { label: '', key: '', type: 'text', options: [], r
 
 export default function InventoryPage() {
   const [tab, setTab] = useState<'products'|'categories'|'locations'>('products');
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<any[]>(() => apiCache.get('/products') || []);
+  const [categories, setCategories] = useState<any[]>(() => apiCache.get('/categories') || []);
+  const [locations, setLocations] = useState<any[]>(() => apiCache.get('/locations') || []);
+  const [loading, setLoading] = useState(() => !apiCache.get('/products'));
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [modal, setModal] = useState<'add'|'edit'|'adjust'|'cat-add'|'cat-edit'|'loc-add'|'loc-edit'|null>(null);
@@ -436,19 +436,26 @@ export default function InventoryPage() {
     });
   }, [labelProduct]);
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     const [p, c, l] = await Promise.all([
       api.get('/products'),
       api.get('/categories'),
       api.get('/locations').catch(() => ({ data: { data: [] } })),
     ]);
+    apiCache.set('/products', p.data.data);
+    apiCache.set('/categories', c.data.data);
+    apiCache.set('/locations', l.data.data);
     setProducts(p.data.data);
     setCategories(c.data.data);
     setLocations(l.data.data);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const hasCache = !!apiCache.get('/products');
+    load(!hasCache ? false : true);
+    if (hasCache && apiCache.isStale('/products')) load(true);
+  }, []);
 
   const filtered = products.filter(p =>
     (!search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())) &&
@@ -465,6 +472,7 @@ export default function InventoryPage() {
     try {
       if (modal === 'add') await api.post('/products', payload);
       else await api.put(`/products/${selected.id}`, payload);
+      apiCache.invalidate('/products');
       toast.success('Saved successfully'); setModal(null); load();
     } catch (e: any) { toast.error(e.response?.data?.message || 'Error saving product'); }
     finally { setSaving(false); }
@@ -474,13 +482,14 @@ export default function InventoryPage() {
     if (!adjustQty || parseInt(adjustQty) <= 0) return;
     const delta = adjustType === 'remove' ? -Math.abs(parseInt(adjustQty)) : Math.abs(parseInt(adjustQty));
     setSaving(true);
-    try { await api.post(`/products/${selected.id}/adjust-stock`, { quantity: delta, notes: adjustNote }); toast.success('Stock adjusted'); setModal(null); load(); }
+    try { await api.post(`/products/${selected.id}/adjust-stock`, { quantity: delta, notes: adjustNote }); apiCache.invalidate('/products'); toast.success('Stock adjusted'); setModal(null); load(); }
     catch (e: any) { toast.error(e.response?.data?.message || 'Error'); }
     finally { setSaving(false); }
   };
 
   const doDelete = async (id: number) => {
     await api.delete(`/products/${id}`);
+    apiCache.invalidate('/products');
     toast.success('Deleted successfully');
     load();
   };
@@ -491,6 +500,7 @@ export default function InventoryPage() {
     try {
       if (selectedCat) await api.put(`/categories/${selectedCat.id}`, catForm);
       else await api.post('/categories', catForm);
+      apiCache.invalidate('/categories');
       toast.success('Category saved'); setModal(null); load();
     } catch(e: any) { toast.error(e.response?.data?.message || 'Error saving category'); }
     finally { setSaving(false); }
@@ -539,6 +549,7 @@ export default function InventoryPage() {
   const deleteCat = async (id: string) => {
     try {
       await api.delete(`/categories/${id}`);
+      apiCache.invalidate('/categories');
       toast.success('Category deleted'); load();
     } catch(e: any) { toast.error(e.response?.data?.message || 'Cannot delete — category may be in use'); }
   };
@@ -549,6 +560,7 @@ export default function InventoryPage() {
     try {
       if (selectedLoc) await api.put(`/locations/${selectedLoc.id}`, locForm);
       else await api.post('/locations', locForm);
+      apiCache.invalidate('/locations');
       toast.success('Location saved'); setModal(null); load();
     } catch(e: any) { toast.error(e.response?.data?.message || 'Error saving location'); }
     finally { setSaving(false); }
@@ -557,6 +569,7 @@ export default function InventoryPage() {
   const deleteLoc = async (id: string) => {
     try {
       await api.delete(`/locations/${id}`);
+      apiCache.invalidate('/locations');
       toast.success('Location deleted'); load();
     } catch(e: any) { toast.error(e.response?.data?.message || 'Cannot delete — location may be in use'); }
   };

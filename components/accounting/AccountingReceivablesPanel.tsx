@@ -9,7 +9,7 @@ const CedisIcon = ({ className }: { className?: string }) => (
   <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
 );
 import { Modal, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 function fmt(n: number | string | undefined) {
   const v = parseFloat(String(n ?? 0));
@@ -17,9 +17,9 @@ function fmt(n: number | string | undefined) {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  sent: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-  partially_paid: 'bg-amber-50 text-amber-700',
-  overdue: 'bg-red-100 text-red-700',
+  sent: 'text-gray-600',
+  partially_paid: 'text-gray-600',
+  overdue: 'text-gray-600',
 };
 
 const AGING_LABELS: Record<string, string> = {
@@ -30,10 +30,10 @@ const AGING_LABELS: Record<string, string> = {
 };
 
 const AGING_COLORS: Record<string, string> = {
-  current: 'bg-[#0D3B6E]/8 border-[#0D3B6E]/20 text-[#0D3B6E]',
-  days_31_60: 'bg-amber-50 border-amber-200 text-amber-700',
-  days_61_90: 'bg-amber-50 border-amber-300 text-amber-800',
-  over_90: 'bg-red-50 border-red-200 text-red-700',
+  current: 'border-gray-200 text-gray-700',
+  days_31_60: 'border-gray-200 text-gray-700',
+  days_61_90: 'border-gray-200 text-gray-700',
+  over_90: 'border-gray-200 text-gray-700',
 };
 
 interface Props {
@@ -53,17 +53,25 @@ export default function AccountingReceivablesPanel({ onDataChange }: Props) {
   const [historyTarget, setHistoryTarget] = useState<any>(null);
   const [detailTarget, setDetailTarget] = useState<any>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set('search', search.trim());
+    if (statusFilter) params.set('status', statusFilter);
+    if (agingFilter) params.set('aging_bucket', agingFilter);
+    const key = `/accounting/receivables?${params.toString()}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (search.trim()) params.set('search', search.trim());
-      if (statusFilter) params.set('status', statusFilter);
-      if (agingFilter) params.set('aging_bucket', agingFilter);
-      const res = await api.get(`/accounting/receivables?${params.toString()}`);
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setData(res.data.data);
     } catch {
-      toast.error('Could not load receivables');
+      if (!cached) toast.error('Could not load receivables');
     } finally {
       setLoading(false);
     }
@@ -82,6 +90,8 @@ export default function AccountingReceivablesPanel({ onDataChange }: Props) {
       toast.success('Payment recorded — GL updated (Dr Cash, Cr AR)');
       setPayTarget(null);
       setPayForm({ amount: '', method: 'cash', reference: '', note: '' });
+      apiCache.invalidate('/accounting/receivables');
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -120,15 +130,15 @@ export default function AccountingReceivablesPanel({ onDataChange }: Props) {
   return (
     <div className={`space-y-5 relative ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Open invoices" value={String(summary.count ?? 0)} icon={<ArrowDownCircle className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="Outstanding receivables" />
-        <StatCard label="Total outstanding" value={fmt(summary.total_outstanding)} icon={<CedisIcon className="w-5 h-5 text-red-600 text-sm" />} color="bg-red-50" sub="Invoice amount due" />
-        <StatCard label="Overdue" value={String(summary.overdue_count ?? 0)} icon={<AlertTriangle className="w-5 h-5 text-amber-600" />} color="bg-amber-50" sub="Past due date" />
-        <StatCard label="GL AR (1110)" value={fmt(summary.gl_accounts_receivable)} icon={<ArrowDownCircle className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="General ledger balance" />
+        <StatCard label="Open invoices" value={String(summary.count ?? 0)} icon={<ArrowDownCircle className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub="Outstanding receivables" />
+        <StatCard label="Total outstanding" value={fmt(summary.total_outstanding)} icon={<CedisIcon className="w-5 h-5 text-gray-500 text-sm" />} color="bg-gray-50" sub="Invoice amount due" />
+        <StatCard label="Overdue" value={String(summary.overdue_count ?? 0)} icon={<AlertTriangle className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub="Past due date" />
+        <StatCard label="GL AR (1110)" value={fmt(summary.gl_accounts_receivable)} icon={<ArrowDownCircle className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub="General ledger balance" />
       </div>
 
       {Math.abs(summary.gl_vs_invoice_diff || 0) > 0.02 && (
         <div className="card flex items-start gap-3 border-l-4 border-l-amber-500 py-3">
-          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <AlertTriangle className="w-5 h-5 text-gray-500 shrink-0 mt-0.5" />
           <div className="text-sm text-gray-700">
             Invoice total ({fmt(summary.total_outstanding)}) differs from GL AR ({fmt(summary.gl_accounts_receivable)}) by {fmt(summary.gl_vs_invoice_diff)}.
             Check for unsent invoices or manual journal adjustments.
@@ -184,7 +194,7 @@ export default function AccountingReceivablesPanel({ onDataChange }: Props) {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {invoices.map((inv) => {
-                  const ageColor = inv.days_past_due > 90 ? 'text-red-600 font-bold' : inv.days_past_due > 60 ? 'text-orange-500 font-semibold' : inv.days_past_due > 30 ? 'text-yellow-600' : 'text-green-600';
+                  const ageColor = 'text-gray-700';
                   return (
                     <tr key={inv.id} className="hover:bg-gray-50/80">
                       <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs text-[#0D3B6E]">{inv.invoice_number}</td>
@@ -192,11 +202,11 @@ export default function AccountingReceivablesPanel({ onDataChange }: Props) {
                         <div className="font-medium">{inv.customer_name}</div>
                         {inv.customer_email && <div className="text-xs text-gray-400 truncate max-w-[140px]">{inv.customer_email}</div>}
                       </td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600 tabular-nums">{fmt(inv.amount_due)}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 tabular-nums font-semibold">{fmt(inv.amount_due)}</td>
                       <td className="px-3 md:px-4 py-2 md:py-3 text-gray-500 whitespace-nowrap hidden md:table-cell">{new Date(inv.due_date).toLocaleDateString()}</td>
                       <td className={`px-3 md:px-4 py-2 md:py-3 tabular-nums ${ageColor}`}>{inv.days_past_due}d</td>
                       <td className="px-3 md:px-4 py-2 md:py-3">
-                        <span className={`badge text-xs ${STATUS_COLORS[inv.status] || 'bg-gray-100 text-gray-600'}`}>{inv.status.replace('_', ' ')}</span>
+                        <span className="text-xs text-gray-600 capitalize">{inv.status.replace('_', ' ')}</span>
                       </td>
                       <td className="px-3 md:px-4 py-2 md:py-3">
                         <div className="flex gap-1 justify-end">
@@ -232,7 +242,7 @@ export default function AccountingReceivablesPanel({ onDataChange }: Props) {
         <div className="space-y-3">
           <div className="bg-gray-50 rounded-xl px-4 py-3 text-sm flex justify-between">
             <span className="text-gray-500">Amount due</span>
-            <span className="font-semibold text-red-600">{fmt(payTarget?.amount_due)}</span>
+            <span className="font-semibold">{fmt(payTarget?.amount_due)}</span>
           </div>
           <div><label className="form-label">Amount (GH₵) *</label><input type="number" step="0.01" className="form-input" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} /></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -261,7 +271,7 @@ export default function AccountingReceivablesPanel({ onDataChange }: Props) {
               <div><span className="text-gray-500">Customer</span><p className="font-medium">{detailTarget.customer_name}</p></div>
               <div><span className="text-gray-500">Status</span><p className="capitalize">{detailTarget.status.replace('_', ' ')}</p></div>
               <div><span className="text-gray-500">Total</span><p>{fmt(detailTarget.total)}</p></div>
-              <div><span className="text-gray-500">Amount due</span><p className="text-red-600 font-semibold">{fmt(detailTarget.amount_due)}</p></div>
+              <div><span className="text-gray-500">Amount due</span><p className="font-semibold">{fmt(detailTarget.amount_due)}</p></div>
               <div><span className="text-gray-500">Issued</span><p>{new Date(detailTarget.issue_date).toLocaleDateString()}</p></div>
               <div><span className="text-gray-500">Due</span><p>{new Date(detailTarget.due_date).toLocaleDateString()}</p></div>
             </div>
@@ -290,7 +300,7 @@ export default function AccountingReceivablesPanel({ onDataChange }: Props) {
                 {historyTarget.payments.map((p: any, i: number) => (
                   <tr key={i}>
                     <td className="px-3 py-2">{new Date(p.date).toLocaleDateString()}</td>
-                    <td className="px-3 py-2 text-green-700 font-semibold">{fmt(p.amount)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmt(p.amount)}</td>
                     <td className="px-3 py-2 capitalize">{p.method?.replace('_', ' ')}</td>
                     <td className="px-3 py-2 text-gray-500">{p.reference || '—'}</td>
                   </tr>

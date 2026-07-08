@@ -6,7 +6,7 @@ import {
   TrendingUp, FileText,
 } from 'lucide-react';
 import { Modal, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 type PeriodKey = 'all' | 'mtd' | 'ytd' | 'custom';
 
@@ -74,28 +74,39 @@ export default function AccountingJournalPanel({ onDataChange }: Props) {
   const sources = data?.sources || [];
 
   const loadAccounts = useCallback(async () => {
+    const cached = apiCache.get('/accounts');
+    if (cached && !apiCache.isStale('/accounts')) { setPostingAccounts(cached.filter((a: any) => !a.is_group && a.is_active !== false)); return; }
     try {
       const res = await api.get('/accounts');
+      apiCache.set('/accounts', res.data.data || []);
       setPostingAccounts((res.data.data || []).filter((a: any) => !a.is_group && a.is_active !== false));
     } catch {
       setPostingAccounts([]);
     }
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    const { from, to } = periodRange(period, customFrom, customTo);
+    const params = new URLSearchParams({ view: 'full' });
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (sourceFilter) params.set('source', sourceFilter);
+    if (statusFilter) params.set('status', statusFilter);
+    if (search.trim()) params.set('search', search.trim());
+    const key = `/journal-entries?${params.toString()}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const { from, to } = periodRange(period, customFrom, customTo);
-      const params = new URLSearchParams({ view: 'full' });
-      if (from) params.set('from', from);
-      if (to) params.set('to', to);
-      if (sourceFilter) params.set('source', sourceFilter);
-      if (statusFilter) params.set('status', statusFilter);
-      if (search.trim()) params.set('search', search.trim());
-      const res = await api.get(`/journal-entries?${params.toString()}`);
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setData(res.data.data);
     } catch {
-      toast.error('Could not load journal entries');
+      if (!cached) toast.error('Could not load journal entries');
     } finally {
       setLoading(false);
     }
@@ -159,6 +170,8 @@ export default function AccountingJournalPanel({ onDataChange }: Props) {
       await api.post('/journal-entries', { ...form, lines: validLines });
       toast.success('Journal entry posted to GL');
       setModalOpen(false);
+      apiCache.invalidate('/journal-entries');
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -188,6 +201,8 @@ export default function AccountingJournalPanel({ onDataChange }: Props) {
       toast.success('Entry voided — reversal posted');
       setVoidTarget(null);
       setVoidReason('');
+      apiCache.invalidate('/journal-entries');
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -333,12 +348,10 @@ export default function AccountingJournalPanel({ onDataChange }: Props) {
                     <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-green-700 tabular-nums whitespace-nowrap">{fmt(e.total_debit)}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600 tabular-nums whitespace-nowrap">{fmt(e.total_credit)}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 hidden md:table-cell">
-                      <span className={`badge text-xs ${SOURCE_COLORS[e.source] || 'bg-gray-100 text-gray-700'}`}>{e.source}</span>
+                      <span className="text-xs text-gray-600 capitalize">{e.source}</span>
                     </td>
                     <td className="px-3 md:px-4 py-2 md:py-3">
-                      <span className={`badge text-xs ${e.status === 'voided' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
-                        {e.status || 'posted'}
-                      </span>
+                      <span className="text-xs text-gray-600 capitalize">{e.status || 'posted'}</span>
                     </td>
                     <td className="px-3 md:px-4 py-2 md:py-3">
                       <div className="flex gap-1 justify-end">
@@ -422,7 +435,7 @@ export default function AccountingJournalPanel({ onDataChange }: Props) {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div><span className="text-gray-500">Date</span><p className="font-medium">{new Date(detailEntry.entry_date).toLocaleDateString()}</p></div>
-              <div><span className="text-gray-500">Source</span><p><span className={`badge text-xs ${SOURCE_COLORS[detailEntry.source] || ''}`}>{detailEntry.source}</span></p></div>
+              <div><span className="text-gray-500">Source</span><p className="font-medium capitalize">{detailEntry.source}</p></div>
               <div className="col-span-2"><span className="text-gray-500">Description</span><p className="font-medium">{detailEntry.description}</p></div>
               <div><span className="text-gray-500">Status</span><p className="font-medium capitalize">{detailEntry.status || 'posted'}</p></div>
               <div><span className="text-gray-500">Created by</span><p className="font-medium">{detailEntry.created_by?.name || '—'}</p></div>

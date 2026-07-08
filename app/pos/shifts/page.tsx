@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, EmptyState, Spinner } from '@/components/ui';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import { fmtGhs } from '@/lib/reportUtils';
 import { Clock, Search, Eye, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 
@@ -42,26 +42,39 @@ function fmtDuration(opened?: string | null, closed?: string | null) {
 }
 
 export default function ShiftHistoryPage() {
-  const [shifts, setShifts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [shifts, setShifts] = useState<any[]>(() => {
+    const c = apiCache.get('/pos/shifts?page=1');
+    return c ? c.shifts : [];
+  });
+  const [loading, setLoading] = useState(() => !apiCache.get('/pos/shifts?page=1'));
   const [detail, setDetail] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
+  const [page, setPage] = useState(() => {
+    const c = apiCache.get('/pos/shifts?page=1');
+    return c ? c.page : 1;
+  });
+  const [pages, setPages] = useState(() => {
+    const c = apiCache.get('/pos/shifts?page=1');
+    return c ? c.pages : 1;
+  });
 
-  const load = useCallback(async (p = 1) => {
-    setLoading(true);
+  const load = useCallback(async (p = 1, silent = false) => {
+    const isUnfiltered = status === 'all' && !dateFrom && !dateTo && p === 1;
+    const cacheKey = '/pos/shifts?page=1';
+    if (!silent) setLoading(true);
     try {
       const params: Record<string, string | number> = { page: p, limit: 20 };
       if (status !== 'all') params.status = status;
       if (dateFrom) params.from = dateFrom;
       if (dateTo) params.to = dateTo;
       const r = await api.get('/pos/shifts', { params });
-      setShifts(r.data.shifts || []);
+      const shifts = r.data.shifts || [];
+      if (isUnfiltered) apiCache.set(cacheKey, { shifts, page: r.data.page || p, pages: r.data.pages || 1 });
+      setShifts(shifts);
       setPage(r.data.page || p);
       setPages(r.data.pages || 1);
     } finally {
@@ -69,7 +82,15 @@ export default function ShiftHistoryPage() {
     }
   }, [status, dateFrom, dateTo]);
 
-  useEffect(() => { load(1); }, [load]);
+  useEffect(() => {
+    const hasCache = !!apiCache.get('/pos/shifts?page=1');
+    const isUnfiltered = status === 'all' && !dateFrom && !dateTo;
+    if (hasCache && isUnfiltered) {
+      if (apiCache.isStale('/pos/shifts?page=1')) load(1, true);
+    } else {
+      load(1);
+    }
+  }, [load]);
 
   const openDetail = async (shift: any) => {
     setDetailLoading(true);

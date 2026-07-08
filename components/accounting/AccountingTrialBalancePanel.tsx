@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BookOpen, Download, FileText, RefreshCw, CheckCircle2, AlertTriangle, Scale } from 'lucide-react';
 import { EmptyState, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 const TYPE_COLORS: Record<string, string> = {
-  asset: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-  liability: 'bg-red-100 text-red-800',
-  equity: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-  revenue: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-  expense: 'bg-amber-50 text-amber-800',
+  asset: 'text-gray-700',
+  liability: 'text-gray-700',
+  equity: 'text-gray-700',
+  revenue: 'text-gray-700',
+  expense: 'text-gray-700',
 };
 
 function displayAsOf(value?: string | null) {
@@ -30,16 +30,23 @@ export default function AccountingTrialBalancePanel(_: Props) {
   const [loading, setLoading] = useState(true);
   const [hideZero, setHideZero] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    const params = new URLSearchParams();
+    if (asOf) params.append('as_of', asOf);
+    const key = `/accounting/trial-balance?${params.toString()}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (asOf) params.append('as_of', asOf);
-      const res = await api.get(`/accounting/trial-balance?${params.toString()}`);
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setData(res.data.data);
     } catch {
-      toast.error('Could not load trial balance');
-      setData(null);
+      if (!cached) { toast.error('Could not load trial balance'); setData(null); }
     } finally {
       setLoading(false);
     }
@@ -114,9 +121,9 @@ export default function AccountingTrialBalancePanel(_: Props) {
       {data && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <StatCard label="Total debits" value={`GH₵ ${parseFloat(totals.debit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={<Scale className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
-            <StatCard label="Total credits" value={`GH₵ ${parseFloat(totals.credit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={<Scale className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" />
-            <StatCard label="Accounts" value={String(summary.account_count ?? 0)} icon={<BookOpen className="w-5 h-5 text-gray-600" />} color="bg-gray-50" sub={`${summary.with_balance ?? 0} with balance`} />
+            <StatCard label="Total debits" value={`GH₵ ${parseFloat(totals.debit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={<Scale className="w-5 h-5 text-gray-500" />} color="bg-gray-50" />
+            <StatCard label="Total credits" value={`GH₵ ${parseFloat(totals.credit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={<Scale className="w-5 h-5 text-gray-500" />} color="bg-gray-50" />
+            <StatCard label="Accounts" value={String(summary.account_count ?? 0)} icon={<BookOpen className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub={`${summary.with_balance ?? 0} with balance`} />
           </div>
 
           {!checks.is_balanced && (
@@ -126,7 +133,7 @@ export default function AccountingTrialBalancePanel(_: Props) {
             </div>
           )}
           {checks.is_balanced && (
-            <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
               <CheckCircle2 className="w-4 h-4" /> Debits equal credits — books are in balance.
             </div>
           )}
@@ -153,7 +160,7 @@ export default function AccountingTrialBalancePanel(_: Props) {
                     <tr key={r.code} className="hover:bg-gray-50/80">
                       <td className="px-3 md:px-4 py-2 font-mono text-xs text-gray-500">{r.code}</td>
                       <td className="px-3 md:px-4 py-2 font-medium">{r.name}</td>
-                      <td className="px-3 md:px-4 py-2 hidden md:table-cell"><span className={`badge text-xs ${TYPE_COLORS[r.type] || 'bg-gray-100 text-gray-600'}`}>{r.type}</span></td>
+                      <td className="px-3 md:px-4 py-2 hidden md:table-cell"><span className="text-xs text-gray-600 capitalize">{r.type}</span></td>
                       <td className="px-3 md:px-4 py-2 text-right tabular-nums">{r.debit_balance > 0 ? r.debit_balance.toFixed(2) : '—'}</td>
                       <td className="px-3 md:px-4 py-2 text-right tabular-nums">{r.credit_balance > 0 ? r.credit_balance.toFixed(2) : '—'}</td>
                     </tr>

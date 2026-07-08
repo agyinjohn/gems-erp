@@ -6,7 +6,7 @@ import {
   RefreshCw, Save, FileText, Eye,
 } from 'lucide-react';
 import { Modal, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 function fmt(n: number | string | undefined | null) {
   const v = parseFloat(String(n ?? 0));
@@ -86,13 +86,21 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
   const [sessionDetail, setSessionDetail] = useState<any>(null);
   const [sessionDetailTab, setSessionDetailTab] = useState<SessionDetailTab>('pairs');
 
-  const loadView = useCallback(async () => {
-    setLoading(true);
+  const loadView = useCallback(async (silent = false) => {
+    const key = '/accounting/reconciliation';
+    const cached = apiCache.get(key);
+    if (cached) {
+      setViewData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const res = await api.get('/accounting/reconciliation');
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setViewData(res.data.data);
     } catch {
-      toast.error('Could not load reconciliation data');
+      if (!cached) toast.error('Could not load reconciliation data');
     } finally {
       setLoading(false);
     }
@@ -239,6 +247,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
       } else {
         toast.success('Reconciliation saved as draft');
       }
+      apiCache.invalidate('/accounting/reconciliation');
       loadView();
       onDataChange?.();
     } catch (e: any) {
@@ -316,23 +325,23 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
         <StatCard
           label="GL cash balance"
           value={fmt(viewSummary.gl_book_balance)}
-          icon={<Landmark className="w-5 h-5 text-[#0D3B6E]" />}
-          color="bg-[#0D3B6E]/8"
+          icon={<Landmark className="w-5 h-5 text-gray-500" />}
+          color="bg-gray-50"
           sub={viewData?.cash_account ? `${viewData.cash_account.code} — ${viewData.cash_account.name}` : 'Account 1001'}
         />
-        <StatCard label="Draft sessions" value={String(viewSummary.draft_sessions ?? 0)} icon={<FileText className="w-5 h-5 text-amber-600" />} color="bg-amber-50" sub="In progress" />
+        <StatCard label="Draft sessions" value={String(viewSummary.draft_sessions ?? 0)} icon={<FileText className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub="In progress" />
         <StatCard
           label="Last completed"
           value={viewSummary.last_statement_date ? displayDate(viewSummary.last_statement_date) : '—'}
-          icon={<CheckCircle2 className="w-5 h-5 text-[#0D3B6E]" />}
-          color="bg-[#0D3B6E]/8"
+          icon={<CheckCircle2 className="w-5 h-5 text-gray-500" />}
+          color="bg-gray-50"
           sub={`${viewSummary.completed_sessions ?? 0} completed`}
         />
         <StatCard
           label="Last match rate"
           value={summary ? `${summary.match_rate}%` : '—'}
-          icon={<RefreshCw className="w-5 h-5 text-[#0D3B6E]" />}
-          color="bg-[#0D3B6E]/8"
+          icon={<RefreshCw className="w-5 h-5 text-gray-500" />}
+          color="bg-gray-50"
           sub={summary ? `${summary.matched_count}/${summary.bank_line_count} lines` : 'Run reconciliation'}
         />
       </div>
@@ -410,7 +419,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
               <thead className="table-header"><tr><th className="px-3 py-2 text-left">Date</th><th className="px-3 py-2 text-left">Description</th><th className="px-3 py-2 text-right">Amount</th></tr></thead>
               <tbody className="divide-y divide-gray-50">
                 {parsedLines.slice(0, 20).map((l) => (
-                  <tr key={l.id}><td className="px-3 py-1.5 text-gray-500">{l.date || '—'}</td><td className="px-3 py-1.5 truncate max-w-[240px]">{l.description}</td><td className={`px-3 py-1.5 text-right tabular-nums ${l.amount >= 0 ? 'text-green-700' : 'text-red-600'}`}>{fmt(l.amount)}</td></tr>
+                  <tr key={l.id}><td className="px-3 py-1.5 text-gray-500">{l.date || '—'}</td><td className="px-3 py-1.5 truncate max-w-[240px]">{l.description}</td><td className="px-3 py-1.5 text-right tabular-nums text-gray-800">{fmt(l.amount)}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -423,10 +432,10 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
         <div className="space-y-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="card bg-[#0D3B6E]/8 border-[#0D3B6E]/15"><div className="text-xs text-[#0D3B6E] font-medium mb-1">Bank net (period)</div><div className="text-xl font-bold text-[#0D3B6E]">{fmt(summary.bank_total)}</div></div>
-            <div className="card bg-green-50 border-green-100"><div className="text-xs text-green-600 font-medium mb-1">GL net (period)</div><div className="text-xl font-bold text-green-800">{fmt(summary.gl_period_total)}</div></div>
-            <div className={`card ${summary.is_period_balanced ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-              <div className={`text-xs font-medium mb-1 ${summary.is_period_balanced ? 'text-green-600' : 'text-red-600'}`}>Period difference</div>
-              <div className={`text-xl font-bold ${summary.is_period_balanced ? 'text-green-800' : 'text-red-800'}`}>{fmt(summary.period_difference)}</div>
+            <div className="card bg-gray-50"><div className="text-xs text-gray-500 font-medium mb-1">GL net (period)</div><div className="text-xl font-bold text-gray-800">{fmt(summary.gl_period_total)}</div></div>
+            <div className="card bg-gray-50">
+              <div className="text-xs font-medium mb-1 text-gray-500">Period difference</div>
+              <div className="text-xl font-bold text-gray-800">{fmt(summary.period_difference)}</div>
             </div>
             <div className="card bg-gray-50">
               <div className="text-xs text-gray-500 font-medium mb-1">Matched</div>
@@ -459,8 +468,8 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
             <div className="card grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div><span className="text-gray-500">GL book balance (1001)</span><p className="font-semibold">{fmt(summary.gl_book_balance)}</p></div>
               <div><span className="text-gray-500">Adjusted after outstanding</span><p className="font-semibold">{fmt(summary.adjusted_gl_balance)}</p></div>
-              <div><span className="text-gray-500">Unmatched bank total</span><p className="text-amber-700 font-semibold">{fmt(summary.unmatched_bank_total)}</p></div>
-              <div><span className="text-gray-500">Unmatched GL total</span><p className="text-red-600 font-semibold">{fmt(summary.unmatched_gl_total)}</p></div>
+              <div><span className="text-gray-500">Unmatched bank total</span><p className="font-semibold text-gray-800">{fmt(summary.unmatched_bank_total)}</p></div>
+              <div><span className="text-gray-500">Unmatched GL total</span><p className="font-semibold text-gray-800">{fmt(summary.unmatched_gl_total)}</p></div>
               <div><span className="text-gray-500">Period</span><p>{reconResult.period?.from || '—'} → {reconResult.period?.to || '—'}</p></div>
               <div><span className="text-gray-500">Match rate</span><p>{summary.match_rate}%</p></div>
             </div>
@@ -485,7 +494,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
               headers={['Date', 'Description', 'Amount']}
               rows={reconResult.unmatchedBank.map((l: any) => [l.date || '—', l.description, fmt(l.amount)])}
               empty="All bank lines matched"
-              headerClass="bg-yellow-50"
+              headerClass=""
             />
           )}
 
@@ -494,7 +503,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
               headers={['Date', 'Reference', 'Description', 'Amount']}
               rows={reconResult.unmatchedGl.map((l: any) => [new Date(l.date).toLocaleDateString(), l.reference, l.description, fmt(l.amount)])}
               empty="All GL lines matched"
-              headerClass="bg-red-50"
+              headerClass=""
             />
           )}
         </div>
@@ -531,7 +540,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
                         : '—'}
                     </td>
                     <td className="px-3 py-2">
-                      <span className={`badge text-xs ${s.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{s.status}</span>
+                      <span className="text-xs text-gray-600 capitalize">{s.status}</span>
                     </td>
                     <td className="px-3 py-2">{s.bank_line_count ?? 0}</td>
                     <td className="px-3 py-2">{s.gl_line_count ?? '—'}</td>
@@ -600,7 +609,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
                   fmt(p.bank_amount ?? p.gl_amount),
                 ])}
                 empty="No matched pairs recorded"
-                headerClass="bg-green-50"
+                headerClass=""
               />
             )}
 
@@ -614,7 +623,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
                   fmt(l.amount),
                 ])}
                 empty="No bank lines recorded"
-                headerClass="bg-[#0D3B6E]/8"
+                headerClass=""
               />
             )}
 
@@ -629,7 +638,7 @@ export default function AccountingReconciliationPanel({ onDataChange }: Props) {
                   fmt(l.amount),
                 ])}
                 empty="No GL lines recorded"
-                headerClass="bg-red-50"
+                headerClass=""
               />
             )}
           </div>

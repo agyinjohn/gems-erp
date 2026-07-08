@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Download, RefreshCw, Edit2, Trash2, TrendingUp, AlertTriangle } from 'lucide-react';
 import { EmptyState, Modal, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 function fmt(n: number | string | undefined | null) {
   const v = parseFloat(String(n ?? 0));
@@ -27,14 +27,21 @@ export default function AccountingBudgetPanel(_: Props) {
   const [editingRow, setEditingRow] = useState<any>(null);
   const [form, setForm] = useState({ category: '', amount: '' });
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    const key = `/budgets/vs-actual?period=${period}&period_type=${periodType}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const res = await api.get(`/budgets/vs-actual?period=${period}&period_type=${periodType}`);
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setData(res.data.data);
     } catch {
-      toast.error('Could not load budget report');
-      setData(null);
+      if (!cached) { toast.error('Could not load budget report'); setData(null); }
     } finally {
       setLoading(false);
     }
@@ -73,6 +80,7 @@ export default function AccountingBudgetPanel(_: Props) {
       }
       toast.success('Budget saved');
       setModalOpen(false);
+      apiCache.invalidate('/budgets');
       load();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Save failed');
@@ -86,6 +94,7 @@ export default function AccountingBudgetPanel(_: Props) {
     try {
       await api.delete(`/budgets/${id}`);
       toast.success('Budget removed');
+      apiCache.invalidate('/budgets');
       load();
     } catch {
       toast.error('Delete failed');

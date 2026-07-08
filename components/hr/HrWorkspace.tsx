@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
+import { Modal, EmptyState, Spinner, toast } from '@/components/ui';
 import { Plus, Search, DollarSign, CheckCircle, XCircle, Calendar, Users, Clock, Umbrella, Banknote, Edit2, UserX, FileText, Download, Eye } from 'lucide-react';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import EmployeeDocuments from '@/components/hr/EmployeeDocuments';
 import PayrollLineEditor, {
   DEFAULT_ALLOWANCE_LINES,
@@ -22,12 +22,17 @@ interface HrWorkspaceProps {
 }
 
 export default function HrWorkspace({ section }: HrWorkspaceProps) {
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [leave, setLeave] = useState<any[]>([]);
-  const [payroll, setPayroll] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>(() => apiCache.get('/employees') || []);
+  const [departments, setDepartments] = useState<any[]>(() => apiCache.get('/departments') || []);
+  const [leave, setLeave] = useState<any[]>(() => apiCache.get('/leave-requests') || []);
+  const [payroll, setPayroll] = useState<any[]>(() => apiCache.get('/payroll') || []);
   const [attendance, setAttendance] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    if (section === 'employees') return !apiCache.get('/employees');
+    if (section === 'leave') return !apiCache.get('/leave-requests');
+    if (section === 'payroll') return !apiCache.get('/payroll');
+    return true;
+  });
   const [modal, setModal] = useState<'add_emp'|'edit_emp'|'terminate'|'emp_detail'|'add_payroll'|'bulk_payroll'|'payroll_detail'|'add_leave'|'add_attendance'|null>(null);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [detailEmployee, setDetailEmployee] = useState<any>(null);
@@ -125,8 +130,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     setModal('add_attendance');
   };
 
-  const loadSection = async (sec: HrSectionSlug, date = attendanceDate) => {
-    setLoading(true);
+  const loadSection = async (sec: HrSectionSlug, date = attendanceDate, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       if (sec === 'employees') {
         const [e, d, s] = await Promise.all([
@@ -134,6 +139,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           api.get('/departments').catch(() => ({ data: { data: [] } })),
           api.get('/hr/summary').catch(() => ({ data: { data: null } })),
         ]);
+        apiCache.set('/employees', e.data.data);
+        apiCache.set('/departments', d.data.data);
         setEmployees(e.data.data);
         setDepartments(d.data.data);
         setHrSummary(s.data.data);
@@ -142,6 +149,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           api.get('/employees').catch(() => ({ data: { data: [] } })),
           api.get(`/attendance?date=${date}`).catch(() => ({ data: { data: [] } })),
         ]);
+        apiCache.set('/employees', e.data.data);
         setEmployees(e.data.data);
         setAttendance(a.data.data);
         setHrSummary(null);
@@ -150,6 +158,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           api.get('/leave-requests').catch(() => ({ data: { data: [] } })),
           api.get('/employees').catch(() => ({ data: { data: [] } })),
         ]);
+        apiCache.set('/leave-requests', l.data.data);
+        apiCache.set('/employees', e.data.data);
         setLeave(l.data.data);
         setEmployees(e.data.data);
         setHrSummary(null);
@@ -158,6 +168,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           api.get('/payroll').catch(() => ({ data: { data: [] } })),
           api.get('/employees').catch(() => ({ data: { data: [] } })),
         ]);
+        apiCache.set('/payroll', p.data.data);
+        apiCache.set('/employees', e.data.data);
         setPayroll(p.data.data);
         setEmployees(e.data.data);
         setHrSummary(null);
@@ -167,10 +179,17 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     }
   };
 
-  const reloadSection = () => loadSection(section);
+  const reloadSection = (invalidate?: string) => {
+    if (invalidate) apiCache.invalidate(invalidate);
+    loadSection(section);
+  };
 
   useEffect(() => {
-    loadSection(section, attendanceDate);
+    // attendance always re-fetches (date-specific, not cacheable globally)
+    if (section === 'attendance') { loadSection(section, attendanceDate); return; }
+    const cacheKey = section === 'employees' ? '/employees' : section === 'leave' ? '/leave-requests' : '/payroll';
+    const hasCache = !!apiCache.get(cacheKey);
+    loadSection(section, attendanceDate, hasCache && !apiCache.isStale(cacheKey));
   }, [section, attendanceDate]);
 
   const filtered = employees.filter(e => !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.employee_code?.toLowerCase().includes(search.toLowerCase()));
@@ -330,7 +349,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       setModal(null);
       setEditingEmployee(null);
       setEmpStep(1);
-      reloadSection();
+      reloadSection('/employees');
     } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); throw e; }
     finally { setSaving(false); }
   };
@@ -359,7 +378,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       await api.patch(`/employees/${terminateTarget.id}/terminate`, terminateForm);
       toast.success('Employee terminated');
       setModal(null);
-      reloadSection();
+      reloadSection('/employees');
     } catch (e: any) { toast.error(e.response?.data?.message || 'Failed'); }
     finally { setSaving(false); }
   };
@@ -376,7 +395,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       });
       toast.success('Payroll run created (PAYE & SSNIT calculated)');
       setModal(null);
-      reloadSection();
+      reloadSection('/payroll');
     } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); throw e; }
     finally { setSaving(false); }
   };
@@ -405,7 +424,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const approveLeave = async (id: number, status: string) => {
     await api.patch(`/leave-requests/${id}`, { status });
     toast.success(status === 'approved' ? 'Leave approved' : 'Leave rejected');
-    reloadSection();
+    reloadSection('/leave-requests');
   };
 
   const requestApproveLeave = (row: any, status: 'approved' | 'rejected') => {
@@ -431,7 +450,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
   const submitLeave = async () => {
     setSaving(true); setError('');
-    try { await api.post('/leave-requests', leaveForm); toast.success('Leave request submitted'); setModal(null); reloadSection(); }
+    try { await api.post('/leave-requests', leaveForm); toast.success('Leave request submitted'); setModal(null); reloadSection('/leave-requests'); }
     catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); throw e; }
     finally { setSaving(false); }
   };
@@ -466,7 +485,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
   const saveAttendance = async () => {
     setSaving(true); setError('');
-    try { await api.post('/attendance', attendanceForm); toast.success(attendanceEditing ? 'Attendance updated' : 'Attendance recorded'); setModal(null); setAttendanceEditing(false); reloadSection(); }
+    try { await api.post('/attendance', attendanceForm); toast.success(attendanceEditing ? 'Attendance updated' : 'Attendance recorded'); setModal(null); setAttendanceEditing(false); reloadSection(); } // attendance not cached
     catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); throw e; }
     finally { setSaving(false); }
   };
@@ -516,7 +535,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           })
         )
       );
-      reloadSection();
+      reloadSection(); // attendance not cached
       toast.success('Attendance saved for all employees');
     } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); throw e; }
     finally { setSaving(false); }
@@ -552,7 +571,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       toast.success(`Payroll: ${created.length} created, ${skipped.length} skipped`);
       if (errors?.length) toast.error(`${errors.length} failed — check console`);
       setModal(null);
-      reloadSection();
+      reloadSection('/payroll');
     } catch (e: any) { toast.error(e.response?.data?.message || 'Bulk payroll failed'); throw e; }
     finally { setSaving(false); }
   };
@@ -594,7 +613,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const approvePayroll = async (id: number) => {
     await api.patch(`/payroll/${id}/approve`);
     toast.success('Payroll approved');
-    reloadSection();
+    reloadSection('/payroll');
   };
 
   const requestApprovePayroll = (row: any) => {
@@ -713,7 +732,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                           <div>Sick: {e.leave_balance?.sick_remaining ?? '—'}</div>
                         </td>
                         <td className="px-4 py-3 font-semibold">GH₵ {parseFloat(e.gross_salary).toFixed(2)}</td>
-                        <td className="px-4 py-3"><Badge status={e.status} /></td>
+                        <td className="px-4 py-3"><span className="text-xs text-gray-600 capitalize">{e.status.replace('_', ' ')}</span></td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
                             <button onClick={() => openEditEmp(e)} title="Edit" className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4"/></button>
@@ -808,7 +827,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                       <tr key={a.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-medium">{a.employee_name||'—'}</td>
                         <td className="px-4 py-3 text-gray-500 text-xs">{new Date(a.date).toLocaleDateString()}</td>
-                        <td className="px-4 py-3"><Badge status={a.status} /></td>
+                        <td className="px-4 py-3"><span className="text-xs text-gray-600 capitalize">{a.status.replace('_', ' ')}</span></td>
                         <td className="px-4 py-3 text-gray-500 max-w-xs">{a.notes?.trim() ? a.notes : '—'}</td>
                         <td className="px-4 py-3">
                           <button type="button" onClick={() => openEditAttendance(a)} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]" title="Edit attendance">
@@ -875,7 +894,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                         <td className="px-4 py-3 text-xs text-gray-500">{new Date(l.end_date).toLocaleDateString()}</td>
                         <td className="px-4 py-3 text-gray-600">{leaveDurationDays(l.start_date, l.end_date)}</td>
                         <td className="px-4 py-3 text-gray-500 max-w-xs">{l.reason?.trim() ? l.reason : '—'}</td>
-                        <td className="px-4 py-3"><Badge status={l.status} /></td>
+                        <td className="px-4 py-3"><span className="text-xs text-gray-600 capitalize">{l.status}</span></td>
                         <td className="px-4 py-3">
                           {l.status === 'pending' ? (
                             <div className="flex gap-1">
@@ -986,7 +1005,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                             ))}
                           </td>
                           <td className="px-4 py-3 font-semibold">GH₵ {parseFloat(p.net_salary).toFixed(2)}</td>
-                          <td className="px-4 py-3"><Badge status={p.status} /></td>
+                          <td className="px-4 py-3"><span className="text-xs text-gray-600 capitalize">{p.status}</span></td>
                           <td className="px-4 py-3">
                             <div className="flex gap-1">
                               <button type="button" onClick={() => openPayrollDetail(p)} title="View details" className="p-1.5 hover:bg-gray-100 rounded text-gray-600">
@@ -1297,7 +1316,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             <div className="space-y-4">
               <div className="text-sm text-gray-600">
                 <div className="font-semibold text-gray-900">{payrollDetail.employee_name}</div>
-                <div>{months[payrollDetail.month - 1]} {payrollDetail.year} · <Badge status={payrollDetail.status} /></div>
+                <div>{months[payrollDetail.month - 1]} {payrollDetail.year} · <span className="text-xs text-gray-600 capitalize">{payrollDetail.status}</span></div>
               </div>
               <div className="rounded-xl border border-gray-100 overflow-hidden text-sm">
                 <div className="flex justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
@@ -1358,7 +1377,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             onChange={async () => {
               const r = await api.get(`/employees/${detailEmployee.id || detailEmployee._id}`);
               setDetailEmployee(r.data.data);
-              reloadSection();
+              reloadSection('/employees');
             }}
           />
         )}

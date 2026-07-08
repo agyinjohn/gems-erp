@@ -2,8 +2,8 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
-import { Plus, Search, User, TrendingUp, MessageSquare, ArrowRight, Target, Users, Phone, Mail, MessageCircle, Video, MoreHorizontal } from 'lucide-react';
-import api from '@/lib/api';
+import { Plus, Search, User, TrendingUp, MessageSquare, ArrowRight, Target, Users, Phone, Mail, MessageCircle, Video } from 'lucide-react';
+import api, { apiCache } from '@/lib/api';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
 
 const STAGES = ['new','contacted','qualified','proposal','negotiation','won','lost'];
@@ -14,26 +14,26 @@ const STAGE_COLORS: Record<string,string> = {
 
 export default function CRMPage() {
   const [tab, setTab] = useState<'customers'|'leads'|'contacts'>('customers');
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [leads, setLeads] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [contacts, setContacts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState<any[]>(() => apiCache.get('/customers') || []);
+  const [leads, setLeads] = useState<any[]>(() => apiCache.get('/leads') || []);
+  const [users, setUsers] = useState<any[]>(() => apiCache.get('/users') || []);
+  const [contacts, setContacts] = useState<any[]>(() => apiCache.get('/contact-history') || []);
+  const [loading, setLoading] = useState(() => !apiCache.get('/customers'));
   const [modal, setModal] = useState<'add_customer'|'add_lead'|'add_contact'|'convert_lead'|null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [filterStage, setFilterStage] = useState('');
   const [selectedLead, setSelectedLead] = useState<any>(null);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>(() => apiCache.get('/products?is_active=true') || []);
 
   const [custForm, setCustForm] = useState({ name:'', email:'', phone:'', company:'', address:'', segment:'general', notes:'' });
   const [leadForm, setLeadForm] = useState({ customer_id:'', title:'', stage:'new', value:'', assigned_to:'', notes:'', next_followup:'' });
   const [contactForm, setContactForm] = useState<any>({ customer_id:'', type:'call', notes:'', contact_date: new Date().toISOString().split('T')[0], subject:'' });
   const [convertForm, setConvertForm] = useState({ customer_name:'', customer_email:'', customer_phone:'', delivery_address:'', items:[{product_id:'',quantity:1}] });
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [c, l, u, p] = await Promise.all([
         api.get('/customers').catch(()=>({data:{data:[]}})),
@@ -41,38 +41,53 @@ export default function CRMPage() {
         api.get('/users').catch(()=>({data:{data:[]}})),
         api.get('/products?is_active=true').catch(()=>({data:{data:[]}})),
       ]);
+      apiCache.set('/customers', c.data.data);
+      apiCache.set('/leads', l.data.data);
+      apiCache.set('/users', u.data.data);
+      apiCache.set('/products?is_active=true', p.data.data);
       setCustomers(c.data.data); setLeads(l.data.data); setUsers(u.data.data); setProducts(p.data.data);
     } finally { setLoading(false); }
   };
 
-  const loadContacts = async () => {
+  const loadContacts = async (silent = false) => {
+    if (!silent) setLoading(true);
     const r = await api.get('/contact-history').catch(()=>({data:{data:[]}}));
-    setContacts(r.data.data||[]);
+    apiCache.set('/contact-history', r.data.data || []);
+    setContacts(r.data.data || []);
+    if (!silent) setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
-  useEffect(() => { if (tab==='contacts') loadContacts(); }, [tab]);
+  useEffect(() => {
+    const hasCache = !!apiCache.get('/customers');
+    if (!hasCache || apiCache.isStale('/customers')) load(!hasCache);
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'contacts') {
+      if (!apiCache.get('/contact-history') || apiCache.isStale('/contact-history')) loadContacts();
+    }
+  }, [tab]);
 
   const filteredCustomers = customers.filter(c => !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.company?.toLowerCase().includes(search.toLowerCase()));
   const filteredLeads = leads.filter(l => (!search || l.title.toLowerCase().includes(search.toLowerCase())) && (!filterStage || l.stage===filterStage));
 
   const saveCustomer = async () => {
     setSaving(true); setError('');
-    try { await api.post('/customers', custForm); setModal(null); load(); }
+    try { await api.post('/customers', custForm); apiCache.invalidate('/customers'); setModal(null); load(); }
     catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
     finally { setSaving(false); }
   };
 
   const saveLead = async () => {
     setSaving(true); setError('');
-    try { await api.post('/leads', leadForm); setModal(null); load(); }
+    try { await api.post('/leads', leadForm); apiCache.invalidate('/leads'); setModal(null); load(); }
     catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
     finally { setSaving(false); }
   };
 
   const saveContact = async () => {
     setSaving(true); setError('');
-    try { await api.post('/contact-history', contactForm); setModal(null); loadContacts(); }
+    try { await api.post('/contact-history', contactForm); apiCache.invalidate('/contact-history'); setModal(null); loadContacts(); }
     catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
     finally { setSaving(false); }
   };
@@ -82,6 +97,7 @@ export default function CRMPage() {
     try {
       await api.post('/orders', { ...convertForm, items: convertForm.items.filter(i=>i.product_id) });
       await api.patch(`/leads/${selectedLead.id}`, { stage: 'won' });
+      apiCache.invalidate('/leads');
       setModal(null); load();
     } catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
     finally { setSaving(false); }
@@ -96,6 +112,7 @@ export default function CRMPage() {
 
   const updateLeadStage = async (id: number, stage: string) => {
     await api.patch(`/leads/${id}`, { stage }).catch(()=>{});
+    apiCache.invalidate('/leads');
     toast.success('Updated successfully');
     load();
   };
@@ -229,8 +246,6 @@ export default function CRMPage() {
       <Modal open={modal==='add_contact'} onClose={() => setModal(null)} title="Log Contact" size="md">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="space-y-4">
-
-          {/* Customer */}
           <div>
             <label className="form-label">Customer</label>
             <select className="form-input" value={contactForm.customer_id} onChange={e => setContactForm({...contactForm, customer_id: e.target.value})}>
@@ -238,105 +253,34 @@ export default function CRMPage() {
               {customers.map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ''}</option>)}
             </select>
           </div>
-
-          {/* Type tabs */}
           <div>
             <label className="form-label">Contact Type</label>
             <div className="grid grid-cols-5 gap-2">
               {([
-                { type: 'call',      icon: Phone,          label: 'Call',      color: 'text-[#0D3B6E] bg-[#0D3B6E]/8 border-[#0D3B6E]/30' },
-                { type: 'sms',       icon: MessageCircle,  label: 'SMS',       color: 'text-green-600 bg-green-50 border-green-200' },
-                { type: 'whatsapp',  icon: MessageSquare,  label: 'WhatsApp',  color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
-                { type: 'email',     icon: Mail,           label: 'Email',     color: 'text-purple-600 bg-purple-50 border-purple-200' },
-                { type: 'meeting',   icon: Video,          label: 'Meeting',   color: 'text-orange-600 bg-orange-50 border-orange-200' },
+                { type: 'call',     icon: Phone,         label: 'Call',     color: 'text-[#0D3B6E] bg-[#0D3B6E]/8 border-[#0D3B6E]/30' },
+                { type: 'sms',      icon: MessageCircle, label: 'SMS',      color: 'text-green-600 bg-green-50 border-green-200' },
+                { type: 'whatsapp', icon: MessageSquare, label: 'WhatsApp', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+                { type: 'email',    icon: Mail,          label: 'Email',    color: 'text-purple-600 bg-purple-50 border-purple-200' },
+                { type: 'meeting',  icon: Video,         label: 'Meeting',  color: 'text-orange-600 bg-orange-50 border-orange-200' },
               ] as const).map(({ type, icon: Icon, label, color }) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setContactForm({ ...contactForm, type })}
+                <button key={type} type="button" onClick={() => setContactForm({ ...contactForm, type })}
                   className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 text-xs font-semibold transition-all ${
                     contactForm.type === type ? color + ' border-current' : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {label}
+                  }`}>
+                  <Icon className="w-4 h-4" />{label}
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Type-specific fields */}
-          {contactForm.type === 'email' && (
-            <div className="space-y-3 bg-purple-50 border border-purple-100 rounded-xl p-4">
-              <div className="flex items-center gap-2 text-xs font-bold text-purple-700 mb-1">
-                <Mail className="w-3.5 h-3.5" /> Compose Email
-              </div>
-              <div>
-                <label className="form-label">Subject</label>
-                <input className="form-input" placeholder="e.g. Follow-up on proposal" value={(contactForm as any).subject || ''}
-                  onChange={e => setContactForm({ ...contactForm, subject: e.target.value } as any)} />
-              </div>
-              <div>
-                <label className="form-label">Message</label>
-                <textarea className="form-input" rows={4} placeholder="Write your email message here…" value={contactForm.notes}
-                  onChange={e => setContactForm({ ...contactForm, notes: e.target.value })} />
-              </div>
-            </div>
-          )}
-
-          {(contactForm.type === 'sms' || contactForm.type === 'whatsapp') && (
-            <div className={`space-y-3 rounded-xl p-4 border ${
-              contactForm.type === 'sms' ? 'bg-green-50 border-green-100' : 'bg-emerald-50 border-emerald-100'
-            }`}>
-              <div className={`flex items-center gap-2 text-xs font-bold mb-1 ${
-                contactForm.type === 'sms' ? 'text-green-700' : 'text-emerald-700'
-              }`}>
-                {contactForm.type === 'sms' ? <MessageCircle className="w-3.5 h-3.5" /> : <MessageSquare className="w-3.5 h-3.5" />}
-                {contactForm.type === 'sms' ? 'Compose SMS' : 'Compose WhatsApp Message'}
-              </div>
-              <div>
-                <label className="form-label">Message</label>
-                <textarea className="form-input" rows={3}
-                  placeholder={contactForm.type === 'sms' ? 'Keep it short — SMS is limited to 160 characters' : 'Write your WhatsApp message…'}
-                  value={contactForm.notes}
-                  onChange={e => setContactForm({ ...contactForm, notes: e.target.value })} />
-                {contactForm.type === 'sms' && (
-                  <p className={`text-xs mt-1 text-right ${ contactForm.notes.length > 160 ? 'text-red-500' : 'text-gray-400' }`}>
-                    {contactForm.notes.length}/160
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {(contactForm.type === 'call' || contactForm.type === 'meeting') && (
-            <div className={`space-y-3 rounded-xl p-4 border ${
-              contactForm.type === 'call' ? 'bg-[#0D3B6E]/8 border-[#0D3B6E]/15' : 'bg-orange-50 border-orange-100'
-            }`}>
-              <div className={`flex items-center gap-2 text-xs font-bold mb-1 ${
-                contactForm.type === 'call' ? 'text-[#0D3B6E]' : 'text-orange-700'
-              }`}>
-                {contactForm.type === 'call' ? <Phone className="w-3.5 h-3.5" /> : <Video className="w-3.5 h-3.5" />}
-                {contactForm.type === 'call' ? 'Call Notes' : 'Meeting Notes'}
-              </div>
-              <div>
-                <label className="form-label">Notes / Outcome</label>
-                <textarea className="form-input" rows={3}
-                  placeholder={contactForm.type === 'call' ? 'What was discussed? Any follow-up actions?' : 'Meeting agenda, decisions made, next steps…'}
-                  value={contactForm.notes}
-                  onChange={e => setContactForm({ ...contactForm, notes: e.target.value })} />
-              </div>
-            </div>
-          )}
-
-          {/* Date */}
+          <div>
+            <label className="form-label">Notes</label>
+            <textarea className="form-input" rows={3} value={contactForm.notes} onChange={e => setContactForm({ ...contactForm, notes: e.target.value })} />
+          </div>
           <div>
             <label className="form-label">Date</label>
-            <input type="date" className="form-input" value={contactForm.contact_date}
-              onChange={e => setContactForm({ ...contactForm, contact_date: e.target.value })} />
+            <input type="date" className="form-input" value={contactForm.contact_date} onChange={e => setContactForm({ ...contactForm, contact_date: e.target.value })} />
           </div>
         </div>
-
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
           <button className="btn-primary" onClick={saveContact} disabled={saving}>{saving ? 'Saving…' : 'Log Contact'}</button>

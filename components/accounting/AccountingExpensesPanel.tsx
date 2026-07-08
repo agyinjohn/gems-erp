@@ -6,7 +6,7 @@ import {
   TrendingDown, Paperclip, CheckCircle2, AlertTriangle,
 } from 'lucide-react';
 import { Modal, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 
 type PeriodKey = 'all' | 'mtd' | 'ytd' | 'custom';
@@ -67,27 +67,38 @@ export default function AccountingExpensesPanel({ onDataChange }: Props) {
   const categories = data?.categories || [];
 
   const loadAccounts = useCallback(async () => {
+    const cached = apiCache.get('/accounts');
+    if (cached && !apiCache.isStale('/accounts')) { setExpenseAccounts(cached.filter((a: any) => a.type === 'expense' && !a.is_group)); return; }
     try {
       const res = await api.get('/accounts');
+      apiCache.set('/accounts', res.data.data || []);
       setExpenseAccounts((res.data.data || []).filter((a: any) => a.type === 'expense' && !a.is_group));
     } catch {
       setExpenseAccounts([]);
     }
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    const { from, to } = periodRange(period, customFrom, customTo);
+    const params = new URLSearchParams({ view: 'full' });
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (categoryFilter) params.set('category', categoryFilter);
+    if (search.trim()) params.set('search', search.trim());
+    const key = `/expenses?${params.toString()}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const { from, to } = periodRange(period, customFrom, customTo);
-      const params = new URLSearchParams({ view: 'full' });
-      if (from) params.set('from', from);
-      if (to) params.set('to', to);
-      if (categoryFilter) params.set('category', categoryFilter);
-      if (search.trim()) params.set('search', search.trim());
-      const res = await api.get(`/expenses?${params.toString()}`);
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setData(res.data.data);
     } catch {
-      toast.error('Could not load expenses');
+      if (!cached) toast.error('Could not load expenses');
     } finally {
       setLoading(false);
     }
@@ -165,6 +176,8 @@ export default function AccountingExpensesPanel({ onDataChange }: Props) {
       else await api.post('/expenses', form);
       toast.success(selected ? 'Expense updated' : 'Expense recorded and posted to GL');
       setModalOpen(false);
+      apiCache.invalidate('/expenses');
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -181,6 +194,8 @@ export default function AccountingExpensesPanel({ onDataChange }: Props) {
       await api.delete(`/expenses/${deleteTarget.id}`);
       toast.success('Expense deleted and GL entry voided');
       setDeleteTarget(null);
+      apiCache.invalidate('/expenses');
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {

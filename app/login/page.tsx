@@ -193,7 +193,7 @@ export default function LoginPage() {
 
                 <div className="space-y-1.5">
                   <label htmlFor="email" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Email address
+                    Email
                   </label>
                   <div className="relative group">
                     <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#0D3B6E] transition-colors pointer-events-none" />

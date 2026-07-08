@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, toast, ConfirmDialog } from '@/components/ui';
 import { Plus, Search, Eye, CheckCircle, Truck, ClipboardList, Building2, Edit2, Trash2, Send, CreditCard, Download, Printer, XCircle } from 'lucide-react';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
 import PoPrintView from '@/components/procurement/PoPrintView';
 import PoConfirmModal, { PoConfirmAction } from '@/components/procurement/PoConfirmModal';
@@ -18,11 +18,11 @@ export default function ProcurementPage() {
   const canApprove = role === 'business_owner' || role === 'accountant';
   const canReceive = ['business_owner', 'warehouse_staff', 'procurement_officer'].includes(role);
   const canPay = ['business_owner', 'accountant', 'procurement_officer'].includes(role);
-  const [pos, setPOs] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [pos, setPOs] = useState<any[]>(() => apiCache.get('/purchase-orders') || []);
+  const [suppliers, setSuppliers] = useState<any[]>(() => apiCache.get('/suppliers') || []);
+  const [products, setProducts] = useState<any[]>(() => apiCache.get('/products?is_active=true') || []);
+  const [branches, setBranches] = useState<any[]>(() => apiCache.get('/branches') || []);
+  const [loading, setLoading] = useState(() => !apiCache.get('/purchase-orders'));
   const [tab, setTab] = useState<'pos'|'suppliers'>('pos');
   const [modal, setModal] = useState<'add_po'|'view_po'|'add_supplier'|'receive'|'cancel_po'|null>(null);
   const [selected, setSelected] = useState<any>(null);
@@ -53,8 +53,8 @@ export default function ProcurementPage() {
 
   const poId = (po: any) => po?.id || po?._id;
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = new URLSearchParams();
       if (statusFilter) params.set('status', statusFilter);
@@ -70,19 +70,30 @@ export default function ProcurementPage() {
         api.get('/branches').catch(() => ({ data: { data: [] } })),
       ]);
       const list = Array.isArray(p.data.data) ? p.data.data : [];
-      setPOs(list.map((row: any) => ({ ...row, id: row.id || row._id })));
-      setSuppliers(Array.isArray(s.data.data) ? s.data.data.map((row: any) => ({ ...row, id: row.id || row._id })) : []);
-      setProducts(Array.isArray(pr.data.data) ? pr.data.data.map((row: any) => ({ ...row, id: row.id || row._id })) : []);
-      setBranches(Array.isArray(b.data.data) ? b.data.data.map((row: any) => ({ ...row, id: row.id || row._id })) : []);
+      const poData = list.map((row: any) => ({ ...row, id: row.id || row._id }));
+      const supData = Array.isArray(s.data.data) ? s.data.data.map((row: any) => ({ ...row, id: row.id || row._id })) : [];
+      const prodData = Array.isArray(pr.data.data) ? pr.data.data.map((row: any) => ({ ...row, id: row.id || row._id })) : [];
+      const branchData = Array.isArray(b.data.data) ? b.data.data.map((row: any) => ({ ...row, id: row.id || row._id })) : [];
+      // only cache unfiltered PO list
+      if (!statusFilter && !dateFrom && !dateTo && !branchFilter) apiCache.set('/purchase-orders', poData);
+      apiCache.set('/suppliers', supData);
+      apiCache.set('/products?is_active=true', prodData);
+      apiCache.set('/branches', branchData);
+      setPOs(poData); setSuppliers(supData); setProducts(prodData); setBranches(branchData);
     } catch {
       toast.error('Failed to load procurement data');
-      setPOs([]);
-      setSuppliers([]);
-      setProducts([]);
-      setBranches([]);
+      setPOs([]); setSuppliers([]); setProducts([]); setBranches([]);
     } finally { setLoading(false); }
   };
-  useEffect(() => { load(); }, [statusFilter, dateFrom, dateTo, branchFilter]);
+  useEffect(() => {
+    const hasCache = !!(apiCache.get('/purchase-orders'));
+    const hasFilters = statusFilter || dateFrom || dateTo || branchFilter;
+    if (hasCache && !hasFilters) {
+      if (apiCache.isStale('/purchase-orders')) load(true);
+    } else {
+      load();
+    }
+  }, [statusFilter, dateFrom, dateTo, branchFilter]);
 
   useEffect(() => {
     if (isWarehouseOnly && tab === 'suppliers') setTab('pos');
@@ -154,6 +165,7 @@ export default function ProcurementPage() {
     setSaving(true);
     try {
       await api.patch(`/purchase-orders/${poId(selected)}/cancel`, { reason: cancelReason || undefined });
+      apiCache.invalidate('/purchase-orders');
       toast.success('PO cancelled');
       setModal(null);
       load();
@@ -166,6 +178,7 @@ export default function ProcurementPage() {
     try {
       if (selectedSupplier) await api.put(`/suppliers/${selectedSupplier.id}`, supForm);
       else await api.post('/suppliers', supForm);
+      apiCache.invalidate('/suppliers');
       setModal(null); load();
     }
     catch(e:any) { setError(e.response?.data?.message || 'Error'); }
@@ -174,6 +187,7 @@ export default function ProcurementPage() {
 
   const deleteSupplier = async (id: string) => {
     await api.delete(`/suppliers/${id}`).catch(()=>{});
+    apiCache.invalidate('/suppliers');
     toast.success('Supplier deactivated');
     setConfirmSupplierId(null);
     load();
@@ -250,6 +264,7 @@ export default function ProcurementPage() {
       else if (action === 'send') await executeSend(id);
       else if (action === 'receive') await executeReceive();
       else if (action === 'pay') await executePay();
+      apiCache.invalidate('/purchase-orders');
       setPoConfirm(null);
       load();
     } catch (e: any) {
@@ -426,12 +441,8 @@ export default function ProcurementPage() {
                     <div className="font-semibold">GH₵ {parseFloat(po.total_cost||0).toFixed(2)}</div>
                     {po.amount_paid > 0 && <div className="text-xs text-[#0D3B6E]">Paid: GH₵ {parseFloat(po.amount_paid||0).toFixed(2)}</div>}
                   </div>,
-                  <Badge status={po.status || 'draft'} />,
-                  <span className={`badge ${
-                    po.payment_status === 'paid'    ? 'bg-[#0D3B6E]/8 text-[#0D3B6E]' :
-                    po.payment_status === 'partial' ? 'bg-amber-50 text-amber-600' :
-                    'bg-gray-100 text-gray-500'
-                  }`}>{po.payment_status || 'unpaid'}</span>,
+                  <span className="text-xs text-gray-600 capitalize">{po.status || 'draft'}</span>,
+                  <span className="text-xs text-gray-600 capitalize">{po.payment_status || 'unpaid'}</span>,
                   <span className="text-gray-500 text-xs">{po.expected_date ? new Date(po.expected_date).toLocaleDateString() : '—'}</span>,
                   <div className="flex gap-2 flex-wrap">
                     <button onClick={() => openView(po)} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]" title="View"><Eye className="w-4 h-4" /></button>
@@ -483,7 +494,7 @@ export default function ProcurementPage() {
                 <span className="text-gray-500">{s.email||'—'}</span>,
                 <span className="text-gray-500">{s.phone||'—'}</span>,
                 <span className="text-gray-500">{s.payment_terms||'—'}</span>,
-                <Badge status={s.is_active ? 'active':'inactive'} />,
+                <span className="text-xs text-gray-600">{s.is_active ? 'active' : 'inactive'}</span>,
                 <div className="flex gap-1">
                   <button onClick={() => { setSelectedSupplier(s); setSupForm({ name:s.name, email:s.email||'', phone:s.phone||'', address:s.address||'', payment_terms:s.payment_terms||'Net 30', notes:s.notes||'' }); setError(''); setModal('add_supplier'); }} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"><Edit2 className="w-4 h-4" /></button>
                   <button onClick={() => setConfirmSupplierId(poId(s))} className="p-1.5 hover:bg-red-50 rounded text-red-400"><Trash2 className="w-4 h-4" /></button>
@@ -557,9 +568,9 @@ export default function ProcurementPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div><span className="text-gray-500">Supplier</span><div className="font-medium">{selected.supplier_id?.name || '—'}</div></div>
-              <div><span className="text-gray-500">Status</span><div><Badge status={selected.status || 'draft'} /></div></div>
+              <div><span className="text-gray-500">Status</span><div className="text-sm text-gray-700 capitalize">{selected.status || 'draft'}</div></div>
               <div><span className="text-gray-500">Total Cost</span><div className="font-semibold">GH₵ {parseFloat(selected.total_cost||0).toFixed(2)}</div></div>
-              <div><span className="text-gray-500">Payment</span><div><Badge status={selected.payment_status || 'unpaid'} /></div></div>
+              <div><span className="text-gray-500">Payment</span><div className="text-sm text-gray-700 capitalize">{selected.payment_status || 'unpaid'}</div></div>
               {selected.expected_date && <div><span className="text-gray-500">Expected</span><div>{new Date(selected.expected_date).toLocaleDateString()}</div></div>}
               {selected.notes && <div className="col-span-2"><span className="text-gray-500">Notes</span><div>{selected.notes}</div></div>}
             </div>

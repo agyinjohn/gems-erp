@@ -14,7 +14,7 @@ export function ChangeBadge({ value }: { value: number | null | undefined }) {
   if (value === null || value === undefined) return null;
   const up = value >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-xs font-medium mt-1 ${up ? 'text-green-600' : 'text-red-600'}`}>
+    <span className={`inline-flex items-center gap-0.5 text-xs font-medium mt-1 ${up ? 'text-[#0D3B6E]' : 'text-red-600'}`}>
       {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
       {up ? '+' : ''}{value}% vs prior
     </span>
@@ -127,7 +127,7 @@ export function StockHealthBars({ healthy, low, out, total }: {
   total: number;
 }) {
   const rows = [
-    { label: 'Healthy', value: healthy, color: 'bg-green-500' },
+    { label: 'Healthy', value: healthy, color: 'bg-[#0D3B6E]/70' },
     { label: 'Low stock', value: low, color: 'bg-amber-400' },
     { label: 'Out of stock', value: out, color: 'bg-red-500' },
   ];

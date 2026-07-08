@@ -9,7 +9,7 @@ const CedisIcon = ({ className }: { className?: string }) => (
   <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
 );
 import { Modal, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 
 function fmt(n: number | string | undefined) {
@@ -33,15 +33,23 @@ export default function AccountingCreditNotesPanel({ onDataChange }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [detailTarget, setDetailTarget] = useState<any>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    const params = new URLSearchParams({ view: 'full' });
+    if (search.trim()) params.set('search', search.trim());
+    const key = `/credit-notes?${params.toString()}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const params = new URLSearchParams({ view: 'full' });
-      if (search.trim()) params.set('search', search.trim());
-      const res = await api.get(`/credit-notes?${params.toString()}`);
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setData(res.data.data);
     } catch {
-      toast.error('Could not load credit notes');
+      if (!cached) toast.error('Could not load credit notes');
     } finally {
       setLoading(false);
     }
@@ -90,6 +98,8 @@ export default function AccountingCreditNotesPanel({ onDataChange }: Props) {
       setConfirmOpen(false);
       setModalOpen(false);
       setForm({ invoice_id: '', amount: '', reason: '' });
+      apiCache.invalidate('/credit-notes');
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {

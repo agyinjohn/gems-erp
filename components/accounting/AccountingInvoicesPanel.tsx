@@ -7,7 +7,7 @@ const CedisIcon = ({ className }: { className?: string }) => (
   <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
 );
 import { EmptyState, Modal, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 function fmt(n: number | string | undefined | null) {
   const v = parseFloat(String(n ?? 0));
@@ -16,11 +16,11 @@ function fmt(n: number | string | undefined | null) {
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-600',
-  sent: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-  partially_paid: 'bg-amber-50 text-amber-700',
-  paid: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-  overdue: 'bg-red-100 text-red-700',
-  void: 'bg-red-50 text-red-400',
+  sent: 'text-gray-600',
+  partially_paid: 'text-gray-600',
+  paid: 'text-gray-600',
+  overdue: 'text-gray-600',
+  void: 'text-gray-400',
 };
 
 const EMPTY_LINE = { description: '', quantity: '1', unit_price: '', tax_rate: '0' };
@@ -47,17 +47,24 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
   const [payForm, setPayForm] = useState({ amount: '', method: 'cash', reference: '', note: '' });
   const [historyTarget, setHistoryTarget] = useState<any>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    const params = new URLSearchParams({ view: 'full' });
+    if (search.trim()) params.set('search', search.trim());
+    if (statusFilter) params.set('status', statusFilter);
+    const key = `/invoices?${params.toString()}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const params = new URLSearchParams({ view: 'full' });
-      if (search.trim()) params.set('search', search.trim());
-      if (statusFilter) params.set('status', statusFilter);
-      const res = await api.get(`/invoices?${params.toString()}`);
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setData(res.data.data);
     } catch {
-      toast.error('Could not load invoices');
-      setData(null);
+      if (!cached) { toast.error('Could not load invoices'); setData(null); }
     } finally {
       setLoading(false);
     }
@@ -88,6 +95,8 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
       toast.success('Invoice created');
       setCreateOpen(false);
       setForm({ customer_name: '', customer_email: '', due_date: '', notes: '', lines: [{ ...EMPTY_LINE }] });
+      apiCache.invalidate('/invoices');
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -101,6 +110,8 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
     try {
       await api.patch(`/invoices/${id}/send`);
       toast.success('Invoice sent — GL entry posted');
+      apiCache.invalidate('/invoices');
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -113,6 +124,8 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
     try {
       await api.patch(`/invoices/${id}/void`);
       toast.success('Invoice voided');
+      apiCache.invalidate('/invoices');
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -128,6 +141,9 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
       toast.success('Payment recorded');
       setPayTarget(null);
       setPayForm({ amount: '', method: 'cash', reference: '', note: '' });
+      apiCache.invalidate('/invoices');
+      apiCache.invalidate('/accounting/receivables');
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -203,10 +219,10 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
       {data && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard label="Outstanding" value={fmt(summary.total_outstanding)} icon={<CedisIcon className="w-5 h-5 text-red-600 text-sm" />} color="bg-red-50" />
-            <StatCard label="Overdue" value={String(summary.overdue ?? 0)} icon={<FileText className="w-5 h-5 text-amber-600" />} color="bg-amber-50" />
-            <StatCard label="Draft" value={String(summary.draft ?? 0)} icon={<FileText className="w-5 h-5 text-gray-600" />} color="bg-gray-50" />
-            <StatCard label="Total billed" value={fmt(summary.total_billed)} icon={<CedisIcon className="w-5 h-5 text-[#0D3B6E] text-sm" />} color="bg-[#0D3B6E]/8" sub={`${summary.count ?? 0} invoices`} />
+            <StatCard label="Outstanding" value={fmt(summary.total_outstanding)} icon={<CedisIcon className="w-5 h-5 text-gray-500 text-sm" />} color="bg-gray-50" />
+            <StatCard label="Overdue" value={String(summary.overdue ?? 0)} icon={<FileText className="w-5 h-5 text-gray-500" />} color="bg-gray-50" />
+            <StatCard label="Draft" value={String(summary.draft ?? 0)} icon={<FileText className="w-5 h-5 text-gray-500" />} color="bg-gray-50" />
+            <StatCard label="Total billed" value={fmt(summary.total_billed)} icon={<CedisIcon className="w-5 h-5 text-gray-500 text-sm" />} color="bg-gray-50" sub={`${summary.count ?? 0} invoices`} />
           </div>
 
           {rows.length === 0 ? (
@@ -233,11 +249,11 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
                         <td className="px-3 md:px-4 py-2 tabular-nums hidden lg:table-cell">{fmt(inv.subtotal)}</td>
                         <td className="px-3 md:px-4 py-2 tabular-nums text-gray-500 hidden lg:table-cell">{fmt(inv.tax_amount)}</td>
                         <td className="px-3 md:px-4 py-2 font-semibold tabular-nums">{fmt(inv.total)}</td>
-                        <td className="px-3 md:px-4 py-2 font-semibold text-red-600 tabular-nums">{fmt(inv.amount_due)}</td>
+                        <td className="px-3 md:px-4 py-2 tabular-nums font-semibold">{fmt(inv.amount_due)}</td>
                         <td className="px-3 md:px-4 py-2 text-xs text-gray-400 hidden md:table-cell">{new Date(inv.issue_date).toLocaleDateString()}</td>
                         <td className="px-3 md:px-4 py-2 text-xs text-gray-400 hidden lg:table-cell">{new Date(inv.due_date).toLocaleDateString()}</td>
                         <td className="px-3 md:px-4 py-2">
-                          <span className={`badge text-xs ${STATUS_COLORS[inv.status] || 'bg-gray-100 text-gray-600'}`}>{inv.status.replace('_', ' ')}</span>
+                          <span className="text-xs text-gray-600 capitalize">{inv.status.replace('_', ' ')}</span>
                         </td>
                         <td className="px-3 md:px-4 py-2">
                           <div className="flex flex-wrap gap-1 justify-end">
@@ -327,8 +343,8 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-gray-50 rounded-xl px-4 py-3"><div className="text-xs text-gray-500 mb-1">Total</div><div className="font-semibold">{fmt(historyTarget.total)}</div></div>
-              <div className="bg-green-50 rounded-xl px-4 py-3"><div className="text-xs text-green-600 mb-1">Paid</div><div className="font-semibold text-green-700">{fmt(historyTarget.amount_paid)}</div></div>
-              <div className="bg-red-50 rounded-xl px-4 py-3"><div className="text-xs text-red-500 mb-1">Outstanding</div><div className="font-semibold text-red-600">{fmt(historyTarget.amount_due)}</div></div>
+              <div className="bg-gray-50 rounded-xl px-4 py-3"><div className="text-xs text-gray-500 mb-1">Paid</div><div className="font-semibold text-gray-800">{fmt(historyTarget.amount_paid)}</div></div>
+              <div className="bg-gray-50 rounded-xl px-4 py-3"><div className="text-xs text-gray-500 mb-1">Outstanding</div><div className="font-semibold text-gray-800">{fmt(historyTarget.amount_due)}</div></div>
             </div>
             {historyTarget.payments?.length > 0 ? (
               <div className="border border-gray-100 rounded-xl overflow-hidden">
@@ -342,7 +358,7 @@ export default function AccountingInvoicesPanel({ onDataChange }: Props) {
                         <td className="px-4 py-2 text-gray-400 text-xs">{i + 1}</td>
                         <td className="px-4 py-2 text-xs">{p.date ? new Date(p.date).toLocaleDateString() : '—'}</td>
                         <td className="px-4 py-2 font-semibold text-green-700">{fmt(p.amount)}</td>
-                        <td className="px-4 py-2"><span className="badge bg-[#0D3B6E]/8 text-[#0D3B6E]">{(p.method || 'cash').replace('_', ' ')}</span></td>
+                        <td className="px-4 py-2 text-xs text-gray-600">{(p.method || 'cash').replace('_', ' ')}</td>
                         <td className="px-4 py-2 font-mono text-xs">{p.reference || '—'}</td>
                         <td className="px-4 py-2 text-xs text-gray-500">{p.note || '—'}</td>
                       </tr>

@@ -9,7 +9,7 @@ const CedisIcon = ({ className }: { className?: string }) => (
   <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
 );
 import { EmptyState, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 type PlSource = 'gl' | 'orders';
 type PeriodKey = 'mtd' | 'ytd' | 'all' | 'custom';
@@ -49,34 +49,36 @@ export default function AccountingPlPanel(_: Props) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     if (period === 'custom' && !from && !to) {
       setData(null);
       setLoading(false);
       return;
     }
-
-    setLoading(true);
+    const params = new URLSearchParams();
+    if (period === 'custom') {
+      params.append('period', 'custom');
+      if (from) params.append('from', from);
+      if (to) params.append('to', to);
+    } else {
+      params.append('period', period);
+    }
+    if (source === 'orders') params.append('source', 'orders');
+    const key = `/accounting/pl?${params.toString()}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached?.empty ? null : cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (period === 'custom') {
-        params.append('period', 'custom');
-        if (from) params.append('from', from);
-        if (to) params.append('to', to);
-      } else {
-        params.append('period', period);
-      }
-      if (source === 'orders') params.append('source', 'orders');
-      const res = await api.get(`/accounting/pl?${params.toString()}`);
+      const res = await api.get(key);
       const payload = res.data.data;
-      if (payload?.empty) {
-        setData(null);
-      } else {
-        setData(payload);
-      }
+      apiCache.set(key, payload);
+      setData(payload?.empty ? null : payload);
     } catch {
-      toast.error('Could not load P&L report');
-      setData(null);
+      if (!cached) { toast.error('Could not load P&L report'); setData(null); }
     } finally {
       setLoading(false);
     }

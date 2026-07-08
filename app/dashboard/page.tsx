@@ -8,7 +8,7 @@ import { Package, ShoppingCart, Users, AlertTriangle, TrendingUp, UserCheck, Tru
 const CedisIcon = ({ className }: { className?: string }) => (
   <span className={`font-bold leading-none flex items-center justify-center ${className}`} style={{ fontFamily: 'serif' }}>₵</span>
 );
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
 const fmt = (n: number) => n >= 1000 ? `GH₵ ${(n/1000).toFixed(1)}k` : `GH₵ ${n?.toFixed(2) || '0.00'}`;
@@ -25,7 +25,22 @@ export default function DashboardPage() {
   const isAdmin = can('super_admin', 'business_owner', 'branch_manager');
 
   useEffect(() => {
-    api.get('/dashboard').then(r => setData(r.data.data)).catch(console.error).finally(() => setLoading(false));
+    const cached = apiCache.get('/dashboard');
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (apiCache.isStale('/dashboard')) {
+        api.get('/dashboard').then(r => {
+          apiCache.set('/dashboard', r.data.data);
+          setData(r.data.data);
+        }).catch(console.error);
+      }
+    } else {
+      api.get('/dashboard')
+        .then(r => { apiCache.set('/dashboard', r.data.data); setData(r.data.data); })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }
   }, []);
 
   if (loading) return <AppLayout title="Dashboard" allowedRoles={ALL_ROLES}><Spinner /></AppLayout>;

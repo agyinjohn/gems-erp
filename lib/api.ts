@@ -2,6 +2,29 @@ import axios from 'axios';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+// ── In-memory cache ──
+interface CacheEntry { data: any; ts: number; }
+const cache = new Map<string, CacheEntry>();
+const DEFAULT_TTL = 5 * 60_000; // 5 minutes
+
+export const apiCache = {
+  // Always returns data if it exists (stale-while-revalidate).
+  // Use isStale() to decide whether to revalidate in the background.
+  get: (key: string) => {
+    const entry = cache.get(key);
+    return entry ? entry.data : null;
+  },
+  isStale: (key: string, ttl = DEFAULT_TTL) => {
+    const entry = cache.get(key);
+    if (!entry) return true;
+    return Date.now() - entry.ts > ttl;
+  },
+  set: (key: string, data: any) => cache.set(key, { data, ts: Date.now() }),
+  invalidate: (prefix: string) => {
+    cache.forEach((_, key) => { if (key.startsWith(prefix)) cache.delete(key); });
+  },
+  clear: () => cache.clear(),
+};
 const api = axios.create({
   baseURL: BASE,
   headers: { 'Content-Type': 'application/json' },

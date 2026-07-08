@@ -9,7 +9,7 @@ const CedisIcon = ({ className }: { className?: string }) => (
   <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
 );
 import { EmptyState, Modal, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 type PeriodKey = 'mtd' | 'ytd' | 'all' | 'custom';
 
@@ -47,27 +47,34 @@ export default function AccountingTaxPanel(_: Props) {
   const [selectedTax, setSelectedTax] = useState<any>(null);
   const [taxForm, setTaxForm] = useState({ name: '', rate: '', applies_to: 'both', is_active: true });
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     if (period === 'custom' && !from && !to) {
       setData(null);
       setLoading(false);
       return;
     }
-    setLoading(true);
+    const params = new URLSearchParams();
+    if (period === 'custom') {
+      params.append('period', 'custom');
+      if (from) params.append('from', from);
+      if (to) params.append('to', to);
+    } else {
+      params.append('period', period);
+    }
+    const key = `/accounting/tax?${params.toString()}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (period === 'custom') {
-        params.append('period', 'custom');
-        if (from) params.append('from', from);
-        if (to) params.append('to', to);
-      } else {
-        params.append('period', period);
-      }
-      const res = await api.get(`/accounting/tax?${params.toString()}`);
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setData(res.data.data);
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Could not load tax data');
-      setData(null);
+      if (!cached) { toast.error(e.response?.data?.message || 'Could not load tax data'); setData(null); }
     } finally {
       setLoading(false);
     }
@@ -111,6 +118,7 @@ export default function AccountingTaxPanel(_: Props) {
       else await api.post('/tax-rates', taxForm);
       toast.success('Tax rate saved');
       setTaxModal(null);
+      apiCache.invalidate('/accounting/tax');
       load();
     } catch (e: any) {
       setError(e.response?.data?.message || 'Save failed');
@@ -124,6 +132,7 @@ export default function AccountingTaxPanel(_: Props) {
     try {
       await api.delete(`/tax-rates/${id}`);
       toast.success('Tax rate deleted');
+      apiCache.invalidate('/accounting/tax');
       load();
     } catch {
       toast.error('Delete failed');

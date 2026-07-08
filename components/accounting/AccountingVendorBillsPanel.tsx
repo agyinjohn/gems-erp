@@ -9,7 +9,7 @@ const CedisIcon = ({ className }: { className?: string }) => (
   <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
 );
 import { Modal, EmptyState, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 function fmt(n: number | string | undefined) {
   const v = parseFloat(String(n ?? 0));
@@ -18,10 +18,10 @@ function fmt(n: number | string | undefined) {
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-600',
-  posted: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-  partially_paid: 'bg-yellow-100 text-yellow-700',
-  paid: 'bg-green-100 text-green-700',
-  void: 'bg-red-50 text-red-400',
+  posted: 'text-gray-600',
+  partially_paid: 'text-gray-600',
+  paid: 'text-gray-600',
+  void: 'text-gray-400',
 };
 
 const AGING_LABELS: Record<string, string> = {
@@ -32,10 +32,10 @@ const AGING_LABELS: Record<string, string> = {
 };
 
 const AGING_COLORS: Record<string, string> = {
-  current: 'bg-green-50 border-green-200 text-green-700',
-  days_31_60: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-  days_61_90: 'bg-orange-50 border-orange-200 text-orange-700',
-  over_90: 'bg-red-50 border-red-200 text-red-700',
+  current: 'border-gray-200 text-gray-700',
+  days_31_60: 'border-gray-200 text-gray-700',
+  days_61_90: 'border-gray-200 text-gray-700',
+  over_90: 'border-gray-200 text-gray-700',
 };
 
 const emptyForm = () => ({
@@ -77,8 +77,11 @@ export default function AccountingVendorBillsPanel({ onDataChange }: Props) {
   const statuses = data?.statuses || [];
 
   const loadAccounts = useCallback(async () => {
+    const cached = apiCache.get('/accounts');
+    if (cached && !apiCache.isStale('/accounts')) { setExpenseAccounts(cached.filter((a: any) => a.type === 'expense' && !a.is_group)); return; }
     try {
       const res = await api.get('/accounts');
+      apiCache.set('/accounts', res.data.data || []);
       setExpenseAccounts((res.data.data || []).filter((a: any) => a.type === 'expense' && !a.is_group));
     } catch {
       setExpenseAccounts([]);
@@ -213,10 +216,10 @@ export default function AccountingVendorBillsPanel({ onDataChange }: Props) {
   return (
     <div className={`space-y-5 relative ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Total bills" value={String(summary.count ?? 0)} icon={<FileText className="w-5 h-5 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${summary.draft ?? 0} draft · ${summary.open ?? 0} open`} />
-        <StatCard label="Outstanding" value={fmt(summary.total_outstanding)} icon={<CedisIcon className="w-5 h-5 text-red-600 text-sm" />} color="bg-red-50" sub="Posted & partially paid" />
-        <StatCard label="Overdue" value={String(summary.overdue ?? 0)} icon={<AlertTriangle className="w-5 h-5 text-orange-600" />} color="bg-orange-50" sub="Past due date" />
-        <StatCard label="Paid" value={String(summary.paid ?? 0)} icon={<CheckCircle2 className="w-5 h-5 text-green-600" />} color="bg-green-50" sub={`${summary.mtd_posted ?? 0} posted MTD`} />
+        <StatCard label="Total bills" value={String(summary.count ?? 0)} icon={<FileText className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub={`${summary.draft ?? 0} draft · ${summary.open ?? 0} open`} />
+        <StatCard label="Outstanding" value={fmt(summary.total_outstanding)} icon={<CedisIcon className="w-5 h-5 text-gray-500 text-sm" />} color="bg-gray-50" sub="Posted & partially paid" />
+        <StatCard label="Overdue" value={String(summary.overdue ?? 0)} icon={<AlertTriangle className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub="Past due date" />
+        <StatCard label="Paid" value={String(summary.paid ?? 0)} icon={<CheckCircle2 className="w-5 h-5 text-gray-500" />} color="bg-gray-50" sub={`${summary.mtd_posted ?? 0} posted MTD`} />
       </div>
 
       {(summary.open ?? 0) > 0 && (
@@ -287,7 +290,7 @@ export default function AccountingVendorBillsPanel({ onDataChange }: Props) {
                     <td className="px-3 md:px-4 py-2 md:py-3 font-semibold text-red-600 tabular-nums">{parseFloat(b.amount_due) > 0 ? fmt(b.amount_due) : '—'}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3 font-mono text-xs hidden lg:table-cell">{b.gl_reference || (b.status === 'draft' ? '—' : 'Pending')}</td>
                     <td className="px-3 md:px-4 py-2 md:py-3">
-                      <span className={`badge text-xs ${STATUS_COLORS[b.status] || 'bg-gray-100 text-gray-600'}`}>{b.status.replace('_', ' ')}</span>
+                      <span className="text-xs text-gray-600 capitalize">{b.status.replace('_', ' ')}</span>
                     </td>
                     <td className="px-3 md:px-4 py-2 md:py-3">
                       <div className="flex gap-1 justify-end">
@@ -414,7 +417,7 @@ export default function AccountingVendorBillsPanel({ onDataChange }: Props) {
                       {detailTarget.payments.map((p: any, i: number) => (
                         <tr key={i} className="border-t">
                           <td className="px-3 py-2">{new Date(p.date).toLocaleDateString()}</td>
-                          <td className="px-3 py-2 text-right text-green-700">{fmt(p.amount)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{fmt(p.amount)}</td>
                           <td className="px-3 py-2 capitalize">{p.method?.replace('_', ' ')}</td>
                         </tr>
                       ))}

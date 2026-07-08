@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Modal, Badge, EmptyState, Spinner, toast, ConfirmDialog } from '@/components/ui';
+import { Modal, EmptyState, Spinner, toast, ConfirmDialog } from '@/components/ui';
 import { Plus, Search, Eye, Edit2, X, FileText, ShoppingCart } from 'lucide-react';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import InvoiceModal from '@/components/InvoiceModal';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
 
@@ -21,9 +21,9 @@ const SOURCE_OPTIONS = [
 const STATUS_OPTIONS = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 
 export default function OrdersPage() {
-  const [orders, setOrders]         = useState<any[]>([]);
-  const [products, setProducts]     = useState<any[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [orders, setOrders]         = useState<any[]>(() => apiCache.get('/orders') || []);
+  const [products, setProducts]     = useState<any[]>(() => apiCache.get('/products?is_active=true') || []);
+  const [loading, setLoading]       = useState(() => !apiCache.get('/orders'));
   const [search, setSearch]         = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSource, setFilterSource] = useState('');
@@ -40,12 +40,22 @@ export default function OrdersPage() {
   const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
   const [form, setForm]             = useState({ customer_name:'', customer_email:'', customer_phone:'', delivery_address:'', payment_status:'paid', payment_method:'cash', items:[{ product_id:'', quantity:1 }] });
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     const [o, p] = await Promise.all([api.get('/orders'), api.get('/products?is_active=true')]);
-    setOrders(o.data.data); setProducts(p.data.data); setLoading(false);
+    const ordersData = o.data.data;
+    const productsData = p.data.data;
+    apiCache.set('/orders', ordersData);
+    apiCache.set('/products?is_active=true', productsData);
+    setOrders(ordersData);
+    setProducts(productsData);
+    setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    const hasCache = !!apiCache.get('/orders');
+    if (!hasCache || apiCache.isStale('/orders')) load(!hasCache);
+  }, []);
 
   const filtered = orders.filter(o => {
     const matchSearch  = !search || o.order_number.toLowerCase().includes(search.toLowerCase()) || o.customer_name.toLowerCase().includes(search.toLowerCase());
@@ -142,11 +152,6 @@ export default function OrdersPage() {
   };
 
   const sourceLabel: Record<string,string> = { storefront: 'Storefront', internal: 'Internal', pos: 'POS' };
-  const sourceBadgeColor: Record<string,string> = {
-    storefront: 'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-    internal:   'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-    pos:        'bg-[#0D3B6E]/8 text-[#0D3B6E]',
-  };
 
   return (
     <AppLayout title="Sales & Orders" subtitle="Manage customer orders and track payments" allowedRoles={['business_owner','branch_manager','sales_staff']}>
@@ -227,13 +232,13 @@ export default function OrdersPage() {
                   <div className="font-medium text-gray-900">{o.customer_name}</div>
                   <div className="text-xs text-gray-400">{o.customer_email || '—'}</div>
                 </div>,
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${sourceBadgeColor[o.source] || 'bg-gray-100 text-gray-500'}`}>
+                <span className="text-xs text-gray-600">
                   {sourceLabel[o.source] || o.source || '—'}
                 </span>,
                 <span className="font-semibold">GH₵ {parseFloat(o.total).toFixed(2)}</span>,
-                <Badge status={o.payment_status} />,
+                <span className="text-xs text-gray-600 capitalize">{o.payment_status ? o.payment_status.replace(/_/g, ' ') : '—'}</span>,
                 <span className="text-xs text-gray-600 capitalize">{o.payment_method ? o.payment_method.replace(/_/g, ' ') : '—'}</span>,
-                <Badge status={o.status} />,
+                <span className="text-xs text-gray-600 capitalize">{o.status || '—'}</span>,
                 <span className="text-gray-500 text-xs whitespace-nowrap">{new Date(o.created_at || o.createdAt).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })}</span>,
                 <div className="flex gap-1">
                   <button type="button" onClick={() => openInvoice(o)} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]" title="View invoice">
@@ -336,9 +341,9 @@ export default function OrdersPage() {
               <div><span className="text-gray-500">Customer:</span> <strong>{selected.customer_name}</strong></div>
               <div><span className="text-gray-500">Email:</span> {selected.customer_email || '—'}</div>
               <div><span className="text-gray-500">Phone:</span> {selected.customer_phone || '—'}</div>
-              <div><span className="text-gray-500">Source:</span> <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${sourceBadgeColor[selected.source] || 'bg-gray-100 text-gray-500'}`}>{sourceLabel[selected.source] || selected.source}</span></div>
-              <div><span className="text-gray-500">Payment:</span> <Badge status={selected.payment_status} /></div>
-              <div><span className="text-gray-500">Status:</span> <Badge status={selected.status} /></div>
+              <div><span className="text-gray-500">Source:</span> <span className="text-sm text-gray-700">{sourceLabel[selected.source] || selected.source}</span></div>
+              <div><span className="text-gray-500">Payment:</span> <span className="text-sm text-gray-700 capitalize">{selected.payment_status?.replace(/_/g, ' ') || '—'}</span></div>
+              <div><span className="text-gray-500">Status:</span> <span className="text-sm text-gray-700 capitalize">{selected.status || '—'}</span></div>
               <div><span className="text-gray-500">Date:</span> {new Date(selected.created_at || selected.createdAt).toLocaleString()}</div>
               {selected.delivery_address && <div className="sm:col-span-2"><span className="text-gray-500">Address:</span> {selected.delivery_address}</div>}
             </div>

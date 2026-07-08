@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, RefreshCw, Landmark, Calendar, Lock, Unlock } from 'lucide-react';
 import { EmptyState, Modal, Spinner, StatCard, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 interface Props {
   onDataChange?: () => void;
@@ -17,9 +17,12 @@ export default function AccountingPeriodsPanel({ onDataChange }: Props) {
   const [form, setForm] = useState({ name: '', type: 'month', start_date: '', end_date: '' });
 
   const load = useCallback(async () => {
+    const cached = apiCache.get('/accounting/periods');
+    if (cached && !apiCache.isStale('/accounting/periods')) { setData(cached); setLoading(false); return; }
     setLoading(true);
     try {
       const res = await api.get('/accounting/periods');
+      apiCache.set('/accounting/periods', res.data.data);
       setData(res.data.data);
     } catch {
       toast.error('Could not load fiscal periods');
@@ -45,6 +48,7 @@ export default function AccountingPeriodsPanel({ onDataChange }: Props) {
       toast.success('Fiscal period created');
       setModalOpen(false);
       setForm({ name: '', type: 'month', start_date: '', end_date: '' });
+      apiCache.invalidate('/accounting/periods');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -59,6 +63,7 @@ export default function AccountingPeriodsPanel({ onDataChange }: Props) {
     try {
       await api.patch(`/accounting/periods/${p.id}/close`);
       toast.success('Period closed');
+      apiCache.invalidate('/accounting/periods');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -71,6 +76,7 @@ export default function AccountingPeriodsPanel({ onDataChange }: Props) {
     try {
       await api.patch(`/accounting/periods/${p.id}/reopen`);
       toast.success('Period reopened');
+      apiCache.invalidate('/accounting/periods');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -83,6 +89,7 @@ export default function AccountingPeriodsPanel({ onDataChange }: Props) {
     try {
       await api.post(`/accounting/periods/${p.id}/year-end-close`);
       toast.success('Year-end closing posted');
+      apiCache.invalidate('/accounting/periods');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -138,11 +145,11 @@ export default function AccountingPeriodsPanel({ onDataChange }: Props) {
                     {rows.map((p: any) => (
                       <tr key={p.id} className="hover:bg-gray-50/80">
                         <td className="px-3 md:px-4 py-2 font-medium">{p.name}</td>
-                        <td className="px-3 md:px-4 py-2"><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#0D3B6E]/8 text-[#0D3B6E]">{p.type}</span></td>
+                        <td className="px-3 md:px-4 py-2"><span className="text-xs text-gray-600 capitalize">{p.type}</span></td>
                         <td className="px-3 md:px-4 py-2 text-xs text-gray-500">{new Date(p.start_date).toLocaleDateString()}</td>
                         <td className="px-3 md:px-4 py-2 text-xs text-gray-500 hidden md:table-cell">{new Date(p.end_date).toLocaleDateString()}</td>
                         <td className="px-3 md:px-4 py-2">
-                          <span className={`badge text-xs ${p.status === 'open' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{p.status}</span>
+                          <span className="text-xs text-gray-600 capitalize">{p.status}</span>
                         </td>
                         <td className="px-3 md:px-4 py-2">
                           <div className="flex flex-wrap gap-1 justify-end">

@@ -1,22 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import { CreditCard, ShoppingCart, Monitor, Truck, Users, RefreshCw } from 'lucide-react';
 
-const SOURCE_LABELS: Record<string, { label: string; color: string; icon: any }> = {
-  storefront:       { label: 'Storefront',      color: 'bg-blue-100 text-blue-700',    icon: ShoppingCart },
-  pos:              { label: 'POS',             color: 'bg-green-100 text-green-700',  icon: Monitor },
-  internal_order:   { label: 'Internal Order',  color: 'bg-purple-100 text-purple-700',icon: ShoppingCart },
-  purchase_order:   { label: 'Purchase Order',  color: 'bg-orange-100 text-orange-700',icon: Truck },
-  payroll:          { label: 'Payroll',         color: 'bg-pink-100 text-pink-700',    icon: Users },
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  success:  'bg-green-100 text-green-700',
-  failed:   'bg-red-100 text-red-700',
-  pending:  'bg-yellow-100 text-yellow-700',
-  refunded: 'bg-gray-100 text-gray-600',
+const SOURCE_LABELS: Record<string, { label: string; icon: any }> = {
+  storefront:       { label: 'Storefront',      icon: ShoppingCart },
+  pos:              { label: 'POS',             icon: Monitor },
+  internal_order:   { label: 'Internal Order',  icon: ShoppingCart },
+  purchase_order:   { label: 'Purchase Order',  icon: Truck },
+  payroll:          { label: 'Payroll',         icon: Users },
 };
 
 const METHOD_LABELS: Record<string, string> = {
@@ -41,19 +34,25 @@ export default function PaymentLogsPage() {
   const [to, setTo]             = useState('');
 
   const load = async (p = 1) => {
-    setLoading(true);
+    const params: any = { page: p, limit: 50 };
+    if (source) params.source = source;
+    if (status) params.status = status;
+    if (from)   params.from   = from;
+    if (to)     params.to     = to;
+    const key = `/payment-logs?${new URLSearchParams(Object.entries(params).map(([k,v])=>[k,String(v)])).toString()}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setLogs(cached.logs); setTotal(cached.total); setPages(cached.pages); setSummary(cached.summary); setPage(p);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    } else {
+      setLoading(true);
+    }
     try {
-      const params: any = { page: p, limit: 50 };
-      if (source) params.source = source;
-      if (status) params.status = status;
-      if (from)   params.from   = from;
-      if (to)     params.to     = to;
       const r = await api.get('/payment-logs', { params });
-      setLogs(r.data.data);
-      setTotal(r.data.total);
-      setPages(r.data.pages);
-      setSummary(r.data.summary || []);
-      setPage(p);
+      const payload = { logs: r.data.data, total: r.data.total, pages: r.data.pages, summary: r.data.summary || [] };
+      apiCache.set(key, payload);
+      setLogs(payload.logs); setTotal(payload.total); setPages(payload.pages); setSummary(payload.summary); setPage(p);
     } finally { setLoading(false); }
   };
 
@@ -135,7 +134,7 @@ export default function PaymentLogsPage() {
                         <td className="px-5 py-3 font-mono text-xs text-gray-700">{log.reference}</td>
                         <td className="px-5 py-3">
                           {src && (
-                            <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${src.color}`}>
+                            <span className="text-xs text-gray-600">
                               {log.source.replace('_', ' ')}
                             </span>
                           )}
@@ -146,7 +145,7 @@ export default function PaymentLogsPage() {
                         </td>
                         <td className="px-5 py-3 text-gray-600">{METHOD_LABELS[log.method] || log.method}</td>
                         <td className="px-5 py-3">
-                          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[log.status] || 'bg-gray-100 text-gray-600'}`}>
+                          <span className="text-xs text-gray-600 capitalize">
                             {log.status}
                           </span>
                         </td>

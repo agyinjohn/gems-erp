@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast } from '@/components/ui';
 import { Plus, Search, Edit2, Trash2, MapPin, Tag, CheckCircle, Wrench, Package, Upload, Download, ChevronDown } from 'lucide-react';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 
 const PRESET_CATEGORIES = [
   { name: 'Electronics',        description: 'Computers, phones, TVs and electronic devices',   icon: '💻' },
@@ -34,27 +34,26 @@ function PresetModal({ open, onClose, presets, existing, onAdd, saving }: {
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-900">Add Preset Categories</h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><span className="text-gray-400 text-lg">×</span></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 text-xl">&times;</button>
         </div>
         <div className="px-6 py-4">
           <p className="text-sm text-gray-400 mb-4">Select the categories you want to add. Already existing ones are greyed out.</p>
           <div className="grid grid-cols-2 gap-2">
             {presets.map(p => {
               const exists = existing.includes(p.name);
-              const selected = picked.includes(p.name);
+              const sel = picked.includes(p.name);
               return (
-                <button key={p.name} onClick={() => !exists && toggle(p.name)}
-                  disabled={exists}
+                <button key={p.name} onClick={() => !exists && toggle(p.name)} disabled={exists}
                   className={`flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${
                     exists ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed' :
-                    selected ? 'border-[#0D3B6E] bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                    sel    ? 'border-[#0D3B6E] bg-blue-50' : 'border-gray-200 hover:border-gray-300'
                   }`}>
                   <span className="text-xl flex-shrink-0">{p.icon}</span>
-                  <div>
-                    <div className={`text-sm font-semibold ${selected ? 'text-[#0D3B6E]' : 'text-gray-800'}`}>{p.name}</div>
+                  <div className="min-w-0">
+                    <div className={`text-sm font-semibold ${sel ? 'text-[#0D3B6E]' : 'text-gray-800'}`}>{p.name}</div>
                     <div className="text-xs text-gray-400 mt-0.5 leading-tight">{p.description}</div>
                   </div>
-                  {exists && <span className="ml-auto text-[10px] text-gray-400 flex-shrink-0">Added</span>}
+                  {exists && <span className="ml-auto text-[10px] text-gray-400 flex-shrink-0 mt-0.5">Added</span>}
                 </button>
               );
             })}
@@ -62,7 +61,7 @@ function PresetModal({ open, onClose, presets, existing, onAdd, saving }: {
         </div>
         <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-100">
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={() => onAdd(picked)} disabled={saving || !picked.length}>
+          <button className="btn-primary" onClick={() => { onAdd(picked); setPicked([]); }} disabled={saving || !picked.length}>
             {saving ? 'Adding…' : `Add ${picked.length || ''} Categor${picked.length === 1 ? 'y' : 'ies'}`}
           </button>
         </div>
@@ -71,28 +70,13 @@ function PresetModal({ open, onClose, presets, existing, onAdd, saving }: {
   );
 }
 
-const CONDITION_COLORS: Record<string, string> = {
-  excellent: 'bg-green-100 text-green-700',
-  good:      'bg-blue-100 text-blue-700',
-  fair:      'bg-yellow-100 text-yellow-700',
-  poor:      'bg-red-100 text-red-700',
-  disposed:  'bg-gray-100 text-gray-500',
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  active:       'bg-green-100 text-green-700',
-  under_repair: 'bg-yellow-100 text-yellow-700',
-  disposed:     'bg-gray-100 text-gray-500',
-  lost:         'bg-red-100 text-red-700',
-};
-
 export default function AssetsPage() {
   const [tab, setTab] = useState<'assets'|'categories'>('assets');
-  const [assets, setAssets]         = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [locations, setLocations]   = useState<any[]>([]);
-  const [employees, setEmployees]   = useState<any[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [assets, setAssets]         = useState<any[]>(() => apiCache.get('/assets') || []);
+  const [categories, setCategories] = useState<any[]>(() => apiCache.get('/asset-categories') || []);
+  const [locations, setLocations]   = useState<any[]>(() => apiCache.get('/locations') || []);
+  const [employees, setEmployees]   = useState<any[]>(() => apiCache.get('/employees') || []);
+  const [loading, setLoading]       = useState(() => !apiCache.get('/assets'));
   const [search, setSearch]         = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [modal, setModal]           = useState<'asset'|'cat'|'log'|'import-cat'|'import-asset'|'preset'|null>(null);
@@ -119,8 +103,8 @@ export default function AssetsPage() {
     to_location:'', to_employee:'', new_condition:'',
   });
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [a, c, l, e] = await Promise.all([
         api.get('/assets').catch(() => ({ data: { data: [] } })),
@@ -128,6 +112,10 @@ export default function AssetsPage() {
         api.get('/locations').catch(() => ({ data: { data: [] } })),
         api.get('/employees').catch(() => ({ data: { data: [] } })),
       ]);
+      apiCache.set('/assets', a.data.data);
+      apiCache.set('/asset-categories', c.data.data);
+      apiCache.set('/locations', l.data.data);
+      apiCache.set('/employees', e.data.data);
       setAssets(a.data.data);
       setCategories(c.data.data);
       setLocations(l.data.data);
@@ -135,7 +123,10 @@ export default function AssetsPage() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const hasCache = !!apiCache.get('/assets');
+    if (!hasCache || apiCache.isStale('/assets')) load(!hasCache);
+  }, []);
 
   const filtered = assets.filter(a =>
     (!search || a.name.toLowerCase().includes(search.toLowerCase()) || a.asset_code?.toLowerCase().includes(search.toLowerCase())) &&
@@ -167,6 +158,7 @@ export default function AssetsPage() {
       const payload = { ...form, purchase_value: parseFloat(form.purchase_value) || 0 };
       if (selected) await api.put(`/assets/${selected.id}`, payload);
       else await api.post('/assets', payload);
+      apiCache.invalidate('/assets');
       toast.success('Saved successfully');
       setModal(null); load();
     } catch(e: any) { toast.error(e.response?.data?.message || 'Error saving asset'); }
@@ -179,6 +171,7 @@ export default function AssetsPage() {
     try {
       if (selected) await api.put(`/asset-categories/${selected.id}`, catForm);
       else await api.post('/asset-categories', catForm);
+      apiCache.invalidate('/asset-categories');
       toast.success('Saved'); setModal(null); load();
     } catch(e: any) { toast.error(e.response?.data?.message || 'Error'); }
     finally { setSaving(false); }
@@ -191,6 +184,7 @@ export default function AssetsPage() {
       await api.post(`/assets/${selected.id}/log`, {
         ...logForm, cost: parseFloat(logForm.cost) || 0,
       });
+      apiCache.invalidate('/assets');
       toast.success('Log added'); setModal(null); load();
     } catch(e: any) { toast.error(e.response?.data?.message || 'Error'); }
     finally { setSaving(false); }
@@ -247,7 +241,7 @@ export default function AssetsPage() {
       catch { failed++; }
     }
     toast.success(`Imported ${success} categories${failed ? `, ${failed} skipped` : ''}`);
-    setImporting(false); setModal(null); load();
+    setImporting(false); setModal(null); apiCache.invalidate('/asset-categories'); load();
   };
 
   const runAssetImport = async () => {
@@ -273,7 +267,7 @@ export default function AssetsPage() {
       } catch { failed++; }
     }
     toast.success(`Imported ${success} assets${failed ? `, ${failed} skipped` : ''}`);
-    setImporting(false); setModal(null); load();
+    setImporting(false); setModal(null); apiCache.invalidate('/assets'); load();
   };
 
   const downloadCatTemplate = () => {
@@ -298,7 +292,7 @@ export default function AssetsPage() {
       catch { /* already exists */ }
     }
     toast.success(`Added ${added} categor${added === 1 ? 'y' : 'ies'}`);
-    setSaving(false); setModal(null); load();
+    setSaving(false); setModal(null); apiCache.invalidate('/asset-categories'); load();
   };
 
   return (
@@ -387,8 +381,8 @@ export default function AssetsPage() {
                           ) : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="px-4 py-3 text-gray-500">{a.assigned_to?.name || '—'}</td>
-                        <td className="px-4 py-3"><span className={`badge ${CONDITION_COLORS[a.condition]}`}>{a.condition}</span></td>
-                        <td className="px-4 py-3"><span className={`badge ${STATUS_COLORS[a.status]}`}>{a.status.replace('_',' ')}</span></td>
+                        <td className="px-4 py-3"><span className="text-xs text-gray-600 capitalize">{a.condition}</span></td>
+                        <td className="px-4 py-3"><span className="text-xs text-gray-600 capitalize">{a.status.replace('_',' ')}</span></td>
                         <td className="px-4 py-3 font-semibold text-gray-700">GHS {(a.current_value||0).toLocaleString()}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
@@ -535,7 +529,7 @@ export default function AssetsPage() {
         </div>
       </Modal>
 
-      <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} onConfirm={async () => { await api.delete(`/asset-categories/${confirm.id}`).catch(() => {}); toast.success('Deleted'); load(); }} title="Delete Category" message={`Delete "${confirm?.name}"?`} danger />
+      <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} onConfirm={async () => { await api.delete(`/asset-categories/${confirm.id}`).catch(() => {}); apiCache.invalidate('/asset-categories'); toast.success('Deleted'); load(); }} title="Delete Category" message={`Delete "${confirm?.name}"?`} danger />
 
       {/* Preset Categories Modal */}
       <PresetModal

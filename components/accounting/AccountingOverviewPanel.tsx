@@ -15,7 +15,7 @@ const CedisIcon = ({ className }: { className?: string }) => (
   <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
 );
 import { StatCard, Spinner, toast } from '@/components/ui';
-import api from '@/lib/api';
+import api, { apiCache } from '@/lib/api';
 import { accountingHref } from '@/lib/accountingNav';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 
@@ -68,13 +68,21 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
   const [depConfirm, setDepConfirm] = useState(false);
   const [syncingCoa, setSyncingCoa] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    const key = `/accounting/summary?period=${period}`;
+    const cached = apiCache.get(key);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      if (!apiCache.isStale(key)) return;
+    }
+    if (!silent) setLoading(true);
     try {
-      const res = await api.get(`/accounting/summary?period=${period}`);
+      const res = await api.get(key);
+      apiCache.set(key, res.data.data);
       setData(res.data.data);
     } catch {
-      toast.error('Could not load accounting overview');
+      if (!cached) toast.error('Could not load accounting overview');
     } finally {
       setLoading(false);
     }
@@ -87,6 +95,8 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
     try {
       await api.post('/accounting/seed-coa');
       toast.success('Chart of accounts updated');
+      apiCache.invalidate('/accounts');
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {
@@ -100,6 +110,7 @@ export default function AccountingOverviewPanel({ onDataChange, onImport }: Prop
     try {
       const res = await api.post('/accounting/depreciation/run', { rate: 0.1 });
       toast.success(`Posted ${res.data.data.posted} depreciation entries`);
+      apiCache.invalidate('/accounting/summary');
       load();
       onDataChange?.();
     } catch (e: any) {
