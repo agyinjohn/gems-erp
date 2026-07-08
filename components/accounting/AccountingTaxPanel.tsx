@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Plus, Download, RefreshCw, Edit2, Trash2, Receipt, AlertTriangle, CheckCircle2, FileText,
 } from 'lucide-react';
+
+const CedisIcon = ({ className }: { className?: string }) => (
+  <span className={`font-bold font-serif leading-none flex items-center justify-center ${className}`}>₵</span>
+);
 import { EmptyState, Modal, Spinner, StatCard, toast } from '@/components/ui';
 import api from '@/lib/api';
 
@@ -237,8 +241,8 @@ export default function AccountingTaxPanel(_: Props) {
             <StatCard
               label={`Net VAT ${vat.status === 'payable' ? 'payable' : 'reclaimable'}`}
               value={fmt(vat.net_vat_payable)}
-              icon={<Receipt className={`w-5 h-5 ${vat.status === 'payable' ? 'text-red-600' : 'text-green-600'}`} />}
-              color={vat.status === 'payable' ? 'bg-red-50' : 'bg-green-50'}
+              icon={<CedisIcon className={`w-5 h-5 text-sm ${vat.status === 'payable' ? 'text-red-600' : 'text-[#0D3B6E]'}`} />}
+              color={vat.status === 'payable' ? 'bg-red-50' : 'bg-[#0D3B6E]/8'}
               sub={vat.status_label}
             />
           </div>
