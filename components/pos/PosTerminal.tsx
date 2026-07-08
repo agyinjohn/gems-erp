@@ -791,7 +791,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
               <Package className="w-14 h-14 mb-3 text-red-200" />
               <p className="font-semibold text-red-500 mb-1">Failed to load products</p>
               <p className="text-xs text-gray-400 mb-4">{fetchError}</p>
-              <button onClick={loadProducts} className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">Retry</button>
+              <button onClick={() => loadProducts()} className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">Retry</button>
             </div>
           ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center p-8 h-full">
