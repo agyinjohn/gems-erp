@@ -1,10 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Spinner, toast } from '@/components/ui';
-import { ExternalLink, Save, Store, Truck, Megaphone, Tag, Plus, Trash2, Wallet, Star } from 'lucide-react';
+import { ExternalLink, Save, Store, Truck, Megaphone, Tag, Plus, Trash2, Wallet, Star, QrCode, Download, Printer, Zap, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import api from '@/lib/api';
+import QRCode from 'qrcode';
 import {
   DEFAULT_STOREFRONT_SETTINGS,
   fetchMerchantStoreSettings,
@@ -36,6 +37,12 @@ export default function StoreSettingsPage() {
   const [form, setForm] = useState<StorefrontSettings>({ ...DEFAULT_STOREFRONT_SETTINGS });
   const [coupons, setCoupons] = useState<any[]>([]);
   const [couponForm, setCouponForm] = useState({ code: '', discount_type: 'percent', discount_value: '10', min_order_amount: '0', max_uses: '0' });
+  const [promotions, setPromotions] = useState<any[]>([]);
+  const [promoForm, setPromoForm] = useState({ name: '', discount_type: 'percent', discount_value: '10', applies_to: 'all', ends_at: '' });
+  const [promoProducts, setPromoProducts] = useState<any[]>([]);
+  const [promoCategories, setPromoCategories] = useState<any[]>([]);
+  const [selectedPromoProductIds, setSelectedPromoProductIds] = useState<string[]>([]);
+  const [selectedPromoCategoryIds, setSelectedPromoCategoryIds] = useState<string[]>([]);
   const [payoutMethods, setPayoutMethods] = useState<PayoutMethod[]>([]);
   const [payoutForm, setPayoutForm] = useState({ type: 'mobile_money', account_number: '', account_name: '', bank_code: 'MTN' });
   const [payoutSaving, setPayoutSaving] = useState(false);
@@ -45,6 +52,9 @@ export default function StoreSettingsPage() {
       .then(setForm)
       .finally(() => setLoading(false));
     api.get('/coupons').then(r => setCoupons(r.data.data || [])).catch(() => {});
+    api.get('/promotions').then(r => setPromotions(r.data.data || [])).catch(() => {});
+    api.get('/products').then(r => setPromoProducts(r.data.data || [])).catch(() => {});
+    api.get('/categories').then(r => setPromoCategories(r.data.data || [])).catch(() => {});
     api.get('/payout-methods').then(r => setPayoutMethods(r.data.data || [])).catch(() => {});
   }, []);
 
@@ -63,6 +73,39 @@ export default function StoreSettingsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const createPromotion = async () => {
+    if (!promoForm.name.trim() || !promoForm.discount_value) { toast.error('Name and discount value required'); return; }
+    try {
+      const r = await api.post('/promotions', {
+        ...promoForm,
+        discount_value: parseFloat(promoForm.discount_value),
+        product_ids: promoForm.applies_to === 'products' ? selectedPromoProductIds : [],
+        category_ids: promoForm.applies_to === 'category' ? selectedPromoCategoryIds : [],
+        ends_at: promoForm.ends_at || null,
+      });
+      setPromotions(prev => [r.data.data, ...prev]);
+      setPromoForm({ name: '', discount_type: 'percent', discount_value: '10', applies_to: 'all', ends_at: '' });
+      setSelectedPromoProductIds([]);
+      setSelectedPromoCategoryIds([]);
+      toast.success('Promotion created');
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Could not create promotion'); }
+  };
+
+  const togglePromotion = async (id: string, is_active: boolean) => {
+    try {
+      await api.patch(`/promotions/${id}`, { is_active });
+      setPromotions(prev => prev.map(p => (p.id || p._id) === id ? { ...p, is_active } : p));
+    } catch { toast.error('Could not update promotion'); }
+  };
+
+  const deletePromotion = async (id: string) => {
+    try {
+      await api.delete(`/promotions/${id}`);
+      setPromotions(prev => prev.filter(p => (p.id || p._id) !== id));
+      toast.success('Promotion deleted');
+    } catch { toast.error('Could not delete promotion'); }
   };
 
   const createCoupon = async () => {
@@ -131,6 +174,47 @@ export default function StoreSettingsPage() {
 
   const storeUrl = tenant?.slug ? `/store/${tenant.slug}` : null;
   const previewSubtotal = 450;
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (loading || !tenant?.slug || !qrCanvasRef.current) return;
+    const url = `${window.location.origin}/store/${tenant.slug}`;
+    QRCode.toCanvas(qrCanvasRef.current, url, {
+      width: 220,
+      margin: 2,
+      color: { dark: '#0D3B6E', light: '#ffffff' },
+    }).catch(() => {});
+  }, [loading, tenant?.slug]);
+
+  const fullStoreUrl = storeUrl ? `${typeof window !== 'undefined' ? window.location.origin : ''}${storeUrl}` : null;
+
+  const downloadQr = () => {
+    const canvas = qrCanvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `${tenant?.slug || 'store'}-qr.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  const printQr = () => {
+    const canvas = qrCanvasRef.current;
+    if (!canvas) return;
+    const img = canvas.toDataURL('image/png');
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`
+      <html><head><title>${tenant?.business_name || 'Store'} QR Code</title>
+      <style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;}
+      img{width:260px;height:260px;} p{margin-top:12px;font-size:14px;color:#0D3B6E;font-weight:600;}
+      small{color:#666;font-size:11px;margin-top:4px;}</style></head>
+      <body><img src="${img}"/>
+      <p>${tenant?.business_name || 'Our Store'}</p>
+      <small>Scan to shop online</small>
+      <script>window.onload=()=>{window.print();window.close();}<\/script>
+      </body></html>`);
+    win.document.close();
+  };
 
   return (
     <AppLayout
@@ -166,6 +250,35 @@ export default function StoreSettingsPage() {
               ) : (
                 <p className="text-sm text-gray-500">Store link unavailable — check tenant configuration.</p>
               )}
+            </div>
+
+            {/* QR Code */}
+            <div className="card">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-[#0D3B6E]/10 flex items-center justify-center">
+                  <QrCode className="w-5 h-5 text-[#0D3B6E]" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">Store QR Code</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Print or share — customers scan to open your store</p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="p-3 bg-white border border-gray-200 rounded-2xl shadow-sm">
+                  <canvas ref={qrCanvasRef} />
+                </div>
+                <div className="space-y-3 flex-1">
+                  <p className="text-sm text-gray-600">Place this QR code on receipts, flyers, packaging, or your shop window so customers can instantly open your online store.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={downloadQr} className="btn-primary">
+                      <Download className="w-4 h-4" /> Download PNG
+                    </button>
+                    <button type="button" onClick={printQr} className="btn-secondary">
+                      <Printer className="w-4 h-4" /> Print
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Delivery */}
@@ -306,6 +419,124 @@ export default function StoreSettingsPage() {
                       <button type="button" className="text-red-500 hover:text-red-700" onClick={() => deleteCoupon(c.id || c._id)}><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Promotions */}
+            <div className="card">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">Promotions</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Auto-discount all products, a category, or selected products</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div className="sm:col-span-2">
+                  <label className="form-label">Promotion name</label>
+                  <input className="form-input" placeholder="e.g. Weekend Sale" value={promoForm.name} onChange={e => setPromoForm(f => ({ ...f, name: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="form-label">Discount type</label>
+                  <select className="form-input" value={promoForm.discount_type} onChange={e => setPromoForm(f => ({ ...f, discount_type: e.target.value }))}>
+                    <option value="percent">Percent off (%)</option>
+                    <option value="fixed">Fixed amount (GH₵)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Discount value</label>
+                  <input type="number" min={0} className="form-input" placeholder={promoForm.discount_type === 'percent' ? '10' : '5'} value={promoForm.discount_value} onChange={e => setPromoForm(f => ({ ...f, discount_value: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="form-label">Applies to</label>
+                  <select className="form-input" value={promoForm.applies_to} onChange={e => setPromoForm(f => ({ ...f, applies_to: e.target.value }))}>
+                    <option value="all">All products</option>
+                    <option value="category">Specific categories</option>
+                    <option value="products">Specific products</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">End date (optional)</label>
+                  <input type="datetime-local" className="form-input" value={promoForm.ends_at} onChange={e => setPromoForm(f => ({ ...f, ends_at: e.target.value }))} />
+                </div>
+
+                {promoForm.applies_to === 'category' && promoCategories.length > 0 && (
+                  <div className="sm:col-span-2">
+                    <label className="form-label">Select categories</label>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {promoCategories.map(c => (
+                        <button key={c.id || c._id} type="button"
+                          onClick={() => setSelectedPromoCategoryIds(prev => prev.includes(c.id || c._id) ? prev.filter(x => x !== (c.id || c._id)) : [...prev, c.id || c._id])}
+                          className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                            selectedPromoCategoryIds.includes(c.id || c._id)
+                              ? 'bg-[#0D3B6E] text-white border-[#0D3B6E]'
+                              : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-[#0D3B6E]'
+                          }`}>
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {promoForm.applies_to === 'products' && promoProducts.length > 0 && (
+                  <div className="sm:col-span-2">
+                    <label className="form-label">Select products</label>
+                    <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+                      {promoProducts.map(p => (
+                        <label key={p.id || p._id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                          <input type="checkbox"
+                            checked={selectedPromoProductIds.includes(p.id || p._id)}
+                            onChange={e => setSelectedPromoProductIds(prev => e.target.checked ? [...prev, p.id || p._id] : prev.filter(x => x !== (p.id || p._id)))}
+                            className="rounded border-gray-300 text-[#0D3B6E]"
+                          />
+                          <span className="text-sm text-gray-700 flex-1 truncate">{p.name}</span>
+                          <span className="text-xs text-gray-400">{formatGhs(p.price)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button type="button" className="btn-secondary mb-5" onClick={createPromotion}>
+                <Plus className="w-4 h-4" /> Create promotion
+              </button>
+
+              {promotions.length > 0 && (
+                <div className="space-y-2">
+                  {promotions.map(p => {
+                    const id = p.id || p._id;
+                    const expired = p.ends_at && new Date(p.ends_at) < new Date();
+                    return (
+                      <div key={id} className={`flex items-center justify-between rounded-xl px-4 py-3 ring-1 ${
+                        p.is_active && !expired ? 'bg-orange-50 ring-orange-100' : 'bg-gray-50 ring-gray-100'
+                      }`}>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm text-gray-800 truncate">{p.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {p.discount_type === 'percent' ? `${p.discount_value}% off` : `GH₵${p.discount_value} off`}
+                            {' · '}{p.applies_to === 'all' ? 'All products' : p.applies_to === 'category' ? 'By category' : 'Selected products'}
+                            {expired && <span className="text-red-500 ml-1">· Expired</span>}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button type="button" onClick={() => togglePromotion(id, !p.is_active)} title={p.is_active ? 'Pause' : 'Activate'}>
+                            {p.is_active && !expired
+                              ? <ToggleRight className="w-6 h-6 text-orange-500" />
+                              : <ToggleLeft className="w-6 h-6 text-gray-400" />}
+                          </button>
+                          <button type="button" onClick={() => deletePromotion(id)} className="text-gray-400 hover:text-red-500">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

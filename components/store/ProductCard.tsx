@@ -50,7 +50,7 @@ export default function ProductCard({ product: p, inCartQty, showBranch, cartLoa
         )}
         {!lowStock && p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) + 0.01 && (
           <span className="absolute top-2 left-2 store-badge bg-red-500 text-white text-[9px] px-2 py-0.5">
-            -{Math.round((1 - parseFloat(p.price) / parseFloat(p.compare_price)) * 100)}%
+            {p.promotion_name ? p.promotion_name : `-${Math.round((1 - parseFloat(p.price) / parseFloat(p.compare_price)) * 100)}%`}
           </span>
         )}
         {showBranch && p.branch_name && (

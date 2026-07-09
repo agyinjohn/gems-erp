@@ -11,6 +11,7 @@ export default function InstallPrompt({ businessName, tenantSlug }: Props) {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [show, setShow] = useState(false);
   const [isIos, setIsIos] = useState(false);
+  const [isChromeiOs, setIsChromeiOs] = useState(false);
   const [installed, setInstalled] = useState(false);
 
   const dismissKey = `gems_pwa_dismissed_${tenantSlug}`;
@@ -30,6 +31,9 @@ export default function InstallPrompt({ businessName, tenantSlug }: Props) {
     const ios = /iphone|ipad|ipod/i.test(ua) && !(window as any).MSStream;
     if (ios) {
       setIsIos(true);
+      // Chrome on iOS cannot install PWAs — must use Safari
+      const isChromeIos = /CriOS/i.test(ua);
+      setIsChromeiOs(isChromeIos);
       setTimeout(() => setShow(true), 3000);
       return;
     }
@@ -84,21 +88,38 @@ export default function InstallPrompt({ businessName, tenantSlug }: Props) {
         <div className="px-4 py-3">
           {isIos ? (
             <div className="space-y-2">
-              <p className="text-sm text-gray-700 font-medium">Add to your Home Screen</p>
-              <ol className="text-xs text-gray-500 space-y-1.5 list-none">
-                <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#0D3B6E] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
-                  Tap the <strong className="text-gray-700">Share</strong> button in Safari
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#0D3B6E] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
-                  Scroll down and tap <strong className="text-gray-700">Add to Home Screen</strong>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#0D3B6E] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
-                  Tap <strong className="text-gray-700">Add</strong> to confirm
-                </li>
-              </ol>
+              {isChromeiOs ? (
+                <>
+                  <p className="text-sm text-gray-700 font-medium">Open in Safari to install</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Chrome on iPhone doesn&apos;t support installing apps. Copy the link and open it in <strong className="text-gray-700">Safari</strong> to add this store to your Home Screen.
+                  </p>
+                  <button
+                    onClick={() => { navigator.clipboard?.writeText(window.location.href); }}
+                    className="w-full flex items-center justify-center gap-2 bg-[#0D3B6E] text-white text-sm font-bold py-2.5 rounded-xl"
+                  >
+                    Copy link to open in Safari
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-700 font-medium">Add to your Home Screen</p>
+                  <ol className="text-xs text-gray-500 space-y-1.5 list-none">
+                    <li className="flex items-start gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[#0D3B6E] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                      Tap the <strong className="text-gray-700">Share</strong> button in Safari
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[#0D3B6E] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                      Scroll down and tap <strong className="text-gray-700">Add to Home Screen</strong>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[#0D3B6E] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                      Tap <strong className="text-gray-700">Add</strong> to confirm
+                    </li>
+                  </ol>
+                </>
+              )}
               <button onClick={dismiss} className="w-full mt-1 text-xs text-gray-400 hover:text-gray-600 py-1">
                 Maybe later
               </button>
