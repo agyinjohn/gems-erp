@@ -256,14 +256,14 @@ export default function LoginPage() {
               </form>
 
               {/* Divider */}
-              {/* <div className="flex items-center gap-3 my-5">
+              <div className="flex items-center gap-3 my-5">
                 <div className="flex-1 h-px bg-gray-100" />
                 <span className="text-xs text-gray-400">or</span>
                 <div className="flex-1 h-px bg-gray-100" />
-              </div> */}
+              </div>
 
               {/* Demo accounts */}
-              {/* <div>
+              <div>
                 <button
                   type="button"
                   onClick={() => setShowDemo(v => !v)}
@@ -297,7 +297,7 @@ export default function LoginPage() {
                     ))}
                   </div>
                 )}
-              </div> */}
+              </div>
 
               {/* Footer */}
               <div className="mt-8 pt-6 border-t border-gray-100 space-y-3">
