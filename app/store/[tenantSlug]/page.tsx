@@ -158,6 +158,11 @@ export default function TenantStorefrontPage() {
     }
   }, []);
 
+  // Scroll to top on every step change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [step]);
+
   useEffect(() => {
     publicApi.get('/categories', { params: { tenant_slug: tenantSlug } }).then(c => setCategories(c.data.data)).catch(() => {});
     const savedId = localStorage.getItem(cartIdKey(tenantSlug)) || '';
@@ -882,7 +887,7 @@ export default function TenantStorefrontPage() {
                   <h2 className="text-lg font-bold text-gray-800 mb-4">Related Products</h2>
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {related.map(p => (
-                      <button key={p.id} type="button" onClick={() => { setSelectedProduct(p); setDetailQty(1); }} className="store-product-card text-left">
+                      <button key={p.id} type="button" onClick={() => { setSelectedProduct(p); setDetailQty(1); window.scrollTo({ top: 0, behavior: 'instant' }); }} className="store-product-card text-left">
                         <div className={`aspect-[4/3] bg-gradient-to-br ${categoryGradient(p.category_name)} flex items-center justify-center overflow-hidden`}>
                           {p.images?.[0] ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" /> : <Package className={`w-12 h-12 ${categoryIconColor(p.category_name)}`} />}
                         </div>
