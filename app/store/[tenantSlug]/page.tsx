@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, SlidersHorizontal, Tag } from 'lucide-react';
+import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, SlidersHorizontal, Tag, Heart } from 'lucide-react';
 import StoreAuthModal from '@/components/store/StoreAuthModal';
 import { publicApi } from '@/lib/api';
 import ProductCard from '@/components/store/ProductCard';
@@ -35,10 +35,13 @@ interface CartItem { product: StoreProduct; quantity: number; branch_id: string;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const PHONE_RE = /^[+\d][\d\s\-().]{6,19}$/;
+
 function validateCheckoutForm(form: { customer_name: string; customer_email: string; customer_phone: string; delivery_address: string }) {
   if (!form.customer_name.trim()) return 'Full name is required.';
   if (!form.customer_email.trim()) return 'Email address is required.';
   if (!EMAIL_RE.test(form.customer_email.trim())) return 'Please enter a valid email address.';
+  if (form.customer_phone.trim() && !PHONE_RE.test(form.customer_phone.trim())) return 'Please enter a valid phone number.';
   return null;
 }
 
@@ -117,6 +120,7 @@ export default function TenantStorefrontPage() {
   const [storeSettings, setStoreSettings] = useState<StorefrontSettings>({ ...DEFAULT_STOREFRONT_SETTINGS });
   const [pendingPayment, setPendingPayment] = useState<{ orderIds: string[]; reference: string; email: string; grandTotal: number; paystackKey: string } | null>(null);
   const [verifyError, setVerifyError] = useState('');
+  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const toggleSection = (key: string) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   const {
@@ -178,6 +182,21 @@ export default function TenantStorefrontPage() {
     s.async = true;
     document.body.appendChild(s);
   }, []);
+
+  // Load wishlist from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(`gems_wishlist_${tenantSlug}`);
+    if (saved) { try { setWishlist(new Set(JSON.parse(saved))); } catch {} }
+  }, [tenantSlug]);
+
+  const toggleWishlist = (productId: string) => {
+    setWishlist(prev => {
+      const next = new Set(prev);
+      next.has(productId) ? next.delete(productId) : next.add(productId);
+      localStorage.setItem(`gems_wishlist_${tenantSlug}`, JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   // Close branch menu on outside click
   useEffect(() => {
@@ -679,6 +698,8 @@ export default function TenantStorefrontPage() {
                         cartLoading={cartLoadingIds.has(p.id)}
                         onAdd={() => addToCart(p)}
                         onUpdateQty={delta => updateQty(p.id, delta)}
+                        wishlisted={wishlist.has(p.id)}
+                        onToggleWishlist={() => toggleWishlist(p.id)}
                       />
                     );
                   })}
@@ -742,11 +763,30 @@ export default function TenantStorefrontPage() {
                       <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">
                         <ShieldCheck className="w-3.5 h-3.5 text-[#0D3B6E]" /> Secure checkout
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleWishlist(selectedProduct.id)}
+                        className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors"
+                        style={wishlist.has(selectedProduct.id) ? { borderColor: '#ef4444', color: '#ef4444', background: '#fff1f2' } : { borderColor: '#e5e7eb', color: '#6b7280' }}
+                      >
+                        <Heart className={`w-3.5 h-3.5 ${wishlist.has(selectedProduct.id) ? 'fill-red-500' : ''}`} />
+                        {wishlist.has(selectedProduct.id) ? 'Wishlisted' : 'Wishlist'}
+                      </button>
                     </div>
                   </div>
 
                   <div className="border-t border-gray-100 pt-4">
-                    <div className="text-3xl font-extrabold text-gray-900 tracking-tight">{formatGhs(selectedProduct.price)}</div>
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <div className="text-3xl font-extrabold text-gray-900 tracking-tight">{formatGhs(selectedProduct.price)}</div>
+                      {selectedProduct.compare_price && selectedProduct.compare_price > selectedProduct.price && (
+                        <>
+                          <div className="text-lg text-gray-400 line-through">{formatGhs(selectedProduct.compare_price)}</div>
+                          <span className="text-xs font-bold bg-red-500 text-white px-2 py-0.5 rounded-full">
+                            -{Math.round((1 - selectedProduct.price / selectedProduct.compare_price) * 100)}% OFF
+                          </span>
+                        </>
+                      )}
+                    </div>
                     <div className="text-xs text-gray-400 mt-0.5">Inclusive of all taxes</div>
                   </div>
 
@@ -861,10 +901,11 @@ export default function TenantStorefrontPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-5">
               <div className="store-filter-panel p-6">
-                <h2 className="font-bold text-gray-900 text-base mb-5 flex items-center gap-2">
+                <h2 className="font-bold text-gray-900 text-base mb-1 flex items-center gap-2">
                   <span className="w-7 h-7 bg-[#0D3B6E] text-white rounded-full text-xs flex items-center justify-center font-bold">1</span>
                   Delivery Information
                 </h2>
+                <p className="text-xs text-gray-400 mb-5">No account needed — just fill in your details below.</p>
                 {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-xl text-sm mb-4 ring-1 ring-red-100">{error}</div>}
                 {verifyError && (
                   <div className="bg-amber-50 text-amber-900 px-3 py-3 rounded-xl text-sm mb-4 ring-1 ring-amber-100 space-y-2">
@@ -1043,6 +1084,8 @@ export default function TenantStorefrontPage() {
           freeDeliveryThreshold={storeSettings.free_delivery_threshold}
           onCategorySelect={name => { setFilterCat(name); setStep('shop'); resetPage(); }}
           onTrackOrder={() => { setTrackInput(''); setTrackResult(null); setTrackError(''); setStep('track'); }}
+          onShipping={() => { setTrackInput(''); setTrackResult(null); setTrackError(''); setStep('track'); }}
+          onReturns={() => { setTrackInput(''); setTrackResult(null); setTrackError(''); setStep('track'); }}
         />
       )}
 
@@ -1052,7 +1095,7 @@ export default function TenantStorefrontPage() {
           initial={deliveryLocation}
           onConfirm={(addr) => {
             setDeliveryLocation(addr);
-            if (addr) setForm(f => ({ ...f, delivery_address: f.delivery_address || addr }));
+            if (addr) setForm(f => ({ ...f, delivery_address: addr }));
             setShowLocationModal(false);
           }}
           onClose={() => setShowLocationModal(false)}
@@ -1119,9 +1162,16 @@ export default function TenantStorefrontPage() {
                 <ShoppingCart className="w-5 h-5" />
                 <h2 className="font-bold text-base">Your Cart <span className="text-amber-300">({cartCount})</span></h2>
               </div>
-              <button type="button" onClick={() => setShowCart(false)} className="text-white/70 hover:text-white transition-colors p-1">
-                <X className="w-5 h-5"/>
-              </button>
+              <div className="flex items-center gap-2">
+                {cart.length > 0 && (
+                  <button type="button" onClick={clearCart} className="text-white/60 hover:text-red-300 text-xs font-medium transition-colors">
+                    Clear all
+                  </button>
+                )}
+                <button type="button" onClick={() => setShowCart(false)} className="text-white/70 hover:text-white transition-colors p-1">
+                  <X className="w-5 h-5"/>
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
@@ -1281,6 +1331,16 @@ export default function TenantStorefrontPage() {
                           <p className="text-xs capitalize text-gray-400 mt-0.5">{o.status} · {o.payment_status}</p>
                         </div>
                       </div>
+                      {o.items && o.items.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-gray-50 space-y-1.5">
+                          {o.items.map((item, idx) => (
+                            <div key={idx} className="flex justify-between text-xs text-gray-500">
+                              <span className="truncate flex-1 mr-2">{item.product_name} × {item.quantity}</span>
+                              <span className="font-medium text-gray-700 shrink-0">{formatGhs(item.unit_price * item.quantity)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1320,11 +1380,13 @@ export default function TenantStorefrontPage() {
         <MobileBottomBar
           cartCount={cartCount}
           filterCount={activeFilterCount}
-          active={showMobileFilters ? 'filters' : step === 'track' ? 'track' : showCart ? 'cart' : 'shop'}
+          active={showMobileFilters ? 'filters' : step === 'track' ? 'track' : step === 'orders' ? 'account' : showCart ? 'cart' : 'shop'}
           onHome={() => { setStep('shop'); setShowMobileFilters(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           onFilters={() => setShowMobileFilters(true)}
           onCart={() => setShowCart(true)}
           onTrack={() => { setTrackInput(''); setTrackResult(null); setTrackError(''); setStep('track'); setShowMobileFilters(false); }}
+          onAccount={openAccount}
+          customerName={storeCustomer?.name}
         />
       )}
     </div>

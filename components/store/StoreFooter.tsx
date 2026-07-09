@@ -7,9 +7,11 @@ interface Props {
   freeDeliveryThreshold: number;
   onCategorySelect: (name: string) => void;
   onTrackOrder: () => void;
+  onShipping?: () => void;
+  onReturns?: () => void;
 }
 
-export default function StoreFooter({ businessName, categories, freeDeliveryThreshold, onCategorySelect, onTrackOrder }: Props) {
+export default function StoreFooter({ businessName, categories, freeDeliveryThreshold, onCategorySelect, onTrackOrder, onShipping, onReturns }: Props) {
   const storeName = businessName || 'GEMS Store';
 
   return (
@@ -77,8 +79,12 @@ export default function StoreFooter({ businessName, categories, freeDeliveryThre
                   Track My Order
                 </button>
               </li>
-              <li><span className="text-gray-500 text-sm">Shipping & delivery info</span></li>
-              <li><span className="text-gray-500 text-sm">Returns & refunds</span></li>
+              <li>
+                <button type="button" onClick={onShipping} className="text-gray-400 hover:text-amber-400 text-sm transition-colors">Shipping &amp; delivery info</button>
+              </li>
+              <li>
+                <button type="button" onClick={onReturns} className="text-gray-400 hover:text-amber-400 text-sm transition-colors">Returns &amp; refunds</button>
+              </li>
             </ul>
             <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mb-2">We accept</p>
             <div className="flex flex-wrap gap-2">

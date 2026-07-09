@@ -1,5 +1,5 @@
 'use client';
-import { Plus, Minus, MapPin } from 'lucide-react';
+import { Plus, Minus, MapPin, Heart } from 'lucide-react';
 import { formatGhs } from './theme';
 import ProductCardImage from './ProductCardImage';
 import { getProductImages } from './productImages';
@@ -9,12 +9,14 @@ interface Props {
   inCartQty?: number;
   showBranch?: boolean;
   cartLoading?: boolean;
+  wishlisted?: boolean;
   onOpen: () => void;
   onAdd: () => void;
   onUpdateQty: (delta: number) => void;
+  onToggleWishlist?: () => void;
 }
 
-export default function ProductCard({ product: p, inCartQty, showBranch, cartLoading, onOpen, onAdd, onUpdateQty }: Props) {
+export default function ProductCard({ product: p, inCartQty, showBranch, cartLoading, wishlisted, onOpen, onAdd, onUpdateQty, onToggleWishlist }: Props) {
   const outOfStock = p.stock_qty <= 0;
   const lowStock = p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5);
   const multiImage = getProductImages(p).length > 1;
@@ -31,9 +33,24 @@ export default function ProductCard({ product: p, inCartQty, showBranch, cartLoa
             </span>
           </div>
         )}
+        {onToggleWishlist && (
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onToggleWishlist(); }}
+            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center hover:scale-110 transition-transform"
+            aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          >
+            <Heart className={`w-3.5 h-3.5 ${wishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+          </button>
+        )}
         {lowStock && (
           <span className="absolute top-2 left-2 store-badge store-badge-warn text-[9px] px-2 py-0.5">
             Only {p.stock_qty} left
+          </span>
+        )}
+        {!lowStock && p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) && (
+          <span className="absolute top-2 left-2 store-badge bg-red-500 text-white text-[9px] px-2 py-0.5">
+            -{Math.round((1 - parseFloat(p.price) / parseFloat(p.compare_price)) * 100)}%
           </span>
         )}
         {showBranch && p.branch_name && (
@@ -55,7 +72,12 @@ export default function ProductCard({ product: p, inCartQty, showBranch, cartLoa
         </button>
 
         <div className="mt-auto pt-0.5">
-          <div className="text-base sm:text-lg font-extrabold text-gray-900 tracking-tight">{formatGhs(parseFloat(p.price))}</div>
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-base sm:text-lg font-extrabold text-gray-900 tracking-tight">{formatGhs(parseFloat(p.price))}</span>
+            {p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) && (
+              <span className="text-xs text-gray-400 line-through">{formatGhs(parseFloat(p.compare_price))}</span>
+            )}
+          </div>
 
           <div className="mt-2">
             {outOfStock ? (

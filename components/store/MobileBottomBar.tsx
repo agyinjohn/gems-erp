@@ -1,22 +1,25 @@
 'use client';
-import { Home, SlidersHorizontal, ShoppingCart, Search } from 'lucide-react';
+import { Home, SlidersHorizontal, ShoppingCart, Search, User } from 'lucide-react';
 
 interface Props {
   cartCount: number;
   filterCount: number;
-  active: 'shop' | 'filters' | 'cart' | 'track';
+  active: 'shop' | 'filters' | 'cart' | 'track' | 'account';
   onHome: () => void;
   onFilters: () => void;
   onCart: () => void;
   onTrack: () => void;
+  onAccount: () => void;
+  customerName?: string;
 }
 
-export default function MobileBottomBar({ cartCount, filterCount, active, onHome, onFilters, onCart, onTrack }: Props) {
+export default function MobileBottomBar({ cartCount, filterCount, active, onHome, onFilters, onCart, onTrack, onAccount, customerName }: Props) {
   const items = [
     { id: 'shop' as const, label: 'Shop', icon: Home, onClick: onHome },
     { id: 'filters' as const, label: 'Filters', icon: SlidersHorizontal, onClick: onFilters, badge: filterCount || undefined },
     { id: 'cart' as const, label: 'Cart', icon: ShoppingCart, onClick: onCart, badge: cartCount || undefined },
     { id: 'track' as const, label: 'Track', icon: Search, onClick: onTrack },
+    { id: 'account' as const, label: customerName ? customerName.split(' ')[0] : 'Account', icon: User, onClick: onAccount },
   ];
 
   return (

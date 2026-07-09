@@ -2,6 +2,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { publicApi } from '@/lib/api';
 
+function useDebounced<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
 const ITEMS_PER_PAGE = 16;
 
 function dedupeProducts(items: any[]) {
@@ -22,6 +31,7 @@ interface FeedQuery {
 }
 
 export function useStoreProductFeed({ tenantSlug, search, filterCat, branchSlug }: FeedQuery) {
+  const debouncedSearch = useDebounced(search, 300);
   const [products, setProducts] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -34,7 +44,7 @@ export function useStoreProductFeed({ tenantSlug, search, filterCat, branchSlug 
   const abortRef = useRef<AbortController | null>(null);
   const productsRef = useRef<any[]>([]);
 
-  const queryKey = `${tenantSlug}|${search}|${filterCat}|${branchSlug ?? ''}`;
+  const queryKey = `${tenantSlug}|${debouncedSearch}|${filterCat}|${branchSlug ?? ''}`;
 
   useEffect(() => {
     productsRef.current = products;
@@ -62,7 +72,7 @@ export function useStoreProductFeed({ tenantSlug, search, filterCat, branchSlug 
         limit: ITEMS_PER_PAGE,
         tenant_slug: tenantSlug,
       };
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (filterCat) params.category = filterCat;
       if (branchSlug) params.branch_slug = branchSlug;
 
