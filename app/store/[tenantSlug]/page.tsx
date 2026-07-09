@@ -13,6 +13,7 @@ import ProductImageGallery from '@/components/store/ProductImageGallery';
 import ProductCardSkeleton from '@/components/store/ProductCardSkeleton';
 import OrderTrackingPanel from '@/components/store/OrderTrackingPanel';
 import LocationPickerModal from '@/components/store/LocationPickerModal';
+import InstallPrompt from '@/components/store/InstallPrompt';
 import { categoryGradient, categoryIconColor, formatGhs } from '@/components/store/theme';
 import {
   DEFAULT_STOREFRONT_SETTINGS,
@@ -149,6 +150,13 @@ export default function TenantStorefrontPage() {
     }).catch(() => {});
     fetchPublicStoreSettings(tenantSlug).then(setStoreSettings);
   }, [tenantSlug]);
+
+  // Handle manifest shortcut: ?track=1
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('track') === '1') {
+      setStep('track');
+    }
+  }, []);
 
   useEffect(() => {
     publicApi.get('/categories', { params: { tenant_slug: tenantSlug } }).then(c => setCategories(c.data.data)).catch(() => {});
@@ -777,8 +785,12 @@ export default function TenantStorefrontPage() {
 
                   <div className="border-t border-gray-100 pt-4">
                     <div className="flex items-baseline gap-3 flex-wrap">
-                      <div className="text-3xl font-extrabold text-gray-900 tracking-tight">{formatGhs(selectedProduct.price)}</div>
-                      {selectedProduct.compare_price && selectedProduct.compare_price > selectedProduct.price && (
+                      {selectedProduct.price > 0 ? (
+                        <div className="text-3xl font-extrabold text-gray-900 tracking-tight">{formatGhs(selectedProduct.price)}</div>
+                      ) : (
+                        <div className="text-xl font-semibold text-gray-400 italic">Price on request</div>
+                      )}
+                      {selectedProduct.price > 0 && selectedProduct.compare_price && selectedProduct.compare_price > selectedProduct.price + 0.01 && (
                         <>
                           <div className="text-lg text-gray-400 line-through">{formatGhs(selectedProduct.compare_price)}</div>
                           <span className="text-xs font-bold bg-red-500 text-white px-2 py-0.5 rounded-full">
@@ -1375,6 +1387,8 @@ export default function TenantStorefrontPage() {
           onClose={() => setShowAccountModal(false)}
         />
       )}
+
+      <InstallPrompt businessName={tenant?.business_name} tenantSlug={tenantSlug} />
 
       {(step === 'shop' || step === 'detail' || step === 'track' || step === 'orders') && (
         <MobileBottomBar

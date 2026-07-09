@@ -48,7 +48,7 @@ export default function ProductCard({ product: p, inCartQty, showBranch, cartLoa
             Only {p.stock_qty} left
           </span>
         )}
-        {!lowStock && p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) && (
+        {!lowStock && p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) + 0.01 && (
           <span className="absolute top-2 left-2 store-badge bg-red-500 text-white text-[9px] px-2 py-0.5">
             -{Math.round((1 - parseFloat(p.price) / parseFloat(p.compare_price)) * 100)}%
           </span>
@@ -73,8 +73,12 @@ export default function ProductCard({ product: p, inCartQty, showBranch, cartLoa
 
         <div className="mt-auto pt-0.5">
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-base sm:text-lg font-extrabold text-gray-900 tracking-tight">{formatGhs(parseFloat(p.price))}</span>
-            {p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) && (
+            {parseFloat(p.price) > 0 ? (
+              <span className="text-base sm:text-lg font-extrabold text-gray-900 tracking-tight">{formatGhs(parseFloat(p.price))}</span>
+            ) : (
+              <span className="text-sm font-semibold text-gray-400 italic">Price on request</span>
+            )}
+            {parseFloat(p.price) > 0 && p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) + 0.01 && (
               <span className="text-xs text-gray-400 line-through">{formatGhs(parseFloat(p.compare_price))}</span>
             )}
           </div>
@@ -84,7 +88,7 @@ export default function ProductCard({ product: p, inCartQty, showBranch, cartLoa
               <button disabled className="store-btn store-btn-muted store-btn-sm w-full cursor-not-allowed">
                 Unavailable
               </button>
-            ) : inCartQty ? (
+            ) : inCartQty && inCartQty > 0 ? (
               <div className="flex items-center justify-between bg-slate-50 rounded-lg px-2 py-1.5 border border-slate-100">
                 <button
                   type="button"

@@ -8,12 +8,10 @@ interface Props {
   className?: string;
 }
 
-/** Card image area — shows first image, dots + count when multiple exist. */
 export default function ProductCardImage({ product, className = '' }: Props) {
   const bg = categoryGradient(product.category_name);
   const iconColor = categoryIconColor(product.category_name);
   const images = getProductImages(product);
-  const hasMultiple = images.length > 1;
 
   return (
     <div className={`relative aspect-[4/3] sm:aspect-[3/2] bg-gradient-to-br ${bg} overflow-hidden ${className}`}>
@@ -33,7 +31,7 @@ export default function ProductCardImage({ product, className = '' }: Props) {
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
-      {hasMultiple && (
+      {images.length > 1 && (
         <>
           <span className="absolute top-2 right-2 store-badge store-badge-dark text-[9px] px-2 py-0.5 gap-1">
             <Images className="w-2.5 h-2.5" />

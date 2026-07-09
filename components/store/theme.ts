@@ -24,6 +24,8 @@ export function categoryIconColor(name?: string) {
   return CATEGORY_ICON_COLORS[name || ''] || 'text-slate-300';
 }
 
-export function formatGhs(amount: number) {
-  return `GH₵ ${amount.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export function formatGhs(amount: number | null | undefined) {
+  const n = Number(amount);
+  if (!isFinite(n)) return 'GH₵ —';
+  return `GH₵ ${n.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
