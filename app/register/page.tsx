@@ -297,7 +297,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
         </div>
 
         {/* Form area */}
-        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-6 sm:py-8">
+        <div className="flex-1 flex lg:items-center lg:justify-center px-4 sm:px-6 py-6 sm:py-8">
           <div className="w-full max-w-md">
 
             {/* Step indicator */}
