@@ -177,7 +177,26 @@ interface Props {
 
 export default function Sidebar({ open, onClose, collapsed }: Props) {
   const pathname = usePathname();
-  const { user, tenant } = useAuth();
+  const { user, tenant, hasModule } = useAuth();
+
+  const NAV_MODULE_MAP: Record<string, string> = {
+    '/procurement':    'procurement',
+    '/hr':             'hr',
+    '/crm':            'crm',
+    '/orders':         'sales',
+    '/inventory':      'inventory',
+    '/pos':            'pos',
+    '/reports':        'reports',
+    '/store-settings': 'online_storefront',
+    '/accounting':     'advanced_accounting',
+  };
+
+  const isModuleAllowed = (href: string): boolean => {
+    for (const [prefix, mod] of Object.entries(NAV_MODULE_MAP)) {
+      if (href === prefix || href.startsWith(prefix + '/')) return hasModule(mod);
+    }
+    return true;
+  };
 
   // Build initial collapsed state — auto-open the group that contains the active route
   const getInitialOpen = () => {
@@ -218,7 +237,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
   const toggle = (gi: number) => setOpenGroups(prev => ({ ...prev, [gi]: !prev[gi] }));
 
   const filterByProductMode = (items: NavItem[]) =>
-    items.filter((item) => isNavAllowed(item.href));
+    items.filter((item) => isNavAllowed(item.href) && isModuleAllowed(item.href));
 
   const renderContent = (isCollapsed: boolean) => (
     <aside className="h-full w-full flex flex-col bg-[#0D3B6E] border-r border-white/10">

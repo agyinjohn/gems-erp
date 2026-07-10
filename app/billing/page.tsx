@@ -8,83 +8,71 @@ import api from '@/lib/api';
 
 const DEFAULT_PLANS = [
   {
-    key:       'starter',
-    label:     'Starter',
-    price:     350,
-    color:     'border-blue-200 bg-blue-50',
-    badge:     'bg-blue-100 text-blue-700',
+    key: 'starter',
+    label: 'Starter',
+    price: 350,
+    color: 'border-blue-200 bg-blue-50',
+    badge: 'bg-blue-100 text-blue-700',
     highlight: 'text-blue-600',
-    features:  ['1 Branch', '5 Users', 'All core modules', 'Storefront', 'POS'],
+    features: ['1 Branch', '5 Users', 'Stocks & Inventory', 'Sales & Orders', 'POS Terminal', 'Basic Reports'],
   },
   {
-    key:       'pro',
-    label:     'Pro',
-    price:     850,
-    color:     'border-purple-200 bg-purple-50',
-    badge:     'bg-purple-100 text-purple-700',
+    key: 'pro',
+    label: 'Pro',
+    price: 1000,
+    color: 'border-purple-200 bg-purple-50',
+    badge: 'bg-purple-100 text-purple-700',
     highlight: 'text-purple-600',
-    features:  ['5 Branches', '20 Users', 'All core modules', 'Storefront', 'POS', 'Priority support'],
-    popular:   true,
+    features: ['5 Branches', '20 Users', 'All Starter Features', 'Online Storefront', 'Procurement', 'HR & Payroll', 'CRM', 'Advanced Reports & Financial Analytics', 'Priority Support'],
+    popular: true,
   },
   {
-    key:       'enterprise',
-    label:     'Enterprise',
-    price:     2000,
-    color:     'border-orange-200 bg-orange-50',
-    badge:     'bg-orange-100 text-orange-700',
+    key: 'enterprise',
+    label: 'Enterprise',
+    price: 2500,
+    color: 'border-orange-200 bg-orange-50',
+    badge: 'bg-orange-100 text-orange-700',
     highlight: 'text-orange-600',
-    features:  ['Unlimited Branches', 'Unlimited Users', 'All modules', 'Storefront', 'POS', 'Dedicated support'],
+    features: ['15 Branches', 'Unlimited Users', 'All Pro Features', 'Advanced Accounting', 'Dedicated Support', 'Custom Onboarding', 'SLA Guarantee'],
   },
 ];
 
-const MODULE_PRICES: Record<string, { label: string; price: number; desc: string }> = {
-  pos:         { label: 'POS Terminal',  price: 80,  desc: 'Point-of-sale & receipts' },
-  storefront:  { label: 'Online Store',  price: 60,  desc: 'Public storefront & checkout' },
-  inventory:   { label: 'Inventory',     price: 50,  desc: 'Stock & warehouse management' },
-  crm:         { label: 'CRM',           price: 50,  desc: 'Customers & leads' },
-  accounting:  { label: 'Accounting',    price: 80,  desc: 'Ledger, invoices & reports' },
-  hr:          { label: 'HR & Payroll',  price: 80,  desc: 'Staff, attendance & payroll' },
-  procurement: { label: 'Procurement',   price: 60,  desc: 'Purchase orders & suppliers' },
-  reports:     { label: 'Reports',       price: 40,  desc: 'Analytics & exports' },
-};
-
-const ADDON_PRICES: Record<string, { label: string; price: number; desc: string }> = {
-  extra_branch:     { label: 'Extra Branch',    price: 40, desc: '+1 branch location' },
-  extra_users:      { label: '+10 Users',        price: 30, desc: 'Expand user seats by 10' },
-  api_access:       { label: 'API Access',       price: 50, desc: 'REST API & webhooks' },
-  priority_support: { label: 'Priority Support', price: 60, desc: 'Dedicated support channel' },
+// Features that can be removed from a plan and their deduction per plan
+const REMOVABLE_FEATURES: Record<string, { label: string; deduction: Partial<Record<'starter'|'pro'|'enterprise', number>> }> = {
+  online_storefront:   { label: 'Online Storefront',   deduction: { pro: 150, enterprise: 150 } },
+  procurement:         { label: 'Procurement',         deduction: { pro: 100, enterprise: 100 } },
+  hr:                  { label: 'HR & Payroll',        deduction: { pro: 150, enterprise: 150 } },
+  crm:                 { label: 'CRM',                 deduction: { pro: 100, enterprise: 100 } },
+  advanced_accounting: { label: 'Advanced Accounting', deduction: { enterprise: 500 } },
+  priority_support:    { label: 'Priority Support',    deduction: { pro: 80,  enterprise: 80  } },
 };
 
 const DURATIONS = [
-  { days: 30,  label: '1 Month',  discount: 0 },
-  { days: 90,  label: '3 Months', discount: 5 },
+  { days: 30, label: '1 Month', discount: 0 },
+  { days: 90, label: '3 Months', discount: 5 },
   { days: 180, label: '6 Months', discount: 10 },
-  { days: 365, label: '1 Year',   discount: 20 },
+  { days: 365, label: '1 Year', discount: 20 },
 ];
 
 const STATUS_CONFIG: Record<string, { icon: any; color: string; label: string }> = {
-  active:    { icon: CheckCircle,  color: 'text-green-600 bg-green-50 border-green-200',  label: 'Active' },
-  trial:     { icon: Clock,        color: 'text-yellow-600 bg-yellow-50 border-yellow-200', label: 'Trial' },
-  expired:   { icon: XCircle,      color: 'text-red-600 bg-red-50 border-red-200',        label: 'Expired' },
-  suspended: { icon: AlertTriangle,color: 'text-gray-600 bg-gray-50 border-gray-200',     label: 'Suspended' },
+  active: { icon: CheckCircle, color: 'text-green-600 bg-green-50 border-green-200', label: 'Active' },
+  trial: { icon: Clock, color: 'text-yellow-600 bg-yellow-50 border-yellow-200', label: 'Trial' },
+  expired: { icon: XCircle, color: 'text-red-600 bg-red-50 border-red-200', label: 'Expired' },
+  suspended: { icon: AlertTriangle, color: 'text-gray-600 bg-gray-50 border-gray-200', label: 'Suspended' },
 };
 
 export default function BillingPage() {
   const { tenant: authTenant } = useAuth();
-  const [status, setStatus]             = useState<any>(null);
-  const [transactions, setTransactions]  = useState<any[]>([]);
-  const [card, setCard]                  = useState<any>(null);
-  const [plans, setPlans]                = useState(DEFAULT_PLANS);
-  const [loading, setLoading]            = useState(true);
-  const [selectedPlan, setSelectedPlan]  = useState('');
+  const [status, setStatus] = useState<any>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [card, setCard] = useState<any>(null);
+  const [plans, setPlans] = useState(DEFAULT_PLANS);
+  const [loading, setLoading] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState('');
   const [selectedDuration, setSelectedDuration] = useState(30);
-  const [paying, setPaying]              = useState(false);
-  const [cardSaving, setCardSaving]      = useState(false);
-  const [billingTab, setBillingTab]      = useState<'plans' | 'custom'>('plans');
-  const [selectedModules, setSelectedModules] = useState<string[]>([]);
-  const [selectedAddons, setSelectedAddons]   = useState<string[]>([]);
-  const [customDuration, setCustomDuration]   = useState(30);
-  const [customPaying, setCustomPaying]       = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [cardSaving, setCardSaving] = useState(false);
+  const [removedFeatures, setRemovedFeatures] = useState<string[]>([]);
 
   // Preload Paystack script on mount
   useEffect(() => {
@@ -107,7 +95,7 @@ export default function BillingPage() {
       .then(() => { toast.success('Card saved! Auto-renewal is now active.'); })
       .catch(() => { toast.error('Could not save card. Please try again.'); })
       .finally(() => { setCardSaving(false); load(); });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const load = async () => {
@@ -123,6 +111,7 @@ export default function BillingPage() {
       setTransactions(t.data.data);
       setCard(c.data.data);
       setSelectedPlan(s.data.data.plan);
+      setRemovedFeatures([]);
       if (cfg.data.data?.plans) {
         const backendPlans = cfg.data.data.plans;
         setPlans(DEFAULT_PLANS.map(p => ({
@@ -135,71 +124,60 @@ export default function BillingPage() {
   };
   useEffect(() => { load(); }, []);
 
-  const getAmount = (plan: string, days: number) => {
+  const getDiscount = (plan: string, removed: string[]) =>
+    removed.reduce((s, f) => s + (REMOVABLE_FEATURES[f]?.deduction[plan as 'starter'|'pro'|'enterprise'] || 0), 0);
+
+  const getAmount = (plan: string, days: number, removed: string[]) => {
     const base = plans.find(p => p.key === plan)?.price || 0;
-    const dur  = DURATIONS.find(d => d.days === days);
+    const deduction = getDiscount(plan, removed);
+    const dur = DURATIONS.find(d => d.days === days);
     const disc = dur?.discount || 0;
-    return ((base * (days / 30)) * (1 - disc / 100)).toFixed(2);
+    return (((base - deduction) * (days / 30)) * (1 - disc / 100)).toFixed(2);
   };
 
   const openPaystack = (amount: number, email: string, reference: string, pubKey: string, transaction_id: string) => {
-    const handler = (window as any).PaystackPop.setup({
-      key:      pubKey || 'pk_test_demo',
+    const PaystackPop = (window as any).PaystackPop;
+    if (!PaystackPop) { toast.error('Paystack not loaded. Please refresh.'); setPaying(false); return; }
+    PaystackPop.setup({
+      key: pubKey || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
       email,
-      amount:   Math.round(amount * 100),
+      amount: Math.round(amount * 100),
       currency: 'GHS',
       channels: ['card'],
-      ref:      reference,
-      onClose:  () => { setPaying(false); setCustomPaying(false); },
+      ref: reference,
+      label: 'GEMS Subscription',
+      onClose: () => setPaying(false),
       callback: (response: any) => {
         api.post('/billing/verify', { reference: response.reference, transaction_id })
           .then(() => { toast.success('Payment successful! Subscription activated.'); load(); })
           .catch(() => toast.error('Payment verification failed. Contact support.'))
-          .finally(() => { setPaying(false); setCustomPaying(false); });
+          .finally(() => setPaying(false));
       },
-    });
-    handler.openIframe();
+    }).openIframe();
   };
 
   const handlePay = async () => {
     if (!selectedPlan) return;
     setPaying(true);
     try {
-      const r = await api.post('/billing/subscribe', { plan: selectedPlan, duration_days: selectedDuration });
+      const r = await api.post('/billing/subscribe', {
+        plan: selectedPlan,
+        duration_days: selectedDuration,
+        removed_features: removedFeatures,
+      });
       const { transaction_id, amount, email, paystack_public_key, reference } = r.data.data;
       openPaystack(amount, email, reference, paystack_public_key, transaction_id);
-    } catch(e: any) {
+    } catch (e: any) {
       toast.error(e.response?.data?.message || 'Failed to initiate payment');
       setPaying(false);
     }
   };
 
-  const handleCustomPay = async () => {
-    if (!selectedModules.length) { toast.error('Select at least one module.'); return; }
-    setCustomPaying(true);
-    try {
-      const r = await api.post('/billing/subscribe', {
-        subscription_type: 'custom',
-        modules: selectedModules,
-        addons:  selectedAddons,
-        duration_days: customDuration,
-      });
-      const { transaction_id, amount, email, paystack_public_key, reference } = r.data.data;
-      openPaystack(amount, email, reference, paystack_public_key, transaction_id);
-    } catch(e: any) {
-      toast.error(e.response?.data?.message || 'Failed to initiate payment');
-      setCustomPaying(false);
-    }
+  const toggleRemoved = (plan: string, key: string) => {
+    // only allow removing features that have a deduction for this plan
+    if (!REMOVABLE_FEATURES[key]?.deduction[plan as 'starter'|'pro'|'enterprise']) return;
+    setRemovedFeatures(r => r.includes(key) ? r.filter(x => x !== key) : [...r, key]);
   };
-
-  const customTotal = (modules: string[], addons: string[], days: number) => {
-    const base = modules.reduce((s, m) => s + (MODULE_PRICES[m]?.price || 0), 0)
-               + addons.reduce((s, a)  => s + (ADDON_PRICES[a]?.price  || 0), 0);
-    return (base * (days / 30)).toFixed(2);
-  };
-
-  const toggleItem = <T extends string>(list: T[], item: T, set: (v: T[]) => void) =>
-    set(list.includes(item) ? list.filter(x => x !== item) : [...list, item]);
 
   if (loading) return (
     <AppLayout title="Billing" subtitle="Manage your subscription" allowedRoles={['business_owner']}>
@@ -209,8 +187,8 @@ export default function BillingPage() {
 
   const statusCfg = STATUS_CONFIG[status?.subscription_status] || STATUS_CONFIG.trial;
   const StatusIcon = statusCfg.icon;
-  const daysLeft  = status?.days_remaining;
-  const daysTotal  = status?.total_days || 30;
+  const daysLeft = status?.days_remaining;
+  const daysTotal = status?.total_days || 30;
   const progressPct = daysLeft !== null && daysLeft > 0
     ? Math.min(100, Math.round((daysLeft / daysTotal) * 100))
     : 0;
@@ -251,7 +229,7 @@ export default function BillingPage() {
                 <div className="text-xs text-gray-400 mb-1">Expires</div>
                 <div className="font-bold text-gray-900 text-sm">
                   {status?.subscription_expires_at
-                    ? new Date(status.subscription_expires_at).toLocaleDateString('en-GH', { day:'2-digit', month:'short', year:'numeric' })
+                    ? new Date(status.subscription_expires_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })
                     : '—'}
                 </div>
                 <div className={`text-xs font-semibold mt-0.5 ${daysLeft !== null && daysLeft <= 7 ? 'text-red-500' : 'text-gray-400'}`}>
@@ -320,7 +298,7 @@ export default function BillingPage() {
                       try {
                         const r = await api.post('/billing/authorize-card');
                         window.location.href = r.data.data.authorization_url;
-                      } catch(e: any) { toast.error(e.response?.data?.message || 'Failed to initialize'); }
+                      } catch (e: any) { toast.error(e.response?.data?.message || 'Failed to initialize'); }
                     }}
                     className="text-xs font-bold text-[#0D3B6E] border border-[#0D3B6E] px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
                   >
@@ -332,7 +310,7 @@ export default function BillingPage() {
                     onClick={async () => {
                       if (!confirm('Turn off auto-renewal? Your subscription will stay active until it expires, then stop.')) return;
                       try { await api.post('/billing/cancel'); toast.success('Auto-renewal cancelled.'); load(); }
-                      catch(e: any) { toast.error(e.response?.data?.message || 'Failed'); }
+                      catch (e: any) { toast.error(e.response?.data?.message || 'Failed'); }
                     }}
                     className="text-xs text-gray-500 hover:underline font-medium"
                   >
@@ -350,7 +328,7 @@ export default function BillingPage() {
                         await api.post('/billing/cancel');
                         toast.success('Subscription cancelled.');
                         load();
-                      } catch(e: any) { toast.error(e.response?.data?.message || 'Failed'); }
+                      } catch (e: any) { toast.error(e.response?.data?.message || 'Failed'); }
                     }}
                     className="text-xs font-bold text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
                   >
@@ -370,8 +348,8 @@ export default function BillingPage() {
           {status?.plan !== 'enterprise' && (() => {
             const isStarter = status?.plan === 'starter';
             const next = isStarter
-              ? { key: 'pro',        label: 'Pro',        price: plans.find(p=>p.key==='pro')?.price || 79,  features: '5 branches, 20 users and priority support', gradient: 'from-purple-600 to-purple-800' }
-              : { key: 'enterprise', label: 'Enterprise', price: plans.find(p=>p.key==='enterprise')?.price || 199, features: 'unlimited branches, unlimited users and dedicated support', gradient: 'from-orange-500 to-orange-700' };
+              ? { key: 'pro', label: 'Pro', price: plans.find(p => p.key === 'pro')?.price || 79, features: '5 branches, 20 users and priority support', gradient: 'from-purple-600 to-purple-800' }
+              : { key: 'enterprise', label: 'Enterprise', price: plans.find(p => p.key === 'enterprise')?.price || 199, features: 'unlimited branches, unlimited users and dedicated support', gradient: 'from-orange-500 to-orange-700' };
             return (
               <div className={`bg-gradient-to-br ${next.gradient} rounded-xl p-5 text-white`}>
                 <Zap className="w-6 h-6 text-yellow-400 mb-3" />
@@ -393,138 +371,23 @@ export default function BillingPage() {
 
       {/* Plan selection — full width */}
       <div className="bg-white rounded-xl border border-gray-100 p-6 mt-6">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="font-bold text-gray-900">Choose a Plan</h2>
-            <p className="text-sm text-gray-400 mt-0.5">Select a plan to renew or upgrade your subscription.</p>
-          </div>
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
-            <button
-              onClick={() => setBillingTab('plans')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                billingTab === 'plans' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >Standard Plans</button>
-            <button
-              onClick={() => setBillingTab('custom')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                billingTab === 'custom' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >Custom</button>
-          </div>
+        <div className="mb-5">
+          <h2 className="font-bold text-gray-900">Choose a Plan</h2>
+          <p className="text-sm text-gray-400 mt-0.5">Select a plan then uncheck features you don't need — price adjusts automatically.</p>
         </div>
 
-        {billingTab === 'custom' ? (
-          <div className="space-y-6">
-            {/* Module picker */}
-            <div>
-              <p className="text-sm font-semibold text-gray-700 mb-3">Pick your modules <span className="text-gray-400 font-normal">(GHS/mo each)</span></p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {Object.entries(MODULE_PRICES).map(([key, m]) => {
-                  const on = selectedModules.includes(key);
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => toggleItem(selectedModules, key, setSelectedModules)}
-                      className={`rounded-xl border-2 p-4 text-left transition-all ${
-                        on ? 'border-[#0D3B6E] bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      <div className={`text-sm font-bold mb-0.5 ${on ? 'text-[#0D3B6E]' : 'text-gray-800'}`}>{m.label}</div>
-                      <div className="text-xs text-gray-400 mb-2">{m.desc}</div>
-                      <div className={`text-base font-extrabold ${on ? 'text-[#0D3B6E]' : 'text-gray-700'}`}>GHS {m.price}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Addons */}
-            <div>
-              <p className="text-sm font-semibold text-gray-700 mb-3">Add-ons <span className="text-gray-400 font-normal">(optional)</span></p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {Object.entries(ADDON_PRICES).map(([key, a]) => {
-                  const on = selectedAddons.includes(key);
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => toggleItem(selectedAddons, key, setSelectedAddons)}
-                      className={`rounded-xl border-2 p-4 text-left transition-all ${
-                        on ? 'border-purple-500 bg-purple-50' : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      <div className={`text-sm font-bold mb-0.5 ${on ? 'text-purple-700' : 'text-gray-800'}`}>{a.label}</div>
-                      <div className="text-xs text-gray-400 mb-2">{a.desc}</div>
-                      <div className={`text-base font-extrabold ${on ? 'text-purple-700' : 'text-gray-700'}`}>GHS {a.price}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Duration */}
-            <div>
-              <p className="text-sm font-semibold text-gray-700 mb-3">Billing Duration</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {DURATIONS.map(d => (
-                  <button
-                    key={d.days}
-                    onClick={() => setCustomDuration(d.days)}
-                    className={`py-3 rounded-xl border-2 text-sm font-bold transition-all ${
-                      customDuration === d.days ? 'border-[#0D3B6E] bg-[#0D3B6E] text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                    }`}
-                  >
-                    {d.label}
-                    {d.discount > 0 && (
-                      <div className={`text-xs mt-0.5 ${customDuration === d.days ? 'text-yellow-300' : 'text-green-600'}`}>
-                        Save {d.discount}%
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Summary + Pay */}
-            <div className="bg-gray-50 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <div className="text-sm text-gray-500">
-                  {selectedModules.length ? selectedModules.map(m => MODULE_PRICES[m]?.label).join(', ') : 'No modules selected'}
-                  {selectedAddons.length ? ` + ${selectedAddons.map(a => ADDON_PRICES[a]?.label).join(', ')}` : ''}
-                </div>
-                <div className="text-3xl font-extrabold text-gray-900 mt-1">
-                  GHS {customTotal(selectedModules, selectedAddons, customDuration)}
-                  <span className="text-sm font-normal text-gray-400 ml-2">· {DURATIONS.find(d => d.days === customDuration)?.label}</span>
-                </div>
-              </div>
-              <button
-                onClick={handleCustomPay}
-                disabled={customPaying || !selectedModules.length}
-                className="btn-primary px-8 py-4 text-base disabled:opacity-50 w-full sm:w-auto"
-              >
-                {customPaying ? (
-                  <><RefreshCw className="w-4 h-4 animate-spin" /> Processing…</>
-                ) : (
-                  <><CreditCard className="w-4 h-4" /> Pay with Paystack</>
-                )}
-              </button>
-            </div>
-          </div>
-        ) : (<>
-
+        {/* Plan cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {plans.map(p => (
             <button
               key={p.key}
-              onClick={() => setSelectedPlan(p.key)}
+              onClick={() => { setSelectedPlan(p.key); setRemovedFeatures([]); }}
               className={`relative rounded-xl border-2 p-5 text-left transition-all ${
                 selectedPlan === p.key ? `${p.color} border-current` : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
               {p.popular && (
-                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                  Most Popular
-                </div>
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap">Most Popular</div>
               )}
               <div className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mb-3 ${p.badge}`}>{p.label}</div>
               <div className={`text-3xl font-extrabold ${selectedPlan === p.key ? p.highlight : 'text-gray-900'}`}>
@@ -540,6 +403,53 @@ export default function BillingPage() {
             </button>
           ))}
         </div>
+
+        {/* Customise selected plan — remove features */}
+        {selectedPlan && (() => {
+          const plan = plans.find(p => p.key === selectedPlan)!;
+          const removable = Object.entries(REMOVABLE_FEATURES).filter(
+            ([key, f]) => f.deduction[selectedPlan as 'starter'|'pro'|'enterprise']
+          );
+          return removable.length > 0 ? (
+            <div className="mb-5 bg-gray-50 rounded-xl p-4">
+              <p className="text-sm font-semibold text-gray-700 mb-1">Customise your {plan.label} plan</p>
+              <p className="text-xs text-gray-400 mb-3">Uncheck features you don't need to reduce your price.</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {removable.map(([key, f]) => {
+                  const removed = removedFeatures.includes(key);
+                  const saving = f.deduction[selectedPlan as 'starter'|'pro'|'enterprise'] || 0;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => toggleRemoved(selectedPlan, key)}
+                      className={`rounded-xl border-2 p-3 text-left transition-all ${
+                        removed ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ${
+                          removed ? 'bg-red-400' : 'bg-green-500'
+                        }`}>
+                          {removed
+                            ? <XCircle className="w-3 h-3 text-white" />
+                            : <CheckCircle className="w-3 h-3 text-white" />}
+                        </div>
+                        <span className={`text-xs font-semibold ${
+                          removed ? 'text-red-600 line-through' : 'text-green-700'
+                        }`}>{f.label}</span>
+                      </div>
+                      <div className={`text-[10px] font-bold ${
+                        removed ? 'text-red-400' : 'text-green-600'
+                      }`}>
+                        {removed ? `+GHS ${saving}/mo if added back` : `-GHS ${saving}/mo if removed`}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null;
+        })()}
 
         {/* Duration selection */}
         <div className="mb-5">
@@ -564,15 +474,21 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Summary + Pay button */}
+        {/* Summary + Pay */}
         <div className="bg-gray-50 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="text-sm text-gray-500">
               <span className="font-semibold text-gray-900 capitalize">{selectedPlan}</span> plan ·{' '}
               {DURATIONS.find(d => d.days === selectedDuration)?.label}
             </div>
+            {removedFeatures.length > 0 && (
+              <div className="text-xs text-red-500 mt-0.5">
+                -{removedFeatures.length} feature{removedFeatures.length !== 1 ? 's' : ''} removed
+                · saving GHS {getDiscount(selectedPlan, removedFeatures)}/mo
+              </div>
+            )}
             <div className="text-3xl font-extrabold text-gray-900 mt-1">
-              GHS {getAmount(selectedPlan, selectedDuration)}
+              GHS {getAmount(selectedPlan, selectedDuration, removedFeatures)}
               {DURATIONS.find(d => d.days === selectedDuration)?.discount ? (
                 <span className="text-base font-normal text-green-600 ml-2">
                   {DURATIONS.find(d => d.days === selectedDuration)?.discount}% off
@@ -585,14 +501,13 @@ export default function BillingPage() {
             disabled={paying || !selectedPlan}
             className="btn-primary px-8 py-4 text-base disabled:opacity-50 w-full sm:w-auto"
           >
-            {paying ? (
-              <><RefreshCw className="w-4 h-4 animate-spin" /> Processing…</>
-            ) : (
-              <><CreditCard className="w-4 h-4" /> Pay with Paystack</>
-            )}
+            {paying
+              ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing…</>
+              : <><CreditCard className="w-4 h-4" /> Pay GHS {getAmount(selectedPlan, selectedDuration, removedFeatures)} with Paystack</>
+            }
           </button>
         </div>
-        </>)}
+        <p className="text-xs text-gray-400 mt-3">Card only — your card is saved for automatic renewal when your subscription expires.</p>
       </div>
 
       {/* Payment History — full width */}
@@ -610,7 +525,7 @@ export default function BillingPage() {
             <table className="w-full text-sm">
               <thead className="table-header">
                 <tr>
-                  {['Date','Plan','Duration','Amount','Reference','Status'].map(h => (
+                  {['Date', 'Plan', 'Duration', 'Amount', 'Reference', 'Status'].map(h => (
                     <th key={h} className="px-6 py-3 text-left">{h}</th>
                   ))}
                 </tr>
@@ -619,24 +534,22 @@ export default function BillingPage() {
                 {transactions.map(t => (
                   <tr key={t._id || t.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-gray-500 text-xs whitespace-nowrap">
-                      {new Date(t.createdAt).toLocaleDateString('en-GH', { day:'2-digit', month:'short', year:'numeric' })}
+                      {new Date(t.createdAt).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize ${
-                        t.plan === 'starter' ? 'bg-blue-50 text-blue-700' :
-                        t.plan === 'pro'     ? 'bg-purple-50 text-purple-700' :
-                        'bg-orange-50 text-orange-700'
-                      }`}>{t.plan}</span>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize ${t.plan === 'starter' ? 'bg-blue-50 text-blue-700' :
+                          t.plan === 'pro' ? 'bg-purple-50 text-purple-700' :
+                            'bg-orange-50 text-orange-700'
+                        }`}>{t.plan}</span>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{t.duration_days} days</td>
                     <td className="px-6 py-4 font-semibold text-gray-900">GHS {parseFloat(t.amount).toFixed(2)}</td>
                     <td className="px-6 py-4 font-mono text-xs text-gray-400">{t.payment_ref || '—'}</td>
                     <td className="px-6 py-4">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                        t.status === 'success' ? 'bg-green-100 text-green-700' :
-                        t.status === 'failed'  ? 'bg-red-100 text-red-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>{t.status}</span>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${t.status === 'success' ? 'bg-green-100 text-green-700' :
+                          t.status === 'failed' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                        }`}>{t.status}</span>
                     </td>
                   </tr>
                 ))}

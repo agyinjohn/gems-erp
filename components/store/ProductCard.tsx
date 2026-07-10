@@ -23,43 +23,45 @@ export default function ProductCard({ product: p, inCartQty, showBranch, cartLoa
 
   return (
     <article className="store-product-card group flex flex-col">
-      <button type="button" onClick={onOpen} className="relative block w-full text-left">
-        <ProductCardImage product={p} />
+      <div className="relative">
+        <button type="button" onClick={onOpen} className="relative block w-full text-left">
+          <ProductCardImage product={p} />
 
-        {outOfStock && (
-          <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px] flex items-center justify-center">
-            <span className="text-xs font-bold text-red-600 bg-white px-3 py-1.5 rounded-full border border-red-100 shadow-sm">
-              Out of Stock
+          {outOfStock && (
+            <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px] flex items-center justify-center">
+              <span className="text-xs font-bold text-red-600 bg-white px-3 py-1.5 rounded-full border border-red-100 shadow-sm">
+                Out of Stock
+              </span>
+            </div>
+          )}
+          {lowStock && (
+            <span className="absolute top-2 left-2 store-badge store-badge-warn text-[9px] px-2 py-0.5">
+              Only {p.stock_qty} left
             </span>
-          </div>
-        )}
+          )}
+          {!lowStock && p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) + 0.01 && (
+            <span className="absolute top-2 left-2 store-badge bg-red-500 text-white text-[9px] px-2 py-0.5">
+              {p.promotion_name ? p.promotion_name : `-${Math.round((1 - parseFloat(p.price) / parseFloat(p.compare_price)) * 100)}%`}
+            </span>
+          )}
+          {showBranch && p.branch_name && (
+            <span className={`absolute left-2 store-badge store-badge-dark text-[9px] px-2 py-0.5 ${multiImage ? 'bottom-7' : 'bottom-2'}`}>
+              <MapPin className="w-2.5 h-2.5" />
+              {p.branch_name}
+            </span>
+          )}
+        </button>
         {onToggleWishlist && (
           <button
             type="button"
             onClick={e => { e.stopPropagation(); onToggleWishlist(); }}
-            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center hover:scale-110 transition-transform"
+            className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center hover:scale-110 transition-transform"
             aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           >
             <Heart className={`w-3.5 h-3.5 ${wishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
           </button>
         )}
-        {lowStock && (
-          <span className="absolute top-2 left-2 store-badge store-badge-warn text-[9px] px-2 py-0.5">
-            Only {p.stock_qty} left
-          </span>
-        )}
-        {!lowStock && p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) + 0.01 && (
-          <span className="absolute top-2 left-2 store-badge bg-red-500 text-white text-[9px] px-2 py-0.5">
-            {p.promotion_name ? p.promotion_name : `-${Math.round((1 - parseFloat(p.price) / parseFloat(p.compare_price)) * 100)}%`}
-          </span>
-        )}
-        {showBranch && p.branch_name && (
-          <span className={`absolute left-2 store-badge store-badge-dark text-[9px] px-2 py-0.5 ${multiImage ? 'bottom-7' : 'bottom-2'}`}>
-            <MapPin className="w-2.5 h-2.5" />
-            {p.branch_name}
-          </span>
-        )}
-      </button>
+      </div>
 
       <div className="p-2.5 sm:p-3 flex flex-col flex-1 gap-1">
         <div className="text-[9px] font-bold uppercase tracking-wider text-[#1A5294] truncate">

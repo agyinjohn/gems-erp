@@ -842,7 +842,7 @@ const PLANS = [
   {
     key: 'pro',
     label: 'Pro',
-    price: 850,
+    price: 1000,
     desc: 'For growing businesses that need the full suite.',
     popular: true,
     color: 'border-[#0D3B6E]',
@@ -851,6 +851,7 @@ const PLANS = [
       '5 Branches',
       '20 Users',
       'All Starter Features',
+      'Online Storefront',
       'Procurement',
       'HR & Payroll',
       'CRM',
@@ -861,7 +862,7 @@ const PLANS = [
   {
     key: 'enterprise',
     label: 'Enterprise',
-    price: 2050,
+    price: 2500,
     desc: 'For large operations that need everything.',
     color: 'border-gray-200',
     badge: 'bg-orange-100 text-orange-700',
@@ -869,29 +870,11 @@ const PLANS = [
       '15 Branches',
       'Unlimited Users',
       'All Pro Features',
+      'Advanced Accounting',
       'Dedicated Support',
       'Custom Onboarding',
       'SLA Guarantee',
     ],
-  },
-];
-
-const ADDONS = [
-  {
-    key: 'storefront',
-    icon: '🛍️',
-    title: 'Online Storefront',
-    price: 150,
-    desc: 'Launch a branded online store with your own URL. Accept orders, showcase products and collect payments online via Paystack.',
-    bullets: ['Custom branded storefront URL', 'Online product catalogue', 'Paystack checkout integration', 'Order management from dashboard'],
-  },
-  {
-    key: 'accounting',
-    icon: '📊',
-    title: 'Advanced Accounting',
-    price: 500,
-    desc: 'Full double-entry bookkeeping, P&L statements, balance sheets, bank reconciliation and audit-ready financial reports.',
-    bullets: ['Double-entry bookkeeping', 'P&L & balance sheet reports', 'Bank reconciliation', 'Audit trail & journal entries'],
   },
 ];
 
@@ -1570,59 +1553,6 @@ export default function LandingPage() {
           </div>
 
           <p className="text-center text-sm text-gray-400 mb-16">All plans include a 14-day free trial. No credit card charged until day 14.</p>
-
-          {/* Add-ons */}
-          <div className="mb-4">
-            <Reveal className="text-center mb-10">
-              <span className="landing-eyebrow">Add-Ons</span>
-              <h3 className="landing-section-title text-2xl font-extrabold text-gray-900 mb-2">Extend your plan</h3>
-              <p className="text-gray-500">Add only what your business needs. Available on any plan.</p>
-            </Reveal>
-            <div className="grid md:grid-cols-2 gap-6">
-              {ADDONS.map((addon, ai) => {
-                const addonIcons = [<Store className="w-5 h-5" />, <Calculator className="w-5 h-5" />];
-                return (
-                  <Reveal key={addon.key} variant={ai === 0 ? 'left' : 'right'} delay={ai * 100} className="h-full">
-                  <div className="bg-white rounded-2xl border border-gray-200 hover:border-[#0D3B6E]/30 hover:shadow-xl p-0 flex flex-col overflow-hidden card-lift h-full">
-                    {/* Card header */}
-                    <div className="bg-blue-50 px-6 pt-6 pb-5 border-b border-blue-100">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 bg-[#0D3B6E] rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-sm">
-                            {addonIcons[ai]}
-                          </div>
-                          <div>
-                            <div className="font-extrabold text-gray-900 text-base">{addon.title}</div>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-[#0D3B6E] mt-1 inline-block">Optional Add-On</span>
-                          </div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-2xl font-extrabold text-[#0D3B6E]">GH₵ {addon.price}</div>
-                          <div className="text-xs text-gray-400">per month</div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Card body */}
-                    <div className="px-6 py-5 flex flex-col gap-4 flex-1">
-                      <p className="text-sm text-gray-500 leading-relaxed">{addon.desc}</p>
-                      <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
-                        {addon.bullets.map(b => (
-                          <li key={b} className="flex items-start gap-2 text-xs text-gray-600">
-                            <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-green-500" /> {b}
-                          </li>
-                        ))}
-                      </ul>
-                      <Link href="/register"
-                        className="mt-auto w-full text-center bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-sm shadow-blue-200 btn-shine">
-                        Add to my plan →
-                      </Link>
-                    </div>
-                  </div>
-                  </Reveal>
-                );
-              })}
-            </div>
-          </div>
 
         </div>
       </section>

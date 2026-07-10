@@ -1,12 +1,32 @@
 'use client';
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useSidebar } from './SidebarContext';
-import { ToastContainer } from '@/components/ui';
+import { ToastContainer, toast } from '@/components/ui';
 import ChatWidget from '@/components/ChatWidget';
+
+// Map routes to their required module key
+const ROUTE_MODULE_MAP: Record<string, string> = {
+  '/procurement': 'procurement',
+  '/hr':          'hr',
+  '/crm':         'crm',
+  '/orders':      'sales',
+  '/inventory':   'inventory',
+  '/pos':         'pos',
+  '/reports':     'reports',
+  '/store-settings': 'online_storefront',
+  '/accounting':  'advanced_accounting',
+};
+
+function getRequiredModule(pathname: string): string | null {
+  for (const [prefix, mod] of Object.entries(ROUTE_MODULE_MAP)) {
+    if (pathname === prefix || pathname.startsWith(prefix + '/')) return mod;
+  }
+  return null;
+}
 
 interface Props {
   children: React.ReactNode;
@@ -16,7 +36,8 @@ interface Props {
 }
 
 export default function AppLayout({ children, title, subtitle, allowedRoles }: Props) {
-  const { user, loading, tenant } = useAuth();
+  const { user, loading, tenant, hasModule } = useAuth();
+  const pathname = usePathname();
 
   // Days until subscription expires
   const daysLeft = tenant?.subscription_expires_at
@@ -26,13 +47,22 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
   const { open: sidebarOpen, collapsed: sidebarCollapsed, setOpen: setSidebarOpen, toggleCollapsed: toggleSidebarCollapse } = useSidebar();
 
   useEffect(() => {
-    if (!loading && !user) router.push('/login');
+    if (!loading && !user) { router.push('/login'); return; }
     if (!loading && user && allowedRoles && !allowedRoles.includes(user.role)) {
       if (!['business_owner'].includes(user.role)) {
         router.push(user.role === 'platform_admin' ? '/platform' : user.role === 'employee' ? '/ess' : '/dashboard');
+        return;
       }
     }
-  }, [user, loading, router, allowedRoles]);
+    // Module access gate
+    if (!loading && user && tenant) {
+      const requiredModule = getRequiredModule(pathname);
+      if (requiredModule && !hasModule(requiredModule)) {
+        toast.error('Your current plan does not include this feature. Upgrade to unlock it.');
+        router.push('/dashboard');
+      }
+    }
+  }, [user, loading, router, allowedRoles, pathname, tenant, hasModule]);
 
   if (loading || !user) {
     return (

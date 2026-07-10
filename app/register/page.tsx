@@ -1,29 +1,90 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Package, Building2, Mail, Lock, Phone, MapPin,
-  CheckCircle, ArrowRight, ArrowLeft, Eye, EyeOff,
+  CheckCircle, XCircle, ArrowRight, ArrowLeft, Eye, EyeOff,
   Loader2, Zap, Shield, Globe, Users, CreditCard,
 } from 'lucide-react';
 import api from '@/lib/api';
 
-const PERKS = [
-  { icon: Zap, text: 'Up and running in minutes' },
-  { icon: Shield, text: '14-day free trial, subscribe to continue' },
-  { icon: Globe, text: 'Your own branded eCommerce store' },
-  { icon: Users, text: 'Invite your whole team' },
+const TESTIMONIALS = [
+  { quote: 'GEMS transformed how we run our 3 branches. Inventory is always accurate and our staff love the POS.', name: 'Kwame Asante', role: 'Owner, Asante Electronics' },
+  { quote: 'The online storefront alone was worth it. We went from zero online sales to 40% of our revenue in 2 months.', name: 'Abena Mensah', role: 'Manager, Chic Boutique' },
+  { quote: 'Finally an ERP that just works. Real-time reports and role-based access made all the difference.', name: 'Kofi Boateng', role: 'CFO, ProTools Ltd' },
+  { quote: 'Payroll used to take us two days every month. With GEMS HR it takes under an hour. Game changer.', name: 'Efua Darko', role: 'HR Manager, Goldfields Trading' },
+  { quote: 'Our procurement team now raises and approves purchase orders in minutes. Suppliers love the paperwork too.', name: 'Yaw Amponsah', role: 'Operations Director, BuildRight Ghana' },
+  { quote: 'The accounting module gives me a live P&L at any time. I no longer wait for month-end reports.', name: 'Akosua Frimpong', role: 'Accountant, Sunrise Retail Ltd' },
+  { quote: 'Setting up our branded storefront took less than a day. Customers are already ordering online.', name: 'Nana Adjei', role: 'Founder, Kente & Co.' },
+  { quote: 'Role-based access means every staff member sees exactly what they need — nothing more, nothing less.', name: 'Kwesi Acheampong', role: 'IT Lead, Metro Distributors' },
 ];
 
+const PLANS = [
+  {
+    key: 'starter', label: 'Starter', price: 350,
+    badge: 'bg-blue-100 text-blue-700',
+    features: ['1 Branch', '5 Users', 'Stocks & Inventory', 'Sales & Orders', 'POS Terminal', 'Basic Financial Reports'],
+  },
+  {
+    key: 'pro', label: 'Pro', price: 1000, popular: true,
+    badge: 'bg-purple-100 text-purple-700',
+    features: ['5 Branches', '20 Users', 'All Starter Features', 'Online Storefront', 'Procurement', 'HR & Payroll', 'CRM', 'Advanced Reports & Financial Analytics', 'Priority Support'],
+  },
+  {
+    key: 'enterprise', label: 'Enterprise', price: 2500,
+    badge: 'bg-orange-100 text-orange-700',
+    features: ['15 Branches', 'Unlimited Users', 'All Pro Features', 'Advanced Accounting', 'Dedicated Support', 'Custom Onboarding', 'SLA Guarantee'],
+  },
+];
+
+const REMOVABLE_FEATURES: Record<string, { label: string; deduction: Partial<Record<'starter'|'pro'|'enterprise', number>> }> = {
+  online_storefront:   { label: 'Online Storefront',   deduction: { pro: 150, enterprise: 150 } },
+  procurement:         { label: 'Procurement',         deduction: { pro: 100, enterprise: 100 } },
+  hr:                  { label: 'HR & Payroll',        deduction: { pro: 150, enterprise: 150 } },
+  crm:                 { label: 'CRM',                 deduction: { pro: 100, enterprise: 100 } },
+  advanced_accounting: { label: 'Advanced Accounting', deduction: { enterprise: 500 } },
+  priority_support:    { label: 'Priority Support',    deduction: { pro: 80,  enterprise: 80  } },
+};
+
 export default function RegisterPage() {
-  const [step, setStep] = useState(1); // 1=business, 2=account, 3=card, 4=success
+  const [step, setStep] = useState(1); // 1=business, 2=account, 3=plan, 4=card, 5=success
+  const [tIdx, setTIdx] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setTIdx(i => (i + 1) % TESTIMONIALS.length), 4500);
+    return () => clearInterval(id);
+  }, []);
   const [loading, setLoading] = useState(false);
   const [cardLoading, setCardLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [createdBusiness, setCreatedBusiness] = useState('');
-  const [authToken, setAuthToken] = useState(''); // JWT after registration
+  const [authToken, setAuthToken] = useState('');
+  const [paystackKey, setPaystackKey] = useState('');
+  // Plan selection
+  const [selectedPlan, setSelectedPlan] = useState('pro');
+  const [removedFeatures, setRemovedFeatures] = useState<string[]>([]);
+
+  const toggleRemoved = (plan: string, key: string) => {
+    if (!REMOVABLE_FEATURES[key]?.deduction[plan as 'starter'|'pro'|'enterprise']) return;
+    setRemovedFeatures(r => r.includes(key) ? r.filter(x => x !== key) : [...r, key]);
+  };
+
+  const planTotal = (plan: string) => {
+    const base = PLANS.find(p => p.key === plan)?.price || 0;
+    const deduction = removedFeatures.reduce((s, f) => s + (REMOVABLE_FEATURES[f]?.deduction[plan as 'starter'|'pro'|'enterprise'] || 0), 0);
+    return base - deduction;
+  };
+
+  // Preload Paystack script so it's ready on step 3
+  useEffect(() => {
+    if ((window as any).PaystackPop) return;
+    const s = document.createElement('script');
+    s.src = 'https://js.paystack.co/v1/inline.js';
+    s.async = true;
+    document.body.appendChild(s);
+  }, []);
 
   const [form, setForm] = useState({
     business_name: '', phone: '', address: '',
@@ -57,7 +118,7 @@ export default function RegisterPage() {
     setError(''); return true;
   };
 
-  const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
+const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
 
   const handleSubmit = async () => {
     if (!validateStep2()) return;
@@ -76,8 +137,10 @@ export default function RegisterPage() {
         password: form.password,
       });
       setAuthToken(loginRes.data.data.token);
+      const keyRes = await api.get('/plan-prices').catch(() => ({ data: { data: null } }));
+      setPaystackKey(loginRes.data.data.paystack_public_key || keyRes.data.data?.paystack_public_key || '');
       setCreatedBusiness(form.business_name.trim());
-      setStep(3);
+      setStep(3); // go to plan selection
     } catch (e: any) {
       setError(e.response?.data?.message || 'Registration failed. Please try again.');
     } finally { setLoading(false); }
@@ -85,23 +148,46 @@ export default function RegisterPage() {
 
   const handleCardAuthorize = async () => {
     setCardLoading(true);
+    setError('');
     try {
       const r = await api.post('/billing/authorize-card', {}, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
-      const { authorization_url } = r.data.data;
-      // Redirect to Paystack to collect card
-      window.location.href = authorization_url;
+      const { reference } = r.data.data;
+      const key = paystackKey || r.data.data.paystack_public_key || '';
+      const PaystackPop = (window as any).PaystackPop;
+      if (!PaystackPop) throw new Error('Paystack failed to load. Please refresh and try again.');
+      PaystackPop.setup({
+        key,
+        email: form.email.toLowerCase().trim(),
+        amount: 50,
+        currency: 'GHS',
+        ref: reference,
+        channels: ['card'],
+        label: `${form.business_name} — Card Authorization`,
+        onClose: () => setCardLoading(false),
+        callback: async (transaction: any) => {
+          try {
+            await api.post('/billing/save-card', { reference: transaction.reference }, {
+              headers: { Authorization: `Bearer ${authToken}` },
+            });
+            setStep(5);
+          } catch (e: any) {
+            setError(e.response?.data?.message || 'Card saved but could not confirm. Please check billing settings.');
+          } finally { setCardLoading(false); }
+        },
+      }).openIframe();
     } catch (e: any) {
-      setError(e.response?.data?.message || 'Failed to initialize card. Please try again.');
-    } finally { setCardLoading(false); }
+      setError(e.message || e.response?.data?.message || 'Failed to initialize card. Please try again.');
+      setCardLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
 
       {/* ── LEFT PANEL ── */}
-      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0D3B6E] flex-col p-8 xl:p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0D3B6E] flex-col relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-32 -right-32 w-80 h-80 bg-white/5 rounded-full" />
@@ -109,44 +195,45 @@ export default function RegisterPage() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/3 rounded-full" />
         </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
+        <div className="relative z-10 flex flex-col h-full px-10 xl:px-14 py-10">
 
-        {/* Logo */}
-        <div className="relative z-10 mb-12">
-          <Link href="/" className="flex items-center gap-3">
-            <Package className="w-10 h-10 text-white" />
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 w-fit">
+            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center">
+              <Package className="w-6 h-6 text-white" />
+            </div>
             <div>
-              <div className="text-white text-2xl font-extrabold tracking-tight">GEMS</div>
-              <div className="text-blue-200 text-sm font-medium tracking-wide">GTHINK Enterprise Management System</div>
+              <div className="text-white font-bold text-2xl leading-none tracking-tight">GEMS</div>
+              <div className="text-blue-200/70 text-xs font-medium tracking-wide mt-1">GTHINK Enterprise Management System</div>
             </div>
           </Link>
-        </div>
 
-        {/* Main content */}
-        <div className="relative z-10">
-          <div className="mb-8">
-            <p className="text-blue-200 text-base leading-relaxed">
+          {/* Description + Perks */}
+          <div className="mt-12 xl:mt-16">
+            <p className="text-blue-200 text-base leading-relaxed mb-8">
               All-in-one platform for Stocks, Inventory, Sales, eCommerce, Payments, Procurement, Finance, HR, CRM, POS and More — all connected, all in real time.
             </p>
-          </div>
-
-          {/* Perks */}
-          <div className="space-y-4">
-            {PERKS.map(p => {
-              const Icon = p.icon;
-              return (
-                <div key={p.text} className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4 h-4 text-yellow-400" />
+            <div className="space-y-3">
+              {[
+                { icon: Zap,    text: 'Up and running in minutes' },
+                { icon: Shield, text: '14-day free trial, subscribe to continue' },
+                { icon: Globe,  text: 'Your own branded eCommerce store' },
+                { icon: Users,  text: 'Invite your whole team' },
+              ].map(p => {
+                const Icon = p.icon;
+                return (
+                  <div key={p.text} className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-4 h-4 text-yellow-400" />
+                    </div>
+                    <span className="text-white text-base font-medium">{p.text}</span>
                   </div>
-                  <span className="text-white text-sm font-medium">{p.text}</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
-          {/* Fake testimonial */}
+          {/* Testimonial carousel */}
           <div className="mt-10 bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-5">
             <div className="flex gap-1 mb-3">
               {[...Array(5)].map((_, i) => (
@@ -155,22 +242,33 @@ export default function RegisterPage() {
                 </svg>
               ))}
             </div>
-            <p className="text-blue-100 text-sm leading-relaxed italic mb-4">
-              "GEMS transformed how we run our 3 branches. Setup took less than an hour."
+            <p className="text-blue-100 text-sm leading-relaxed italic mb-4 min-h-[60px] transition-all duration-500">
+              &ldquo;{TESTIMONIALS[tIdx].quote}&rdquo;
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-yellow-400 text-gray-900 font-bold text-sm flex items-center justify-center">K</div>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
+                {TESTIMONIALS[tIdx].name[0]}
+              </div>
               <div>
-                <div className="text-white text-xs font-semibold">Kofi Mensah</div>
-                <div className="text-blue-300 text-xs">Owner, GEMS Electronics</div>
+                <div className="text-white text-xs font-semibold">{TESTIMONIALS[tIdx].name}</div>
+                <div className="text-blue-300 text-xs">{TESTIMONIALS[tIdx].role}</div>
+              </div>
+              <div className="ml-auto flex gap-1">
+                {TESTIMONIALS.map((_, i) => (
+                  <button key={i} onClick={() => setTIdx(i)}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      i === tIdx ? 'bg-yellow-400 w-4' : 'w-1.5 bg-white/30 hover:bg-white/50'
+                    }`}
+                  />
+                ))}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Bottom */}
-        <div className="relative z-10 text-blue-300 text-xs mt-auto pt-8">
-          © {new Date().getFullYear()} GEMS — GTHINK Enterprise Management System
+          {/* Bottom */}
+          <div className="mt-auto pt-8 text-blue-300/60 text-xs">
+            © {new Date().getFullYear()} GEMS — GTHINK Enterprise Management System
+          </div>
         </div>
       </div>
 
@@ -203,23 +301,26 @@ export default function RegisterPage() {
           <div className="w-full max-w-md">
 
             {/* Step indicator */}
-            {step < 4 && (
+            {step < 5 && (
               <div className="flex items-center mb-6 sm:mb-8 px-4 sm:px-0">
-                {[1, 2, 3].map((n, i) => (
+                {[1, 2, 3, 4].map((n, i) => (
                   <div key={n} className="flex items-center flex-1">
-                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2.5 flex-1">
-                      <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all ${step > n ? 'bg-green-500 text-white' :
+                    <div className="flex flex-col items-center gap-1 flex-1">
+                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                        step > n ? 'bg-green-500 text-white' :
                         step === n ? 'bg-[#0D3B6E] text-white shadow-lg shadow-blue-200' :
-                          'bg-gray-200 text-gray-400'
-                        }`}>
-                        {step > n ? <CheckCircle className="w-4 h-4 sm:w-4.5 sm:h-4.5" /> : n}
+                        'bg-gray-200 text-gray-400'
+                      }`}>
+                        {step > n ? <CheckCircle className="w-3.5 h-3.5" /> : n}
                       </div>
-                      <span className={`text-[10px] sm:text-xs font-semibold text-center sm:text-left ${step === n ? 'text-[#0D3B6E]' : 'text-gray-400'}`}>
-                        {n === 1 ? 'Business' : n === 2 ? 'Account' : 'Card'}
+                      <span className={`text-[9px] sm:text-[10px] font-semibold text-center ${
+                        step === n ? 'text-[#0D3B6E]' : 'text-gray-400'
+                      }`}>
+                        {n === 1 ? 'Business' : n === 2 ? 'Account' : n === 3 ? 'Plan' : 'Card'}
                       </span>
                     </div>
-                    {i < 2 && (
-                      <div className={`flex-1 h-0.5 mx-1 sm:mx-2 rounded-full transition-all ${step > n ? 'bg-green-500' : 'bg-gray-200'}`} />
+                    {i < 3 && (
+                      <div className={`flex-1 h-0.5 mx-1 rounded-full transition-all ${step > n ? 'bg-green-500' : 'bg-gray-200'}`} />
                     )}
                   </div>
                 ))}
@@ -392,8 +493,121 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* ── STEP 3 — Card ── */}
+            {/* ── STEP 3 — Plan Selection ── */}
             {step === 3 && (
+              <div>
+                <div className="mb-5">
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Choose your subscription</h1>
+                  <p className="text-gray-500 text-xs sm:text-sm">Pick a plan then remove features you don't need. You can change this anytime.</p>
+                </div>
+
+                {/* Plan cards */}
+                <div className="space-y-3 mb-4">
+                  {PLANS.map(p => (
+                    <button
+                      key={p.key}
+                      onClick={() => { setSelectedPlan(p.key); setRemovedFeatures([]); }}
+                      className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
+                        selectedPlan === p.key ? 'border-[#0D3B6E] bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${p.badge}`}>{p.label}</span>
+                          {p.popular && <span className="text-[10px] font-bold bg-[#0D3B6E] text-white px-2 py-0.5 rounded-full">Popular</span>}
+                        </div>
+                        <div className={`text-lg font-extrabold ${
+                          selectedPlan === p.key ? 'text-[#0D3B6E]' : 'text-gray-900'
+                        }`}>GH₵ {p.price.toLocaleString()}<span className="text-xs font-normal text-gray-400">/mo</span></div>
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        {p.features.map(f => (
+                          <span key={f} className="text-xs text-gray-500 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {f}
+                          </span>
+                        ))}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Remove features */}
+                {(() => {
+                  const removable = Object.entries(REMOVABLE_FEATURES).filter(
+                    ([key, f]) => f.deduction[selectedPlan as 'starter'|'pro'|'enterprise']
+                  );
+                  return removable.length > 0 ? (
+                    <div className="mb-4 bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs font-semibold text-gray-700 mb-1">Remove features you don't need</p>
+                      <p className="text-[10px] text-gray-400 mb-2">Price adjusts automatically.</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {removable.map(([key, f]) => {
+                          const removed = removedFeatures.includes(key);
+                          const saving = f.deduction[selectedPlan as 'starter'|'pro'|'enterprise'] || 0;
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => toggleRemoved(selectedPlan, key)}
+                              className={`rounded-lg border-2 p-2.5 text-left transition-all ${
+                                removed ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <div className={`w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0 ${
+                                  removed ? 'bg-red-400' : 'bg-green-500'
+                                }`}>
+                                  {removed
+                                    ? <XCircle className="w-2.5 h-2.5 text-white" />
+                                    : <CheckCircle className="w-2.5 h-2.5 text-white" />}
+                                </div>
+                                <span className={`text-[10px] font-semibold ${
+                                  removed ? 'text-red-600 line-through' : 'text-green-700'
+                                }`}>{f.label}</span>
+                              </div>
+                              <div className={`text-[9px] font-bold pl-5 ${
+                                removed ? 'text-red-400' : 'text-green-600'
+                              }`}>
+                                {removed ? `+GH₵${saving}/mo` : `-GH₵${saving}/mo`}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {removedFeatures.length > 0 && (
+                        <div className="mt-2 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                          <span className="text-xs text-blue-700">{removedFeatures.length} feature{removedFeatures.length !== 1 ? 's' : ''} removed</span>
+                          <span className="text-sm font-extrabold text-[#0D3B6E]">GH₵ {planTotal(selectedPlan).toLocaleString()}/mo</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : null;
+                })()}
+
+                <div className="flex flex-col-reverse sm:flex-row gap-3">
+                  <button onClick={() => { setStep(2); setError(''); }} className="h-11 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 font-medium text-sm">
+                    <ArrowLeft className="w-4 h-4" /> Back
+                  </button>
+                  <button
+                    onClick={() => { setError(''); setStep(4); }}
+                    className="flex-1 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-11 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+                  >
+                    Continue to Card <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {error && (
+                  <div className="mt-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center flex-shrink-0">!</span>
+                    {error}
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-400 text-center mt-3">14-day free trial — not charged until day 14</p>
+              </div>
+            )}
+
+            {/* ── STEP 4 — Card ── */}
+            {step === 4 && (
               <div>
                 <div className="mb-5 sm:mb-6">
                   <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full mb-3 sm:mb-4">
@@ -484,23 +698,29 @@ export default function RegisterPage() {
                   className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-11 sm:h-13 py-3 sm:py-3.5 rounded-xl text-sm sm:text-base transition-colors flex items-center justify-center gap-2.5 shadow-lg shadow-blue-200"
                 >
                   {cardLoading
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting…</>
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Opening payment…</>
                     : <><CreditCard className="w-4 h-4" /> Secure my trial with a card</>
                   }
                 </button>
                 <p className="text-center text-xs text-gray-400 mt-2">Powered by Paystack · Your card details are never stored on our servers</p>
 
                 <button
-                  onClick={() => setStep(4)}
-                  className="w-full mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors py-2 underline underline-offset-2"
+                  onClick={() => { setStep(3); setError(''); }}
+                  className="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 transition-colors py-1.5 flex items-center justify-center gap-1"
+                >
+                  <ArrowLeft className="w-3 h-3" /> Back to plan selection
+                </button>
+                <button
+                  onClick={() => setStep(5)}
+                  className="w-full mt-1 text-sm text-gray-400 hover:text-gray-600 transition-colors py-2 underline underline-offset-2"
                 >
                   Skip for now — remind me later
                 </button>
               </div>
             )}
 
-            {/* ── STEP 4 — Success ── */}
-            {step === 4 && (
+            {/* ── STEP 5 — Success ── */}
+            {step === 5 && (
               <div className="text-center">
                 {/* Animated success icon */}
                 <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6">

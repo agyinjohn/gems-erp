@@ -400,8 +400,8 @@ export default function StoreSettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <input className="form-input font-mono uppercase" placeholder="CODE" value={couponForm.code} onChange={e => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })} />
                 <select className="form-input" value={couponForm.discount_type} onChange={e => setCouponForm({ ...couponForm, discount_type: e.target.value })}>
-                  <option value="percent">Percent off</option>
-                  <option value="fixed">Fixed amount (GH₵)</option>
+                  <option key="percent" value="percent">Percent off</option>
+                  <option key="fixed" value="fixed">Fixed amount (GH₵)</option>
                 </select>
                 <input type="number" className="form-input" placeholder="Discount value" value={couponForm.discount_value} onChange={e => setCouponForm({ ...couponForm, discount_value: e.target.value })} />
                 <input type="number" className="form-input" placeholder="Min order (GH₵)" value={couponForm.min_order_amount} onChange={e => setCouponForm({ ...couponForm, min_order_amount: e.target.value })} />
@@ -443,8 +443,8 @@ export default function StoreSettingsPage() {
                 <div>
                   <label className="form-label">Discount type</label>
                   <select className="form-input" value={promoForm.discount_type} onChange={e => setPromoForm(f => ({ ...f, discount_type: e.target.value }))}>
-                    <option value="percent">Percent off (%)</option>
-                    <option value="fixed">Fixed amount (GH₵)</option>
+                    <option key="percent" value="percent">Percent off (%)</option>
+                    <option key="fixed" value="fixed">Fixed amount (GH₵)</option>
                   </select>
                 </div>
                 <div>
@@ -454,9 +454,9 @@ export default function StoreSettingsPage() {
                 <div>
                   <label className="form-label">Applies to</label>
                   <select className="form-input" value={promoForm.applies_to} onChange={e => setPromoForm(f => ({ ...f, applies_to: e.target.value }))}>
-                    <option value="all">All products</option>
-                    <option value="category">Specific categories</option>
-                    <option value="products">Specific products</option>
+                    <option key="all" value="all">All products</option>
+                    <option key="category" value="category">Specific categories</option>
+                    <option key="products" value="products">Specific products</option>
                   </select>
                 </div>
                 <div>
@@ -599,8 +599,8 @@ export default function StoreSettingsPage() {
                 <div>
                   <label className="form-label">Type</label>
                   <select className="form-input" value={payoutForm.type} onChange={e => setPayoutForm(p => ({ ...p, type: e.target.value, bank_code: e.target.value === 'mobile_money' ? 'MTN' : '' }))}>
-                    <option value="mobile_money">Mobile Money</option>
-                    <option value="bank">Bank Account</option>
+                    <option key="mobile_money" value="mobile_money">Mobile Money</option>
+                    <option key="bank" value="bank">Bank Account</option>
                   </select>
                 </div>
                 <div>
