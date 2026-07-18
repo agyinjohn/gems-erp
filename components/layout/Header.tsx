@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Bell, Search, X, Package, ShoppingCart, Users, AlertTriangle, Info, LogOut, KeyRound, ChevronDown, Menu } from 'lucide-react';
+import { Bell, Search, X, Package, ShoppingCart, Users, AlertTriangle, Info, LogOut, KeyRound, ChevronDown, Menu, Building2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
@@ -18,7 +18,7 @@ interface SearchResult { type: string; label: string; sub: string; link: string;
 interface Notification { id: string; type: 'warning' | 'info'; title: string; message: string; link: string; }
 
 export default function Header({ title, subtitle, onMenuClick, sidebarCollapsed, onSidebarToggle }: Props) {
-  const { user, logout } = useAuth();
+  const { user, logout, isOrgLevel, branches, activeBranchId, setActiveBranch } = useAuth();
   const router = useRouter();
 
   // ── Search ──────────────────────────────────────────────────────────────────
@@ -145,6 +145,25 @@ export default function Header({ title, subtitle, onMenuClick, sidebarCollapsed,
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+
+        {/* Branch switcher — org-level users only */}
+        {isOrgLevel && branches.length > 0 && (
+          <div className="relative hidden sm:flex items-center">
+            <Building2 className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <select
+              value={activeBranchId}
+              onChange={(e) => setActiveBranch(e.target.value)}
+              title="Filter data by branch"
+              className="pl-8 pr-7 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer max-w-[11rem] truncate"
+            >
+              <option value="">All branches</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+        )}
 
         {/* Search */}
         <div ref={searchRef} className="relative hidden lg:block">
