@@ -35,6 +35,7 @@ export default function SubscriptionsPage() {
   const [acting, setActing]     = useState<string | null>(null);
   const [renewModal, setRenewModal] = useState<any>(null);
   const [renewDays, setRenewDays]   = useState(30);
+  const [renewPlan, setRenewPlan]   = useState('');
 
   const load = () => {
     setLoading(true);
@@ -53,8 +54,9 @@ export default function SubscriptionsPage() {
     setActing(renewModal.id);
     const newExpiry = new Date(Date.now() + renewDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     try {
-      await api.patch(`/platform/tenants/${renewModal.id}/activate`, { expires_at: newExpiry });
-      toast.success(`${renewModal.business_name} renewed for ${renewDays} days`);
+      await api.patch(`/platform/tenants/${renewModal.id}/activate`, { expires_at: newExpiry, plan: renewPlan });
+      const planChanged = renewPlan && renewPlan !== renewModal.plan;
+      toast.success(`${renewModal.business_name} renewed for ${renewDays} days${planChanged ? ` on ${renewPlan} plan` : ''}`);
       setRenewModal(null);
       load();
     } catch { toast.error('Failed to renew'); }
@@ -166,7 +168,7 @@ export default function SubscriptionsPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <button
-                            onClick={() => { setRenewModal(t); setRenewDays(30); }}
+                            onClick={() => { setRenewModal(t); setRenewDays(30); setRenewPlan(t.plan); }}
                             className="text-xs text-blue-600 hover:underline font-medium"
                           >
                             Renew
@@ -206,6 +208,25 @@ export default function SubscriptionsPage() {
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <h2 className="font-bold text-gray-900 mb-1">Renew Subscription</h2>
             <p className="text-sm text-gray-500 mb-5">{renewModal.business_name}</p>
+            <label className="form-label">Plan</label>
+            <div className="flex gap-2 mb-4">
+              {['starter', 'pro', 'enterprise'].map(p => (
+                <button
+                  key={p}
+                  onClick={() => setRenewPlan(p)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 capitalize transition-all ${
+                    renewPlan === p ? 'border-[#0D3B6E] bg-[#0D3B6E] text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            {renewPlan && renewPlan !== renewModal.plan && (
+              <p className="text-xs text-orange-600 mb-4">
+                Plan will change from <strong className="capitalize">{renewModal.plan}</strong> to <strong className="capitalize">{renewPlan}</strong>. Branch/user limits update accordingly.
+              </p>
+            )}
             <label className="form-label">Extend by (days)</label>
             <div className="flex gap-2 mb-4">
               {[7, 30, 90, 365].map(d => (
