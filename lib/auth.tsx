@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import api from './api';
+import api, { apiCache } from './api';
 import { getLoginRedirect } from './productMode';
 
 interface User {
@@ -41,6 +41,13 @@ interface AuthContextType {
   isRole: (...roles: string[]) => boolean;
   allowedModules: string[];
   hasModule: (module: string) => boolean;
+  // ── Branch scoping ──
+  // Org-level users (no branch_id) can switch/view-all/filter by branch.
+  // Branch-level users are pinned to their own branch (server-enforced).
+  isOrgLevel: boolean;
+  branches: Branch[];
+  activeBranchId: string;              // '' = all branches
+  setActiveBranch: (id: string) => void;
 }
 
 const PLAN_MODULES: Record<string, string[]> = {
@@ -64,7 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [branch, setBranch] = useState<Branch | null>(null);
   const [loading, setLoading] = useState(true);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [activeBranchId, setActiveBranchId] = useState('');
   const router = useRouter();
+
+  // An org-level user is one not bound to a branch (branch_id === null).
+  const isOrgLevel = !!user && !user.branch_id;
 
   useEffect(() => {
     try {
@@ -79,13 +91,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (parsedUser) setUser(parsedUser);
         if (parsedTenant) setTenant(parsedTenant);
         if (parsedBranch) setBranch(parsedBranch);
+        setActiveBranchId(localStorage.getItem('gems_active_branch') || '');
       }
     } catch {
-      ['gems_token','gems_user','gems_tenant','gems_branch'].forEach(k => localStorage.removeItem(k));
+      ['gems_token','gems_user','gems_tenant','gems_branch','gems_active_branch'].forEach(k => localStorage.removeItem(k));
     } finally {
       setLoading(false);
     }
   }, []);
+
+  // Load the tenant's branches once, but only for org-level users — they are
+  // the only ones who can switch. Branch-level users are pinned server-side.
+  useEffect(() => {
+    if (!isOrgLevel) { setBranches([]); return; }
+    api.get('/branches')
+      .then((res) => setBranches((res.data.data || []).map((b: any) => ({ id: b._id || b.id, name: b.name, slug: b.slug }))))
+      .catch(() => setBranches([]));
+  }, [isOrgLevel]);
+
+  // Switch active branch: persist, clear cached data (keyed on plain URLs),
+  // and reload so every page refetches with the new scope.
+  const setActiveBranch = (id: string) => {
+    if (id) localStorage.setItem('gems_active_branch', id);
+    else localStorage.removeItem('gems_active_branch');
+    setActiveBranchId(id);
+    apiCache.clear();
+    if (typeof window !== 'undefined') window.location.reload();
+  };
 
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
@@ -105,9 +137,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('gems_user');
     localStorage.removeItem('gems_tenant');
     localStorage.removeItem('gems_branch');
+    localStorage.removeItem('gems_active_branch');
     setUser(null);
     setTenant(null);
     setBranch(null);
+    setBranches([]);
+    setActiveBranchId('');
     router.push('/login');
   };
 
@@ -116,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasModule = (module: string) => user?.role === 'platform_admin' || allowedModules.includes(module);
 
   return (
-    <AuthContext.Provider value={{ user, tenant, branch, loading, login, logout, isRole, allowedModules, hasModule }}>
+    <AuthContext.Provider value={{ user, tenant, branch, loading, login, logout, isRole, allowedModules, hasModule, isOrgLevel, branches, activeBranchId, setActiveBranch }}>
       {children}
     </AuthContext.Provider>
   );

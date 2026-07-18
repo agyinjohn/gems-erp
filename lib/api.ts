@@ -30,11 +30,21 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach token to every request
+// Attach token + active branch scope to every request
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('gems_token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
+    // Organizational-level users can scope requests to a chosen branch.
+    // Branch-level users are pinned server-side regardless, so sending this
+    // is harmless for them. Empty / unset means "all branches".
+    // Don't override a branch_id a caller passed explicitly (e.g. the Reports
+    // page has its own branch selector).
+    const activeBranch = localStorage.getItem('gems_active_branch');
+    const hasExplicitBranch = config.params && 'branch_id' in config.params;
+    if (activeBranch && !hasExplicitBranch) {
+      config.params = { ...(config.params || {}), branch_id: activeBranch };
+    }
   }
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
