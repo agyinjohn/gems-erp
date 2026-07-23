@@ -32,8 +32,6 @@ export interface ReportsBundle {
 interface Props {
   data: ReportsBundle;
   periodLabel: string;
-  /** When provided, only sections whose id is listed are rendered (tabbed mode). */
-  sections?: string[];
 }
 
 function pctMargin(revenue: number, profit: number) {
@@ -41,9 +39,8 @@ function pctMargin(revenue: number, profit: number) {
   return `${((profit / revenue) * 100).toFixed(1)}%`;
 }
 
-export default function ReportPanels({ data, periodLabel, sections }: Props) {
+export default function ReportPanels({ data, periodLabel }: Props) {
   const { overview, sales, inventory, finance, procurement, hr, crm } = data;
-  const show = (id: string) => !sections || sections.includes(id);
 
   const paymentChart = (sales.by_payment || []).map((p: any) => ({
     name: p.method || 'Unknown',
@@ -71,7 +68,6 @@ export default function ReportPanels({ data, periodLabel, sections }: Props) {
   return (
     <>
       {/* Executive summary */}
-      {show('summary') && (
       <ReportSection id="summary" title="Executive summary" subtitle={`Key metrics for ${periodLabel}`}>
         <MetricGrid>
           <div>
@@ -98,10 +94,8 @@ export default function ReportPanels({ data, periodLabel, sections }: Props) {
           <StatCard label="Stock value" value={fmtGhs(inventory.total_value)} icon={<Package className="w-6 h-6 text-gray-500" />} color="bg-gray-50" sub={`${inventory.low_stock_count ?? 0} low · ${inventory.out_of_stock ?? 0} out`} />
         </MetricGrid>
       </ReportSection>
-      )}
 
       {/* Sales performance */}
-      {show('sales') && (
       <ReportSection id="sales" title="Sales performance" subtitle="Revenue trends, channels and product mix">
         <ReportBlock title="Revenue & order trend" subtitle="Monthly paid orders in selected period">
           {sales.monthly?.length ? (
@@ -196,10 +190,8 @@ export default function ReportPanels({ data, periodLabel, sections }: Props) {
           </ReportBlock>
         )}
       </ReportSection>
-      )}
 
       {/* Tax & promotions */}
-      {show('tax-promo') && (
       <ReportSection id="tax-promo" title="Tax & promotions" subtitle="VAT collected, discounts and coupon performance">
         <MetricGrid>
           <StatCard label="Subtotal" value={fmtGhs(sales.subtotal)} icon={<Receipt className="w-6 h-6 text-gray-500" />} color="bg-gray-50" sub="Before tax" />
@@ -237,10 +229,8 @@ export default function ReportPanels({ data, periodLabel, sections }: Props) {
           )}
         </div>
       </ReportSection>
-      )}
 
       {/* Financial health */}
-      {show('finance') && (
       <ReportSection id="finance" title="Financial health" subtitle="Revenue, costs and profitability">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-[#0D3B6E]/15 bg-[#0D3B6E]/5 px-4 py-3">
           <p className="text-sm text-[#0D3B6E]">Operational P&amp;L from orders and expenses — use Accounting for GL statements.</p>
@@ -333,10 +323,8 @@ export default function ReportPanels({ data, periodLabel, sections }: Props) {
           </ReportBlock>
         )}
       </ReportSection>
-      )}
 
       {/* Inventory */}
-      {show('inventory') && (
       <ReportSection id="inventory" title="Inventory" subtitle="Stock levels and warehouse activity">
         <MetricGrid>
           <StatCard label="Products" value={String(inventory.total_products ?? 0)} icon={<Package className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
@@ -427,10 +415,8 @@ export default function ReportPanels({ data, periodLabel, sections }: Props) {
           </ReportBlock>
         )}
       </ReportSection>
-      )}
 
       {/* Procurement */}
-      {show('procurement') && (
       <ReportSection id="procurement" title="Procurement" subtitle="Purchase orders and supplier spend">
         <MetricGrid>
           <StatCard label="Total POs" value={String(procurement.total_pos ?? 0)} icon={<ShoppingCart className="w-6 h-6 text-gray-500" />} color="bg-gray-50" />
@@ -464,10 +450,8 @@ export default function ReportPanels({ data, periodLabel, sections }: Props) {
           )}
         </div>
       </ReportSection>
-      )}
 
       {/* People & customers */}
-      {show('people') && (
       <ReportSection id="people" title="People & customers" subtitle="Workforce, pipeline and buyer insights">
         <MetricGrid>
           <StatCard label="Employees" value={String(hr.total_employees ?? 0)} icon={<Users className="w-6 h-6 text-gray-500" />} color="bg-gray-50" sub={`${hr.active ?? 0} active`} />
@@ -519,10 +503,9 @@ export default function ReportPanels({ data, periodLabel, sections }: Props) {
           </ReportBlock>
         )}
       </ReportSection>
-      )}
 
       {/* POS operations */}
-      {show('pos') && (sales.recent_shifts?.length > 0 || overview.pos_shifts_closed > 0) && (
+      {(sales.recent_shifts?.length > 0 || overview.pos_shifts_closed > 0) && (
         <ReportSection id="pos" title="POS operations" subtitle="Shift activity and cash handling">
           <ReportBlock title="Shift summary" subtitle={`${overview.pos_shifts_closed ?? 0} shifts closed in period`}>
             <MetricStrip
