@@ -21,7 +21,6 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
-    "@next/swc-darwin-x64": "^16.2.11",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
