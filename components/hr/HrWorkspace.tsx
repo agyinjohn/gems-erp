@@ -37,7 +37,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     if (section === 'payroll') return !apiCache.get('/payroll');
     return true;
   });
-  const [modal, setModal] = useState<'add_emp'|'edit_emp'|'terminate'|'emp_detail'|'add_payroll'|'bulk_payroll'|'payroll_detail'|'add_leave'|'add_attendance'|null>(null);
+  const [modal, setModal] = useState<'add_emp'|'edit_emp'|'terminate'|'emp_detail'|'add_payroll'|'bulk_payroll'|'pay_run'|'payroll_detail'|'add_leave'|'add_attendance'|null>(null);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [detailEmployee, setDetailEmployee] = useState<any>(null);
   const [terminateTarget, setTerminateTarget] = useState<any>(null);
@@ -89,6 +89,18 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     deduction_lines: DEFAULT_DEDUCTION_LINES as PayLine[],
   });
   const [bulkPayForm, setBulkPayForm] = useState({
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+    allowance_lines: DEFAULT_ALLOWANCE_LINES as PayLine[],
+    deduction_lines: DEFAULT_DEDUCTION_LINES as PayLine[],
+  });
+
+  // ── Batch pay runs ──
+  const [batches, setBatches] = useState<any[]>([]);
+  const [batchDetail, setBatchDetail] = useState<any>(null); // { batch, runs }
+  const [batchActing, setBatchActing] = useState<string | null>(null);
+  const [runningBatch, setRunningBatch] = useState(false);
+  const [payRunForm, setPayRunForm] = useState({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
     allowance_lines: DEFAULT_ALLOWANCE_LINES as PayLine[],
@@ -196,6 +208,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     const cacheKey = section === 'employees' ? '/employees' : section === 'leave' ? '/leave-requests' : '/payroll';
     const hasCache = !!apiCache.get(cacheKey);
     loadSection(section, attendanceDate, hasCache && !apiCache.isStale(cacheKey));
+    if (section === 'payroll') loadBatches();
   }, [section, attendanceDate]);
 
   const filtered = employees.filter(e => !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.employee_code?.toLowerCase().includes(search.toLowerCase()));
@@ -610,6 +623,64 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     });
   };
 
+  // ── Batch pay runs ──
+  const loadBatches = async () => {
+    try {
+      const r = await api.get('/payroll/batches');
+      setBatches(r.data.data || []);
+    } catch { /* ignore */ }
+  };
+
+  const runPayRun = async () => {
+    setRunningBatch(true);
+    try {
+      await api.post('/payroll/batches', {
+        month: payRunForm.month,
+        year: payRunForm.year,
+        allowance_lines: activePayLines(payRunForm.allowance_lines),
+        deduction_lines: activePayLines(payRunForm.deduction_lines),
+      });
+      toast.success('Pay run created');
+      setModal(null);
+      loadBatches();
+      reloadSection('/payroll');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Pay run failed');
+    } finally { setRunningBatch(false); }
+  };
+
+  const openBatch = async (b: any) => {
+    try {
+      const r = await api.get(`/payroll/batches/${b._id || b.id}`);
+      setBatchDetail(r.data.data);
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Could not load pay run'); }
+  };
+
+  const batchAction = async (b: any, kind: 'approve' | 'mark-paid') => {
+    const id = b._id || b.id;
+    setBatchActing(id);
+    try {
+      await api.patch(`/payroll/batches/${id}/${kind}`);
+      toast.success(kind === 'approve' ? 'Pay run approved' : 'Pay run marked paid');
+      loadBatches();
+      if (batchDetail?.batch && (batchDetail.batch._id || batchDetail.batch.id) === id) openBatch(b);
+      reloadSection('/payroll');
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Action failed'); }
+    finally { setBatchActing(null); }
+  };
+
+  const downloadBankFile = async (b: any) => {
+    try {
+      const r = await api.get(`/payroll/batches/${b._id || b.id}/bank-file`, { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([r.data], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bank-file-${(b.label || 'payrun').replace(/\s+/g, '-')}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Could not download bank file'); }
+  };
+
   const exportHrCsv = () => {
     const rows = employees.map((e: any) => [
       e.employee_code, e.name, e.department_name || '', e.job_title || '', e.status,
@@ -946,6 +1017,51 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
       {section === 'payroll' && (
         <>
+          {/* Pay Runs (period batches) */}
+          <div className="card p-0 overflow-hidden mb-5">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm">Pay Runs</h3>
+                <p className="text-xs text-gray-400">Run, approve and pay a whole period at once</p>
+              </div>
+              <button type="button" className="btn-primary text-sm" onClick={() => setModal('pay_run')}>
+                <DollarSign className="w-4 h-4" /> New Pay Run
+              </button>
+            </div>
+            {batches.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-gray-400">No pay runs yet</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="table-header"><tr>
+                    {['Period', 'Employees', 'Total net', 'Status', 'Actions'].map((h) => <th key={h} className="px-4 py-2 text-left">{h}</th>)}
+                  </tr></thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {batches.map((b) => {
+                      const id = b._id || b.id;
+                      return (
+                        <tr key={id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 font-medium">{b.label}</td>
+                          <td className="px-4 py-2">{b.employee_count}</td>
+                          <td className="px-4 py-2 font-semibold">GH₵ {parseFloat(b.total_net || 0).toFixed(2)}</td>
+                          <td className="px-4 py-2"><span className={`text-xs px-2 py-0.5 rounded-full capitalize ${b.status === 'paid' ? 'bg-green-100 text-green-700' : b.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{b.status}</span></td>
+                          <td className="px-4 py-2">
+                            <div className="flex gap-1">
+                              <button type="button" onClick={() => openBatch(b)} title="View pay run" className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Eye className="w-4 h-4" /></button>
+                              {b.status === 'draft' && <button type="button" disabled={batchActing === id} onClick={() => batchAction(b, 'approve')} title="Approve" className="p-1.5 hover:bg-green-50 rounded text-green-600"><CheckCircle className="w-4 h-4" /></button>}
+                              {b.status === 'approved' && <button type="button" disabled={batchActing === id} onClick={() => batchAction(b, 'mark-paid')} title="Mark paid" className="p-1.5 hover:bg-green-50 rounded text-green-600"><Banknote className="w-4 h-4" /></button>}
+                              <button type="button" onClick={() => downloadBankFile(b)} title="Bank file (CSV)" className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Download className="w-4 h-4" /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           <div className="flex flex-wrap items-end gap-3 mb-4">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -1346,6 +1462,73 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
           <button className="btn-primary" onClick={requestBulkPayroll} disabled={saving}>{saving ? 'Running…' : 'Run for all staff'}</button>
         </div>
+      </Modal>
+
+      {/* New Pay Run (batch) Modal */}
+      <Modal open={modal==='pay_run'} onClose={() => setModal(null)} title="New Pay Run" size="md">
+        <p className="text-sm text-gray-600 mb-4">Runs payroll for all active employees in scope as one pay run. PAYE and SSNIT are auto-calculated. Employees already paid for this period are skipped.</p>
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div><label className="form-label">Month</label>
+            <select className="form-input" value={payRunForm.month} onChange={e => setPayRunForm({...payRunForm, month: parseInt(e.target.value)})}>
+              {months.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
+            </select>
+          </div>
+          <div><label className="form-label">Year</label><input type="number" className="form-input" value={payRunForm.year} onChange={e => setPayRunForm({...payRunForm, year: parseInt(e.target.value)})} /></div>
+        </div>
+        <PayrollLineEditor
+          label="Shared allowances (applied to each employee)"
+          lines={payRunForm.allowance_lines}
+          onChange={(allowance_lines) => setPayRunForm({ ...payRunForm, allowance_lines })}
+          presets={ALLOWANCE_PRESETS}
+          amountPrefix="+"
+        />
+        <PayrollLineEditor
+          label="Shared deductions (PAYE & SSNIT added per employee)"
+          lines={payRunForm.deduction_lines}
+          onChange={(deduction_lines) => setPayRunForm({ ...payRunForm, deduction_lines })}
+          presets={DEDUCTION_PRESETS}
+          amountPrefix="-"
+        />
+        <div className="flex gap-3 justify-end mt-6">
+          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+          <button className="btn-primary" onClick={runPayRun} disabled={runningBatch}>{runningBatch ? 'Running…' : 'Run pay run'}</button>
+        </div>
+      </Modal>
+
+      {/* Pay Run detail Modal */}
+      <Modal open={!!batchDetail} onClose={() => setBatchDetail(null)} title={`Pay Run — ${batchDetail?.batch?.label || ''}`} size="lg">
+        {batchDetail && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+              <div className="rounded-lg border border-gray-200 p-2"><div className="text-xs text-gray-400">Employees</div><div className="font-bold">{batchDetail.batch.employee_count}</div></div>
+              <div className="rounded-lg border border-gray-200 p-2"><div className="text-xs text-gray-400">Total gross</div><div className="font-bold">GH₵ {parseFloat(batchDetail.batch.total_gross || 0).toFixed(2)}</div></div>
+              <div className="rounded-lg border border-gray-200 p-2"><div className="text-xs text-gray-400">Deductions</div><div className="font-bold">GH₵ {parseFloat(batchDetail.batch.total_deductions || 0).toFixed(2)}</div></div>
+              <div className="rounded-lg border border-gray-200 p-2"><div className="text-xs text-gray-400">Total net</div><div className="font-bold text-[#0D3B6E]">GH₵ {parseFloat(batchDetail.batch.total_net || 0).toFixed(2)}</div></div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${batchDetail.batch.status === 'paid' ? 'bg-green-100 text-green-700' : batchDetail.batch.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{batchDetail.batch.status}</span>
+              {batchDetail.batch.status === 'draft' && <button className="btn-secondary text-xs" onClick={() => batchAction(batchDetail.batch, 'approve')}>Approve pay run</button>}
+              {batchDetail.batch.status === 'approved' && <button className="btn-secondary text-xs" onClick={() => batchAction(batchDetail.batch, 'mark-paid')}>Mark paid</button>}
+              <button className="btn-secondary text-xs" onClick={() => downloadBankFile(batchDetail.batch)}><Download className="w-3.5 h-3.5" /> Bank file</button>
+            </div>
+            <div className="overflow-x-auto max-h-80 overflow-y-auto rounded-lg border border-gray-100">
+              <table className="w-full text-sm">
+                <thead className="table-header"><tr>{['Employee', 'Gross', 'Deductions', 'Net', ''].map((h, i) => <th key={i} className="px-3 py-2 text-left">{h}</th>)}</tr></thead>
+                <tbody className="divide-y divide-gray-50">
+                  {batchDetail.runs.map((r: any) => (
+                    <tr key={r._id || r.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2">{r.employee_name}</td>
+                      <td className="px-3 py-2">GH₵ {parseFloat(r.gross_salary || 0).toFixed(2)}</td>
+                      <td className="px-3 py-2">GH₵ {parseFloat(r.deductions || 0).toFixed(2)}</td>
+                      <td className="px-3 py-2 font-semibold">GH₵ {parseFloat(r.net_salary || 0).toFixed(2)}</td>
+                      <td className="px-3 py-2"><button type="button" onClick={() => setPayslipRow(r)} title="Payslip" className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><FileText className="w-4 h-4" /></button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </Modal>
 
       <Modal open={modal==='payroll_detail'} onClose={() => setModal(null)} title="Payroll details" size="md">
