@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { Modal, EmptyState, Spinner, toast } from '@/components/ui';
 import { Plus, Search, DollarSign, CheckCircle, XCircle, Calendar, Users, Clock, Umbrella, Banknote, Edit2, UserX, FileText, Download, Eye } from 'lucide-react';
 import api, { apiCache } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import EmployeeDocuments from '@/components/hr/EmployeeDocuments';
+import Payslip from '@/components/hr/Payslip';
 import PayrollLineEditor, {
   DEFAULT_ALLOWANCE_LINES,
   DEFAULT_DEDUCTION_LINES,
@@ -22,6 +24,8 @@ interface HrWorkspaceProps {
 }
 
 export default function HrWorkspace({ section }: HrWorkspaceProps) {
+  const { tenant } = useAuth();
+  const [payslipRow, setPayslipRow] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>(() => apiCache.get('/employees') || []);
   const [departments, setDepartments] = useState<any[]>(() => apiCache.get('/departments') || []);
   const [leave, setLeave] = useState<any[]>(() => apiCache.get('/leave-requests') || []);
@@ -74,6 +78,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     // Step 3 — Employment
     employee_code:'', job_title:'', department_id:'', manager_id:'', user_id:'', gross_salary:'', start_date:'', employment_type:'full_time',
     annual_leave_entitlement:'21', sick_leave_entitlement:'10',
+    // Step 3 — Statutory & payment
+    ssnit_number:'', tin:'', payment_method:'bank', bank_name:'', bank_account_name:'', bank_account_number:'', bank_branch:'', momo_number:'',
   });
   const [payForm, setPayForm] = useState({
     employee_id: '',
@@ -252,6 +258,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     email:'', phone:'', address:'', emergency_name:'', emergency_phone:'', emergency_relation:'',
     employee_code:'EMP-'+Date.now().toString().slice(-4), job_title:'', department_id:'', manager_id:'', user_id:'',
     gross_salary:'', start_date:'', employment_type:'full_time', annual_leave_entitlement:'21', sick_leave_entitlement:'10',
+    ssnit_number:'', tin:'', payment_method:'bank', bank_name:'', bank_account_name:'', bank_account_number:'', bank_branch:'', momo_number:'',
   });
 
   const loadLinkableUsers = async (employeeId?: string) => {
@@ -295,6 +302,14 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       employment_type: e.employment_type || 'full_time',
       annual_leave_entitlement: String(e.annual_leave_entitlement ?? 21),
       sick_leave_entitlement: String(e.sick_leave_entitlement ?? 10),
+      ssnit_number: e.ssnit_number || '',
+      tin: e.tin || '',
+      payment_method: e.payment_method || 'bank',
+      bank_name: e.bank_name || '',
+      bank_account_name: e.bank_account_name || '',
+      bank_account_number: e.bank_account_number || '',
+      bank_branch: e.bank_branch || '',
+      momo_number: e.momo_number || '',
     });
     setEmpStep(1);
     setError('');
@@ -1011,6 +1026,9 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                               <button type="button" onClick={() => openPayrollDetail(p)} title="View details" className="p-1.5 hover:bg-gray-100 rounded text-gray-600">
                                 <Eye className="w-4 h-4" />
                               </button>
+                              <button type="button" onClick={() => setPayslipRow(p)} title="Payslip" className="p-1.5 hover:bg-blue-50 rounded text-blue-600">
+                                <FileText className="w-4 h-4" />
+                              </button>
                               {p.status === 'submitted' && (
                                 <button type="button" onClick={() => requestApprovePayroll(p)} title="Approve payroll" className="p-1.5 hover:bg-green-50 rounded text-green-600">
                                   <CheckCircle className="w-4 h-4" />
@@ -1220,6 +1238,27 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             <div><label className="form-label">Start Date</label><input type="date" className="form-input" value={empForm.start_date} onChange={e => setEmpForm({...empForm,start_date:e.target.value})} /></div>
             <div><label className="form-label">Annual leave entitlement (days)</label><input type="number" className="form-input" value={empForm.annual_leave_entitlement} onChange={e => setEmpForm({...empForm,annual_leave_entitlement:e.target.value})} /></div>
             <div><label className="form-label">Sick leave entitlement (days)</label><input type="number" className="form-input" value={empForm.sick_leave_entitlement} onChange={e => setEmpForm({...empForm,sick_leave_entitlement:e.target.value})} /></div>
+
+            <div className="col-span-2 pt-2 mt-1 border-t border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-400">Statutory &amp; payment</div>
+            <div><label className="form-label">SSNIT Number</label><input className="form-input" value={empForm.ssnit_number} onChange={e => setEmpForm({...empForm,ssnit_number:e.target.value})} placeholder="e.g. C0123456789" /></div>
+            <div><label className="form-label">TIN (Tax ID)</label><input className="form-input" value={empForm.tin} onChange={e => setEmpForm({...empForm,tin:e.target.value})} placeholder="e.g. P0001234567" /></div>
+            <div className="col-span-2">
+              <label className="form-label">Payment method</label>
+              <select className="form-input" value={empForm.payment_method} onChange={e => setEmpForm({...empForm,payment_method:e.target.value})}>
+                <option value="bank">Bank transfer</option>
+                <option value="momo">Mobile money</option>
+                <option value="cash">Cash</option>
+              </select>
+            </div>
+            {empForm.payment_method === 'bank' && (<>
+              <div><label className="form-label">Bank name</label><input className="form-input" value={empForm.bank_name} onChange={e => setEmpForm({...empForm,bank_name:e.target.value})} placeholder="e.g. GCB Bank" /></div>
+              <div><label className="form-label">Bank branch</label><input className="form-input" value={empForm.bank_branch} onChange={e => setEmpForm({...empForm,bank_branch:e.target.value})} placeholder="e.g. Accra Main" /></div>
+              <div><label className="form-label">Account name</label><input className="form-input" value={empForm.bank_account_name} onChange={e => setEmpForm({...empForm,bank_account_name:e.target.value})} /></div>
+              <div><label className="form-label">Account number</label><input className="form-input" value={empForm.bank_account_number} onChange={e => setEmpForm({...empForm,bank_account_number:e.target.value})} /></div>
+            </>)}
+            {empForm.payment_method === 'momo' && (
+              <div className="col-span-2"><label className="form-label">Mobile money number</label><input className="form-input" value={empForm.momo_number} onChange={e => setEmpForm({...empForm,momo_number:e.target.value})} placeholder="+233 XX XXX XXXX" /></div>
+            )}
           </div>
         )}
 
@@ -1382,6 +1421,15 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           />
         )}
       </Modal>
+
+      {payslipRow && (
+        <Payslip
+          run={payslipRow}
+          employee={employees.find((e) => (e.id || e._id) === (payslipRow.employee_id?._id || payslipRow.employee_id)) || payslipRow.employee}
+          businessName={tenant?.business_name}
+          onClose={() => setPayslipRow(null)}
+        />
+      )}
     </>
   );
 }
