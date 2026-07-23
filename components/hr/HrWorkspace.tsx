@@ -28,6 +28,11 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const [payrollSettings, setPayrollSettings] = useState({ apply_ssnit: true, apply_paye: true });
   const [payrollSettingsSaving, setPayrollSettingsSaving] = useState(false);
   const [payslipRow, setPayslipRow] = useState<any>(null);
+  // ── Loans & advances ──
+  const [loans, setLoans] = useState<any[]>([]);
+  const [loanStatusFilter, setLoanStatusFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
+  const [loanSaving, setLoanSaving] = useState(false);
+  const [loanForm, setLoanForm] = useState({ employee_id: '', type: 'loan', reason: '', principal: '', monthly_deduction: '' });
   const [employees, setEmployees] = useState<any[]>(() => apiCache.get('/employees') || []);
   const [departments, setDepartments] = useState<any[]>(() => apiCache.get('/departments') || []);
   const [leave, setLeave] = useState<any[]>(() => apiCache.get('/leave-requests') || []);
@@ -39,7 +44,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     if (section === 'payroll') return !apiCache.get('/payroll');
     return true;
   });
-  const [modal, setModal] = useState<'add_emp'|'edit_emp'|'terminate'|'emp_detail'|'add_payroll'|'bulk_payroll'|'pay_run'|'payroll_detail'|'add_leave'|'add_attendance'|null>(null);
+  const [modal, setModal] = useState<'add_emp'|'edit_emp'|'terminate'|'emp_detail'|'add_payroll'|'bulk_payroll'|'pay_run'|'payroll_detail'|'add_leave'|'add_attendance'|'add_loan'|null>(null);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [detailEmployee, setDetailEmployee] = useState<any>(null);
   const [terminateTarget, setTerminateTarget] = useState<any>(null);
@@ -193,6 +198,11 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         setPayroll(p.data.data);
         setEmployees(e.data.data);
         setHrSummary(null);
+      } else if (sec === 'loans') {
+        const e = await api.get('/employees').catch(() => ({ data: { data: [] } }));
+        apiCache.set('/employees', e.data.data);
+        setEmployees(e.data.data);
+        setHrSummary(null);
       }
     } finally {
       setLoading(false);
@@ -207,10 +217,11 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   useEffect(() => {
     // attendance always re-fetches (date-specific, not cacheable globally)
     if (section === 'attendance') { loadSection(section, attendanceDate); return; }
-    const cacheKey = section === 'employees' ? '/employees' : section === 'leave' ? '/leave-requests' : '/payroll';
+    const cacheKey = section === 'employees' ? '/employees' : section === 'leave' ? '/leave-requests' : section === 'loans' ? '/employees' : '/payroll';
     const hasCache = !!apiCache.get(cacheKey);
     loadSection(section, attendanceDate, hasCache && !apiCache.isStale(cacheKey));
     if (section === 'payroll') { loadBatches(); loadPayrollSettings(); }
+    if (section === 'loans') loadLoans();
   }, [section, attendanceDate]);
 
   const filtered = employees.filter(e => !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.employee_code?.toLowerCase().includes(search.toLowerCase()));
@@ -651,6 +662,51 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       toast.error(e.response?.data?.message || 'Failed to update payroll settings');
     } finally { setPayrollSettingsSaving(false); }
   };
+
+  // ── Loans & advances ──
+  const loadLoans = async () => {
+    try {
+      const r = await api.get('/loans');
+      setLoans(r.data.data || []);
+    } catch { /* ignore */ }
+  };
+
+  const openNewLoan = () => {
+    setLoanForm({ employee_id: '', type: 'loan', reason: '', principal: '', monthly_deduction: '' });
+    setModal('add_loan');
+  };
+
+  const saveLoan = async () => {
+    if (!loanForm.employee_id) { toast.error('Select an employee'); return; }
+    if (!parseFloat(loanForm.principal) || parseFloat(loanForm.principal) <= 0) { toast.error('Enter a principal amount'); return; }
+    if (!parseFloat(loanForm.monthly_deduction) || parseFloat(loanForm.monthly_deduction) <= 0) { toast.error('Enter a monthly deduction amount'); return; }
+    setLoanSaving(true);
+    try {
+      await api.post('/loans', {
+        ...loanForm,
+        principal: parseFloat(loanForm.principal),
+        monthly_deduction: parseFloat(loanForm.monthly_deduction),
+      });
+      toast.success('Loan recorded');
+      setModal(null);
+      loadLoans();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to record loan');
+    } finally { setLoanSaving(false); }
+  };
+
+  const cancelLoan = async (loan: any) => {
+    if (!confirm(`Cancel this ${loan.type} for ${loan.employee_name}? Remaining balance (GH₵ ${parseFloat(loan.balance).toFixed(2)}) will no longer be deducted.`)) return;
+    try {
+      await api.patch(`/loans/${loan._id || loan.id}/cancel`);
+      toast.success('Loan cancelled');
+      loadLoans();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to cancel loan');
+    }
+  };
+
+  const filteredLoans = loans.filter((l) => loanStatusFilter === 'all' || l.status === loanStatusFilter);
 
   const runPayRun = async () => {
     setRunningBatch(true);
@@ -1202,6 +1258,91 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           </div>
         </>
       )}
+
+      {section === 'loans' && (
+        <>
+          <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div className="w-full sm:w-auto sm:min-w-[160px]">
+              <label className="form-label">Status</label>
+              <select className="form-input w-full" value={loanStatusFilter} onChange={(e) => setLoanStatusFilter(e.target.value as typeof loanStatusFilter)}>
+                <option value="all">All statuses</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div className="flex-1" />
+            <button type="button" className="btn-primary" onClick={openNewLoan}>
+              <Plus className="w-4 h-4" /> New Loan / Advance
+            </button>
+          </div>
+          <div className="card p-0 overflow-hidden">
+            {loading ? <Spinner /> : filteredLoans.length === 0 ? (
+              <EmptyState message={loans.length === 0 ? 'No loans or advances recorded yet' : 'No loans match your filter'} />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="table-header"><tr>
+                    {['Employee', 'Type', 'Reason', 'Principal', 'Monthly deduction', 'Balance', 'Status', 'Actions'].map((h) => <th key={h} className="px-4 py-2 text-left">{h}</th>)}
+                  </tr></thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filteredLoans.map((l) => (
+                      <tr key={l._id || l.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 font-medium">{l.employee_name}</td>
+                        <td className="px-4 py-2 capitalize">{l.type}</td>
+                        <td className="px-4 py-2 text-gray-500">{l.reason || '—'}</td>
+                        <td className="px-4 py-2">GH₵ {parseFloat(l.principal).toFixed(2)}</td>
+                        <td className="px-4 py-2">GH₵ {parseFloat(l.monthly_deduction).toFixed(2)}</td>
+                        <td className="px-4 py-2 font-semibold">GH₵ {parseFloat(l.balance).toFixed(2)}</td>
+                        <td className="px-4 py-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${l.status === 'active' ? 'bg-blue-100 text-blue-700' : l.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{l.status}</span>
+                        </td>
+                        <td className="px-4 py-2">
+                          {l.status === 'active' && (
+                            <button type="button" onClick={() => cancelLoan(l)} title="Cancel loan" className="p-1.5 hover:bg-red-50 rounded text-red-600"><XCircle className="w-4 h-4" /></button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* New Loan / Advance Modal */}
+      <Modal open={modal==='add_loan'} onClose={() => setModal(null)} title="New Loan / Advance" size="md">
+        <p className="text-sm text-gray-600 mb-4">The monthly deduction is automatically taken from the employee's pay each period until the balance is cleared.</p>
+        <div className="space-y-3">
+          <div>
+            <label className="form-label">Employee</label>
+            <select className="form-input" value={loanForm.employee_id} onChange={(e) => setLoanForm({ ...loanForm, employee_id: e.target.value })}>
+              <option value="">Select employee…</option>
+              {employees.filter((e) => e.status === 'active').map((e) => <option key={e.id || e._id} value={e.id || e._id}>{e.name}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">Type</label>
+              <select className="form-input" value={loanForm.type} onChange={(e) => setLoanForm({ ...loanForm, type: e.target.value })}>
+                <option value="loan">Loan</option>
+                <option value="advance">Salary advance</option>
+              </select>
+            </div>
+            <div><label className="form-label">Reason (optional)</label><input className="form-input" value={loanForm.reason} onChange={(e) => setLoanForm({ ...loanForm, reason: e.target.value })} placeholder="e.g. Emergency, School fees" /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="form-label">Principal (GH₵)</label><input type="number" className="form-input" value={loanForm.principal} onChange={(e) => setLoanForm({ ...loanForm, principal: e.target.value })} /></div>
+            <div><label className="form-label">Monthly deduction (GH₵)</label><input type="number" className="form-input" value={loanForm.monthly_deduction} onChange={(e) => setLoanForm({ ...loanForm, monthly_deduction: e.target.value })} /></div>
+          </div>
+        </div>
+        <div className="flex gap-3 justify-end mt-6">
+          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+          <button className="btn-primary" onClick={saveLoan} disabled={loanSaving}>{loanSaving ? 'Saving…' : 'Record loan'}</button>
+        </div>
+      </Modal>
 
       {/* Add Attendance Modal */}
       <Modal open={modal==='add_attendance'} onClose={() => { setModal(null); setAttendanceEditing(false); }} title={attendanceEditing ? 'Edit Attendance' : 'Record Attendance'} size="md">

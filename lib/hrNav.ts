@@ -1,7 +1,7 @@
-import { Users, Clock, Umbrella, Banknote } from 'lucide-react';
+import { Users, Clock, Umbrella, Banknote, Wallet } from 'lucide-react';
 import type { ComponentType } from 'react';
 
-export type HrSectionSlug = 'employees' | 'attendance' | 'leave' | 'payroll';
+export type HrSectionSlug = 'employees' | 'attendance' | 'leave' | 'payroll' | 'loans';
 
 export interface HrNavItem {
   slug: HrSectionSlug;
@@ -39,6 +39,13 @@ export const HR_SECTIONS: HrNavItem[] = [
     title: 'Payroll',
     subtitle: 'Run payroll with PAYE and SSNIT',
     icon: Banknote,
+  },
+  {
+    slug: 'loans',
+    label: 'Loans',
+    title: 'Loans & Advances',
+    subtitle: 'Staff loans and salary advances, repaid automatically through payroll',
+    icon: Wallet,
   },
 ];
 
