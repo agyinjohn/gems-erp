@@ -21,6 +21,8 @@ export default function ESSPage() {
   const [leave, setLeave]         = useState<any[]>([]);
   const [payslips, setPayslips]   = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
+  const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
+  const [clocking, setClocking]   = useState(false);
   const [loading, setLoading]     = useState(true);
   const [leaveModal, setLeaveModal] = useState(false);
   const [saving, setSaving]       = useState(false);
@@ -46,14 +48,16 @@ export default function ESSPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [m, l, a] = await Promise.all([
+      const [m, l, a, lt] = await Promise.all([
         api.get('/ess/me').catch(() => ({ data: { data: null } })),
         api.get('/ess/leave-requests').catch(() => ({ data: { data: [] } })),
         api.get('/ess/attendance').catch(() => ({ data: { data: [] } })),
+        api.get('/leave-types').catch(() => ({ data: { data: [] } })),
       ]);
       setMe(m.data.data);
       setLeave(l.data.data);
       setAttendance(a.data.data);
+      setLeaveTypes(lt.data.data);
       // Load latest payslip for overview
       const p = await api.get(`/ess/payslips?month=${now.getMonth()+1}&year=${now.getFullYear()}`).catch(() => ({ data: { data: [] } }));
       setPayslips(p.data.data);
@@ -74,6 +78,30 @@ export default function ESSPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const todayAttendance = attendance.find((a) => new Date(a.date).toDateString() === new Date().toDateString());
+
+  const clockIn = async () => {
+    setClocking(true);
+    try {
+      await api.post('/ess/attendance/clock-in');
+      toast.success('Clocked in');
+      load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Clock-in failed');
+    } finally { setClocking(false); }
+  };
+
+  const clockOut = async () => {
+    setClocking(true);
+    try {
+      await api.post('/ess/attendance/clock-out');
+      toast.success('Clocked out');
+      load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Clock-out failed');
+    } finally { setClocking(false); }
+  };
 
   const executeHrConfirm = async () => {
     if (!hrConfirm) return;
@@ -480,6 +508,23 @@ export default function ESSPage() {
           {/* ── ATTENDANCE ── */}
           {tab === 'attendance' && (
             <div className="space-y-4">
+              <div className="card flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-gray-800">Today</div>
+                  <div className="text-xs text-gray-500">
+                    {todayAttendance?.clock_in
+                      ? `Clocked in ${new Date(todayAttendance.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                      : 'Not clocked in yet'}
+                    {todayAttendance?.clock_out && ` · Clocked out ${new Date(todayAttendance.clock_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                    {todayAttendance?.hours_worked != null && ` · ${todayAttendance.hours_worked.toFixed(2)}h worked`}
+                    {todayAttendance?.overtime_hours ? ` (${todayAttendance.overtime_hours.toFixed(2)}h overtime)` : ''}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button className="btn-secondary" onClick={clockIn} disabled={clocking || (todayAttendance?.clock_in && !todayAttendance?.clock_out)}>Clock In</button>
+                  <button className="btn-primary" onClick={clockOut} disabled={clocking || !todayAttendance?.clock_in || !!todayAttendance?.clock_out}>Clock Out</button>
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="card bg-green-50 text-center"><div className="text-2xl font-bold text-green-600">{presentDays}</div><div className="text-sm text-gray-500">Present</div></div>
                 <div className="card bg-yellow-50 text-center"><div className="text-2xl font-bold text-yellow-600">{halfDays}</div><div className="text-sm text-gray-500">Half Day</div></div>
@@ -520,9 +565,11 @@ export default function ESSPage() {
           <div>
             <label className="form-label">Leave Type</label>
             <select className="form-input" value={form.leave_type} onChange={e => setForm({...form, leave_type: e.target.value})}>
-              {['annual','sick','maternity','paternity','unpaid','other'].map(t => (
-                <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>
-              ))}
+              {(leaveTypes.length ? leaveTypes.filter((lt: any) => lt.is_active !== false).map((lt: any) => lt.code) : ['annual','sick','maternity','paternity','unpaid','other']).map((t: string) => {
+                const lt = leaveTypes.find((x: any) => x.code === t);
+                const label = lt ? lt.name : (t.charAt(0).toUpperCase()+t.slice(1));
+                return <option key={t} value={t}>{label}</option>;
+              })}
             </select>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
