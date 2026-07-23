@@ -40,7 +40,13 @@ export default function Payslip({ run, employee, businessName, onClose }: Props)
 
         <div id={printId} className="px-6 py-5 text-sm text-gray-800">
           <h1 className="text-xl font-extrabold text-[#0D3B6E]">{businessName || 'GEMS'}</h1>
-          <div className="meta text-xs text-gray-500 mb-4">Payslip · {period} · <span className="capitalize">{run.status || 'submitted'}</span></div>
+          <div className="meta text-xs text-gray-500 mb-1">Payslip · {period} · <span className="capitalize">{run.status || 'submitted'}</span></div>
+          {run.proration && (
+            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5 mb-3 inline-block">
+              Prorated pay — worked {run.proration.worked_days} of {run.proration.total_days} days this period (full salary {fmtGhs(run.proration.full_gross_salary)}/mo)
+            </div>
+          )}
+          {!run.proration && <div className="mb-3" />}
 
           <div className="grid grid-cols-2 gap-3 mb-5">
             <div className="card border border-gray-200 rounded-lg p-3">
@@ -80,9 +86,10 @@ export default function Payslip({ run, employee, businessName, onClose }: Props)
             <h2 className="text-sm font-bold border-b border-gray-100 pb-1 mb-2">Deductions</h2>
             <table className="w-full">
               <tbody>
-                <tr><td>PAYE (income tax)</td><td className="text-right tabular-nums">{fmtGhs(run.paye)}</td></tr>
-                <tr><td>SSNIT employee (5.5%)</td><td className="text-right tabular-nums">{fmtGhs(run.ssnit_employee)}</td></tr>
-                {deductionLines.map((l, i) => (
+                {/* deduction_lines already includes PAYE / SSNIT (when non-zero) ahead of custom and loan lines */}
+                {deductionLines.length === 0 ? (
+                  <tr><td className="text-gray-400">No deductions this period</td><td /></tr>
+                ) : deductionLines.map((l, i) => (
                   <tr key={i}><td>{l.name || 'Deduction'}</td><td className="text-right tabular-nums">{fmtGhs(l.amount)}</td></tr>
                 ))}
                 <tr><td className="font-semibold">Total deductions</td><td className="text-right font-semibold tabular-nums">{fmtGhs(run.deductions)}</td></tr>
