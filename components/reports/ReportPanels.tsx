@@ -234,7 +234,7 @@ export default function ReportPanels({ data, periodLabel }: Props) {
       <ReportSection id="finance" title="Financial health" subtitle="Revenue, costs and profitability">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-[#0D3B6E]/15 bg-[#0D3B6E]/5 px-4 py-3">
           <p className="text-sm text-[#0D3B6E]">Operational P&amp;L from orders and expenses — use Accounting for GL statements.</p>
-          <Link href="/accounting/overview" className="btn-secondary text-sm inline-flex items-center gap-1 shrink-0">
+          <Link href="/accounting" className="btn-secondary text-sm inline-flex items-center gap-1 shrink-0">
             Accounting <ExternalLink className="w-3.5 h-3.5" />
           </Link>
         </div>

@@ -1,6 +1,6 @@
 export type ReportTab = 'overview' | 'sales' | 'inventory' | 'finance' | 'procurement' | 'hr' | 'crm';
 
-export type DatePreset = 'this_month' | 'last_30' | 'ytd' | 'all';
+export type DatePreset = 'this_month' | 'last_month' | 'last_30' | 'last_quarter' | 'ytd' | 'all';
 
 
 
@@ -19,44 +19,48 @@ export function getPresetRange(preset: DatePreset): { from: string; to: string }
   const to = formatDate(now);
 
   if (preset === 'all') return { from: '', to: '' };
-
   if (preset === 'last_30') {
-
-    const from = new Date(now);
-
-    from.setDate(from.getDate() - 29);
-
+    const from = new Date(now); from.setDate(from.getDate() - 29);
     return { from: formatDate(from), to };
-
   }
-
-  if (preset === 'ytd') {
-
-    return { from: formatDate(new Date(now.getFullYear(), 0, 1)), to };
-
+  if (preset === 'last_month') {
+    const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const last  = new Date(now.getFullYear(), now.getMonth(), 0);
+    return { from: formatDate(first), to: formatDate(last) };
   }
-
+  if (preset === 'last_quarter') {
+    const q = Math.floor(now.getMonth() / 3);
+    const first = new Date(now.getFullYear(), (q - 1) * 3, 1);
+    const last  = new Date(now.getFullYear(), q * 3, 0);
+    return { from: formatDate(first), to: formatDate(last) };
+  }
+  if (preset === 'ytd') return { from: formatDate(new Date(now.getFullYear(), 0, 1)), to };
   return { from: formatDate(new Date(now.getFullYear(), now.getMonth(), 1)), to };
 
 }
 
 
 
+function fmtDateLabel(d: string): string {
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 export function formatPeriodLabel(from: string, to: string): string {
-
   if (!from && !to) return 'All time';
-
-  if (from && to) return `${from} → ${to}`;
-
-  if (from) return `From ${from}`;
-
-  return `Until ${to}`;
-
+  if (from && to) return `${fmtDateLabel(from)} – ${fmtDateLabel(to)}`;
+  if (from) return `From ${fmtDateLabel(from)}`;
+  return `Until ${fmtDateLabel(to)}`;
 }
 
 
 
-export const fmtGhs = (n: unknown) => `GH₵ ${parseFloat(String(n ?? 0)).toFixed(2)}`;
+export const fmtGhs = (n: unknown): string => {
+  const v = parseFloat(String(n ?? 0));
+  if (Math.abs(v) >= 1_000_000) return `GH₵ ${(v / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(v) >= 10_000)   return `GH₵ ${(v / 1_000).toFixed(1)}k`;
+  return `GH₵ ${v.toFixed(2)}`;
+};
 
 
 

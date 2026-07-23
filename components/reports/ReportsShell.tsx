@@ -6,10 +6,12 @@ import type { DatePreset } from '@/lib/reportUtils';
 import { formatPeriodLabel } from '@/lib/reportUtils';
 
 const PRESETS: { id: DatePreset; label: string }[] = [
-  { id: 'this_month', label: 'This month' },
-  { id: 'last_30', label: 'Last 30 days' },
-  { id: 'ytd', label: 'Year to date' },
-  { id: 'all', label: 'All time' },
+  { id: 'this_month',    label: 'This month' },
+  { id: 'last_month',   label: 'Last month' },
+  { id: 'last_30',      label: 'Last 30 days' },
+  { id: 'last_quarter', label: 'Last quarter' },
+  { id: 'ytd',          label: 'Year to date' },
+  { id: 'all',          label: 'All time' },
 ];
 
 interface Props {

@@ -98,6 +98,8 @@ export default function ActivityPage() {
   const [search, setSearch]     = useState('');
   const [filterModule, setFilterModule] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterBranch, setFilterBranch] = useState('');
+  const [branches, setBranches]         = useState<any[]>([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo]     = useState('');
 
@@ -105,25 +107,27 @@ export default function ActivityPage() {
     setLoading(true);
     try {
       const params: any = { page, limit: 50 };
-      if (search)       params.action = search;
-      if (filterModule) params.module = filterModule;
-      if (dateFrom)     params.from   = dateFrom;
-      if (dateTo)       params.to     = dateTo;
+      if (search)       params.action    = search;
+      if (filterModule) params.module    = filterModule;
+      if (filterBranch) params.branch_id = filterBranch;
+      if (dateFrom)     params.from      = dateFrom;
+      if (dateTo)       params.to        = dateTo;
       const r = await api.get('/audit-logs', { params });
       setLogs(r.data.data);
       setTotal(r.data.total);
       setPages(r.data.pages);
+      if (r.data.branches?.length) setBranches(r.data.branches);
     } finally { setLoading(false); }
-  }, [page, search, filterModule, dateFrom, dateTo]);
+  }, [page, search, filterModule, filterBranch, dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
 
   const clearFilters = () => {
     setSearch(''); setFilterModule(''); setFilterStatus('');
-    setDateFrom(''); setDateTo(''); setPage(1);
+    setFilterBranch(''); setDateFrom(''); setDateTo(''); setPage(1);
   };
 
-  const hasFilters = search || filterModule || filterStatus || dateFrom || dateTo;
+  const hasFilters = search || filterModule || filterStatus || filterBranch || dateFrom || dateTo;
 
   return (
     <AppLayout title="Activity Log" subtitle="Full audit trail of all system actions" allowedRoles={['platform_admin']}>
@@ -143,6 +147,12 @@ export default function ActivityPage() {
           <option value="">All Modules</option>
           {MODULES.map(m => <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>)}
         </select>
+        {branches.length > 0 && (
+          <select className="form-input w-auto" value={filterBranch} onChange={e => { setFilterBranch(e.target.value); setPage(1); }}>
+            <option value="">All Branches</option>
+            {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+          </select>
+        )}
         <select className="form-input w-auto" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
           <option value="">All Statuses</option>
           <option value="success">Success</option>
@@ -174,7 +184,7 @@ export default function ActivityPage() {
             <table className="w-full text-sm">
               <thead className="table-header">
                 <tr>
-                  {['Time','User','Role','Module','Action','Description','IP','Status'].map(h => (
+                  {['Time','User','Role','Branch','Module','Action','Description','IP','Status'].map(h => (
                     <th key={h} className="px-4 py-3 text-left whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -191,6 +201,13 @@ export default function ActivityPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs text-gray-500 capitalize">{log.user_role?.replace(/_/g,' ') || '—'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {log.branch_name ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full whitespace-nowrap">
+                          <GitBranch className="w-3 h-3" />{log.branch_name}
+                        </span>
+                      ) : <span className="text-xs text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${MODULE_COLORS[log.module] || 'bg-gray-100 text-gray-500'}`}>

@@ -135,16 +135,17 @@ const navGroups = [
       { href: '/approvals', label: 'Approvals', icon: CheckSquare, roles: ['business_owner', 'accountant', 'hr_manager'], permission: 'accounting.view' },
     ],
   },
-  {
-    label: 'Reports',
-    items: [
-      { href: '/reports', label: 'Reports', icon: BarChart2, roles: ['business_owner', 'accountant'], permission: 'reports.view' },
-    ],
-  },
+
   {
     label: 'Customers',
     items: [
       { href: '/crm', label: 'CRM', icon: UserCheck, roles: ['business_owner', 'branch_manager'], permission: 'crm.view' },
+    ],
+  },
+  {
+    label: 'Reports',
+    items: [
+      { href: '/reports', label: 'Reports', icon: BarChart2, roles: ['business_owner', 'accountant'], permission: 'reports.view' },
     ],
   },
   {
@@ -155,8 +156,8 @@ const navGroups = [
       { href: '/branches', label: 'Branches', icon: Store, roles: ['business_owner'], permission: 'branches.manage' },
       { href: '/departments', label: 'Departments', icon: Building2, roles: ['business_owner', 'hr_manager'], permission: 'hr.view' },
       { href: '/users', label: 'Users', icon: Settings, roles: ['business_owner'], permission: 'users.manage' },
-      { href: '/billing', label: 'Billing', icon: Calculator, roles: ['business_owner'], permission: 'billing.view' },
-      // { href: '/api-docs',     label: 'Store API',    icon: BookOpen,   roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },
+      { href: '/billing',  label: 'Billing',      icon: Calculator, roles: ['business_owner'], permission: 'billing.view' },
+      { href: '/activity', label: 'Activity Log',  icon: BarChart2,  roles: ['business_owner'], permission: null },
     ],
   },
 ];
@@ -180,15 +181,15 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
   const { user, tenant, hasModule } = useAuth();
 
   const NAV_MODULE_MAP: Record<string, string> = {
-    '/procurement':    'procurement',
-    '/hr':             'hr',
-    '/crm':            'crm',
-    '/orders':         'sales',
-    '/inventory':      'inventory',
-    '/pos':            'pos',
-    '/reports':        'reports',
+    '/procurement': 'procurement',
+    '/hr': 'hr',
+    '/crm': 'crm',
+    '/orders': 'sales',
+    '/inventory': 'inventory',
+    '/pos': 'pos',
+    '/reports': 'reports',
     '/store-settings': 'online_storefront',
-    '/accounting':     'advanced_accounting',
+    '/accounting': 'advanced_accounting',
   };
 
   const isModuleAllowed = (href: string): boolean => {
