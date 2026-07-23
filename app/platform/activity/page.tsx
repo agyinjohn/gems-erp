@@ -184,7 +184,7 @@ export default function ActivityPage() {
             <table className="w-full text-sm">
               <thead className="table-header">
                 <tr>
-                  {['Time','User','Role','Branch','Module','Action','Description','IP','Device','Status'].map(h => (
+                  {['Time','User','Role','Branch','Module','Action','Description','IP / Device','Status'].map(h => (
                     <th key={h} className="px-4 py-3 text-left whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -221,8 +221,10 @@ export default function ActivityPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-600 max-w-xs truncate">{log.description}</td>
-                    <td className="px-4 py-3 text-xs text-gray-400 font-mono">{log.ip || '—'}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{log.device || '—'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="text-xs text-gray-500 font-mono">{log.ip || '—'}</div>
+                      <div className="text-xs text-gray-400">{log.device || '—'}</div>
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         log.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
