@@ -33,6 +33,16 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const [loanStatusFilter, setLoanStatusFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
   const [loanSaving, setLoanSaving] = useState(false);
   const [loanForm, setLoanForm] = useState({ employee_id: '', type: 'loan', reason: '', principal: '', monthly_deduction: '' });
+  // ── Leave types & holidays ──
+  const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
+  const [leaveTypeForm, setLeaveTypeForm] = useState({ name: '', default_days: '', paid: true });
+  const [leaveTypeSaving, setLeaveTypeSaving] = useState(false);
+  const [holidays, setHolidays] = useState<any[]>([]);
+  const [holidayForm, setHolidayForm] = useState({ name: '', date: '', is_recurring: false });
+  const [holidaySaving, setHolidaySaving] = useState(false);
+  const [attendanceSettings, setAttendanceSettings] = useState({ standard_hours_per_day: 8 });
+  const [clockEmployeeId, setClockEmployeeId] = useState('');
+  const [clocking, setClocking] = useState(false);
   const [employees, setEmployees] = useState<any[]>(() => apiCache.get('/employees') || []);
   const [departments, setDepartments] = useState<any[]>(() => apiCache.get('/departments') || []);
   const [leave, setLeave] = useState<any[]>(() => apiCache.get('/leave-requests') || []);
@@ -44,7 +54,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     if (section === 'payroll') return !apiCache.get('/payroll');
     return true;
   });
-  const [modal, setModal] = useState<'add_emp'|'edit_emp'|'terminate'|'emp_detail'|'add_payroll'|'bulk_payroll'|'pay_run'|'payroll_detail'|'add_leave'|'add_attendance'|'add_loan'|null>(null);
+  const [modal, setModal] = useState<'add_emp'|'edit_emp'|'terminate'|'emp_detail'|'add_payroll'|'bulk_payroll'|'pay_run'|'payroll_detail'|'add_leave'|'add_attendance'|'add_loan'|'manage_holidays'|'manage_leave_types'|null>(null);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [detailEmployee, setDetailEmployee] = useState<any>(null);
   const [terminateTarget, setTerminateTarget] = useState<any>(null);
@@ -128,12 +138,26 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     setModal('add_leave');
   };
 
-  const formatLeaveType = (type: string) => type.replace(/_/g, ' ');
+  const formatLeaveType = (type: string) => {
+    const known = leaveTypes.find((lt) => lt.code === type);
+    return known ? known.name : type.replace(/_/g, ' ');
+  };
 
+  // Client-side estimate: excludes weekends (matches the server's rule).
+  // Public holidays are additionally excluded server-side at approval —
+  // the actual balance charge may be slightly lower than shown here.
   const leaveDurationDays = (start: string, end: string) => {
     if (!start || !end) return 0;
-    const ms = new Date(end).getTime() - new Date(start).getTime();
-    return ms >= 0 ? Math.floor(ms / (1000 * 60 * 60 * 24)) + 1 : 0;
+    const cursor = new Date(start);
+    const last = new Date(end);
+    if (cursor > last) return 0;
+    let count = 0;
+    while (cursor <= last) {
+      const dow = cursor.getDay();
+      if (dow !== 0 && dow !== 6) count += 1;
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return count;
   };
 
   const openRecordAttendance = () => {
@@ -216,12 +240,18 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
   useEffect(() => {
     // attendance always re-fetches (date-specific, not cacheable globally)
-    if (section === 'attendance') { loadSection(section, attendanceDate); return; }
+    if (section === 'attendance') {
+      loadSection(section, attendanceDate);
+      loadHolidays();
+      loadAttendanceSettings();
+      return;
+    }
     const cacheKey = section === 'employees' ? '/employees' : section === 'leave' ? '/leave-requests' : section === 'loans' ? '/employees' : '/payroll';
     const hasCache = !!apiCache.get(cacheKey);
     loadSection(section, attendanceDate, hasCache && !apiCache.isStale(cacheKey));
     if (section === 'payroll') { loadBatches(); loadPayrollSettings(); }
     if (section === 'loans') loadLoans();
+    if (section === 'leave') loadLeaveTypes();
   }, [section, attendanceDate]);
 
   const filtered = employees.filter(e => !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.employee_code?.toLowerCase().includes(search.toLowerCase()));
@@ -708,6 +738,113 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
   const filteredLoans = loans.filter((l) => loanStatusFilter === 'all' || l.status === loanStatusFilter);
 
+  // ── Leave types ──
+  const loadLeaveTypes = async () => {
+    try {
+      const r = await api.get('/leave-types');
+      setLeaveTypes(r.data.data || []);
+    } catch { /* ignore */ }
+  };
+
+  const saveLeaveType = async () => {
+    if (!leaveTypeForm.name.trim()) { toast.error('Enter a name'); return; }
+    setLeaveTypeSaving(true);
+    try {
+      await api.post('/leave-types', {
+        name: leaveTypeForm.name.trim(),
+        default_days: parseInt(leaveTypeForm.default_days, 10) || 0,
+        paid: leaveTypeForm.paid,
+      });
+      toast.success('Leave type added');
+      setLeaveTypeForm({ name: '', default_days: '', paid: true });
+      loadLeaveTypes();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to add leave type');
+    } finally { setLeaveTypeSaving(false); }
+  };
+
+  const updateLeaveTypeField = async (lt: any, patch: any) => {
+    try {
+      await api.patch(`/leave-types/${lt._id || lt.id}`, patch);
+      loadLeaveTypes();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to update leave type');
+    }
+  };
+
+  // ── Public holidays ──
+  const loadHolidays = async () => {
+    try {
+      const r = await api.get('/holidays');
+      setHolidays(r.data.data || []);
+    } catch { /* ignore */ }
+  };
+
+  const saveHoliday = async () => {
+    if (!holidayForm.name.trim() || !holidayForm.date) { toast.error('Enter a name and date'); return; }
+    setHolidaySaving(true);
+    try {
+      await api.post('/holidays', holidayForm);
+      toast.success('Holiday added');
+      setHolidayForm({ name: '', date: '', is_recurring: false });
+      loadHolidays();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to add holiday');
+    } finally { setHolidaySaving(false); }
+  };
+
+  const removeHoliday = async (h: any) => {
+    if (!confirm(`Remove "${h.name}"?`)) return;
+    try {
+      await api.delete(`/holidays/${h._id || h.id}`);
+      loadHolidays();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to remove holiday');
+    }
+  };
+
+  // ── Attendance: clock in/out + settings ──
+  const loadAttendanceSettings = async () => {
+    try {
+      const r = await api.get('/hr/attendance-settings');
+      setAttendanceSettings(r.data.data);
+    } catch { /* ignore */ }
+  };
+
+  const updateStandardHours = async (hours: string) => {
+    try {
+      const r = await api.patch('/hr/attendance-settings', { standard_hours_per_day: parseFloat(hours) });
+      setAttendanceSettings(r.data.data);
+      toast.success('Attendance settings updated');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to update');
+    }
+  };
+
+  const doClockIn = async () => {
+    if (!clockEmployeeId) { toast.error('Select an employee'); return; }
+    setClocking(true);
+    try {
+      await api.post('/attendance/clock-in', { employee_id: clockEmployeeId });
+      toast.success('Clocked in');
+      reloadSection();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Clock-in failed');
+    } finally { setClocking(false); }
+  };
+
+  const doClockOut = async () => {
+    if (!clockEmployeeId) { toast.error('Select an employee'); return; }
+    setClocking(true);
+    try {
+      await api.post('/attendance/clock-out', { employee_id: clockEmployeeId });
+      toast.success('Clocked out');
+      reloadSection();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Clock-out failed');
+    } finally { setClocking(false); }
+  };
+
   const runPayRun = async () => {
     setRunningBatch(true);
     try {
@@ -758,10 +895,12 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     } catch (e: any) { toast.error(e.response?.data?.message || 'Could not download bank file'); }
   };
 
+  const leaveRemaining = (e: any, code: string) => e.leave_balance?.find((b: any) => b.code === code)?.remaining_days ?? '';
+
   const exportHrCsv = () => {
     const rows = employees.map((e: any) => [
       e.employee_code, e.name, e.department_name || '', e.job_title || '', e.status,
-      e.gross_salary, e.leave_balance?.annual_remaining ?? '', e.leave_balance?.sick_remaining ?? '',
+      e.gross_salary, leaveRemaining(e, 'annual'), leaveRemaining(e, 'sick'),
       e.linked_user?.email || e.email || '',
     ]);
     const header = ['Code', 'Name', 'Department', 'Job Title', 'Status', 'Gross Salary', 'Annual Leave Left', 'Sick Leave Left', 'Email'];
@@ -891,8 +1030,11 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                         <td className="px-4 py-3 text-gray-600">{e.department_name||'—'}</td>
                         <td className="px-4 py-3 text-gray-600">{e.job_title||'—'}</td>
                         <td className="px-4 py-3 text-xs text-gray-600">
-                          <div>Annual: {e.leave_balance?.annual_remaining ?? '—'}</div>
-                          <div>Sick: {e.leave_balance?.sick_remaining ?? '—'}</div>
+                          <div>Annual: {leaveRemaining(e, 'annual') || '—'}</div>
+                          <div>Sick: {leaveRemaining(e, 'sick') || '—'}</div>
+                          {(e.leave_balance || []).filter((b: any) => !['annual', 'sick'].includes(b.code) && b.used_days > 0).length > 0 && (
+                            <div className="text-gray-400">+{(e.leave_balance || []).filter((b: any) => !['annual', 'sick'].includes(b.code) && b.used_days > 0).length} other</div>
+                          )}
                         </td>
                         <td className="px-4 py-3 font-semibold">GH₵ {parseFloat(e.gross_salary).toFixed(2)}</td>
                         <td className="px-4 py-3"><span className="text-xs text-gray-600 capitalize">{e.status.replace('_', ' ')}</span></td>
@@ -924,7 +1066,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               <span className="text-sm text-gray-500">{attendance.length} records</span>
               {attendance.length > 0 && (
                 <div className="flex flex-wrap gap-3 text-xs">
-                  {['present','absent','half_day','leave'].map(s => (
+                  {['present','absent','half_day','leave','holiday'].map(s => (
                     <span key={s} className="text-gray-500">
                       <span className="font-semibold text-gray-700">{attendance.filter((a:any)=>a.status===s).length}</span> {s.replace('_',' ')}
                     </span>
@@ -932,9 +1074,38 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                 </div>
               )}
             </div>
-            <button type="button" className="btn-primary shrink-0" onClick={openRecordAttendance}>
-              <Calendar className="w-4 h-4" />Record Attendance
-            </button>
+            <div className="flex gap-2 shrink-0">
+              <button type="button" className="btn-secondary" onClick={() => setModal('manage_holidays')}>Public Holidays</button>
+              <button type="button" className="btn-primary" onClick={openRecordAttendance}>
+                <Calendar className="w-4 h-4" />Record Attendance
+              </button>
+            </div>
+          </div>
+
+          {/* Clock in / out */}
+          <div className="card mb-4">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex-1 min-w-[200px]">
+                <label className="form-label">Clock in / out for</label>
+                <select className="form-input w-full" value={clockEmployeeId} onChange={(e) => setClockEmployeeId(e.target.value)}>
+                  <option value="">Select employee…</option>
+                  {employees.filter((e) => e.status === 'active').map((e) => <option key={e.id || e._id} value={e.id || e._id}>{e.name}</option>)}
+                </select>
+              </div>
+              <button className="btn-secondary" onClick={doClockIn} disabled={clocking}>Clock In</button>
+              <button className="btn-secondary" onClick={doClockOut} disabled={clocking}>Clock Out</button>
+              <div className="flex items-center gap-2 ml-auto text-xs text-gray-500">
+                <span>Standard hours/day:</span>
+                <input
+                  type="number"
+                  step="0.5"
+                  className="form-input w-20 py-1 text-xs"
+                  defaultValue={attendanceSettings.standard_hours_per_day}
+                  onBlur={(e) => e.target.value && updateStandardHours(e.target.value)}
+                  disabled={!isRole('business_owner')}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Bulk Mark */}
@@ -964,7 +1135,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                         value={bulkStatus[e.id] || 'present'}
                         onChange={ev => setBulkStatus({ ...bulkStatus, [e.id]: ev.target.value })}
                       >
-                        {['present','absent','half_day','leave'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
+                        {['present','absent','half_day','leave','holiday'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
                       </select>
                     </div>
                     <input
@@ -984,13 +1155,20 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             {attendance.length === 0 ? <EmptyState message="No attendance records for this date" icon={<Clock className="w-8 h-8 text-gray-300"/>} /> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="table-header"><tr>{['Employee','Date','Status','Notes',''].map(h=><th key={h || 'actions'} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
+                  <thead className="table-header"><tr>{['Employee','Date','Status','Clock in/out','Hours','Overtime','Notes',''].map(h=><th key={h || 'actions'} className="px-4 py-3 text-left">{h}</th>)}</tr></thead>
                   <tbody className="divide-y divide-gray-50">
                     {attendance.map((a:any) => (
                       <tr key={a.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-medium">{a.employee_name||'—'}</td>
                         <td className="px-4 py-3 text-gray-500 text-xs">{new Date(a.date).toLocaleDateString()}</td>
                         <td className="px-4 py-3"><span className="text-xs text-gray-600 capitalize">{a.status.replace('_', ' ')}</span></td>
+                        <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                          {a.clock_in ? new Date(a.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                          {' – '}
+                          {a.clock_out ? new Date(a.clock_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">{a.hours_worked != null ? a.hours_worked.toFixed(2) : '—'}</td>
+                        <td className="px-4 py-3 text-gray-600">{a.overtime_hours ? a.overtime_hours.toFixed(2) : '—'}</td>
                         <td className="px-4 py-3 text-gray-500 max-w-xs">{a.notes?.trim() ? a.notes : '—'}</td>
                         <td className="px-4 py-3">
                           <button type="button" onClick={() => openEditAttendance(a)} className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]" title="Edit attendance">
@@ -1035,6 +1213,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               <label className="form-label">To</label>
               <input type="date" className="form-input w-full sm:w-auto" value={leaveDateTo} onChange={(e) => setLeaveDateTo(e.target.value)} />
             </div>
+            <button type="button" className="btn-secondary shrink-0" onClick={() => setModal('manage_leave_types')}>Leave Types</button>
             <button type="button" className="btn-primary shrink-0" onClick={openApplyLeave}>
               <Plus className="w-4 h-4" />Apply Leave
             </button>
@@ -1363,7 +1542,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             <div><label className="form-label">Date</label><input type="date" className="form-input" value={attendanceForm.date} onChange={e => setAttendanceForm({...attendanceForm,date:e.target.value})} /></div>
             <div><label className="form-label">Status</label>
               <select className="form-input" value={attendanceForm.status} onChange={e => setAttendanceForm({...attendanceForm,status:e.target.value})}>
-                {['present','absent','half_day','leave'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
+                {['present','absent','half_day','leave','holiday'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
               </select>
             </div>
           </div>
@@ -1395,7 +1574,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           </div>
           <div><label className="form-label">Leave Type</label>
             <select className="form-input" value={leaveForm.leave_type} onChange={e => setLeaveForm({...leaveForm,leave_type:e.target.value})}>
-              {['annual','sick','maternity','paternity','unpaid','other'].map(t => <option key={t} value={t}>{t}</option>)}
+              {(leaveTypes.length ? leaveTypes.filter((lt) => lt.is_active !== false).map((lt) => lt.code) : ['annual','sick','maternity','paternity','unpaid','other']).map(t => <option key={t} value={t}>{formatLeaveType(t)}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1407,6 +1586,81 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
           <button className="btn-primary" onClick={requestSubmitLeave} disabled={saving}>{saving?'Submitting…':'Submit'}</button>
+        </div>
+      </Modal>
+
+      {/* Manage Leave Types Modal */}
+      <Modal open={modal==='manage_leave_types'} onClose={() => setModal(null)} title="Leave Types" size="lg">
+        <p className="text-sm text-gray-600 mb-4">Each leave type has its own entitlement pool, so e.g. maternity leave no longer competes with annual leave.</p>
+        <div className="overflow-x-auto mb-5 rounded-lg border border-gray-100">
+          <table className="w-full text-sm">
+            <thead className="table-header"><tr>{['Name', 'Default days/yr', 'Paid', 'Active'].map((h) => <th key={h} className="px-3 py-2 text-left">{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-gray-50">
+              {leaveTypes.map((lt) => (
+                <tr key={lt._id || lt.id}>
+                  <td className="px-3 py-2 font-medium">{lt.name}</td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="number"
+                      className="form-input w-24 py-1 text-xs"
+                      defaultValue={lt.default_days}
+                      onBlur={(e) => e.target.value !== String(lt.default_days) && updateLeaveTypeField(lt, { default_days: parseInt(e.target.value, 10) || 0 })}
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input type="checkbox" checked={lt.paid} onChange={(e) => updateLeaveTypeField(lt, { paid: e.target.checked })} />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input type="checkbox" checked={lt.is_active !== false} onChange={(e) => updateLeaveTypeField(lt, { is_active: e.target.checked })} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-sm font-semibold text-gray-700 mb-2">Add a leave type</p>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+          <div className="sm:col-span-2"><label className="form-label">Name</label><input className="form-input" value={leaveTypeForm.name} onChange={(e) => setLeaveTypeForm({ ...leaveTypeForm, name: e.target.value })} placeholder="e.g. Bereavement Leave" /></div>
+          <div><label className="form-label">Days/yr</label><input type="number" className="form-input" value={leaveTypeForm.default_days} onChange={(e) => setLeaveTypeForm({ ...leaveTypeForm, default_days: e.target.value })} /></div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 text-sm text-gray-600"><input type="checkbox" checked={leaveTypeForm.paid} onChange={(e) => setLeaveTypeForm({ ...leaveTypeForm, paid: e.target.checked })} /> Paid</label>
+          </div>
+        </div>
+        <div className="flex justify-end mt-4">
+          <button className="btn-primary" onClick={saveLeaveType} disabled={leaveTypeSaving}>{leaveTypeSaving ? 'Adding…' : 'Add leave type'}</button>
+        </div>
+      </Modal>
+
+      {/* Manage Public Holidays Modal */}
+      <Modal open={modal==='manage_holidays'} onClose={() => setModal(null)} title="Public Holidays" size="md">
+        <p className="text-sm text-gray-600 mb-4">Holidays are excluded from leave-day counts. Recurring holidays repeat on the same date every year.</p>
+        <div className="overflow-x-auto mb-5 rounded-lg border border-gray-100 max-h-64 overflow-y-auto">
+          {holidays.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-gray-400">No holidays added yet</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="table-header"><tr>{['Name', 'Date', 'Recurring', ''].map((h) => <th key={h || 'a'} className="px-3 py-2 text-left">{h}</th>)}</tr></thead>
+              <tbody className="divide-y divide-gray-50">
+                {holidays.map((h) => (
+                  <tr key={h._id || h.id}>
+                    <td className="px-3 py-2 font-medium">{h.name}</td>
+                    <td className="px-3 py-2 text-gray-500">{new Date(h.date).toLocaleDateString('en-GH', { day: '2-digit', month: 'short' })}</td>
+                    <td className="px-3 py-2">{h.is_recurring ? 'Yes' : 'No'}</td>
+                    <td className="px-3 py-2"><button onClick={() => removeHoliday(h)} className="p-1 hover:bg-red-50 rounded text-red-600"><XCircle className="w-4 h-4" /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <p className="text-sm font-semibold text-gray-700 mb-2">Add a holiday</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+          <div><label className="form-label">Name</label><input className="form-input" value={holidayForm.name} onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })} placeholder="e.g. Independence Day" /></div>
+          <div><label className="form-label">Date</label><input type="date" className="form-input" value={holidayForm.date} onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })} /></div>
+          <label className="flex items-center gap-1.5 text-sm text-gray-600"><input type="checkbox" checked={holidayForm.is_recurring} onChange={(e) => setHolidayForm({ ...holidayForm, is_recurring: e.target.checked })} /> Repeats every year</label>
+        </div>
+        <div className="flex justify-end mt-4">
+          <button className="btn-primary" onClick={saveHoliday} disabled={holidaySaving}>{holidaySaving ? 'Adding…' : 'Add holiday'}</button>
         </div>
       </Modal>
 
