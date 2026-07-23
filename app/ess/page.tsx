@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
 import { Plus, Umbrella, Banknote, User, CheckCircle, Clock, Mail, Phone, Building2, Hash, Calendar, TrendingUp, CalendarDays, Printer } from 'lucide-react';
@@ -58,8 +58,11 @@ export default function ESSPage() {
       setLeave(l.data.data);
       setAttendance(a.data.data);
       setLeaveTypes(lt.data.data);
-      // Load latest payslip for overview
-      const p = await api.get(`/ess/payslips?month=${now.getMonth()+1}&year=${now.getFullYear()}`).catch(() => ({ data: { data: [] } }));
+      // Load payslip history (latest first) — not filtered to the current
+      // calendar month, since payroll for the current month is often not
+      // approved until after month-end and the most recent approved slip
+      // is usually for a prior period.
+      const p = await api.get('/ess/payslips').catch(() => ({ data: { data: [] } }));
       setPayslips(p.data.data);
     } finally { setLoading(false); }
   };
@@ -78,6 +81,18 @@ export default function ESSPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Default the payslip picker/result to the most recently approved payslip
+  // (not the current calendar month) the first time payslips are loaded.
+  const slipDefaultedRef = useRef(false);
+  useEffect(() => {
+    if (slipDefaultedRef.current || payslips.length === 0) return;
+    slipDefaultedRef.current = true;
+    const latest = payslips[0];
+    setSlipMonth(String(latest.month));
+    setSlipYear(String(latest.year));
+    setSelectedSlip(latest);
+  }, [payslips]);
 
   const todayAttendance = attendance.find((a) => new Date(a.date).toDateString() === new Date().toDateString());
 
