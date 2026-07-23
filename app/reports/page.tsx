@@ -6,6 +6,7 @@ import { Spinner } from '@/components/ui';
 import api, { apiCache } from '@/lib/api';
 import ReportsShell from '@/components/reports/ReportsShell';
 import ReportPanels, { type ReportsBundle } from '@/components/reports/ReportPanels';
+import ReportDetailed from '@/components/reports/ReportDetailed';
 import {
   type DatePreset, getPresetRange, formatPeriodLabel,
   exportCsv, printReport, buildFullExportRows,
@@ -31,6 +32,7 @@ const TABS: {
   { id: 'inventory',   label: 'Inventory',    sections: ['inventory'],                 endpoints: ['inventory'] },
   { id: 'procurement', label: 'Procurement',  sections: ['procurement'],               endpoints: ['procurement'] },
   { id: 'people',      label: 'People & CRM', sections: ['people'],                    endpoints: ['crm', 'hr'] },
+  { id: 'full',        label: 'Full Report',  sections: [],                            endpoints: ['overview', 'sales', 'inventory', 'finance', 'procurement', 'hr', 'crm'] },
 ];
 
 const ALL_ENDPOINTS: ReportEndpoint[] = ['overview', 'sales', 'inventory', 'finance', 'procurement', 'hr', 'crm'];
@@ -127,6 +129,10 @@ export default function ReportsPage() {
   const handleDateFrom = (v: string) => { setPreset('all'); setDateFrom(v); };
   const handleDateTo = (v: string) => { setPreset('all'); setDateTo(v); };
 
+  const branchLabel = branchId
+    ? (branches.find((b) => (b.id || b._id) === branchId)?.name || 'Selected branch')
+    : 'All branches';
+
   // Export needs the whole bundle — make sure every section is loaded first.
   const handleExport = async () => {
     const full = await loadEndpoints(ALL_ENDPOINTS, true);
@@ -180,6 +186,8 @@ export default function ReportsPage() {
           <div className="py-16"><Spinner /></div>
         ) : error ? (
           <div className="card text-center py-12 text-red-600">{error}</div>
+        ) : activeTab === 'full' ? (
+          <ReportDetailed data={data} periodLabel={periodLabel} branchLabel={branchLabel} />
         ) : (
           <ReportPanels data={data} periodLabel={periodLabel} sections={tab.sections} />
         )}
