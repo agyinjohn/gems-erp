@@ -24,7 +24,9 @@ interface HrWorkspaceProps {
 }
 
 export default function HrWorkspace({ section }: HrWorkspaceProps) {
-  const { tenant } = useAuth();
+  const { tenant, isRole } = useAuth();
+  const [payrollSettings, setPayrollSettings] = useState({ apply_ssnit: true, apply_paye: true });
+  const [payrollSettingsSaving, setPayrollSettingsSaving] = useState(false);
   const [payslipRow, setPayslipRow] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>(() => apiCache.get('/employees') || []);
   const [departments, setDepartments] = useState<any[]>(() => apiCache.get('/departments') || []);
@@ -208,7 +210,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     const cacheKey = section === 'employees' ? '/employees' : section === 'leave' ? '/leave-requests' : '/payroll';
     const hasCache = !!apiCache.get(cacheKey);
     loadSection(section, attendanceDate, hasCache && !apiCache.isStale(cacheKey));
-    if (section === 'payroll') loadBatches();
+    if (section === 'payroll') { loadBatches(); loadPayrollSettings(); }
   }, [section, attendanceDate]);
 
   const filtered = employees.filter(e => !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.employee_code?.toLowerCase().includes(search.toLowerCase()));
@@ -631,6 +633,25 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     } catch { /* ignore */ }
   };
 
+  const loadPayrollSettings = async () => {
+    try {
+      const r = await api.get('/hr/payroll-settings');
+      setPayrollSettings(r.data.data);
+    } catch { /* ignore */ }
+  };
+
+  const togglePayrollSetting = async (key: 'apply_ssnit' | 'apply_paye') => {
+    const next = { ...payrollSettings, [key]: !payrollSettings[key] };
+    setPayrollSettingsSaving(true);
+    try {
+      const r = await api.patch('/hr/payroll-settings', { [key]: next[key] });
+      setPayrollSettings(r.data.data);
+      toast.success('Payroll settings updated');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to update payroll settings');
+    } finally { setPayrollSettingsSaving(false); }
+  };
+
   const runPayRun = async () => {
     setRunningBatch(true);
     try {
@@ -1027,6 +1048,25 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               <button type="button" className="btn-primary text-sm" onClick={() => setModal('pay_run')}>
                 <DollarSign className="w-4 h-4" /> New Pay Run
               </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-xs">
+              <span className="text-gray-400 font-semibold uppercase tracking-wide">Statutory deductions</span>
+              {([
+                { key: 'apply_ssnit' as const, label: 'SSNIT' },
+                { key: 'apply_paye' as const, label: 'PAYE' },
+              ]).map(({ key, label }) => (
+                <label key={key} className={`flex items-center gap-1.5 ${isRole('business_owner') ? 'cursor-pointer' : 'cursor-default'}`}>
+                  <input
+                    type="checkbox"
+                    checked={payrollSettings[key]}
+                    disabled={!isRole('business_owner') || payrollSettingsSaving}
+                    onChange={() => togglePayrollSetting(key)}
+                    className="w-3.5 h-3.5"
+                  />
+                  <span className="text-gray-600">Apply {label}</span>
+                </label>
+              ))}
+              {!isRole('business_owner') && <span className="text-gray-400">(business owner only can change this)</span>}
             </div>
             {batches.length === 0 ? (
               <div className="px-4 py-6 text-center text-sm text-gray-400">No pay runs yet</div>
