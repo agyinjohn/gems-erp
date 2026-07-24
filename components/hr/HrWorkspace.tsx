@@ -954,13 +954,29 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   };
 
   const removeHoliday = async (h: any) => {
-    if (!confirm(`Remove "${h.name}"?`)) return;
     try {
       await api.delete(`/holidays/${h._id || h.id}`);
+      toast.success('Holiday removed');
       loadHolidays();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Failed to remove holiday');
+      throw e;
     }
+  };
+
+  const requestRemoveHoliday = (h: any) => {
+    setHrConfirm({
+      title: 'Remove public holiday?',
+      message: `Remove "${h.name}" from the public holiday calendar?`,
+      confirmLabel: 'Remove holiday',
+      danger: true,
+      details: [
+        { label: 'Name', value: h.name },
+        { label: 'Date', value: new Date(h.date).toLocaleDateString() },
+        { label: 'Recurring', value: h.is_recurring ? 'Yes — repeats every year' : 'No — one-off' },
+      ],
+      action: () => removeHoliday(h),
+    });
   };
 
   // ── Attendance: clock in/out + settings ──
@@ -1408,6 +1424,34 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
       {section === 'payroll' && (
         <>
+          {/* Payroll Settings — statutory deductions on/off */}
+          <div className="card mb-5">
+            <h3 className="font-semibold text-gray-900 text-sm mb-1">Payroll Settings</h3>
+            <p className="text-xs text-gray-400 mb-3">
+              Turn off a statutory deduction if it doesn't apply to your business. This changes how PAYE and SSNIT are calculated on every payroll run going forward.
+              {!isRole('business_owner') && ' Only the business owner can change this.'}
+            </p>
+            <div className="flex flex-wrap gap-6">
+              {([
+                { key: 'apply_ssnit' as const, label: 'SSNIT', hint: 'Pension contribution (5.5% employee / 13% employer)' },
+                { key: 'apply_paye' as const, label: 'PAYE', hint: 'Progressive income tax' },
+              ]).map(({ key, label, hint }) => (
+                <label key={key} className={`flex items-center gap-3 ${isRole('business_owner') ? 'cursor-pointer' : 'cursor-default'}`}>
+                  <span
+                    onClick={() => isRole('business_owner') && !payrollSettingsSaving && togglePayrollSetting(key)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${payrollSettings[key] ? 'bg-[#0D3B6E]' : 'bg-gray-300'} ${!isRole('business_owner') || payrollSettingsSaving ? 'opacity-60' : ''}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${payrollSettings[key] ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-medium text-gray-800">Apply {label}</span>
+                    <span className="block text-xs text-gray-400">{hint}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           {/* Pay Runs (period batches) */}
           <div className="card p-0 overflow-hidden mb-5">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -1418,25 +1462,6 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               <button type="button" className="btn-primary text-sm" onClick={() => setModal('pay_run')}>
                 <DollarSign className="w-4 h-4" /> New Pay Run
               </button>
-            </div>
-            <div className="flex flex-wrap items-center gap-4 px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-xs">
-              <span className="text-gray-400 font-semibold uppercase tracking-wide">Statutory deductions</span>
-              {([
-                { key: 'apply_ssnit' as const, label: 'SSNIT' },
-                { key: 'apply_paye' as const, label: 'PAYE' },
-              ]).map(({ key, label }) => (
-                <label key={key} className={`flex items-center gap-1.5 ${isRole('business_owner') ? 'cursor-pointer' : 'cursor-default'}`}>
-                  <input
-                    type="checkbox"
-                    checked={payrollSettings[key]}
-                    disabled={!isRole('business_owner') || payrollSettingsSaving}
-                    onChange={() => togglePayrollSetting(key)}
-                    className="w-3.5 h-3.5"
-                  />
-                  <span className="text-gray-600">Apply {label}</span>
-                </label>
-              ))}
-              {!isRole('business_owner') && <span className="text-gray-400">(business owner only can change this)</span>}
             </div>
             {batches.length === 0 ? (
               <div className="px-4 py-6 text-center text-sm text-gray-400">No pay runs yet</div>
@@ -1950,7 +1975,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                     <td className="px-3 py-2 font-medium">{h.name}</td>
                     <td className="px-3 py-2 text-gray-500">{new Date(h.date).toLocaleDateString('en-GH', { day: '2-digit', month: 'short' })}</td>
                     <td className="px-3 py-2">{h.is_recurring ? 'Yes' : 'No'}</td>
-                    <td className="px-3 py-2"><button onClick={() => removeHoliday(h)} className="p-1 hover:bg-red-50 rounded text-red-600"><XCircle className="w-4 h-4" /></button></td>
+                    <td className="px-3 py-2"><button onClick={() => requestRemoveHoliday(h)} className="p-1 hover:bg-red-50 rounded text-red-600"><XCircle className="w-4 h-4" /></button></td>
                   </tr>
                 ))}
               </tbody>
