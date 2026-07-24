@@ -48,6 +48,7 @@ function validateCheckoutForm(form: { customer_name: string; customer_email: str
 
 const cartIdKey = (slug: string) => `gems_cart_id_${slug}`;
 const customerTokenKey = (slug: string) => `gems_store_customer_${slug}`;
+const marketplaceFlagKey = (slug: string) => `gems_via_marketplace_${slug}`;
 
 const customerApi = (token: string) => {
   const client = publicApi;
@@ -122,6 +123,7 @@ export default function TenantStorefrontPage() {
   const [pendingPayment, setPendingPayment] = useState<{ orderIds: string[]; reference: string; email: string; grandTotal: number; paystackKey: string } | null>(null);
   const [verifyError, setVerifyError] = useState('');
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+  const [viaMarketplace, setViaMarketplace] = useState(false);
   const toggleSection = (key: string) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   const {
@@ -157,6 +159,21 @@ export default function TenantStorefrontPage() {
       setStep('track');
     }
   }, []);
+
+  // Came in from the platform-wide marketplace directory? Tag every order
+  // from this session so the platform commission applies. Persisted per
+  // tenant slug so it survives a page refresh mid-shop, not just the query
+  // param on first load.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const fromQuery = new URLSearchParams(window.location.search).get('ref') === 'marketplace';
+    if (fromQuery) {
+      localStorage.setItem(marketplaceFlagKey(tenantSlug), '1');
+      setViaMarketplace(true);
+    } else if (localStorage.getItem(marketplaceFlagKey(tenantSlug)) === '1') {
+      setViaMarketplace(true);
+    }
+  }, [tenantSlug]);
 
   // Scroll to top on every step change
   useEffect(() => {
@@ -428,6 +445,7 @@ export default function TenantStorefrontPage() {
         ...form,
         delivery_fee: deliveryFee,
         tenant_id: tenant?.id,
+        via_marketplace: viaMarketplace,
         coupon_code: appliedDiscount > 0 ? couponCode.trim() : undefined,
         items: cart.map(i => ({
           product_id: i.product.id,

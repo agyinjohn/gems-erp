@@ -66,6 +66,7 @@ export default function PlatformSettingsPage() {
 
   // Audit retention
   const [auditRetention, setAuditRetention] = useState(90);
+  const [marketplaceCommissionPct, setMarketplaceCommissionPct] = useState(5);
 
   // Feature flags
   const [flags, setFlags] = useState<typeof DEFAULT_FLAGS>(DEFAULT_FLAGS);
@@ -89,6 +90,7 @@ export default function PlatformSettingsPage() {
         setTrialWarnDays(s.trial_warning_days ?? 3);
         setExpiryAlertDays(s.expiry_alert_days ?? 7);
         setAuditRetention(s.audit_retention_days ?? 90);
+        setMarketplaceCommissionPct(s.marketplace_commission_pct ?? 5);
         if (s.feature_flags) setFlags(s.feature_flags);
         if (s.plans) {
           setPlans(prev => prev.map(p => ({
@@ -122,6 +124,7 @@ export default function PlatformSettingsPage() {
         paystack_virtual_terminal_code: vtCode, paystack_terminal_whatsapp: vtWhatsapp,
         trial_warning_days: trialWarnDays, expiry_alert_days: expiryAlertDays,
         audit_retention_days: auditRetention,
+        marketplace_commission_pct: marketplaceCommissionPct,
         plans: plansPayload, feature_flags: flags,
       });
       toast.success('Settings saved');
@@ -233,6 +236,14 @@ export default function PlatformSettingsPage() {
                   </button>
                   <span className="text-sm text-gray-600">{autoRenew ? 'Enabled for new tenants' : 'Disabled for new tenants'}</span>
                 </div>
+              </div>
+              <div>
+                <label className="form-label">Marketplace Commission (%)</label>
+                <input type="number" className="form-input" min={0} max={100} step={0.5} value={marketplaceCommissionPct}
+                  onChange={e => setMarketplaceCommissionPct(parseFloat(e.target.value) || 0)} />
+                <p className="text-xs text-gray-400 mt-1.5">
+                  Taken out of the tenant payout for orders placed via the <a href="/marketplace" target="_blank" className="underline">shop directory</a> — currently <strong>{marketplaceCommissionPct}%</strong> of the order total.
+                </p>
               </div>
             </div>
           </div>
