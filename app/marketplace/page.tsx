@@ -240,6 +240,45 @@ export default function MarketplacePage() {
         )}
       </main>
 
+      {/* ── FOR SELLERS ── */}
+      <section id="sell" className="landing-canvas-muted py-24 px-6">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <Reveal variant="left">
+            <span className="landing-eyebrow">For businesses</span>
+            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Grow your business on GEMS</h2>
+            <p className="text-gray-500 text-lg mb-8">
+              Every shop on the marketplace keeps its own branded storefront — the marketplace just brings extra buyers to it.
+            </p>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-1.5 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold px-6 py-3.5 rounded-xl text-sm transition-colors shadow-md shadow-blue-200 btn-shine"
+            >
+              List your shop <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </Reveal>
+          <Reveal variant="right" delay={120}>
+            <ul className="space-y-5">
+              {[
+                { title: 'Reach shoppers already browsing', desc: 'Get discovered by people searching the directory, on top of your own customer base.' },
+                { title: 'Keep your own storefront', desc: 'Your shop still has its own page and branding — the marketplace just links to it.' },
+                { title: 'A small, transparent commission', desc: 'Only a modest fee applies to orders placed through the marketplace — no hidden charges.' },
+                { title: 'Fast payouts to your own account', desc: 'Order payments are collected securely and paid out directly to your business.' },
+              ].map((b) => (
+                <li key={b.title} className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#0D3B6E]/10 text-[#0D3B6E] flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-900 text-sm mb-0.5">{b.title}</div>
+                    <div className="text-sm text-gray-500 leading-relaxed">{b.desc}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ── FOOTER ── */}
       <footer className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
