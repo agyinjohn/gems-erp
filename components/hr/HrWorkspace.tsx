@@ -776,14 +776,21 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     setModal('add_appraisal');
   };
 
+  // Some drafts may predate the standardized period_start/period_end fields
+  // (created before that migration) — fall back to today rather than crash.
+  const toDateInputValue = (value: any) => {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? new Date().toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
+  };
+
   const openEditAppraisal = (a: any) => {
     const categoryRatings: Record<string, number> = {};
     for (const c of a.category_ratings || []) categoryRatings[c.category] = c.rating;
     setEditingAppraisalId(a._id || a.id);
     setAppraisalForm({
       employee_id: a.employee_id?._id || a.employee_id,
-      period_start: new Date(a.period_start).toISOString().slice(0, 10),
-      period_end: new Date(a.period_end).toISOString().slice(0, 10),
+      period_start: toDateInputValue(a.period_start),
+      period_end: toDateInputValue(a.period_end),
       category_ratings: categoryRatings,
       strengths: a.strengths || '',
       areas_for_improvement: a.areas_for_improvement || '',
