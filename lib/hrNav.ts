@@ -14,8 +14,8 @@ export interface HrNavItem {
 export const HR_SECTIONS: HrNavItem[] = [
   {
     slug: 'dashboard',
-    label: 'Dashboard',
-    title: 'HR Dashboard',
+    label: 'Overview',
+    title: 'HR Overview',
     subtitle: 'Workforce overview, approvals and a printable HR report',
     icon: LayoutDashboard,
   },
