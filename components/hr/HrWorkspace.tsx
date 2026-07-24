@@ -954,13 +954,29 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   };
 
   const removeHoliday = async (h: any) => {
-    if (!confirm(`Remove "${h.name}"?`)) return;
     try {
       await api.delete(`/holidays/${h._id || h.id}`);
+      toast.success('Holiday removed');
       loadHolidays();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Failed to remove holiday');
+      throw e;
     }
+  };
+
+  const requestRemoveHoliday = (h: any) => {
+    setHrConfirm({
+      title: 'Remove public holiday?',
+      message: `Remove "${h.name}" from the public holiday calendar?`,
+      confirmLabel: 'Remove holiday',
+      danger: true,
+      details: [
+        { label: 'Name', value: h.name },
+        { label: 'Date', value: new Date(h.date).toLocaleDateString() },
+        { label: 'Recurring', value: h.is_recurring ? 'Yes — repeats every year' : 'No — one-off' },
+      ],
+      action: () => removeHoliday(h),
+    });
   };
 
   // ── Attendance: clock in/out + settings ──
@@ -1950,7 +1966,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                     <td className="px-3 py-2 font-medium">{h.name}</td>
                     <td className="px-3 py-2 text-gray-500">{new Date(h.date).toLocaleDateString('en-GH', { day: '2-digit', month: 'short' })}</td>
                     <td className="px-3 py-2">{h.is_recurring ? 'Yes' : 'No'}</td>
-                    <td className="px-3 py-2"><button onClick={() => removeHoliday(h)} className="p-1 hover:bg-red-50 rounded text-red-600"><XCircle className="w-4 h-4" /></button></td>
+                    <td className="px-3 py-2"><button onClick={() => requestRemoveHoliday(h)} className="p-1 hover:bg-red-50 rounded text-red-600"><XCircle className="w-4 h-4" /></button></td>
                   </tr>
                 ))}
               </tbody>
