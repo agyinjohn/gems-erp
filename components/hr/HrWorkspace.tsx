@@ -738,14 +738,29 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   };
 
   const cancelLoan = async (loan: any) => {
-    if (!confirm(`Cancel this ${loan.type} for ${loan.employee_name}? Remaining balance (GH₵ ${parseFloat(loan.balance).toFixed(2)}) will no longer be deducted.`)) return;
     try {
       await api.patch(`/loans/${loan._id || loan.id}/cancel`);
       toast.success('Loan cancelled');
       loadLoans();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Failed to cancel loan');
+      throw e;
     }
+  };
+
+  const requestCancelLoan = (loan: any) => {
+    setHrConfirm({
+      title: 'Cancel loan / advance?',
+      message: `Cancel this ${loan.type} for ${loan.employee_name}? The remaining balance will no longer be deducted from their pay.`,
+      confirmLabel: 'Cancel loan',
+      danger: true,
+      details: [
+        { label: 'Employee', value: loan.employee_name },
+        { label: 'Type', value: loan.type },
+        { label: 'Remaining balance', value: `GH₵ ${parseFloat(loan.balance).toFixed(2)}` },
+      ],
+      action: () => cancelLoan(loan),
+    });
   };
 
   const filteredLoans = loans.filter((l) => loanStatusFilter === 'all' || l.status === loanStatusFilter);
@@ -852,15 +867,29 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   };
 
   const deleteAppraisalRow = async (a: any) => {
-    if (!confirm(`Delete this draft appraisal for ${a.employee_name}?`)) return;
     try {
       await api.delete(`/appraisals/${a._id || a.id}`);
       toast.success('Draft deleted');
-      setModal(null);
       loadAppraisals();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Failed to delete appraisal');
+      throw e;
     }
+  };
+
+  const requestDeleteAppraisal = (a: any) => {
+    setModal(null);
+    setHrConfirm({
+      title: 'Delete draft appraisal?',
+      message: `Delete this draft appraisal for ${a.employee_name}? This cannot be undone.`,
+      confirmLabel: 'Delete draft',
+      danger: true,
+      details: [
+        { label: 'Employee', value: a.employee_name },
+        { label: 'Period', value: `${new Date(a.period_start).toLocaleDateString()} – ${new Date(a.period_end).toLocaleDateString()}` },
+      ],
+      action: () => deleteAppraisalRow(a),
+    });
   };
 
   const appraisalStatusBadge: Record<string, string> = {
@@ -1584,7 +1613,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                         </td>
                         <td className="px-4 py-2">
                           {l.status === 'active' && (
-                            <button type="button" onClick={() => cancelLoan(l)} title="Cancel loan" className="p-1.5 hover:bg-red-50 rounded text-red-600"><XCircle className="w-4 h-4" /></button>
+                            <button type="button" onClick={() => requestCancelLoan(l)} title="Cancel loan" className="p-1.5 hover:bg-red-50 rounded text-red-600"><XCircle className="w-4 h-4" /></button>
                           )}
                         </td>
                       </tr>
@@ -1636,7 +1665,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                             <div className="flex items-center gap-1">
                               <button type="button" onClick={() => openEditAppraisal(a)} title="Edit draft" className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4" /></button>
                               <button type="button" onClick={() => submitAppraisalRow(a)} title="Submit to employee" className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Send className="w-4 h-4" /></button>
-                              <button type="button" onClick={() => deleteAppraisalRow(a)} title="Delete draft" className="p-1.5 hover:bg-red-50 rounded text-red-600"><Trash2 className="w-4 h-4" /></button>
+                              <button type="button" onClick={() => requestDeleteAppraisal(a)} title="Delete draft" className="p-1.5 hover:bg-red-50 rounded text-red-600"><Trash2 className="w-4 h-4" /></button>
                             </div>
                           )}
                         </td>
@@ -1683,17 +1712,17 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       </Modal>
 
       {/* New/Edit Appraisal Modal */}
-      <Modal open={modal==='add_appraisal'} onClose={() => setModal(null)} title={editingAppraisalId ? 'Edit Draft Appraisal' : 'New Appraisal'} size="md">
+      <Modal open={modal==='add_appraisal'} onClose={() => setModal(null)} title={editingAppraisalId ? 'Edit Draft Appraisal' : 'New Appraisal'} size="xl">
         <p className="text-sm text-gray-600 mb-4">Saved as a draft first — the employee only sees it once you submit it.</p>
-        <div className="space-y-3">
-          <div>
-            <label className="form-label">Employee</label>
-            <select className="form-input" value={appraisalForm.employee_id} onChange={(e) => setAppraisalForm({ ...appraisalForm, employee_id: e.target.value })}>
-              <option value="">Select employee…</option>
-              {employees.filter((e) => e.status === 'active' || (e.id || e._id) === appraisalForm.employee_id).map((e) => <option key={e.id || e._id} value={e.id || e._id}>{e.name}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="form-label">Employee</label>
+              <select className="form-input" value={appraisalForm.employee_id} onChange={(e) => setAppraisalForm({ ...appraisalForm, employee_id: e.target.value })}>
+                <option value="">Select employee…</option>
+                {employees.filter((e) => e.status === 'active' || (e.id || e._id) === appraisalForm.employee_id).map((e) => <option key={e.id || e._id} value={e.id || e._id}>{e.name}</option>)}
+              </select>
+            </div>
             <div>
               <label className="form-label">Period start</label>
               <input type="date" className="form-input" value={appraisalForm.period_start} onChange={(e) => setAppraisalForm({ ...appraisalForm, period_start: e.target.value })} />
@@ -1708,7 +1737,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               <label className="form-label mb-0">Rate each category</label>
               <span className="text-xs text-gray-400">Overall: <span className="font-semibold text-gray-700">{appraisalOverallPreview.toFixed(1)}</span></span>
             </div>
-            <div className="space-y-2 border border-gray-100 rounded-lg p-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 border border-gray-100 rounded-lg p-3">
               {appraisalCategories.map((c) => (
                 <div key={c} className="flex items-center justify-between gap-3">
                   <span className="text-sm text-gray-700">{c}</span>
@@ -1717,13 +1746,15 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               ))}
             </div>
           </div>
-          <div>
-            <label className="form-label">Strengths</label>
-            <textarea className="form-input" rows={2} value={appraisalForm.strengths} onChange={(e) => setAppraisalForm({ ...appraisalForm, strengths: e.target.value })} placeholder="What went well this period" />
-          </div>
-          <div>
-            <label className="form-label">Areas for improvement</label>
-            <textarea className="form-input" rows={2} value={appraisalForm.areas_for_improvement} onChange={(e) => setAppraisalForm({ ...appraisalForm, areas_for_improvement: e.target.value })} placeholder="What to work on" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Strengths</label>
+              <textarea className="form-input" rows={3} value={appraisalForm.strengths} onChange={(e) => setAppraisalForm({ ...appraisalForm, strengths: e.target.value })} placeholder="What went well this period" />
+            </div>
+            <div>
+              <label className="form-label">Areas for improvement</label>
+              <textarea className="form-input" rows={3} value={appraisalForm.areas_for_improvement} onChange={(e) => setAppraisalForm({ ...appraisalForm, areas_for_improvement: e.target.value })} placeholder="What to work on" />
+            </div>
           </div>
           <div>
             <label className="form-label">Goals for next period</label>
@@ -1777,7 +1808,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               <button className="btn-secondary" onClick={() => setPrintAppraisal(appraisalDetail)}><FileText className="w-4 h-4" /> Print</button>
               {appraisalDetail.status === 'draft' && (
                 <>
-                  <button className="btn-secondary text-red-600" onClick={() => deleteAppraisalRow(appraisalDetail)}>Delete draft</button>
+                  <button className="btn-secondary text-red-600" onClick={() => requestDeleteAppraisal(appraisalDetail)}>Delete draft</button>
                   <button className="btn-secondary" onClick={() => openEditAppraisal(appraisalDetail)}><Edit2 className="w-4 h-4" /> Edit</button>
                   <button className="btn-primary" onClick={() => submitAppraisalRow(appraisalDetail)}><Send className="w-4 h-4" /> Submit to employee</button>
                 </>
