@@ -279,6 +279,30 @@ export default function MarketplacePage() {
         </div>
       </section>
 
+      {/* ── FINAL CTA ── */}
+      <section className="landing-cta-band py-20 px-6 text-white overflow-hidden relative">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-[1]">
+          <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full animate-float-slow" />
+          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-yellow-400/10 rounded-full animate-float-slower" />
+        </div>
+        <div className="max-w-3xl mx-auto text-center relative z-10">
+          <Reveal>
+            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">Ready to find your next favorite shop?</h2>
+            <p className="text-blue-200 text-lg mb-10 max-w-xl mx-auto">Browse real shops running on GEMS, or list your own and start reaching new buyers today.</p>
+          </Reveal>
+          <Reveal delay={150}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a href="#shops" className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-extrabold px-8 py-4 rounded-xl text-base transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-lg btn-shine">
+                <Store className="w-4 h-4" /> Browse Shops
+              </a>
+              <Link href="/register" className="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold px-8 py-4 rounded-xl text-base transition-all hover:-translate-y-0.5 flex items-center justify-center">
+                List Your Shop
+              </Link>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ── FOOTER ── */}
       <footer className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
