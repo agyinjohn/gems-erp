@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, Badge, Spinner } from '@/components/ui';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Package, ShoppingCart, Users, AlertTriangle, TrendingUp, UserCheck, Truck, ClipboardList, ArrowDown, ArrowUp, RefreshCw, Building2 } from 'lucide-react';
+import { Package, ShoppingCart, Users, AlertTriangle, TrendingUp, UserCheck, Truck, ClipboardList, ArrowDown, ArrowUp, RefreshCw, Building2, Wallet, Cake, Award, FileText } from 'lucide-react';
+import HrReport from '@/components/hr/HrReport';
 
 const CedisIcon = ({ className }: { className?: string }) => (
   <span className={`font-bold leading-none flex items-center justify-center ${className}`} style={{ fontFamily: 'serif' }}>₵</span>
@@ -16,9 +17,10 @@ const fmt = (n: number) => n >= 1000 ? `GH₵ ${(n/1000).toFixed(1)}k` : `GH₵ 
 const ALL_ROLES = ['super_admin','business_owner','branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer'];
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, tenant } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showHrReport, setShowHrReport] = useState(false);
   const role = user?.role || '';
 
   const can = (...roles: string[]) => roles.includes(role);
@@ -46,6 +48,13 @@ export default function DashboardPage() {
   if (loading) return <AppLayout title="Dashboard" allowedRoles={ALL_ROLES}><Spinner /></AppLayout>;
 
   const kpis = data?.kpis || {};
+
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const payrollTrend = (data?.payroll_trend || []).map((t: any) => ({ label: `${MONTHS_SHORT[t.month - 1]} ${String(t.year).slice(2)}`, total: t.total }));
+  const upcomingPeople = [
+    ...(data?.upcoming_birthdays || []).map((b: any) => ({ ...b, kind: 'birthday' as const })),
+    ...(data?.upcoming_anniversaries || []).map((a: any) => ({ ...a, kind: 'anniversary' as const })),
+  ].sort((a, b) => a.days_until - b.days_until);
 
   // ── WAREHOUSE STAFF — dedicated layout ──────────────────────────────────────
   if (role === 'warehouse_staff') {
@@ -338,6 +347,7 @@ export default function DashboardPage() {
             <StatCard label="Total Employees" value={kpis.total_employees ?? '—'} icon={<Users className="w-6 h-6 text-[#0D3B6E]" />}         color="bg-[#0D3B6E]/8" sub="Active staff" />
             <StatCard label="On Leave"        value={kpis.on_leave        ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-amber-500" />} color="bg-amber-50"    sub="Currently away" />
             <StatCard label="Pending Leave"   value={kpis.pending_leave   ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-red-500" />}   color="bg-red-50"     sub="Awaiting approval" />
+            <StatCard label="Outstanding Loans" value={fmt(data?.outstanding_loans_total || 0)} icon={<Wallet className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${data?.outstanding_loans_count ?? 0} active`} />
           </>
         )}
       </div>
@@ -588,7 +598,83 @@ export default function DashboardPage() {
                     {a.icon}{a.label}
                   </a>
                 ))}
+                <button onClick={() => setShowHrReport(true)} className="flex flex-col items-center gap-2 px-4 py-5 rounded-xl text-sm font-medium text-center bg-[#0D3B6E]/8 text-[#0D3B6E] hover:bg-[#0D3B6E]/15 transition-colors">
+                  <FileText className="w-5 h-5" />Generate HR Report
+                </button>
               </div>
+            </div>
+
+            <div className="card">
+              <h3 className="font-semibold text-gray-800 mb-4">Payroll Trend</h3>
+              {payrollTrend.length ? (
+                <ResponsiveContainer width="100%" height={200} minWidth={0}>
+                  <BarChart data={payrollTrend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v: any) => [`GH₵ ${Number(v).toLocaleString()}`, 'Net pay']} />
+                    <Bar dataKey="total" fill="#0D3B6E" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : <p className="text-gray-400 text-sm text-center py-8">No approved payroll runs yet</p>}
+            </div>
+
+            <div className="card">
+              <h3 className="font-semibold text-gray-800 mb-4">Headcount by Department</h3>
+              {data?.department_breakdown?.length ? (
+                <ResponsiveContainer width="100%" height={200} minWidth={0}>
+                  <BarChart data={data.department_breakdown} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <YAxis dataKey="department" type="category" tick={{ fontSize: 11 }} width={100} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#0D3B6E" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : <p className="text-gray-400 text-sm text-center py-8">No active employees yet</p>}
+            </div>
+
+            <div className="card">
+              <h3 className="font-semibold text-gray-800 mb-4">Workforce Mix</h3>
+              {data?.employment_type_breakdown?.length ? (
+                <div className="space-y-3">
+                  {data.employment_type_breakdown.map((t: any) => {
+                    const pct = kpis.total_employees ? Math.round((t.count / kpis.total_employees) * 100) : 0;
+                    return (
+                      <div key={t.type}>
+                        <div className="flex justify-between text-sm mb-1.5">
+                          <span className="text-gray-600 font-medium capitalize">{t.type.replace(/_/g, ' ')}</span>
+                          <span className="font-semibold text-gray-900 tabular-nums">{t.count} <span className="text-gray-400 font-normal">({pct}%)</span></span>
+                        </div>
+                        <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-[#0D3B6E]" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : <p className="text-gray-400 text-sm text-center py-8">No active employees yet</p>}
+            </div>
+
+            <div className="card">
+              <h3 className="font-semibold text-gray-800 mb-4">Upcoming Birthdays & Anniversaries</h3>
+              {upcomingPeople.length ? (
+                <div className="space-y-2">
+                  {upcomingPeople.map((p: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {p.kind === 'birthday'
+                          ? <Cake className="w-4 h-4 text-[#0D3B6E] flex-shrink-0" />
+                          : <Award className="w-4 h-4 text-[#0D3B6E] flex-shrink-0" />}
+                        <span className="text-sm text-gray-700 truncate">
+                          {p.name} {p.kind === 'anniversary' ? `— ${p.years}-year anniversary` : '— Birthday'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-400 flex-shrink-0">{p.days_until === 0 ? 'Today' : `in ${p.days_until}d`}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-gray-400 text-sm text-center py-8">Nothing in the next 30 days</p>}
             </div>
           </>
         )}
@@ -640,6 +726,10 @@ export default function DashboardPage() {
 
       </div>
       </div>
+
+      {showHrReport && (
+        <HrReport businessName={tenant?.business_name} onClose={() => setShowHrReport(false)} />
+      )}
     </AppLayout>
   );
 }

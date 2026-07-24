@@ -1,7 +1,7 @@
-import { LayoutDashboard, Users, Clock, Umbrella, Banknote, Wallet } from 'lucide-react';
+import { Users, Clock, Umbrella, Banknote, Wallet } from 'lucide-react';
 import type { ComponentType } from 'react';
 
-export type HrSectionSlug = 'dashboard' | 'employees' | 'attendance' | 'leave' | 'payroll' | 'loans';
+export type HrSectionSlug = 'employees' | 'attendance' | 'leave' | 'payroll' | 'loans';
 
 export interface HrNavItem {
   slug: HrSectionSlug;
@@ -12,13 +12,6 @@ export interface HrNavItem {
 }
 
 export const HR_SECTIONS: HrNavItem[] = [
-  {
-    slug: 'dashboard',
-    label: 'Overview',
-    title: 'HR Overview',
-    subtitle: 'Workforce overview, approvals and a printable HR report',
-    icon: LayoutDashboard,
-  },
   {
     slug: 'employees',
     label: 'Employees',
@@ -64,7 +57,7 @@ export function isHrSection(slug: string): slug is HrSectionSlug {
 
 export function getHrSection(pathname: string): HrNavItem {
   const parts = pathname.split('/').filter(Boolean);
-  const slug = parts[1] || 'dashboard';
+  const slug = parts[1] || 'employees';
   return HR_SECTIONS.find((s) => s.slug === slug) || HR_SECTIONS[0];
 }
 
