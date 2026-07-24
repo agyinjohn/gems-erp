@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function HrIndexPage() {
-  redirect('/hr/employees');
+  redirect('/hr/dashboard');
 }

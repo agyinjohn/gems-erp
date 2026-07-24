@@ -17,7 +17,7 @@ import { HR_SECTIONS } from '@/lib/hrNav';
 function isNavActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   if (href === '/accounting/overview' && pathname === '/accounting') return true;
-  if (href === '/hr/employees' && pathname === '/hr') return true;
+  if (href === '/hr/dashboard' && pathname === '/hr') return true;
   if (href === '/platform' || href === '/dashboard') return false;
   if (href === '/pos') {
     return (
