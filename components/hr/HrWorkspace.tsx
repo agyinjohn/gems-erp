@@ -1683,17 +1683,17 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       </Modal>
 
       {/* New/Edit Appraisal Modal */}
-      <Modal open={modal==='add_appraisal'} onClose={() => setModal(null)} title={editingAppraisalId ? 'Edit Draft Appraisal' : 'New Appraisal'} size="md">
+      <Modal open={modal==='add_appraisal'} onClose={() => setModal(null)} title={editingAppraisalId ? 'Edit Draft Appraisal' : 'New Appraisal'} size="xl">
         <p className="text-sm text-gray-600 mb-4">Saved as a draft first — the employee only sees it once you submit it.</p>
-        <div className="space-y-3">
-          <div>
-            <label className="form-label">Employee</label>
-            <select className="form-input" value={appraisalForm.employee_id} onChange={(e) => setAppraisalForm({ ...appraisalForm, employee_id: e.target.value })}>
-              <option value="">Select employee…</option>
-              {employees.filter((e) => e.status === 'active' || (e.id || e._id) === appraisalForm.employee_id).map((e) => <option key={e.id || e._id} value={e.id || e._id}>{e.name}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="form-label">Employee</label>
+              <select className="form-input" value={appraisalForm.employee_id} onChange={(e) => setAppraisalForm({ ...appraisalForm, employee_id: e.target.value })}>
+                <option value="">Select employee…</option>
+                {employees.filter((e) => e.status === 'active' || (e.id || e._id) === appraisalForm.employee_id).map((e) => <option key={e.id || e._id} value={e.id || e._id}>{e.name}</option>)}
+              </select>
+            </div>
             <div>
               <label className="form-label">Period start</label>
               <input type="date" className="form-input" value={appraisalForm.period_start} onChange={(e) => setAppraisalForm({ ...appraisalForm, period_start: e.target.value })} />
@@ -1708,7 +1708,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               <label className="form-label mb-0">Rate each category</label>
               <span className="text-xs text-gray-400">Overall: <span className="font-semibold text-gray-700">{appraisalOverallPreview.toFixed(1)}</span></span>
             </div>
-            <div className="space-y-2 border border-gray-100 rounded-lg p-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 border border-gray-100 rounded-lg p-3">
               {appraisalCategories.map((c) => (
                 <div key={c} className="flex items-center justify-between gap-3">
                   <span className="text-sm text-gray-700">{c}</span>
@@ -1717,13 +1717,15 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               ))}
             </div>
           </div>
-          <div>
-            <label className="form-label">Strengths</label>
-            <textarea className="form-input" rows={2} value={appraisalForm.strengths} onChange={(e) => setAppraisalForm({ ...appraisalForm, strengths: e.target.value })} placeholder="What went well this period" />
-          </div>
-          <div>
-            <label className="form-label">Areas for improvement</label>
-            <textarea className="form-input" rows={2} value={appraisalForm.areas_for_improvement} onChange={(e) => setAppraisalForm({ ...appraisalForm, areas_for_improvement: e.target.value })} placeholder="What to work on" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Strengths</label>
+              <textarea className="form-input" rows={3} value={appraisalForm.strengths} onChange={(e) => setAppraisalForm({ ...appraisalForm, strengths: e.target.value })} placeholder="What went well this period" />
+            </div>
+            <div>
+              <label className="form-label">Areas for improvement</label>
+              <textarea className="form-input" rows={3} value={appraisalForm.areas_for_improvement} onChange={(e) => setAppraisalForm({ ...appraisalForm, areas_for_improvement: e.target.value })} placeholder="What to work on" />
+            </div>
           </div>
           <div>
             <label className="form-label">Goals for next period</label>
