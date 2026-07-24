@@ -18,7 +18,7 @@ export function ToastContainer() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const add = useCallback((message: string, type: ToastType) => {
-    const id = Date.now();
+    const id = Date.now() + Math.random();
     setToasts(t => [...t, { id, message, type }]);
     setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4000);
   }, []);
