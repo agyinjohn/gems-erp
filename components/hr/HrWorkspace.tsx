@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Modal, EmptyState, Spinner, toast } from '@/components/ui';
-import { Plus, Search, DollarSign, CheckCircle, XCircle, Calendar, Users, Clock, Umbrella, Banknote, Edit2, UserX, FileText, Download, Eye } from 'lucide-react';
+import { Plus, Search, DollarSign, CheckCircle, XCircle, Calendar, Users, Clock, Umbrella, Banknote, Edit2, UserX, FileText, Download, Eye, Send, Trash2 } from 'lucide-react';
 import api, { apiCache } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import EmployeeDocuments from '@/components/hr/EmployeeDocuments';
@@ -17,6 +17,7 @@ import PayrollLineEditor, {
   type PayLine,
 } from '@/components/hr/PayrollLineEditor';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
+import StarRating from '@/components/hr/StarRating';
 import { type HrSectionSlug } from '@/lib/hrNav';
 
 interface HrWorkspaceProps {
@@ -33,6 +34,11 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const [loanStatusFilter, setLoanStatusFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
   const [loanSaving, setLoanSaving] = useState(false);
   const [loanForm, setLoanForm] = useState({ employee_id: '', type: 'loan', reason: '', principal: '', monthly_deduction: '' });
+  // ── Performance appraisals ──
+  const [appraisals, setAppraisals] = useState<any[]>([]);
+  const [appraisalSaving, setAppraisalSaving] = useState(false);
+  const [appraisalForm, setAppraisalForm] = useState({ employee_id: '', period_label: '', rating: 3, strengths: '', areas_for_improvement: '', goals_next_period: '' });
+  const [appraisalDetail, setAppraisalDetail] = useState<any>(null);
   // ── Leave types & holidays ──
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [leaveTypeForm, setLeaveTypeForm] = useState({ name: '', default_days: '', paid: true });
@@ -54,7 +60,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     if (section === 'payroll') return !apiCache.get('/payroll');
     return true;
   });
-  const [modal, setModal] = useState<'add_emp'|'edit_emp'|'terminate'|'emp_detail'|'add_payroll'|'bulk_payroll'|'pay_run'|'payroll_detail'|'add_leave'|'add_attendance'|'add_loan'|'manage_holidays'|'manage_leave_types'|null>(null);
+  const [modal, setModal] = useState<'add_emp'|'edit_emp'|'terminate'|'emp_detail'|'add_payroll'|'bulk_payroll'|'pay_run'|'payroll_detail'|'add_leave'|'add_attendance'|'add_loan'|'manage_holidays'|'manage_leave_types'|'add_appraisal'|'appraisal_detail'|null>(null);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [detailEmployee, setDetailEmployee] = useState<any>(null);
   const [terminateTarget, setTerminateTarget] = useState<any>(null);
@@ -216,7 +222,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         apiCache.set('/employees', e.data.data);
         setPayroll(p.data.data);
         setEmployees(e.data.data);
-      } else if (sec === 'loans') {
+      } else if (sec === 'loans' || sec === 'appraisals') {
         const e = await api.get('/employees').catch(() => ({ data: { data: [] } }));
         apiCache.set('/employees', e.data.data);
         setEmployees(e.data.data);
@@ -239,12 +245,13 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       loadAttendanceSettings();
       return;
     }
-    const cacheKey = section === 'employees' ? '/employees' : section === 'leave' ? '/leave-requests' : section === 'loans' ? '/employees' : '/payroll';
+    const cacheKey = section === 'employees' ? '/employees' : section === 'leave' ? '/leave-requests' : (section === 'loans' || section === 'appraisals') ? '/employees' : '/payroll';
     const hasCache = !!apiCache.get(cacheKey);
     loadSection(section, attendanceDate, hasCache && !apiCache.isStale(cacheKey));
     if (section === 'payroll') { loadBatches(); loadPayrollSettings(); }
     if (section === 'loans') loadLoans();
     if (section === 'leave') loadLeaveTypes();
+    if (section === 'appraisals') loadAppraisals();
   }, [section, attendanceDate]);
 
   const filtered = employees.filter(e => !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.employee_code?.toLowerCase().includes(search.toLowerCase()));
@@ -730,6 +737,67 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   };
 
   const filteredLoans = loans.filter((l) => loanStatusFilter === 'all' || l.status === loanStatusFilter);
+
+  // ── Performance appraisals ──
+  const loadAppraisals = async () => {
+    try {
+      const r = await api.get('/appraisals');
+      setAppraisals(r.data.data || []);
+    } catch { /* ignore */ }
+  };
+
+  const openNewAppraisal = () => {
+    setAppraisalForm({ employee_id: '', period_label: '', rating: 3, strengths: '', areas_for_improvement: '', goals_next_period: '' });
+    setModal('add_appraisal');
+  };
+
+  const saveAppraisal = async () => {
+    if (!appraisalForm.employee_id) { toast.error('Select an employee'); return; }
+    if (!appraisalForm.period_label.trim()) { toast.error('Enter a period, e.g. "Q1 2026"'); return; }
+    setAppraisalSaving(true);
+    try {
+      await api.post('/appraisals', appraisalForm);
+      toast.success('Appraisal saved as draft');
+      setModal(null);
+      loadAppraisals();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to save appraisal');
+    } finally { setAppraisalSaving(false); }
+  };
+
+  const openAppraisalDetail = (a: any) => {
+    setAppraisalDetail(a);
+    setModal('appraisal_detail');
+  };
+
+  const submitAppraisalRow = async (a: any) => {
+    try {
+      await api.patch(`/appraisals/${a._id || a.id}/submit`);
+      toast.success('Appraisal submitted — the employee can now see it in their portal');
+      setModal(null);
+      loadAppraisals();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to submit appraisal');
+    }
+  };
+
+  const deleteAppraisalRow = async (a: any) => {
+    if (!confirm(`Delete this draft appraisal for ${a.employee_name}?`)) return;
+    try {
+      await api.delete(`/appraisals/${a._id || a.id}`);
+      toast.success('Draft deleted');
+      setModal(null);
+      loadAppraisals();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to delete appraisal');
+    }
+  };
+
+  const appraisalStatusBadge: Record<string, string> = {
+    draft: 'bg-gray-100 text-gray-500',
+    submitted: 'bg-blue-100 text-blue-700',
+    acknowledged: 'bg-green-100 text-green-700',
+  };
 
   // ── Leave types ──
   const loadLeaveTypes = async () => {
@@ -1459,6 +1527,53 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         </>
       )}
 
+      {/* Performance Appraisals */}
+      {section === 'appraisals' && (
+        <>
+          <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div className="flex-1" />
+            <button type="button" className="btn-primary" onClick={openNewAppraisal}>
+              <Plus className="w-4 h-4" /> New Appraisal
+            </button>
+          </div>
+          <div className="card p-0 overflow-hidden">
+            {loading ? <Spinner /> : appraisals.length === 0 ? (
+              <EmptyState message="No appraisals recorded yet" />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="table-header"><tr>
+                    {['Employee', 'Period', 'Rating', 'Reviewer', 'Status', 'Date', ''].map((h) => <th key={h} className="px-4 py-2 text-left">{h}</th>)}
+                  </tr></thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {appraisals.map((a) => (
+                      <tr key={a._id || a.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => openAppraisalDetail(a)}>
+                        <td className="px-4 py-2 font-medium">{a.employee_name}</td>
+                        <td className="px-4 py-2">{a.period_label}</td>
+                        <td className="px-4 py-2"><StarRating value={a.rating} readOnly /></td>
+                        <td className="px-4 py-2 text-gray-500">{a.reviewer_name}</td>
+                        <td className="px-4 py-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${appraisalStatusBadge[a.status] || 'bg-gray-100 text-gray-500'}`}>{a.status}</span>
+                        </td>
+                        <td className="px-4 py-2 text-gray-400 text-xs">{new Date(a.created_at || a.createdAt).toLocaleDateString()}</td>
+                        <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                          {a.status === 'draft' && (
+                            <div className="flex items-center gap-1">
+                              <button type="button" onClick={() => submitAppraisalRow(a)} title="Submit to employee" className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Send className="w-4 h-4" /></button>
+                              <button type="button" onClick={() => deleteAppraisalRow(a)} title="Delete draft" className="p-1.5 hover:bg-red-50 rounded text-red-600"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       {/* New Loan / Advance Modal */}
       <Modal open={modal==='add_loan'} onClose={() => setModal(null)} title="New Loan / Advance" size="md">
         <p className="text-sm text-gray-600 mb-4">The monthly deduction is automatically taken from the employee's pay each period until the balance is cleared.</p>
@@ -1489,6 +1604,78 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
           <button className="btn-primary" onClick={saveLoan} disabled={loanSaving}>{loanSaving ? 'Saving…' : 'Record loan'}</button>
         </div>
+      </Modal>
+
+      {/* New Appraisal Modal */}
+      <Modal open={modal==='add_appraisal'} onClose={() => setModal(null)} title="New Appraisal" size="md">
+        <p className="text-sm text-gray-600 mb-4">Saved as a draft first — the employee only sees it once you submit it.</p>
+        <div className="space-y-3">
+          <div>
+            <label className="form-label">Employee</label>
+            <select className="form-input" value={appraisalForm.employee_id} onChange={(e) => setAppraisalForm({ ...appraisalForm, employee_id: e.target.value })}>
+              <option value="">Select employee…</option>
+              {employees.filter((e) => e.status === 'active').map((e) => <option key={e.id || e._id} value={e.id || e._id}>{e.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Period</label>
+            <input className="form-input" value={appraisalForm.period_label} onChange={(e) => setAppraisalForm({ ...appraisalForm, period_label: e.target.value })} placeholder="e.g. Q1 2026, Annual 2026" />
+          </div>
+          <div>
+            <label className="form-label">Overall rating</label>
+            <StarRating value={appraisalForm.rating} onChange={(v) => setAppraisalForm({ ...appraisalForm, rating: v })} />
+          </div>
+          <div>
+            <label className="form-label">Strengths</label>
+            <textarea className="form-input" rows={2} value={appraisalForm.strengths} onChange={(e) => setAppraisalForm({ ...appraisalForm, strengths: e.target.value })} placeholder="What went well this period" />
+          </div>
+          <div>
+            <label className="form-label">Areas for improvement</label>
+            <textarea className="form-input" rows={2} value={appraisalForm.areas_for_improvement} onChange={(e) => setAppraisalForm({ ...appraisalForm, areas_for_improvement: e.target.value })} placeholder="What to work on" />
+          </div>
+          <div>
+            <label className="form-label">Goals for next period</label>
+            <textarea className="form-input" rows={2} value={appraisalForm.goals_next_period} onChange={(e) => setAppraisalForm({ ...appraisalForm, goals_next_period: e.target.value })} placeholder="What to focus on next" />
+          </div>
+        </div>
+        <div className="flex gap-3 justify-end mt-6">
+          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+          <button className="btn-primary" onClick={saveAppraisal} disabled={appraisalSaving}>{appraisalSaving ? 'Saving…' : 'Save draft'}</button>
+        </div>
+      </Modal>
+
+      {/* Appraisal Detail Modal */}
+      <Modal open={modal==='appraisal_detail'} onClose={() => setModal(null)} title="Appraisal" size="md">
+        {appraisalDetail && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-gray-900">{appraisalDetail.employee_name}</div>
+                <div className="text-xs text-gray-400">{appraisalDetail.period_label} · Reviewed by {appraisalDetail.reviewer_name}</div>
+              </div>
+              <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${appraisalStatusBadge[appraisalDetail.status] || 'bg-gray-100 text-gray-500'}`}>{appraisalDetail.status}</span>
+            </div>
+            <StarRating value={appraisalDetail.rating} readOnly />
+            {appraisalDetail.strengths && (
+              <div><div className="text-xs font-semibold text-gray-400 uppercase mb-1">Strengths</div><p className="text-sm text-gray-700 whitespace-pre-wrap">{appraisalDetail.strengths}</p></div>
+            )}
+            {appraisalDetail.areas_for_improvement && (
+              <div><div className="text-xs font-semibold text-gray-400 uppercase mb-1">Areas for improvement</div><p className="text-sm text-gray-700 whitespace-pre-wrap">{appraisalDetail.areas_for_improvement}</p></div>
+            )}
+            {appraisalDetail.goals_next_period && (
+              <div><div className="text-xs font-semibold text-gray-400 uppercase mb-1">Goals for next period</div><p className="text-sm text-gray-700 whitespace-pre-wrap">{appraisalDetail.goals_next_period}</p></div>
+            )}
+            {appraisalDetail.employee_comments && (
+              <div><div className="text-xs font-semibold text-gray-400 uppercase mb-1">Employee comments</div><p className="text-sm text-gray-700 whitespace-pre-wrap">{appraisalDetail.employee_comments}</p></div>
+            )}
+            {appraisalDetail.status === 'draft' && (
+              <div className="flex gap-3 justify-end pt-2 border-t border-gray-100">
+                <button className="btn-secondary text-red-600" onClick={() => deleteAppraisalRow(appraisalDetail)}>Delete draft</button>
+                <button className="btn-primary" onClick={() => submitAppraisalRow(appraisalDetail)}><Send className="w-4 h-4" /> Submit to employee</button>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
 
       {/* Add Attendance Modal */}

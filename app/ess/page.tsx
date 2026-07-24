@@ -2,11 +2,12 @@
 import { useEffect, useRef, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
-import { Plus, Umbrella, Banknote, User, CheckCircle, Clock, Mail, Phone, Building2, Hash, Calendar, TrendingUp, CalendarDays, Eye } from 'lucide-react';
+import { Plus, Umbrella, Banknote, User, CheckCircle, Clock, Mail, Phone, Building2, Hash, Calendar, TrendingUp, CalendarDays, Eye, Star } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { buildPayslipDisplayRows } from '@/components/hr/PayrollLineEditor';
 import Payslip from '@/components/hr/Payslip';
+import StarRating from '@/components/hr/StarRating';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 
 const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -17,12 +18,15 @@ const ALL_ROLES = ['business_owner','branch_manager','sales_staff','warehouse_st
 export default function ESSPage() {
   const { user, tenant } = useAuth();
 
-  const [tab, setTab] = useState<'overview'|'leave'|'payslips'|'attendance'>('overview');
+  const [tab, setTab] = useState<'overview'|'leave'|'payslips'|'attendance'|'appraisals'>('overview');
   const [me, setMe]               = useState<any>(null);
   const [leave, setLeave]         = useState<any[]>([]);
   const [payslips, setPayslips]   = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
+  const [appraisals, setAppraisals] = useState<any[]>([]);
+  const [ackComments, setAckComments] = useState<Record<string, string>>({});
+  const [acknowledging, setAcknowledging] = useState<string | null>(null);
   const [clocking, setClocking]   = useState(false);
   const [loading, setLoading]     = useState(true);
   const [leaveModal, setLeaveModal] = useState(false);
@@ -50,16 +54,18 @@ export default function ESSPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [m, l, a, lt] = await Promise.all([
+      const [m, l, a, lt, ap] = await Promise.all([
         api.get('/ess/me').catch(() => ({ data: { data: null } })),
         api.get('/ess/leave-requests').catch(() => ({ data: { data: [] } })),
         api.get('/ess/attendance').catch(() => ({ data: { data: [] } })),
         api.get('/leave-types').catch(() => ({ data: { data: [] } })),
+        api.get('/ess/appraisals').catch(() => ({ data: { data: [] } })),
       ]);
       setMe(m.data.data);
       setLeave(l.data.data);
       setAttendance(a.data.data);
       setLeaveTypes(lt.data.data);
+      setAppraisals(ap.data.data);
       // Load payslip history (latest first) — not filtered to the current
       // calendar month, since payroll for the current month is often not
       // approved until after month-end and the most recent approved slip
@@ -118,6 +124,17 @@ export default function ESSPage() {
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Clock-out failed');
     } finally { setClocking(false); }
+  };
+
+  const acknowledgeAppraisal = async (id: string) => {
+    setAcknowledging(id);
+    try {
+      await api.patch(`/ess/appraisals/${id}/acknowledge`, { employee_comments: ackComments[id] || '' });
+      toast.success('Appraisal acknowledged');
+      load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to acknowledge appraisal');
+    } finally { setAcknowledging(null); }
   };
 
   const executeHrConfirm = async () => {
@@ -213,6 +230,7 @@ export default function ESSPage() {
               { t:'leave',      l:'My Leave',   icon:<Umbrella className="w-3.5 h-3.5"/> },
               { t:'payslips',   l:'Payslips',   icon:<Banknote className="w-3.5 h-3.5"/> },
               { t:'attendance', l:'Attendance', icon:<CalendarDays className="w-3.5 h-3.5"/> },
+              { t:'appraisals', l:'Appraisals', icon:<Star className="w-3.5 h-3.5"/> },
             ] as const).map(item => (
               <button key={item.t} onClick={() => setTab(item.t)}
                 className={`relative flex items-center gap-2 px-5 py-3.5 text-sm font-medium whitespace-nowrap transition-colors ${
@@ -546,6 +564,61 @@ export default function ESSPage() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {tab === 'appraisals' && (
+            <div className="space-y-4">
+              {appraisals.length === 0 ? (
+                <EmptyState message="No appraisals yet" icon={<Star className="w-8 h-8 text-gray-300"/>} />
+              ) : appraisals.map((a: any) => (
+                <div key={a.id} className="card">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <div className="font-semibold text-gray-900">{a.period_label}</div>
+                      <div className="text-xs text-gray-400">Reviewed by {a.reviewer_name}</div>
+                    </div>
+                    <Badge status={a.status} />
+                  </div>
+                  <StarRating value={a.rating} readOnly />
+                  <div className="space-y-3 mt-3">
+                    {a.strengths && (
+                      <div><div className="text-xs font-semibold text-gray-400 uppercase mb-1">Strengths</div><p className="text-sm text-gray-700 whitespace-pre-wrap">{a.strengths}</p></div>
+                    )}
+                    {a.areas_for_improvement && (
+                      <div><div className="text-xs font-semibold text-gray-400 uppercase mb-1">Areas for improvement</div><p className="text-sm text-gray-700 whitespace-pre-wrap">{a.areas_for_improvement}</p></div>
+                    )}
+                    {a.goals_next_period && (
+                      <div><div className="text-xs font-semibold text-gray-400 uppercase mb-1">Goals for next period</div><p className="text-sm text-gray-700 whitespace-pre-wrap">{a.goals_next_period}</p></div>
+                    )}
+                  </div>
+
+                  {a.status === 'submitted' ? (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <label className="form-label">Your comments (optional)</label>
+                      <textarea
+                        className="form-input"
+                        rows={2}
+                        value={ackComments[a.id] ?? ''}
+                        onChange={(e) => setAckComments({ ...ackComments, [a.id]: e.target.value })}
+                        placeholder="Add a response before acknowledging"
+                      />
+                      <button
+                        className="btn-primary mt-3"
+                        onClick={() => acknowledgeAppraisal(a.id)}
+                        disabled={acknowledging === a.id}
+                      >
+                        {acknowledging === a.id ? 'Saving…' : 'Acknowledge'}
+                      </button>
+                    </div>
+                  ) : a.employee_comments && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="text-xs font-semibold text-gray-400 uppercase mb-1">Your comments</div>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{a.employee_comments}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </>

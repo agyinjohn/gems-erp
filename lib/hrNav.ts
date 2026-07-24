@@ -1,7 +1,7 @@
-import { Users, Clock, Umbrella, Banknote, Wallet } from 'lucide-react';
+import { Users, Clock, Umbrella, Banknote, Wallet, Star } from 'lucide-react';
 import type { ComponentType } from 'react';
 
-export type HrSectionSlug = 'employees' | 'attendance' | 'leave' | 'payroll' | 'loans';
+export type HrSectionSlug = 'employees' | 'attendance' | 'leave' | 'payroll' | 'loans' | 'appraisals';
 
 export interface HrNavItem {
   slug: HrSectionSlug;
@@ -46,6 +46,13 @@ export const HR_SECTIONS: HrNavItem[] = [
     title: 'Loans & Advances',
     subtitle: 'Staff loans and salary advances, repaid automatically through payroll',
     icon: Wallet,
+  },
+  {
+    slug: 'appraisals',
+    label: 'Appraisals',
+    title: 'Performance Appraisals',
+    subtitle: 'Rate employees each period and share feedback',
+    icon: Star,
   },
 ];
 
