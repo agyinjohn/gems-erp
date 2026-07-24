@@ -2,12 +2,13 @@
 import { useEffect, useRef, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
-import { Plus, Umbrella, Banknote, User, CheckCircle, Clock, Mail, Phone, Building2, Hash, Calendar, TrendingUp, CalendarDays, Eye, Star } from 'lucide-react';
+import { Plus, Umbrella, Banknote, User, CheckCircle, Clock, Mail, Phone, Building2, Hash, Calendar, TrendingUp, CalendarDays, Eye, Star, Printer } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { buildPayslipDisplayRows } from '@/components/hr/PayrollLineEditor';
 import Payslip from '@/components/hr/Payslip';
 import StarRating from '@/components/hr/StarRating';
+import AppraisalForm from '@/components/hr/AppraisalForm';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 
 const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -27,6 +28,7 @@ export default function ESSPage() {
   const [appraisals, setAppraisals] = useState<any[]>([]);
   const [ackComments, setAckComments] = useState<Record<string, string>>({});
   const [acknowledging, setAcknowledging] = useState<string | null>(null);
+  const [printAppraisal, setPrintAppraisal] = useState<any>(null);
   const [clocking, setClocking]   = useState(false);
   const [loading, setLoading]     = useState(true);
   const [leaveModal, setLeaveModal] = useState(false);
@@ -575,12 +577,32 @@ export default function ESSPage() {
                 <div key={a.id} className="card">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <div className="font-semibold text-gray-900">{a.period_label}</div>
+                      <div className="font-semibold text-gray-900">
+                        {new Date(a.period_start).toLocaleDateString()} – {new Date(a.period_end).toLocaleDateString()}
+                      </div>
                       <div className="text-xs text-gray-400">Reviewed by {a.reviewer_name}</div>
                     </div>
-                    <Badge status={a.status} />
+                    <div className="flex items-center gap-2">
+                      <Badge status={a.status} />
+                      <button onClick={() => setPrintAppraisal(a)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500" title="Print">
+                        <Printer className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <StarRating value={a.rating} readOnly />
+                  <div className="flex items-center gap-2 mb-3">
+                    <StarRating value={Math.round(a.overall_rating || 0)} readOnly />
+                    <span className="text-sm text-gray-500">Overall {(a.overall_rating || 0).toFixed(1)}</span>
+                  </div>
+                  {a.category_ratings?.length > 0 && (
+                    <div className="space-y-1.5 border border-gray-100 rounded-lg p-3 mb-3">
+                      {a.category_ratings.map((c: any) => (
+                        <div key={c.category} className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">{c.category}</span>
+                          <StarRating value={c.rating} readOnly />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="space-y-3 mt-3">
                     {a.strengths && (
                       <div><div className="text-xs font-semibold text-gray-400 uppercase mb-1">Strengths</div><p className="text-sm text-gray-700 whitespace-pre-wrap">{a.strengths}</p></div>
@@ -669,6 +691,15 @@ export default function ESSPage() {
           employee={me}
           businessName={tenant?.business_name}
           onClose={() => setShowFullSlip(false)}
+        />
+      )}
+
+      {printAppraisal && (
+        <AppraisalForm
+          appraisal={printAppraisal}
+          employee={me}
+          businessName={tenant?.business_name}
+          onClose={() => setPrintAppraisal(null)}
         />
       )}
 
