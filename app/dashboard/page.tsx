@@ -342,9 +342,9 @@ export default function DashboardPage() {
           </>
         )}
 
-        {can('hr_manager') && (
+        {/* On Leave/Pending Leave/Outstanding Loans — Employees is already shown above for these roles */}
+        {can('business_owner', 'hr_manager') && (
           <>
-            <StatCard label="Total Employees" value={kpis.total_employees ?? '—'} icon={<Users className="w-6 h-6 text-[#0D3B6E]" />}         color="bg-[#0D3B6E]/8" sub="Active staff" />
             <StatCard label="On Leave"        value={kpis.on_leave        ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-amber-500" />} color="bg-amber-50"    sub="Currently away" />
             <StatCard label="Pending Leave"   value={kpis.pending_leave   ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-red-500" />}   color="bg-red-50"     sub="Awaiting approval" />
             <StatCard label="Outstanding Loans" value={fmt(data?.outstanding_loans_total || 0)} icon={<Wallet className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${data?.outstanding_loans_count ?? 0} active`} />
@@ -558,7 +558,7 @@ export default function DashboardPage() {
         )}
 
         {/* HR: recent leave requests + quick actions */}
-        {can('hr_manager') && (
+        {can('business_owner', 'hr_manager') && (
           <>
             <div className="card">
               <div className="flex items-center justify-between mb-4">
