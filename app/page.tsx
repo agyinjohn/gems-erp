@@ -726,6 +726,8 @@ import {
   CheckCircle, ArrowRight, Menu, X, Store, Building2,
   Star, Zap, Shield, Globe, UserCheck, Phone, Mail, MessageCircle, MessageSquare,
 } from 'lucide-react';
+import Reveal from '@/components/landing/Reveal';
+import { useCounter } from '@/hooks/useCounter';
 
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
@@ -885,50 +887,6 @@ const TESTIMONIALS = [
   { name: 'Kofi Boateng', role: 'CFO, ProTools Ltd', text: 'Finally an ERP that just works. The Paystack integration, real-time reports and role-based access made all the difference.', avatar: 'K' },
 ];
 
-/** Scroll-reveal wrapper — fades/slides children in when they enter the viewport. */
-function Reveal({
-  children,
-  className = '',
-  variant = 'up',
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  variant?: 'up' | 'left' | 'right' | 'scale';
-  delay?: number;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          obs.disconnect();
-        }
-      },
-      { threshold: 0.12, rootMargin: '0px 0px -48px 0px' }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  const variantClass = variant === 'left' ? 'reveal-left' : variant === 'right' ? 'reveal-right' : variant === 'scale' ? 'reveal-scale' : '';
-
-  return (
-    <div
-      ref={ref}
-      className={`reveal ${variantClass} ${visible ? 'is-visible' : ''} ${className}`}
-      style={delay ? { transitionDelay: `${delay}ms` } : undefined}
-    >
-      {children}
-    </div>
-  );
-}
-
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
@@ -943,27 +901,10 @@ export default function LandingPage() {
     return () => clearTimeout(t);
   }, []);
 
-  // Animated counter hook
-  const useCounter = (target: number, duration = 1500, start = heroVisible) => {
-    const [val, setVal] = useState(0);
-    useEffect(() => {
-      if (!start) return;
-      let startTime: number;
-      const step = (ts: number) => {
-        if (!startTime) startTime = ts;
-        const progress = Math.min((ts - startTime) / duration, 1);
-        setVal(Math.floor(progress * target));
-        if (progress < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    }, [start, target, duration]);
-    return val;
-  };
-
-  const revenue = useCounter(124);
-  const orders = useCounter(1284);
-  const products = useCounter(342);
-  const customers = useCounter(891);
+  const revenue = useCounter(124, heroVisible);
+  const orders = useCounter(1284, heroVisible);
+  const products = useCounter(342, heroVisible);
+  const customers = useCounter(891, heroVisible);
 
   return (
     <div className="landing-page min-h-screen font-sans">
