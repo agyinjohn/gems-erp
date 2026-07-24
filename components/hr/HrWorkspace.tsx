@@ -18,6 +18,7 @@ import PayrollLineEditor, {
 } from '@/components/hr/PayrollLineEditor';
 import HrConfirmModal from '@/components/hr/HrConfirmModal';
 import StarRating from '@/components/hr/StarRating';
+import AppraisalForm from '@/components/hr/AppraisalForm';
 import { type HrSectionSlug } from '@/lib/hrNav';
 
 interface HrWorkspaceProps {
@@ -36,9 +37,19 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const [loanForm, setLoanForm] = useState({ employee_id: '', type: 'loan', reason: '', principal: '', monthly_deduction: '' });
   // ── Performance appraisals ──
   const [appraisals, setAppraisals] = useState<any[]>([]);
+  const [appraisalCategories, setAppraisalCategories] = useState<string[]>([]);
   const [appraisalSaving, setAppraisalSaving] = useState(false);
-  const [appraisalForm, setAppraisalForm] = useState({ employee_id: '', period_label: '', rating: 3, strengths: '', areas_for_improvement: '', goals_next_period: '' });
+  const [appraisalForm, setAppraisalForm] = useState<{
+    employee_id: string;
+    period_start: string;
+    period_end: string;
+    category_ratings: Record<string, number>;
+    strengths: string;
+    areas_for_improvement: string;
+    goals_next_period: string;
+  }>({ employee_id: '', period_start: '', period_end: '', category_ratings: {}, strengths: '', areas_for_improvement: '', goals_next_period: '' });
   const [appraisalDetail, setAppraisalDetail] = useState<any>(null);
+  const [printAppraisal, setPrintAppraisal] = useState<any>(null);
   // ── Leave types & holidays ──
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [leaveTypeForm, setLeaveTypeForm] = useState({ name: '', default_days: '', paid: true });
@@ -741,22 +752,49 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   // ── Performance appraisals ──
   const loadAppraisals = async () => {
     try {
-      const r = await api.get('/appraisals');
+      const [r, c] = await Promise.all([
+        api.get('/appraisals'),
+        appraisalCategories.length ? Promise.resolve(null) : api.get('/appraisals/categories'),
+      ]);
       setAppraisals(r.data.data || []);
+      if (c) setAppraisalCategories(c.data.data || []);
     } catch { /* ignore */ }
   };
 
+  const defaultAppraisalPeriod = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const end = now.toISOString().slice(0, 10);
+    return { start, end };
+  };
+
   const openNewAppraisal = () => {
-    setAppraisalForm({ employee_id: '', period_label: '', rating: 3, strengths: '', areas_for_improvement: '', goals_next_period: '' });
+    const { start, end } = defaultAppraisalPeriod();
+    setAppraisalForm({ employee_id: '', period_start: start, period_end: end, category_ratings: {}, strengths: '', areas_for_improvement: '', goals_next_period: '' });
     setModal('add_appraisal');
   };
 
+  const appraisalOverallPreview = appraisalCategories.length
+    ? Math.round((appraisalCategories.reduce((sum, c) => sum + (appraisalForm.category_ratings[c] || 0), 0) / appraisalCategories.length) * 100) / 100
+    : 0;
+
   const saveAppraisal = async () => {
     if (!appraisalForm.employee_id) { toast.error('Select an employee'); return; }
-    if (!appraisalForm.period_label.trim()) { toast.error('Enter a period, e.g. "Q1 2026"'); return; }
+    if (!appraisalForm.period_start || !appraisalForm.period_end) { toast.error('Set a review period'); return; }
+    if (new Date(appraisalForm.period_end) < new Date(appraisalForm.period_start)) { toast.error('Period end cannot be before period start'); return; }
+    const unrated = appraisalCategories.filter((c) => !appraisalForm.category_ratings[c]);
+    if (unrated.length > 0) { toast.error(`Rate every category — missing: ${unrated.join(', ')}`); return; }
     setAppraisalSaving(true);
     try {
-      await api.post('/appraisals', appraisalForm);
+      await api.post('/appraisals', {
+        employee_id: appraisalForm.employee_id,
+        period_start: appraisalForm.period_start,
+        period_end: appraisalForm.period_end,
+        category_ratings: appraisalCategories.map((category) => ({ category, rating: appraisalForm.category_ratings[category] })),
+        strengths: appraisalForm.strengths,
+        areas_for_improvement: appraisalForm.areas_for_improvement,
+        goals_next_period: appraisalForm.goals_next_period,
+      });
       toast.success('Appraisal saved as draft');
       setModal(null);
       loadAppraisals();
@@ -1549,8 +1587,13 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                     {appraisals.map((a) => (
                       <tr key={a._id || a.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => openAppraisalDetail(a)}>
                         <td className="px-4 py-2 font-medium">{a.employee_name}</td>
-                        <td className="px-4 py-2">{a.period_label}</td>
-                        <td className="px-4 py-2"><StarRating value={a.rating} readOnly /></td>
+                        <td className="px-4 py-2 text-gray-500 text-xs">{new Date(a.period_start).toLocaleDateString()} – {new Date(a.period_end).toLocaleDateString()}</td>
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-2">
+                            <StarRating value={Math.round(a.overall_rating || 0)} readOnly />
+                            <span className="text-xs text-gray-400">{(a.overall_rating || 0).toFixed(1)}</span>
+                          </div>
+                        </td>
                         <td className="px-4 py-2 text-gray-500">{a.reviewer_name}</td>
                         <td className="px-4 py-2">
                           <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${appraisalStatusBadge[a.status] || 'bg-gray-100 text-gray-500'}`}>{a.status}</span>
@@ -1617,13 +1660,29 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               {employees.filter((e) => e.status === 'active').map((e) => <option key={e.id || e._id} value={e.id || e._id}>{e.name}</option>)}
             </select>
           </div>
-          <div>
-            <label className="form-label">Period</label>
-            <input className="form-input" value={appraisalForm.period_label} onChange={(e) => setAppraisalForm({ ...appraisalForm, period_label: e.target.value })} placeholder="e.g. Q1 2026, Annual 2026" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">Period start</label>
+              <input type="date" className="form-input" value={appraisalForm.period_start} onChange={(e) => setAppraisalForm({ ...appraisalForm, period_start: e.target.value })} />
+            </div>
+            <div>
+              <label className="form-label">Period end</label>
+              <input type="date" className="form-input" value={appraisalForm.period_end} min={appraisalForm.period_start} onChange={(e) => setAppraisalForm({ ...appraisalForm, period_end: e.target.value })} />
+            </div>
           </div>
           <div>
-            <label className="form-label">Overall rating</label>
-            <StarRating value={appraisalForm.rating} onChange={(v) => setAppraisalForm({ ...appraisalForm, rating: v })} />
+            <div className="flex items-center justify-between mb-1">
+              <label className="form-label mb-0">Rate each category</label>
+              <span className="text-xs text-gray-400">Overall: <span className="font-semibold text-gray-700">{appraisalOverallPreview.toFixed(1)}</span></span>
+            </div>
+            <div className="space-y-2 border border-gray-100 rounded-lg p-3">
+              {appraisalCategories.map((c) => (
+                <div key={c} className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-gray-700">{c}</span>
+                  <StarRating value={appraisalForm.category_ratings[c] || 0} onChange={(v) => setAppraisalForm({ ...appraisalForm, category_ratings: { ...appraisalForm.category_ratings, [c]: v } })} />
+                </div>
+              ))}
+            </div>
           </div>
           <div>
             <label className="form-label">Strengths</label>
@@ -1651,11 +1710,24 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-semibold text-gray-900">{appraisalDetail.employee_name}</div>
-                <div className="text-xs text-gray-400">{appraisalDetail.period_label} · Reviewed by {appraisalDetail.reviewer_name}</div>
+                <div className="text-xs text-gray-400">
+                  {new Date(appraisalDetail.period_start).toLocaleDateString()} – {new Date(appraisalDetail.period_end).toLocaleDateString()} · Reviewed by {appraisalDetail.reviewer_name}
+                </div>
               </div>
               <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${appraisalStatusBadge[appraisalDetail.status] || 'bg-gray-100 text-gray-500'}`}>{appraisalDetail.status}</span>
             </div>
-            <StarRating value={appraisalDetail.rating} readOnly />
+            <div className="flex items-center gap-2">
+              <StarRating value={Math.round(appraisalDetail.overall_rating || 0)} readOnly />
+              <span className="text-sm text-gray-500">Overall {(appraisalDetail.overall_rating || 0).toFixed(1)}</span>
+            </div>
+            <div className="space-y-1.5 border border-gray-100 rounded-lg p-3">
+              {(appraisalDetail.category_ratings || []).map((c: any) => (
+                <div key={c.category} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">{c.category}</span>
+                  <StarRating value={c.rating} readOnly />
+                </div>
+              ))}
+            </div>
             {appraisalDetail.strengths && (
               <div><div className="text-xs font-semibold text-gray-400 uppercase mb-1">Strengths</div><p className="text-sm text-gray-700 whitespace-pre-wrap">{appraisalDetail.strengths}</p></div>
             )}
@@ -1668,15 +1740,27 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             {appraisalDetail.employee_comments && (
               <div><div className="text-xs font-semibold text-gray-400 uppercase mb-1">Employee comments</div><p className="text-sm text-gray-700 whitespace-pre-wrap">{appraisalDetail.employee_comments}</p></div>
             )}
-            {appraisalDetail.status === 'draft' && (
-              <div className="flex gap-3 justify-end pt-2 border-t border-gray-100">
-                <button className="btn-secondary text-red-600" onClick={() => deleteAppraisalRow(appraisalDetail)}>Delete draft</button>
-                <button className="btn-primary" onClick={() => submitAppraisalRow(appraisalDetail)}><Send className="w-4 h-4" /> Submit to employee</button>
-              </div>
-            )}
+            <div className="flex gap-3 justify-end pt-2 border-t border-gray-100">
+              <button className="btn-secondary" onClick={() => setPrintAppraisal(appraisalDetail)}><FileText className="w-4 h-4" /> Print</button>
+              {appraisalDetail.status === 'draft' && (
+                <>
+                  <button className="btn-secondary text-red-600" onClick={() => deleteAppraisalRow(appraisalDetail)}>Delete draft</button>
+                  <button className="btn-primary" onClick={() => submitAppraisalRow(appraisalDetail)}><Send className="w-4 h-4" /> Submit to employee</button>
+                </>
+              )}
+            </div>
           </div>
         )}
       </Modal>
+
+      {printAppraisal && (
+        <AppraisalForm
+          appraisal={printAppraisal}
+          employee={employees.find((e) => (e.id || e._id) === (printAppraisal.employee_id?._id || printAppraisal.employee_id))}
+          businessName={tenant?.business_name}
+          onClose={() => setPrintAppraisal(null)}
+        />
+      )}
 
       {/* Add Attendance Modal */}
       <Modal open={modal==='add_attendance'} onClose={() => { setModal(null); setAttendanceEditing(false); }} title={attendanceEditing ? 'Edit Attendance' : 'Record Attendance'} size="md">
