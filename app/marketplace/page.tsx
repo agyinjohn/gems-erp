@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Store, Package, Search, ArrowRight, ArrowUpRight, Sparkles, ShieldCheck } from 'lucide-react';
+import { Store, Package, Search, ArrowRight, ArrowUpRight, Sparkles, ShieldCheck, Wallet } from 'lucide-react';
 import { publicApi } from '@/lib/api';
+import Reveal from '@/components/landing/Reveal';
+import { useCounter } from '@/hooks/useCounter';
 
 interface Shop {
   id: string;
@@ -46,6 +48,8 @@ export default function MarketplacePage() {
 
   const filtered = shops.filter((s) => !search || s.business_name.toLowerCase().includes(search.toLowerCase()));
   const totalProducts = useMemo(() => shops.reduce((sum, s) => sum + s.product_count, 0), [shops]);
+  const shopsCount = useCounter(shops.length, !loading);
+  const productsCount = useCounter(totalProducts, !loading);
 
   return (
     <div className="landing-page min-h-dvh font-sans">
@@ -84,44 +88,59 @@ export default function MarketplacePage() {
         <div className="landing-hero-glow" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 pb-16 sm:pt-20 sm:pb-24 relative z-[1]">
           <div className="max-w-2xl">
-            <div className="landing-eyebrow">
-              <Sparkles className="w-3 h-3" /> Shop directory
-            </div>
-            <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight mb-4">
-              Shop from businesses<br className="hidden sm:block" /> <span className="text-yellow-400">built on GEMS.</span>
-            </h1>
-            <p className="text-blue-200 text-base sm:text-lg leading-relaxed mb-8 max-w-lg">
-              Browse and buy directly from real shops running on the GEMS platform — secure checkout, real stock, one place to discover them all.
-            </p>
+            <Reveal>
+              <div className="landing-eyebrow">
+                <Sparkles className="w-3 h-3" /> Shop directory
+              </div>
+              <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight mb-4">
+                Shop from businesses<br className="hidden sm:block" /> <span className="text-yellow-400">built on GEMS.</span>
+              </h1>
+              <p className="text-blue-200 text-base sm:text-lg leading-relaxed mb-8 max-w-lg">
+                Browse and buy directly from real shops running on the GEMS platform — secure checkout, real stock, one place to discover them all.
+              </p>
+            </Reveal>
 
             {/* Search — mobile + prominent hero copy */}
-            <div className="relative max-w-md md:hidden mb-6">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                className="w-full pl-10 pr-4 py-3 rounded-xl text-sm text-gray-900 bg-white/95 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                placeholder="Search shops…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-
-            {!loading && shops.length > 0 && (
-              <div className="flex items-center gap-6 sm:gap-8 pt-2">
-                <div>
-                  <div className="text-2xl sm:text-3xl font-extrabold">{shops.length}</div>
-                  <div className="text-xs sm:text-sm text-blue-300">Shop{shops.length === 1 ? '' : 's'} open</div>
-                </div>
-                <div className="w-px h-9 bg-white/15" />
-                <div>
-                  <div className="text-2xl sm:text-3xl font-extrabold">{totalProducts.toLocaleString()}</div>
-                  <div className="text-xs sm:text-sm text-blue-300">Products listed</div>
-                </div>
-                <div className="w-px h-9 bg-white/15 hidden sm:block" />
-                <div className="hidden sm:flex items-center gap-1.5 text-sm text-blue-200">
-                  <ShieldCheck className="w-4 h-4 text-yellow-400" /> Secure checkout on every order
-                </div>
+            <Reveal delay={120}>
+              <div className="relative max-w-md md:hidden mb-6">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-sm text-gray-900 bg-white/95 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  placeholder="Search shops…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
               </div>
-            )}
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ── STATS ── */}
+      <section className="landing-stats-ribbon px-6 pb-2">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-5">
+            {[
+              { value: loading ? '—' : shopsCount.toLocaleString(), label: `Shop${shops.length === 1 ? '' : 's'} open`, icon: Store, color: 'bg-blue-50 text-blue-600' },
+              { value: loading ? '—' : productsCount.toLocaleString(), label: 'Products listed', icon: Package, color: 'bg-purple-50 text-purple-600' },
+              { value: '100%', label: 'Secure checkout', icon: ShieldCheck, color: 'bg-green-50 text-green-600' },
+              { value: 'Direct', label: 'Payout to seller', icon: Wallet, color: 'bg-yellow-50 text-yellow-600' },
+            ].map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <Reveal key={s.label} delay={i * 100}>
+                  <div className="landing-stat-tile flex items-center gap-4 p-5 rounded-2xl card-lift group">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 ${s.color}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-2xl font-extrabold text-gray-900">{s.value}</div>
+                      <div className="text-sm text-gray-400">{s.label}</div>
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </section>
