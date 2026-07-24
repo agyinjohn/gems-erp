@@ -70,7 +70,6 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   } | null>(null);
   const [confirmSaving, setConfirmSaving] = useState(false);
   const [linkableUsers, setLinkableUsers] = useState<any[]>([]);
-  const [hrSummary, setHrSummary] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
@@ -183,16 +182,14 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     if (!silent) setLoading(true);
     try {
       if (sec === 'employees') {
-        const [e, d, s] = await Promise.all([
+        const [e, d] = await Promise.all([
           api.get('/employees').catch(() => ({ data: { data: [] } })),
           api.get('/departments').catch(() => ({ data: { data: [] } })),
-          api.get('/hr/summary').catch(() => ({ data: { data: null } })),
         ]);
         apiCache.set('/employees', e.data.data);
         apiCache.set('/departments', d.data.data);
         setEmployees(e.data.data);
         setDepartments(d.data.data);
-        setHrSummary(s.data.data);
       } else if (sec === 'attendance') {
         const [e, a] = await Promise.all([
           api.get('/employees').catch(() => ({ data: { data: [] } })),
@@ -201,7 +198,6 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         apiCache.set('/employees', e.data.data);
         setEmployees(e.data.data);
         setAttendance(a.data.data);
-        setHrSummary(null);
       } else if (sec === 'leave') {
         const [l, e] = await Promise.all([
           api.get('/leave-requests').catch(() => ({ data: { data: [] } })),
@@ -211,7 +207,6 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         apiCache.set('/employees', e.data.data);
         setLeave(l.data.data);
         setEmployees(e.data.data);
-        setHrSummary(null);
       } else if (sec === 'payroll') {
         const [p, e] = await Promise.all([
           api.get('/payroll').catch(() => ({ data: { data: [] } })),
@@ -221,12 +216,10 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         apiCache.set('/employees', e.data.data);
         setPayroll(p.data.data);
         setEmployees(e.data.data);
-        setHrSummary(null);
       } else if (sec === 'loans') {
         const e = await api.get('/employees').catch(() => ({ data: { data: [] } }));
         apiCache.set('/employees', e.data.data);
         setEmployees(e.data.data);
-        setHrSummary(null);
       }
     } finally {
       setLoading(false);
@@ -965,33 +958,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     setModal('bulk_payroll');
   };
 
-  const sectionKpis = (): { label: string; value: string | number }[] => {
-    if (section === 'employees' && hrSummary) {
-      return [
-        { label: 'Active staff', value: hrSummary.active },
-        { label: 'Terminated', value: hrSummary.terminated },
-        { label: 'Total employees', value: hrSummary.total_employees },
-        { label: 'Departments', value: departments.length },
-      ];
-    }
-    return [];
-  };
-
-  const kpis = sectionKpis();
-
   return (
     <>
-      {kpis.length > 0 && (
-        <div className={`grid grid-cols-2 gap-3 mb-5 ${kpis.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
-          {kpis.map((k) => (
-            <div key={k.label} className="card py-3 px-4">
-              <div className="text-lg font-bold text-gray-900">{k.value}</div>
-              <div className="text-xs text-gray-400">{k.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Employees */}
       {section === 'employees' && (
         <>
