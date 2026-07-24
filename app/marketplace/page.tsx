@@ -145,8 +145,35 @@ export default function MarketplacePage() {
         </div>
       </section>
 
+      {/* ── HOW IT WORKS ── */}
+      <section id="how-it-works" className="landing-canvas-muted py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <Reveal className="text-center mb-14">
+            <span className="landing-eyebrow">Shopping made simple</span>
+            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">How buying on the marketplace works</h2>
+            <p className="text-gray-500 text-lg">Three steps between browsing and having it delivered.</p>
+          </Reveal>
+          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="hidden md:block absolute top-8 left-[calc(16.67%+16px)] right-[calc(16.67%+16px)] h-0.5 bg-gray-200" />
+            {[
+              { step: '1', title: 'Browse shops', desc: 'Search or scroll the directory to find real shops selling on GEMS.' },
+              { step: '2', title: 'Add to cart & pay securely', desc: 'Checkout runs through Paystack — the same secure payment flow as every GEMS storefront.' },
+              { step: '3', title: 'Track your order', desc: 'The seller fulfills your order directly and you can follow its status until it arrives.' },
+            ].map((s, i) => (
+              <Reveal key={s.step} delay={i * 180} className="relative text-center">
+                <div className="relative z-10 inline-flex w-16 h-16 rounded-2xl text-white items-center justify-center text-xl font-extrabold mb-5 landing-step-num transition-transform duration-300 hover:scale-110 hover:rotate-3">
+                  {s.step}
+                </div>
+                <h3 className="font-bold text-gray-900 text-lg mb-2">{s.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── SHOP GRID ── */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+      <main id="shops" className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900">
             {search ? `Results for "${search}"` : 'All shops'}
