@@ -50,6 +50,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   }>({ employee_id: '', period_start: '', period_end: '', category_ratings: {}, strengths: '', areas_for_improvement: '', goals_next_period: '' });
   const [appraisalDetail, setAppraisalDetail] = useState<any>(null);
   const [printAppraisal, setPrintAppraisal] = useState<any>(null);
+  const [editingAppraisalId, setEditingAppraisalId] = useState<string | null>(null);
   // ── Leave types & holidays ──
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [leaveTypeForm, setLeaveTypeForm] = useState({ name: '', default_days: '', paid: true });
@@ -770,7 +771,24 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
   const openNewAppraisal = () => {
     const { start, end } = defaultAppraisalPeriod();
+    setEditingAppraisalId(null);
     setAppraisalForm({ employee_id: '', period_start: start, period_end: end, category_ratings: {}, strengths: '', areas_for_improvement: '', goals_next_period: '' });
+    setModal('add_appraisal');
+  };
+
+  const openEditAppraisal = (a: any) => {
+    const categoryRatings: Record<string, number> = {};
+    for (const c of a.category_ratings || []) categoryRatings[c.category] = c.rating;
+    setEditingAppraisalId(a._id || a.id);
+    setAppraisalForm({
+      employee_id: a.employee_id?._id || a.employee_id,
+      period_start: new Date(a.period_start).toISOString().slice(0, 10),
+      period_end: new Date(a.period_end).toISOString().slice(0, 10),
+      category_ratings: categoryRatings,
+      strengths: a.strengths || '',
+      areas_for_improvement: a.areas_for_improvement || '',
+      goals_next_period: a.goals_next_period || '',
+    });
     setModal('add_appraisal');
   };
 
@@ -786,7 +804,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     if (unrated.length > 0) { toast.error(`Rate every category — missing: ${unrated.join(', ')}`); return; }
     setAppraisalSaving(true);
     try {
-      await api.post('/appraisals', {
+      const payload = {
         employee_id: appraisalForm.employee_id,
         period_start: appraisalForm.period_start,
         period_end: appraisalForm.period_end,
@@ -794,9 +812,16 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         strengths: appraisalForm.strengths,
         areas_for_improvement: appraisalForm.areas_for_improvement,
         goals_next_period: appraisalForm.goals_next_period,
-      });
-      toast.success('Appraisal saved as draft');
+      };
+      if (editingAppraisalId) {
+        await api.put(`/appraisals/${editingAppraisalId}`, payload);
+        toast.success('Draft updated');
+      } else {
+        await api.post('/appraisals', payload);
+        toast.success('Appraisal saved as draft');
+      }
       setModal(null);
+      setEditingAppraisalId(null);
       loadAppraisals();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Failed to save appraisal');
@@ -1602,6 +1627,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                         <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
                           {a.status === 'draft' && (
                             <div className="flex items-center gap-1">
+                              <button type="button" onClick={() => openEditAppraisal(a)} title="Edit draft" className="p-1.5 hover:bg-gray-100 rounded text-gray-600"><Edit2 className="w-4 h-4" /></button>
                               <button type="button" onClick={() => submitAppraisalRow(a)} title="Submit to employee" className="p-1.5 hover:bg-blue-50 rounded text-blue-600"><Send className="w-4 h-4" /></button>
                               <button type="button" onClick={() => deleteAppraisalRow(a)} title="Delete draft" className="p-1.5 hover:bg-red-50 rounded text-red-600"><Trash2 className="w-4 h-4" /></button>
                             </div>
@@ -1649,15 +1675,15 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         </div>
       </Modal>
 
-      {/* New Appraisal Modal */}
-      <Modal open={modal==='add_appraisal'} onClose={() => setModal(null)} title="New Appraisal" size="md">
+      {/* New/Edit Appraisal Modal */}
+      <Modal open={modal==='add_appraisal'} onClose={() => setModal(null)} title={editingAppraisalId ? 'Edit Draft Appraisal' : 'New Appraisal'} size="md">
         <p className="text-sm text-gray-600 mb-4">Saved as a draft first — the employee only sees it once you submit it.</p>
         <div className="space-y-3">
           <div>
             <label className="form-label">Employee</label>
             <select className="form-input" value={appraisalForm.employee_id} onChange={(e) => setAppraisalForm({ ...appraisalForm, employee_id: e.target.value })}>
               <option value="">Select employee…</option>
-              {employees.filter((e) => e.status === 'active').map((e) => <option key={e.id || e._id} value={e.id || e._id}>{e.name}</option>)}
+              {employees.filter((e) => e.status === 'active' || (e.id || e._id) === appraisalForm.employee_id).map((e) => <option key={e.id || e._id} value={e.id || e._id}>{e.name}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -1699,7 +1725,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={saveAppraisal} disabled={appraisalSaving}>{appraisalSaving ? 'Saving…' : 'Save draft'}</button>
+          <button className="btn-primary" onClick={saveAppraisal} disabled={appraisalSaving}>{appraisalSaving ? 'Saving…' : editingAppraisalId ? 'Update draft' : 'Save draft'}</button>
         </div>
       </Modal>
 
@@ -1745,6 +1771,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               {appraisalDetail.status === 'draft' && (
                 <>
                   <button className="btn-secondary text-red-600" onClick={() => deleteAppraisalRow(appraisalDetail)}>Delete draft</button>
+                  <button className="btn-secondary" onClick={() => openEditAppraisal(appraisalDetail)}><Edit2 className="w-4 h-4" /> Edit</button>
                   <button className="btn-primary" onClick={() => submitAppraisalRow(appraisalDetail)}><Send className="w-4 h-4" /> Submit to employee</button>
                 </>
               )}
