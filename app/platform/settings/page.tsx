@@ -67,6 +67,12 @@ export default function PlatformSettingsPage() {
   // Audit retention
   const [auditRetention, setAuditRetention] = useState(90);
   const [marketplaceCommissionPct, setMarketplaceCommissionPct] = useState(5);
+  const [smsSenderId, setSmsSenderId] = useState('GEMS');
+  const [smsBundles, setSmsBundles] = useState<{ label: string; credits: number; price: number }[]>([
+    { label: 'Starter',  credits: 100,  price: 15 },
+    { label: 'Business', credits: 500,  price: 65 },
+    { label: 'Bulk',     credits: 2000, price: 230 },
+  ]);
 
   // Feature flags
   const [flags, setFlags] = useState<typeof DEFAULT_FLAGS>(DEFAULT_FLAGS);
@@ -91,6 +97,8 @@ export default function PlatformSettingsPage() {
         setExpiryAlertDays(s.expiry_alert_days ?? 7);
         setAuditRetention(s.audit_retention_days ?? 90);
         setMarketplaceCommissionPct(s.marketplace_commission_pct ?? 5);
+        setSmsSenderId(s.sms_sender_id ?? 'GEMS');
+        if (Array.isArray(s.sms_bundles) && s.sms_bundles.length) setSmsBundles(s.sms_bundles);
         if (s.feature_flags) setFlags(s.feature_flags);
         if (s.plans) {
           setPlans(prev => prev.map(p => ({
@@ -125,6 +133,8 @@ export default function PlatformSettingsPage() {
         trial_warning_days: trialWarnDays, expiry_alert_days: expiryAlertDays,
         audit_retention_days: auditRetention,
         marketplace_commission_pct: marketplaceCommissionPct,
+        sms_sender_id: smsSenderId,
+        sms_bundles: smsBundles,
         plans: plansPayload, feature_flags: flags,
       });
       toast.success('Settings saved');
@@ -245,6 +255,56 @@ export default function PlatformSettingsPage() {
                   Taken out of the tenant payout for orders placed via the <a href="/marketplace" target="_blank" className="underline">shop directory</a> — currently <strong>{marketplaceCommissionPct}%</strong> of the order total.
                 </p>
               </div>
+            </div>
+
+            {/* SMS resale */}
+            <div className="pt-5 border-t border-gray-100">
+              <h3 className="font-bold text-gray-900 mb-1">SMS bundles</h3>
+              <p className="text-xs text-gray-400 mb-4">
+                What tenants pay for prepaid SMS credits. Your margin is this price less what the SMS gateway charges you.
+              </p>
+
+              <div className="mb-4 max-w-xs">
+                <label className="form-label">Default sender ID</label>
+                <input className="form-input" maxLength={11} value={smsSenderId}
+                  onChange={e => setSmsSenderId(e.target.value)} />
+                <p className="text-xs text-gray-400 mt-1.5">Up to 11 characters. Tenants may override it.</p>
+              </div>
+
+              <div className="space-y-2">
+                {smsBundles.map((b, i) => (
+                  <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end bg-gray-50 rounded-xl p-3 ring-1 ring-gray-100">
+                    <div>
+                      <label className="form-label text-xs">Label</label>
+                      <input className="form-input" value={b.label}
+                        onChange={e => setSmsBundles(p => p.map((x, xi) => xi === i ? { ...x, label: e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <label className="form-label text-xs">Credits</label>
+                      <input type="number" min={1} className="form-input" value={b.credits}
+                        onChange={e => setSmsBundles(p => p.map((x, xi) => xi === i ? { ...x, credits: parseInt(e.target.value) || 0 } : x))} />
+                    </div>
+                    <div>
+                      <label className="form-label text-xs">Price (GHS)</label>
+                      <input type="number" min={0} step={0.5} className="form-input" value={b.price}
+                        onChange={e => setSmsBundles(p => p.map((x, xi) => xi === i ? { ...x, price: parseFloat(e.target.value) || 0 } : x))} />
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-gray-500">
+                        {b.credits > 0 ? `GHS ${(b.price / b.credits).toFixed(3)} each` : '—'}
+                      </span>
+                      <button type="button" className="btn-ghost text-xs text-red-500"
+                        onClick={() => setSmsBundles(p => p.filter((_, xi) => xi !== i))}>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="btn-secondary mt-3"
+                onClick={() => setSmsBundles(p => [...p, { label: '', credits: 0, price: 0 }])}>
+                Add bundle
+              </button>
             </div>
           </div>
         )}
