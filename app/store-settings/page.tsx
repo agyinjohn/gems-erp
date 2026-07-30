@@ -625,7 +625,11 @@ export default function StoreSettingsPage() {
               <button type="button" className="btn-secondary mt-3" onClick={addPayoutMethod} disabled={payoutSaving}>
                 <Plus className="w-4 h-4" /> {payoutSaving ? 'Adding…' : 'Add payout method'}
               </button>
-              <p className="text-xs text-gray-400 mt-2">Paystack transfer fees are deducted from each payout. The default method receives payment immediately after each order.</p>
+              <p className="text-xs text-gray-400 mt-2">
+                Paystack transfer fees are deducted from each payout. Takings build up as a balance you withdraw from
+                the <a href="/payouts" className="text-[#0D3B6E] font-semibold hover:underline">Payouts</a> page — turn on
+                automatic payouts there to have each order transferred as it is paid.
+              </p>
             </div>
 
             <button type="button" onClick={save} disabled={saving} className="btn-primary">
