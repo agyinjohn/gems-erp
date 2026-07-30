@@ -46,6 +46,7 @@ interface Balance {
   earned: number;
   withdrawn: number;
   available: number;
+  is_overdrawn: boolean;
   order_count: number;
   settings: { auto_payout: boolean; per_branch_methods: boolean; min_payout_amount: number };
   scope: { is_org_level: boolean; branch_id: string | null };
@@ -252,7 +253,7 @@ export default function PayoutsPage() {
   };
 
   const minAmount = balance?.settings.min_payout_amount ?? 10;
-  const canWithdraw = !!balance && balance.available >= minAmount && !!balance.destination;
+  const canWithdraw = !!balance && !balance.is_overdrawn && balance.available >= minAmount && !!balance.destination;
 
   return (
     <AppLayout>
@@ -296,14 +297,27 @@ export default function PayoutsPage() {
               </div>
             </div>
 
-            <p className="text-4xl font-extrabold text-gray-900 mb-1">
+            <p className={`text-4xl font-extrabold mb-1 ${balance?.is_overdrawn ? 'text-red-600' : 'text-gray-900'}`}>
               {loading && !balance ? '—' : cedis(balance?.available || 0)}
             </p>
             <p className="text-xs text-gray-400 mb-5">
               {cedis(balance?.earned || 0)} earned · {cedis(balance?.withdrawn || 0)} already paid out
             </p>
 
-            {balance && !balance.destination && (
+            {balance?.is_overdrawn && (
+              <div className="flex items-start gap-2.5 bg-red-50 text-red-800 rounded-xl px-4 py-3 text-sm mb-4">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">Paid out more than was earned</p>
+                  <p className="text-red-700/80 text-xs mt-0.5">
+                    An order was refunded after its takings had already been paid out, so {cedis(Math.abs(balance.available))} is
+                    owed back. New takings will clear this before anything becomes withdrawable again.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {balance && !balance.is_overdrawn && !balance.destination && (
               <div className="flex items-start gap-2.5 bg-amber-50 text-amber-800 rounded-xl px-4 py-3 text-sm mb-4">
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <span>Add a payout method below before you can withdraw.</span>
