@@ -413,7 +413,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   };
 
   const completeMomoSale = async (initData: any) => {
-    const { order_id, reference, amount, email, paystack_public_key } = initData;
+    const { order_id, reference, amount, email, paystack_public_key, subaccount, transaction_charge } = initData;
     if (!paystack_public_key) {
       throw new Error('Paystack is not configured. Set PAYSTACK_PUBLIC_KEY on the server.');
     }
@@ -471,6 +471,8 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
           currency: 'GHS',
           ref: reference,
           channels: ['mobile_money'],
+          // Split-enabled tenants: settles straight to their own subaccount.
+          ...(subaccount && { subaccount, transaction_charge: transaction_charge ?? 0, bearer: 'account' }),
           onClose,
           callback,
         });

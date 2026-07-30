@@ -120,7 +120,13 @@ export default function TenantStorefrontPage() {
   const [openSections, setOpenSections] = useState<Record<string,boolean>>({ categories: true, price: true, availability: true, sort: true });
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StorefrontSettings>({ ...DEFAULT_STOREFRONT_SETTINGS });
-  const [pendingPayment, setPendingPayment] = useState<{ orderIds: string[]; reference: string; email: string; grandTotal: number; paystackKey: string } | null>(null);
+  // Carries the split params too, so a retry pays through the same subaccount —
+  // otherwise the retry would land wholly in the platform account while the
+  // order is already marked as split-settled.
+  const [pendingPayment, setPendingPayment] = useState<{
+    orderIds: string[]; reference: string; email: string; grandTotal: number; paystackKey: string;
+    subaccount?: string; transactionCharge?: number;
+  } | null>(null);
   const [verifyError, setVerifyError] = useState('');
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [viaMarketplace, setViaMarketplace] = useState(false);
@@ -367,8 +373,11 @@ export default function TenantStorefrontPage() {
     }
   };
 
-  const openPaystackPopup = (payload: { orderIds: string[]; reference: string; email: string; grandTotal: number; paystackKey: string }) => {
-    const { orderIds, reference, email, grandTotal, paystackKey } = payload;
+  const openPaystackPopup = (payload: {
+    orderIds: string[]; reference: string; email: string; grandTotal: number; paystackKey: string;
+    subaccount?: string; transactionCharge?: number;
+  }) => {
+    const { orderIds, reference, email, grandTotal, paystackKey, subaccount, transactionCharge } = payload;
     const PaystackPop = (window as any).PaystackPop;
     if (!PaystackPop) {
       setError('Paystack failed to load. Please refresh and try again.');
@@ -381,6 +390,9 @@ export default function TenantStorefrontPage() {
       amount: Math.round(grandTotal * 100),
       currency: 'GHS',
       ref: reference,
+      // Split-enabled shops only: the shop's share settles directly to their
+      // subaccount and transaction_charge (pesewas) is the platform's cut.
+      ...(subaccount && { subaccount, transaction_charge: transactionCharge ?? 0, bearer: 'account' }),
       onClose: () => {
         setPaying(false);
         setVerifyError('Payment window closed. You can retry below without creating a new order.');
@@ -454,11 +466,16 @@ export default function TenantStorefrontPage() {
           branch_name: i.branch_name,
         })),
       });
-      const { orders, grand_total, email, paystack_public_key, reference } = r.data.data;
+      const { orders, grand_total, email, paystack_public_key, reference, subaccount, transaction_charge } = r.data.data;
       const orderIds = orders.map((o: any) => o.order_id);
       const orderNums = orders.map((o: any) => o.order_number);
       setOrderNumber(orderNums.join(', '));
-      const payload = { orderIds, reference, email, grandTotal: grand_total, paystackKey: paystack_public_key };
+      const payload = {
+        orderIds, reference, email, grandTotal: grand_total, paystackKey: paystack_public_key,
+        // Present only when this shop is split-enabled — Paystack then settles
+        // their share straight to their own account.
+        subaccount, transactionCharge: transaction_charge,
+      };
       setPendingPayment(payload);
       openPaystackPopup(payload);
     } catch (e: any) {
