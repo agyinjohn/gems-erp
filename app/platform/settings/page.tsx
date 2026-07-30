@@ -68,6 +68,8 @@ export default function PlatformSettingsPage() {
   const [auditRetention, setAuditRetention] = useState(90);
   const [marketplaceCommissionPct, setMarketplaceCommissionPct] = useState(5);
   const [smsSenderId, setSmsSenderId] = useState('GEMS');
+  const [mnotifyKey, setMnotifyKey] = useState('');
+  const [providerBalance, setProviderBalance] = useState<any>(null);
   const [smsBundles, setSmsBundles] = useState<{ label: string; credits: number; price: number }[]>([
     { label: 'Starter',  credits: 100,  price: 15 },
     { label: 'Business', credits: 500,  price: 65 },
@@ -98,6 +100,7 @@ export default function PlatformSettingsPage() {
         setAuditRetention(s.audit_retention_days ?? 90);
         setMarketplaceCommissionPct(s.marketplace_commission_pct ?? 5);
         setSmsSenderId(s.sms_sender_id ?? 'GEMS');
+        setMnotifyKey(s.mnotify_api_key ?? '');
         if (Array.isArray(s.sms_bundles) && s.sms_bundles.length) setSmsBundles(s.sms_bundles);
         if (s.feature_flags) setFlags(s.feature_flags);
         if (s.plans) {
@@ -134,6 +137,7 @@ export default function PlatformSettingsPage() {
         audit_retention_days: auditRetention,
         marketplace_commission_pct: marketplaceCommissionPct,
         sms_sender_id: smsSenderId,
+        mnotify_api_key: mnotifyKey,
         sms_bundles: smsBundles,
         plans: plansPayload, feature_flags: flags,
       });
@@ -263,6 +267,38 @@ export default function PlatformSettingsPage() {
               <p className="text-xs text-gray-400 mb-4">
                 What tenants pay for prepaid SMS credits. Your margin is this price less what the SMS gateway charges you.
               </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div>
+                  <label className="form-label">mNotify API key</label>
+                  <input className="form-input" value={mnotifyKey} onChange={e => setMnotifyKey(e.target.value)}
+                    placeholder="Paste your mNotify API key" />
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    The account tenants&apos; messages are sent through. Leave the masked value alone to keep the current key.
+                  </p>
+                </div>
+                <div>
+                  <label className="form-label">Gateway balance</label>
+                  <div className="flex items-center gap-2">
+                    <div className="form-input flex items-center bg-gray-50">
+                      {providerBalance == null
+                        ? <span className="text-gray-400">Not checked</span>
+                        : providerBalance.configured === false
+                          ? <span className="text-amber-600">No API key set</span>
+                          : <span className="font-semibold text-gray-900">{providerBalance.balance ?? 'Unknown'}</span>}
+                    </div>
+                    <button type="button" className="btn-secondary whitespace-nowrap"
+                      onClick={() => api.get('/platform/sms/balance')
+                        .then(r => setProviderBalance(r.data.data))
+                        .catch(e => toast.error(e.response?.data?.message || 'Could not reach mNotify'))}>
+                      Check
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    Your own credit at mNotify — the stock tenants buy from. Sending stops for everyone when this runs out.
+                  </p>
+                </div>
+              </div>
 
               <div className="mb-4 max-w-xs">
                 <label className="form-label">Default sender ID</label>
