@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
   X, Monitor, TrendingUp, CreditCard, ChevronDown,
-  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet,
+  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet, MessageSquare,
 } from 'lucide-react';
 import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 import { ACCOUNTING_SECTIONS } from '@/lib/accountingNav';
@@ -128,6 +128,7 @@ const navGroups = [
     items: [
       { href: '/payment-logs', label: 'Payments', icon: CreditCard, roles: ['business_owner', 'accountant'], permission: 'accounting.view' },
       { href: '/payouts', label: 'Payouts', icon: Wallet, roles: ['business_owner', 'branch_manager'], permission: null },
+      { href: '/sms', label: 'Customer SMS', icon: MessageSquare, roles: ['business_owner', 'branch_manager'], permission: null },
     ],
   },
   {
