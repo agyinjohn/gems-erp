@@ -5,7 +5,7 @@ import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { toast, ConfirmDialog } from '@/components/ui';
 import {
-  Wallet, Banknote, ArrowDownToLine, Plus, Star, Trash2, RefreshCw,
+  Wallet, Banknote, ArrowDownToLine, Plus, Star, Trash2, RefreshCw, Split,
   CheckCircle, Clock, XCircle, Building2, AlertCircle,
 } from 'lucide-react';
 
@@ -85,18 +85,26 @@ export default function PayoutsPage() {
 
   const [confirm, setConfirm] = useState<{ title: string; message: string; danger?: boolean; run: () => void } | null>(null);
 
+  const [subaccount, setSubaccount] = useState<any>(null);
+  const [banks, setBanks] = useState<{ name: string; code: string }[]>([]);
+  const [showConnect, setShowConnect] = useState(false);
+  const [subForm, setSubForm] = useState({ business_name: '', settlement_bank: '', account_number: '' });
+  const [connecting, setConnecting] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const params = targetBranch ? { branch_id: targetBranch } : {};
-      const [b, m, p] = await Promise.all([
+      const [b, m, p, s] = await Promise.all([
         api.get('/payouts/balance', { params }),
         api.get('/payout-methods', { params }),
         api.get('/payouts', { params }),
+        api.get('/paystack/subaccount').catch(() => ({ data: { data: null } })),
       ]);
       setBalance(b.data.data);
       setMethods(m.data.data || []);
       setPayouts(p.data.data || []);
+      setSubaccount(s.data.data);
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Could not load payouts');
     } finally {
@@ -183,6 +191,52 @@ export default function PayoutsPage() {
           await load();
         } catch (e: any) {
           toast.error(e.response?.data?.message || 'Could not remove');
+        }
+      },
+    });
+  };
+
+  const openConnect = async () => {
+    setShowConnect(true);
+    if (banks.length) return;
+    try {
+      const r = await api.get('/paystack/banks');
+      setBanks(r.data.data || []);
+    } catch {
+      toast.error('Could not load the bank list');
+    }
+  };
+
+  const connectSubaccount = async () => {
+    if (!subForm.business_name.trim() || !subForm.settlement_bank || !subForm.account_number.trim()) {
+      return toast.error('Business name, bank and account number are required');
+    }
+    setConnecting(true);
+    try {
+      await api.post('/paystack/subaccount', subForm);
+      toast.success('Direct settlement enabled');
+      setShowConnect(false);
+      setSubForm({ business_name: '', settlement_bank: '', account_number: '' });
+      await load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not connect the account');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const disconnectSubaccount = () => {
+    setConfirm({
+      title: 'Turn off direct settlement?',
+      message: 'New orders will collect into your GEMS balance again for you to withdraw. Money already settled to your bank stays with you.',
+      danger: true,
+      run: async () => {
+        try {
+          await api.delete('/paystack/subaccount');
+          toast.success('Direct settlement turned off');
+          await load();
+        } catch (e: any) {
+          toast.error(e.response?.data?.message || 'Could not update');
         }
       },
     });
@@ -313,6 +367,78 @@ export default function PayoutsPage() {
             </p>
           </div>
         </div>
+
+        {/* ── Direct settlement (Paystack split) ── */}
+        {isOwner && (
+          <div className="card">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                  <Split className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">Direct settlement</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Let Paystack pay you straight into your bank, instead of collecting into a GEMS balance.
+                  </p>
+                </div>
+              </div>
+              {subaccount?.is_active
+                ? <button type="button" className="btn-secondary" onClick={disconnectSubaccount}>Turn off</button>
+                : <button type="button" className="btn-secondary" onClick={openConnect}>Set up</button>}
+            </div>
+
+            {subaccount?.is_active ? (
+              <div className="flex items-start gap-2.5 bg-green-50 text-green-800 rounded-xl px-4 py-3 text-sm">
+                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">On — paid straight to {subaccount.account_name}</p>
+                  <p className="text-green-700/80 text-xs mt-0.5">
+                    Each order is split at payment: your share settles to your bank on Paystack’s schedule, and only the
+                    marketplace commission comes to GEMS. These orders don’t appear in the balance above — there is
+                    nothing to withdraw because you have already been paid.
+                  </p>
+                </div>
+              </div>
+            ) : !showConnect ? (
+              <p className="text-sm text-gray-500">
+                Off — orders collect into your GEMS balance above and you withdraw them yourself.
+              </p>
+            ) : null}
+
+            {showConnect && !subaccount?.is_active && (
+              <div className="border-t border-gray-100 pt-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="form-label">Business name</label>
+                    <input className="form-input" placeholder="Registered business name" value={subForm.business_name} onChange={e => setSubForm(p => ({ ...p, business_name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="form-label">Settlement bank</label>
+                    <select className="form-input" value={subForm.settlement_bank} onChange={e => setSubForm(p => ({ ...p, settlement_bank: e.target.value }))}>
+                      <option value="">Select a bank…</option>
+                      {banks.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">Account number</label>
+                    <input className="form-input" placeholder="Account number" value={subForm.account_number} onChange={e => setSubForm(p => ({ ...p, account_number: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 bg-amber-50 text-amber-800 rounded-xl px-4 py-3 text-sm mt-3">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>Check these details carefully — Paystack is not liable for money settled to a wrong account.</span>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button type="button" className="btn-primary" onClick={connectSubaccount} disabled={connecting}>
+                    {connecting ? 'Connecting…' : 'Enable direct settlement'}
+                  </button>
+                  <button type="button" className="btn-secondary" onClick={() => setShowConnect(false)}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Owner settings ── */}
         {isOwner && balance && (
