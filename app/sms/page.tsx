@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { toast, ConfirmDialog } from '@/components/ui';
 import {
   MessageSquare, ShoppingCart, RefreshCw, CheckCircle, XCircle, AlertCircle,
-  RotateCcw, Send, Save, Ban,
+  RotateCcw, Save, Ban,
 } from 'lucide-react';
 
 interface Bundle { label: string; credits: number; price: number; unit_price: number }
@@ -163,13 +163,13 @@ export default function SmsPage() {
   };
 
   return (
-    <AppLayout>
+    <AppLayout
+      title="Customer SMS"
+      subtitle="Buy credits and choose what your customers are told"
+      allowedRoles={['platform_admin', 'business_owner', 'branch_manager']}
+    >
       <div className="space-y-5">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Customer SMS</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Buy credits and choose what your customers are told.</p>
-          </div>
+        <div className="flex items-center justify-end gap-2 flex-wrap">
           <button type="button" onClick={load} className="btn-secondary" disabled={loading}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
