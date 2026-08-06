@@ -31,6 +31,9 @@ export interface StoreProduct {
   branch_name?: string;
   branch_slug?: string;
   is_active: boolean;
+  item_type?: 'product' | 'service' | 'bundle';
+  unit_type?: string;
+  duration?: number;
 }
 
 export interface StoreTenant {

@@ -400,6 +400,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(() => !apiCache.get('/products'));
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  const [filterItemType, setFilterItemType] = useState('');
   const [modal, setModal] = useState<'add'|'edit'|'adjust'|'cat-add'|'cat-edit'|'loc-add'|'loc-edit'|null>(null);
   const [selected, setSelected] = useState<any>(null);
   const [selectedCat, setSelectedCat] = useState<any>(null);
@@ -408,7 +409,7 @@ export default function InventoryPage() {
   const [catConfirm, setCatConfirm] = useState<any>(null);
   const [locConfirm, setLocConfirm] = useState<any>(null);
   const [locForm, setLocForm] = useState({ name:'', code:'', type:'shelf', description:'' });
-  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', images: [] as string[], attributes: {} as Record<string,any> });
+  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', item_type:'product' as 'product'|'service'|'bundle', unit_type:'unit' as string, duration:'' as string, images: [] as string[], attributes: {} as Record<string,any> });
   const [catForm, setCatForm] = useState({ name:'', description:'', custom_fields: [] as FieldDef[] });
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [adjustQty, setAdjustQty] = useState('');
@@ -458,12 +459,13 @@ export default function InventoryPage() {
   }, []);
 
   const filtered = products.filter(p =>
-    (!search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())) &&
-    (!filterCat || (p.category_id?._id || p.category_id) == filterCat)
+    (!search || p.name.toLowerCase().includes(search.toLowerCase()) || (p.sku||'').toLowerCase().includes(search.toLowerCase())) &&
+    (!filterCat || (p.category_id?._id || p.category_id) == filterCat) &&
+    (!filterItemType || (p.item_type || 'product') === filterItemType)
   );
 
-  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',images:[],attributes:{} }); setError(''); setModal('add'); };
-  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku,barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{} }); setError(''); setModal('edit'); };
+  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',item_type:'product',unit_type:'unit',duration:'',images:[],attributes:{} }); setError(''); setModal('add'); };
+  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,item_type:p.item_type||'product',unit_type:p.unit_type||'unit',duration:p.duration||'',images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{} }); setError(''); setModal('edit'); };
   const openAdjust = (p: any) => { setSelected(p); setAdjustQty(''); setAdjustType('add'); setAdjustNote(''); setModal('adjust'); };
 
   const save = async () => {
@@ -606,14 +608,20 @@ export default function InventoryPage() {
           <option value="">All Categories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <button className="btn-primary w-full sm:w-auto" onClick={openAdd}><Plus className="w-4 h-4" />Add Product</button>
+        <select className="form-input sm:w-auto" value={filterItemType} onChange={e => setFilterItemType(e.target.value)}>
+          <option value="">All Types</option>
+          <option value="product">Products</option>
+          <option value="service">Services</option>
+          <option value="bundle">Bundles</option>
+        </select>
+        <button className="btn-primary w-full sm:w-auto" onClick={openAdd}><Plus className="w-4 h-4" />Add Item</button>
       </div>
 
       {/* Low stock alert */}
-      {products.filter(p => p.stock_qty <= p.low_stock_threshold).length > 0 && (
+      {products.filter(p => (p.item_type || 'product') !== 'service' && p.stock_qty <= p.low_stock_threshold).length > 0 && (
         <div className="bg-[#0D3B6E]/8 border border-[#0D3B6E]/15 rounded-xl px-3 sm:px-4 py-3 flex items-start sm:items-center gap-2 sm:gap-3 mb-4 sm:mb-5 text-xs sm:text-sm text-[#0D3B6E]">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-          <span><strong>{products.filter(p => p.stock_qty <= p.low_stock_threshold).length} products</strong> are at or below their low stock threshold.</span>
+          <span><strong>{products.filter(p => (p.item_type || 'product') !== 'service' && p.stock_qty <= p.low_stock_threshold).length} products</strong> are at or below their low stock threshold.</span>
         </div>
       )}
 
@@ -624,11 +632,15 @@ export default function InventoryPage() {
             columns={[
               {
                 key: 'name',
-                label: 'Product',
+                label: 'Item',
                 render: (_, p) => (
                   <div>
-                    <div className="font-medium text-gray-900">{p.name}</div>
-                    <div className="text-xs text-gray-400 font-mono mt-0.5">{p.sku}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900">{p.name}</span>
+                      {(p.item_type === 'service') && <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">Service</span>}
+                      {(p.item_type === 'bundle') && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">Bundle</span>}
+                    </div>
+                    {p.sku && <div className="text-xs text-gray-400 font-mono mt-0.5">{p.sku}</div>}
                   </div>
                 )
               },
@@ -663,8 +675,16 @@ export default function InventoryPage() {
               },
               {
                 key: 'stock',
-                label: 'Stock Level',
+                label: 'Stock / Type',
                 render: (_, p) => {
+                  if ((p.item_type || 'product') === 'service') {
+                    return (
+                      <div className="text-xs text-gray-500">
+                        <span className="capitalize">{p.unit_type || 'fixed'}</span>
+                        {p.duration ? <span className="ml-1 text-gray-400">· {p.duration} {p.unit_type === 'hour' ? 'hr' : p.unit_type === 'day' ? 'day' : ''}</span> : null}
+                      </div>
+                    );
+                  }
                   const isLow = p.stock_qty <= p.low_stock_threshold;
                   const isOut = p.stock_qty === 0;
                   const stockPct = Math.min(100, Math.round((p.stock_qty / Math.max(p.low_stock_threshold * 3, 1)) * 100));
@@ -695,7 +715,7 @@ export default function InventoryPage() {
                 render: (_, p) => (
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={() => { setLabelProduct(p); setLabelQty(1); }} title="Print Label" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Tag className="w-4 h-4" /></button>
-                    <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><TrendingDown className="w-4 h-4" /></button>
+                    {(p.item_type || 'product') !== 'service' && <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><TrendingDown className="w-4 h-4" /></button>}
                     <button onClick={() => openEdit(p)} title="Edit" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Edit2 className="w-4 h-4" /></button>
                     <button onClick={() => setConfirm({ id: p.id, name: p.name })} title="Delete" className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </div>
@@ -709,22 +729,57 @@ export default function InventoryPage() {
       </div>
 
       {/* Add / Edit Modal */}
-      <Modal open={modal === 'add' || modal === 'edit'} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Product' : 'Edit Product'} size="lg">
+      <Modal open={modal === 'add' || modal === 'edit'} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Item' : 'Edit Item'} size="lg">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          <div className="col-span-2"><label className="form-label">Product Name *</label><input {...inputProps('name')} placeholder="e.g. Laptop Pro 15" /></div>
-          <div><label className="form-label">SKU <span className="text-gray-400 font-normal">(optional — auto-generated if blank)</span></label><input {...inputProps('sku')} placeholder="e.g. ELEC-001" /></div>
-          <div><label className="form-label">Barcode <span className="text-gray-400 font-normal">(optional — EAN, UPC etc.)</span></label><input {...inputProps('barcode')} placeholder="e.g. 6001234567890" /></div>
+          {/* Item type selector */}
+          <div className="col-span-2">
+            <label className="form-label">Item Type *</label>
+            <div className="flex gap-2">
+              {(['product','service','bundle'] as const).map(t => (
+                <button key={t} type="button"
+                  onClick={() => setForm(f => ({ ...f, item_type: t }))}
+                  className={`flex-1 py-2 rounded-lg border text-sm font-medium capitalize transition-colors ${
+                    form.item_type === t ? 'bg-[#0D3B6E] text-white border-[#0D3B6E]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                  }`}
+                >{t}</button>
+              ))}
+            </div>
+          </div>
+          <div className="col-span-2"><label className="form-label">{form.item_type === 'service' ? 'Service Name' : 'Product Name'} *</label><input {...inputProps('name')} placeholder={form.item_type === 'service' ? 'e.g. Website Design' : 'e.g. Laptop Pro 15'} /></div>
+          {form.item_type !== 'service' && <>
+            <div><label className="form-label">SKU <span className="text-gray-400 font-normal">(optional)</span></label><input {...inputProps('sku')} placeholder="e.g. ELEC-001" /></div>
+            <div><label className="form-label">Barcode <span className="text-gray-400 font-normal">(optional)</span></label><input {...inputProps('barcode')} placeholder="e.g. 6001234567890" /></div>
+          </>}
           <div>
             <label className="form-label">Category</label>
             <select {...inputProps('category_id')}><option value="">Select category</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
           </div>
           <div><label className="form-label">Selling Price (GH₵) *</label><input type="number" {...inputProps('price')} placeholder="0.00" /></div>
           <div><label className="form-label">Cost Price (GH₵)</label><input type="number" {...inputProps('cost_price')} placeholder="0.00" /></div>
-          <div><label className="form-label">{modal === 'add' ? 'Initial Stock' : 'Stock Quantity'}</label><input type="number" {...inputProps('stock_qty')} placeholder="0" /></div>
-          <div><label className="form-label">Low Stock Alert</label><input type="number" {...inputProps('low_stock_threshold')} /></div>
-          <div><label className="form-label">Unit</label><input {...inputProps('unit')} placeholder="piece, kg, box…" /></div>
-          <div className="col-span-2"><label className="form-label">Description</label><textarea {...inputProps('description')} rows={3} placeholder="Product description…" /></div>
+          {form.item_type === 'service' ? (
+            <>
+              <div>
+                <label className="form-label">Unit Type</label>
+                <select {...inputProps('unit_type')}>
+                  <option value="fixed">Fixed price</option>
+                  <option value="hour">Per hour</option>
+                  <option value="day">Per day</option>
+                  <option value="unit">Per unit</option>
+                </select>
+              </div>
+              {form.unit_type !== 'fixed' && (
+                <div><label className="form-label">Duration ({form.unit_type === 'hour' ? 'hours' : 'days'})</label><input type="number" {...inputProps('duration')} placeholder="e.g. 2" /></div>
+              )}
+            </>
+          ) : (
+            <>
+              <div><label className="form-label">{modal === 'add' ? 'Initial Stock' : 'Stock Quantity'}</label><input type="number" {...inputProps('stock_qty')} placeholder="0" /></div>
+              <div><label className="form-label">Low Stock Alert</label><input type="number" {...inputProps('low_stock_threshold')} /></div>
+              <div><label className="form-label">Unit</label><input {...inputProps('unit')} placeholder="piece, kg, box…" /></div>
+            </>
+          )}
+          <div className="col-span-2"><label className="form-label">Description</label><textarea {...inputProps('description')} rows={3} placeholder="Description…" /></div>
           <div className="col-span-2">
             <ProductImageUpload
               images={form.images}

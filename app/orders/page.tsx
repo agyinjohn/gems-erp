@@ -18,7 +18,7 @@ const SOURCE_OPTIONS = [
   { value: 'pos', label: 'POS' },
 ];
 
-const STATUS_OPTIONS = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+const STATUS_OPTIONS = ['pending', 'in_progress', 'processing', 'shipped', 'delivered', 'completed', 'cancelled'];
 
 export default function OrdersPage() {
   const [orders, setOrders]         = useState<any[]>(() => apiCache.get('/orders') || []);
@@ -317,8 +317,8 @@ export default function OrdersPage() {
             {form.items.map((item, i) => (
               <div key={i} className="flex gap-2 items-center">
                 <select className="form-input flex-1" value={item.product_id} onChange={e => updateItem(i,'product_id',e.target.value)}>
-                  <option value="">Select product</option>
-                  {products.map((p:any) => <option key={p.id} value={p.id}>{p.name} — GH₵ {p.price} (stock: {p.stock_qty})</option>)}
+                  <option value="">Select product or service</option>
+                  {products.map((p:any) => <option key={p.id} value={p.id}>{p.name}{p.item_type === 'service' ? ' [Service]' : ''} — GH₵ {p.price}{p.item_type !== 'service' ? ` (stock: ${p.stock_qty})` : ''}</option>)}
                 </select>
                 <input type="number" className="form-input w-20" min={1} value={item.quantity} onChange={e => updateItem(i,'quantity',parseInt(e.target.value))} />
                 {form.items.length > 1 && <button onClick={() => removeItem(i)} className="text-red-400 hover:text-red-600 px-1">✕</button>}
@@ -352,7 +352,15 @@ export default function OrdersPage() {
               <table className="w-full text-sm">
                 <thead className="table-header"><tr><th className="px-3 py-2 text-left">Product</th><th className="px-3 py-2 text-right">Qty</th><th className="px-3 py-2 text-right">Price</th><th className="px-3 py-2 text-right">Total</th></tr></thead>
                 <tbody>{selected.items?.map((item:any) => (
-                  <tr key={item._id || item.product_id} className="border-t"><td className="px-3 py-2">{item.product_name}</td><td className="px-3 py-2 text-right">{item.quantity}</td><td className="px-3 py-2 text-right">GH₵ {parseFloat(item.unit_price).toFixed(2)}</td><td className="px-3 py-2 text-right font-semibold">GH₵ {parseFloat(item.total).toFixed(2)}</td></tr>
+                  <tr key={item._id || item.product_id} className="border-t">
+                    <td className="px-3 py-2">
+                      <span>{item.product_name}</span>
+                      {item.item_type === 'service' && <span className="ml-1.5 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">Service</span>}
+                    </td>
+                    <td className="px-3 py-2 text-right">{item.quantity}</td>
+                    <td className="px-3 py-2 text-right">GH₵ {parseFloat(item.unit_price).toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right font-semibold">GH₵ {parseFloat(item.total).toFixed(2)}</td>
+                  </tr>
                 ))}</tbody>
               </table>
               <div className="text-right font-bold text-gray-900 mt-3 text-lg">Total: GH₵ {parseFloat(selected.total).toFixed(2)}</div>

@@ -12,7 +12,7 @@ import {
   Clock, FileText, Loader2, Nfc, Monitor, Maximize2, Minimize2, AlertTriangle,
 } from 'lucide-react';
 
-interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; }
+interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; item_type?: string; }
 interface CartItem { product: Product; quantity: number; }
 interface Receipt { order_number: string; items: CartItem[]; subtotal: number; tax_amount: number; total: number; payment_method: string; payment_ref?: string; amount_tendered: number; change: number; customer_name: string; customer_phone: string; createdAt: string; }
 
@@ -239,11 +239,12 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
 
   // Cart helpers
   const addToCart = (product: Product) => {
-    if (product.stock_qty <= 0) return;
+    const isService = product.item_type === 'service';
+    if (!isService && product.stock_qty <= 0) return;
     setCart(prev => {
       const existing = prev.find(i => i.product.id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stock_qty) return prev;
+        if (!isService && existing.quantity >= product.stock_qty) return prev;
         return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
       return [...prev, { product, quantity: 1 }];
@@ -254,8 +255,8 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
     setCart(prev => prev.map(i => {
       if (i.product.id !== id) return i;
       const q = i.quantity + delta;
-      if (q <= 0) return i; // handled by remove
-      if (q > i.product.stock_qty) return i;
+      if (q <= 0) return i;
+      if (i.product.item_type !== 'service' && q > i.product.stock_qty) return i;
       return { ...i, quantity: q };
     }));
   };
@@ -805,8 +806,9 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-4">
               {products.map(p => {
                 const inCart = cart.find(i => i.product.id === p.id);
-                const outOfStock = p.stock_qty <= 0;
-                const lowStock = !outOfStock && p.stock_qty <= 5;
+                const isService = p.item_type === 'service';
+                const outOfStock = !isService && p.stock_qty <= 0;
+                const lowStock = !isService && !outOfStock && p.stock_qty <= 5;
                 const catGradients: Record<string, string> = {
                   'Electronics':       'from-blue-100 to-blue-50',
                   'Furniture':         'from-amber-100 to-amber-50',
@@ -856,6 +858,11 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                           Only {p.stock_qty} left
                         </div>
                       )}
+                      {isService && (
+                        <div className="absolute top-2 left-2 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          Service
+                        </div>
+                      )}
 
                       {inCart && (
                         <div className="absolute top-2 right-2 min-w-[22px] h-[22px] bg-[#0D3B6E] rounded-full flex items-center justify-center px-1 shadow">
@@ -872,7 +879,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                         <div className="text-lg font-extrabold text-gray-900 mb-1">GH₵ {parseFloat(String(p.price)).toFixed(2)}</div>
                         {!outOfStock && (
                           <div className="text-[10px] text-green-600 font-semibold">
-                            {inCart ? `${inCart.quantity} in cart` : 'In Stock'}
+                            {inCart ? `${inCart.quantity} in cart` : isService ? 'Available' : 'In Stock'}
                           </div>
                         )}
                       </div>
