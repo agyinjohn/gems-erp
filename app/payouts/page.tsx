@@ -256,7 +256,7 @@ export default function PayoutsPage() {
   const canWithdraw = !!balance && !balance.is_overdrawn && balance.available >= minAmount && !!balance.destination;
 
   return (
-    <AppLayout>
+    <AppLayout title="Payouts" subtitle="Withdraw the money your shop has collected through Paystack.">
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>

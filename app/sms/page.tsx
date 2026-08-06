@@ -163,7 +163,7 @@ export default function SmsPage() {
   };
 
   return (
-    <AppLayout>
+    <AppLayout title="SMS" subtitle="Send and manage SMS notifications.">
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
