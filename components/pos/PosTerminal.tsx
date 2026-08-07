@@ -748,62 +748,63 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
           {/* Top bar: barcode + search + category tabs */}
           <div className="bg-white border-b border-gray-200 px-4 pt-3 pb-0">
 
-            {/* Barcode scanner input */}
-            <div className={`relative mb-2 rounded-xl border-2 transition-all ${
-              barcodeFlash === 'success' ? 'border-green-400 bg-green-50' :
-              barcodeFlash === 'error'   ? 'border-red-400 bg-red-50' :
-              'border-[#0D3B6E] bg-blue-50'
-            }`}>
-              <Barcode className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${
-                barcodeFlash === 'success' ? 'text-green-500' :
-                barcodeFlash === 'error'   ? 'text-red-500' :
-                'text-[#0D3B6E]'
-              }`} />
-              <input
-                ref={barcodeRef}
-                className="w-full pl-9 pr-24 py-2.5 text-sm bg-transparent focus:outline-none font-mono"
-                placeholder="Scan barcode or type SKU + Enter…"
-                value={barcodeInput}
-                onChange={e => setBarcodeInput(e.target.value.toUpperCase())}
-                onKeyDown={e => { if (e.key === 'Enter') handleBarcodeScan(barcodeInput); }}
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                {barcodeFlash === 'success' && <span className="text-xs font-bold text-green-600">✓ Added!</span>}
-                {barcodeFlash === 'error'   && <span className="text-xs font-bold text-red-500">Not found</span>}
-                {!barcodeFlash && <kbd className="text-[10px] bg-white border border-gray-200 text-gray-400 px-1.5 py-0.5 rounded font-mono">Enter</kbd>}
-              </div>
-            </div>
+            {/* Barcode + type filter + search, one row on wider screens.
+                Stacks below md so nothing is squeezed on a small tablet. */}
+            <div className="flex flex-col md:flex-row md:items-center gap-2 mb-3">
 
-            {/* Type filter + Search row */}
-            <div className="flex gap-2 mb-3">
-              <div className="flex rounded-xl border border-gray-200 overflow-hidden shrink-0">
+              {/* Barcode scanner input */}
+              <div className={`relative h-10 md:flex-1 md:min-w-[220px] rounded-xl border-2 transition-all ${
+                barcodeFlash === 'success' ? 'border-green-400 bg-green-50' :
+                barcodeFlash === 'error'   ? 'border-red-400 bg-red-50' :
+                'border-[#0D3B6E] bg-blue-50'
+              }`}>
+                <Barcode className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${
+                  barcodeFlash === 'success' ? 'text-green-500' :
+                  barcodeFlash === 'error'   ? 'text-red-500' :
+                  'text-[#0D3B6E]'
+                }`} />
+                <input
+                  ref={barcodeRef}
+                  className="w-full h-full pl-9 pr-24 text-sm bg-transparent focus:outline-none font-mono"
+                  placeholder="Scan barcode or type SKU + Enter…"
+                  value={barcodeInput}
+                  onChange={e => setBarcodeInput(e.target.value.toUpperCase())}
+                  onKeyDown={e => { if (e.key === 'Enter') handleBarcodeScan(barcodeInput); }}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  {barcodeFlash === 'success' && <span className="text-xs font-bold text-green-600">✓ Added!</span>}
+                  {barcodeFlash === 'error'   && <span className="text-xs font-bold text-red-500">Not found</span>}
+                  {!barcodeFlash && <kbd className="text-[10px] bg-white border border-gray-200 text-gray-400 px-1.5 py-0.5 rounded font-mono">Enter</kbd>}
+                </div>
+              </div>
+              <div className="flex h-10 rounded-xl border border-gray-200 overflow-hidden shrink-0">
                 <button
                   onClick={() => { setFilterType(''); setFilterCat(''); }}
-                  className={`px-3 py-2 text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 ${
+                  className={`px-3 h-full text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 ${
                     filterType === '' ? 'bg-[#0D3B6E] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
                   }`}
                 >All</button>
                 <button
                   onClick={() => { setFilterType('product'); setFilterCat(''); }}
-                  className={`px-3 py-2 text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 border-l border-gray-200 ${
+                  className={`px-3 h-full text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 border-l border-gray-200 ${
                     filterType === 'product' ? 'bg-[#0D3B6E] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
                   }`}
                   title="Products"
                 ><Package className="w-3.5 h-3.5" /></button>
                 <button
                   onClick={() => { setFilterType('service'); setFilterCat(''); }}
-                  className={`px-3 py-2 text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 border-l border-gray-200 ${
+                  className={`px-3 h-full text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 border-l border-gray-200 ${
                     filterType === 'service' ? 'bg-purple-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
                   }`}
                   title="Services"
                 ><Wrench className="w-3.5 h-3.5" /></button>
               </div>
-              <div className="relative flex-1">
+              <div className="relative md:flex-1 md:min-w-[160px]">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
-                  className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  className="w-full h-10 pl-9 pr-4 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                   placeholder="Search…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
