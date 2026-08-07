@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
   X, Monitor, TrendingUp, CreditCard, ChevronDown,
-  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet, MessageSquare,
+  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet, MessageSquare, Briefcase,
 } from 'lucide-react';
 import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 import { ACCOUNTING_SECTIONS } from '@/lib/accountingNav';
@@ -132,6 +132,12 @@ const navGroups = [
     ],
   },
   {
+    label: 'Projects',
+    items: [
+      { href: '/projects', label: 'Projects', icon: Briefcase, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
+    ],
+  },
+  {
     label: 'Approvals',
     items: [
       { href: '/approvals', label: 'Approvals', icon: CheckSquare, roles: ['business_owner', 'accountant', 'hr_manager'], permission: 'accounting.view' },
@@ -191,6 +197,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
     '/pos': 'pos',
     '/reports': 'reports',
     '/store-settings': 'online_storefront',
+    '/projects': 'projects',
     '/accounting': 'advanced_accounting',
   };
 
