@@ -8,7 +8,7 @@ import PosItemCard from '@/components/pos/PosItemCard';
 import { toast } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import {
-  Search, Plus, Minus, Trash2, ShoppingCart, Package,
+  Plus, Minus, Trash2, ShoppingCart, Package,
   Banknote, CreditCard, Smartphone, X, PrinterIcon, CheckCircle2, Barcode, RotateCcw,
   Clock, FileText, Loader2, Nfc, Monitor, Maximize2, Minimize2, AlertTriangle, Wrench,
 } from 'lucide-react';
@@ -52,10 +52,14 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const [categories, setCategories]   = useState<string[]>([]);
   const [productCategories, setProductCategories] = useState<string[]>([]);
   const [serviceCategories, setServiceCategories] = useState<string[]>([]);
+  // Debounced form of `query`. A hardware scanner types a whole code in a few
+  // milliseconds, so filtering on every keystroke would fire a request per
+  // character — the grid follows this instead.
   const [search, setSearch]           = useState('');
   const [filterCat, setFilterCat]     = useState('');
   const [filterType, setFilterType]   = useState<''|'product'|'service'>('');
   const [quoting, setQuoting] = useState<{ product: Product; amount: string } | null>(null);
+
   // One source of truth for what the grid shows — the count bar, the sections
   // and the empty state all read from this, so they can't disagree.
   const visibleItems = filterType
@@ -81,7 +85,11 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const [receipt, setReceipt]             = useState<Receipt | null>(null);
   const [error, setError]                 = useState('');
   const barcodeRef = useRef<HTMLInputElement>(null);
-  const [barcodeInput, setBarcodeInput]   = useState('');
+  const [query, setQuery]                 = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(query.trim()), 250);
+    return () => clearTimeout(t);
+  }, [query]);
   const [barcodeFlash, setBarcodeFlash]   = useState<'success'|'error'|null>(null);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundOrderNumber, setRefundOrderNumber] = useState('');
@@ -236,31 +244,44 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   }, [loadPendingPayments]);
 
   // Barcode scan handler
-  const handleBarcodeScan = useCallback((sku: string) => {
-    const trimmed = sku.trim();
+  const exactMatch = (list: Product[], code: string) => list.find(p =>
+    (p.barcode && p.barcode === code) || p.sku.toUpperCase() === code.toUpperCase()
+  );
+
+  /**
+   * One field does both jobs. Typing filters the grid; Enter tries to ring
+   * something up.
+   *
+   * A scan is just a fast burst of keystrokes ending in Enter, so an exact
+   * barcode or SKU is added straight away. Otherwise, if the text has narrowed
+   * the grid to a single item, Enter takes that — which is how searching by
+   * name gets you to a sale without reaching for the mouse.
+   */
+  const handleSubmit = useCallback((raw: string) => {
+    const trimmed = raw.trim();
     if (!trimmed) return;
-    // Match barcode first, then SKU (case-insensitive for SKU)
-    const match = products.find(p =>
-      (p.barcode && p.barcode === trimmed) ||
-      p.sku.toUpperCase() === trimmed.toUpperCase()
-    );
-    if (match) {
-      addToCart(match);
-      setBarcodeFlash('success');
-    } else {
-      // Not in current filtered view — fetch from API
-      api.get('/pos/products', { params: { search: trimmed } }).then(r => {
-        const found = (r.data.data as Product[]).find(p =>
-          (p.barcode && p.barcode === trimmed) ||
-          p.sku.toUpperCase() === trimmed.toUpperCase()
-        );
-        if (found) { addToCart(found); setBarcodeFlash('success'); }
-        else setBarcodeFlash('error');
-      }).catch(() => setBarcodeFlash('error'));
-    }
-    setBarcodeInput('');
-    setTimeout(() => setBarcodeFlash(null), 1200);
-  }, [products]);
+
+    const flash = (kind: 'success' | 'error') => {
+      setBarcodeFlash(kind);
+      setTimeout(() => setBarcodeFlash(null), 1200);
+    };
+    const take = (p: Product) => { addToCart(p); setQuery(''); flash('success'); };
+
+    const local = exactMatch(products, trimmed);
+    if (local) return take(local);
+
+    // Exactly one thing on screen — Enter means that one.
+    if (visibleItems.length === 1) return take(visibleItems[0]);
+
+    // Might be a code for something outside the current filter.
+    api.get('/pos/products', { params: { search: trimmed } }).then(r => {
+      const found = exactMatch(r.data.data as Product[], trimmed);
+      if (found) return take(found);
+      // Nothing matched at all — say so. If the grid still has results the
+      // text is a search in progress, so leave it be rather than crying error.
+      if (visibleItems.length === 0) flash('error');
+    }).catch(() => { if (visibleItems.length === 0) flash('error'); });
+  }, [products, visibleItems]);
 
   // Cart helpers
   const addToCart = (product: Product, quotedPrice?: number) => {
@@ -752,8 +773,9 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                 Stacks below md so nothing is squeezed on a small tablet. */}
             <div className="flex flex-col md:flex-row md:items-center gap-2 mb-3">
 
-              {/* Barcode scanner input */}
-              <div className={`relative h-10 md:flex-1 md:min-w-[220px] rounded-xl border-2 transition-all ${
+              {/* One field for both jobs: typing filters, Enter rings up.
+                  A scanner is just a fast burst ending in Enter. */}
+              <div className={`relative h-10 flex-1 rounded-xl border-2 transition-all ${
                 barcodeFlash === 'success' ? 'border-green-400 bg-green-50' :
                 barcodeFlash === 'error'   ? 'border-red-400 bg-red-50' :
                 'border-[#0D3B6E] bg-blue-50'
@@ -765,20 +787,32 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                 }`} />
                 <input
                   ref={barcodeRef}
-                  className="w-full h-full pl-9 pr-24 text-sm bg-transparent focus:outline-none font-mono"
-                  placeholder="Scan barcode or type SKU + Enter…"
-                  value={barcodeInput}
-                  onChange={e => setBarcodeInput(e.target.value.toUpperCase())}
-                  onKeyDown={e => { if (e.key === 'Enter') handleBarcodeScan(barcodeInput); }}
+                  className="w-full h-full pl-9 pr-28 text-sm bg-transparent focus:outline-none"
+                  placeholder="Scan barcode, or search by name or SKU…"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleSubmit(query);
+                    if (e.key === 'Escape') setQuery('');
+                  }}
                   autoComplete="off"
                   spellCheck={false}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                   {barcodeFlash === 'success' && <span className="text-xs font-bold text-green-600">✓ Added!</span>}
                   {barcodeFlash === 'error'   && <span className="text-xs font-bold text-red-500">Not found</span>}
+                  {!barcodeFlash && query && (
+                    <button
+                      type="button"
+                      onClick={() => { setQuery(''); barcodeRef.current?.focus(); }}
+                      className="p-0.5 rounded hover:bg-white/70 text-gray-400 hover:text-gray-600"
+                      title="Clear"
+                    ><X className="w-3.5 h-3.5" /></button>
+                  )}
                   {!barcodeFlash && <kbd className="text-[10px] bg-white border border-gray-200 text-gray-400 px-1.5 py-0.5 rounded font-mono">Enter</kbd>}
                 </div>
               </div>
+
               <div className="flex h-10 rounded-xl border border-gray-200 overflow-hidden shrink-0">
                 <button
                   onClick={() => { setFilterType(''); setFilterCat(''); }}
@@ -800,15 +834,6 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                   }`}
                   title="Services"
                 ><Wrench className="w-3.5 h-3.5" /></button>
-              </div>
-              <div className="relative md:flex-1 md:min-w-[160px]">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  className="w-full h-10 pl-9 pr-4 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                  placeholder="Search…"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
               </div>
             </div>
             {/* Category tabs */}
