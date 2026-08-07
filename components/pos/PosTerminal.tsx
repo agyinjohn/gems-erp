@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import api, { apiCache } from '@/lib/api';
 import PendingPaymentChip, { PendingPayment } from '@/components/pos/PendingPaymentChip';
+import PosItemCard from '@/components/pos/PosItemCard';
 import { toast } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import {
@@ -52,6 +53,17 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const [search, setSearch]           = useState('');
   const [filterCat, setFilterCat]     = useState('');
   const [filterType, setFilterType]   = useState<''|'product'|'service'>('');
+  // One source of truth for what the grid shows — the count bar, the sections
+  // and the empty state all read from this, so they can't disagree.
+  const visibleItems = filterType
+    ? products.filter(p => (p.item_type || 'product') === filterType)
+    : products;
+  const visibleServices = visibleItems.filter(p => p.item_type === 'service');
+  const visibleProducts = visibleItems.filter(p => p.item_type !== 'service');
+  const SECTIONS = [
+    { key: 'products', label: 'Products', items: visibleProducts },
+    { key: 'services', label: 'Services', items: visibleServices },
+  ];
   const [loading, setLoading]         = useState(true);
   const [fetchError, setFetchError]   = useState('');
   const [cart, setCart]               = useState<CartItem[]>([]);
@@ -796,21 +808,16 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
             </div>
           </div>
 
-          {/* Product count bar */}
-          {!loading && !fetchError && (() => {
-            const visible = filterType
-              ? products.filter(p => (p.item_type || 'product') === filterType)
-              : products;
-            return (
-              <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
-                <p className="text-xs text-gray-400">
-                  {visible.length} {filterType === 'service' ? 'service' : filterType === 'product' ? 'product' : 'item'}{visible.length !== 1 ? 's' : ''}
-                  {filterCat && <span> in <strong className="text-gray-600">{filterCat}</strong></span>}
-                  {search && <span> matching <strong className="text-gray-600">&ldquo;{search}&rdquo;</strong></span>}
-                </p>
-              </div>
-            );
-          })()}
+          {/* Item count bar */}
+          {!loading && !fetchError && (
+            <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
+              <p className="text-xs text-gray-400">
+                {visibleItems.length} {filterType === 'service' ? 'service' : filterType === 'product' ? 'product' : 'item'}{visibleItems.length !== 1 ? 's' : ''}
+                {filterCat && <span> in <strong className="text-gray-600">{filterCat}</strong></span>}
+                {search && <span> matching <strong className="text-gray-600">&ldquo;{search}&rdquo;</strong></span>}
+              </p>
+            </div>
+          )}
 
           {/* Product grid */}
           <div className="flex-1 overflow-y-auto">
@@ -818,8 +825,9 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-4">
               {[...Array(10)].map((_, i) => (
                 <div key={i} className="bg-white rounded-xl overflow-hidden border border-gray-100 animate-pulse">
-                  <div className="h-44 bg-gray-200" />
-                  <div className="p-4 space-y-2">
+                  {/* Mirrors PosItemCard so the grid doesn't shift on load */}
+                  <div className="h-36 bg-gray-200" />
+                  <div className="p-3.5 space-y-2">
                     <div className="h-2.5 bg-gray-200 rounded w-1/3" />
                     <div className="h-3.5 bg-gray-200 rounded w-4/5" />
                     <div className="h-3.5 bg-gray-200 rounded w-3/5" />
@@ -835,131 +843,45 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
               <p className="text-xs text-gray-400 mb-4">{fetchError}</p>
               <button onClick={() => loadProducts()} className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">Retry</button>
             </div>
-          ) : products.length === 0 ? (
+          ) : visibleItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center p-8 h-full">
               <Package className="w-14 h-14 mb-3 text-gray-200" />
-              <p className="font-semibold text-gray-500">No products found</p>
-              <p className="text-xs text-gray-400 mt-1">Try a different search or category</p>
+              <p className="font-semibold text-gray-500">
+                {products.length === 0
+                  ? 'Nothing to sell yet'
+                  : `No ${filterType === 'service' ? 'services' : filterType === 'product' ? 'products' : 'items'} match`}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {products.length === 0 ? 'Add items to your catalog to start selling.' : 'Try a different search or category.'}
+              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-4">
-              {products
-                .filter(p => !filterType || (p.item_type || 'product') === filterType)
-                .map(p => {
-                const inCart = cart.find(i => i.product.id === p.id);
-                const isService = p.item_type === 'service';
-                const isBundle  = p.item_type === 'bundle';
-                const outOfStock = !isService && !isBundle && p.stock_qty <= 0;
-                const lowStock   = !isService && !isBundle && !outOfStock && p.stock_qty <= 5;
-                const catGradients: Record<string, string> = {
-                  'Electronics':       'from-blue-100 to-blue-50',
-                  'Furniture':         'from-amber-100 to-amber-50',
-                  'Office Supplies':   'from-green-100 to-green-50',
-                  'Tools & Equipment': 'from-orange-100 to-orange-50',
-                  'Clothing':          'from-pink-100 to-pink-50',
-                  'Food & Beverage':   'from-lime-100 to-lime-50',
-                };
-                const catIconColors: Record<string, string> = {
-                  'Electronics':       'text-blue-300',
-                  'Furniture':         'text-amber-300',
-                  'Office Supplies':   'text-green-300',
-                  'Tools & Equipment': 'text-orange-300',
-                  'Clothing':          'text-pink-300',
-                  'Food & Beverage':   'text-lime-300',
-                };
-                const bg = catGradients[p.category_name] || 'from-gray-100 to-gray-50';
-                const iconColor = catIconColors[p.category_name] || 'text-gray-300';
-
-                // ── Service card ──
-                if (isService) {
-                  const unitLabel = p.unit_type === 'hour' ? '/hr' : p.unit_type === 'day' ? '/day' : p.unit_type === 'unit' ? '/unit' : '';
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => addToCart(p)}
-                      className={`bg-white rounded-xl border overflow-hidden flex flex-col transition-all duration-200 cursor-pointer ${
-                        inCart
-                          ? 'border-purple-500 ring-2 ring-purple-400 shadow-md'
-                          : 'border-gray-100 hover:shadow-lg hover:-translate-y-0.5'
-                      }`}
-                    >
-                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 px-4 py-5 flex flex-col gap-2 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wide bg-purple-100 px-2 py-0.5 rounded-full">Service</span>
-                          {inCart && (
-                            <span className="min-w-[22px] h-[22px] bg-purple-600 rounded-full flex items-center justify-center px-1 shadow">
-                              <span className="text-white text-[11px] font-extrabold">{inCart.quantity}</span>
-                            </span>
-                          )}
-                        </div>
-                        <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{p.name}</h3>
-                        <p className="text-[10px] text-purple-500 font-medium">{p.category_name || 'Service'}</p>
-                        <div className="mt-auto pt-2 flex items-end justify-between">
-                          <div>
-                            <span className="text-lg font-extrabold text-gray-900">GH₵ {parseFloat(String(p.price)).toFixed(2)}</span>
-                            {unitLabel && <span className="text-xs text-gray-400 ml-1">{unitLabel}</span>}
-                          </div>
-                          {inCart
-                            ? <span className="text-[10px] text-purple-600 font-semibold">{inCart.quantity} in cart</span>
-                            : <span className="text-[10px] text-green-600 font-semibold">Available</span>
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                // ── Product / Bundle card — tall image card ──
+            <div className="p-4 space-y-6">
+              {/* Grouped when showing everything, so a mixed catalog stays
+                  scannable; a single flat grid when a type is already chosen. */}
+              {SECTIONS.map(({ key, label, items }) => {
+                if (!items.length) return null;
+                const sectioned = !filterType && visibleProducts.length > 0 && visibleServices.length > 0;
                 return (
-                  <div
-                    key={p.id}
-                    onClick={() => addToCart(p)}
-                    className={`bg-white rounded-xl border overflow-hidden flex flex-col transition-all duration-200 ${
-                      outOfStock
-                        ? 'opacity-50 cursor-not-allowed border-gray-100'
-                        : inCart
-                        ? 'border-[#0D3B6E] ring-2 ring-[#0D3B6E] shadow-md cursor-pointer'
-                        : 'border-gray-100 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer'
-                    }`}
-                  >
-                    <div className={`relative h-44 shrink-0 bg-gradient-to-br ${bg} flex items-center justify-center overflow-hidden`}>
-                      {p.images?.[0] ? (
-                        <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <Package className={`w-16 h-16 ${iconColor}`} />
-                      )}
-                      {outOfStock && (
-                        <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                          <span className="text-xs font-bold text-red-500 bg-white px-3 py-1 rounded-full border border-red-200">Out of Stock</span>
-                        </div>
-                      )}
-                      {lowStock && (
-                        <div className="absolute top-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          Only {p.stock_qty} left
-                        </div>
-                      )}
-                      {isBundle && (
-                        <div className="absolute top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Bundle</div>
-                      )}
-                      {inCart && (
-                        <div className="absolute top-2 right-2 min-w-[22px] h-[22px] bg-[#0D3B6E] rounded-full flex items-center justify-center px-1 shadow">
-                          <span className="text-white text-[11px] font-extrabold">{inCart.quantity}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-4 flex flex-col flex-1">
-                      <div className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide mb-1">{p.category_name || 'General'}</div>
-                      <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 leading-snug">{p.name}</h3>
-                      <div className="mt-auto">
-                        <div className="text-lg font-extrabold text-gray-900 mb-1">GH₵ {parseFloat(String(p.price)).toFixed(2)}</div>
-                        {!outOfStock && (
-                          <div className="text-[10px] text-green-600 font-semibold">
-                            {inCart ? `${inCart.quantity} in cart` : 'In Stock'}
-                          </div>
-                        )}
+                  <section key={key}>
+                    {sectioned && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</h2>
+                        <span className="text-xs text-gray-400">{items.length}</span>
+                        <span className="flex-1 h-px bg-gray-100" />
                       </div>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                      {items.map(p => (
+                        <PosItemCard
+                          key={p.id}
+                          item={p}
+                          inCartQty={cart.find(i => i.product.id === p.id)?.quantity || 0}
+                          onSelect={addToCart}
+                        />
+                      ))}
                     </div>
-                  </div>
+                  </section>
                 );
               })}
             </div>
