@@ -33,6 +33,19 @@ interface Financials {
   invoiced: number; received: number; retention_pct: number; retention_held: number; unbilled: number;
 }
 
+interface BillingPosition {
+  currency: string; effective_contract: number; earned_value: number;
+  certified_to_date: number; remaining_to_certify: number; uncertified_earned: number;
+  retention_pct: number; retention_withheld: number; retention_released: number; retention_outstanding: number;
+  invoiced_net: number; received: number; applications: number;
+}
+interface ProjectInvoice {
+  id: string; invoice_number: string; issue_date: string; due_date: string;
+  work_value: number; retention_amount: number; total: number; amount_paid: number;
+  status: string; is_retention_release: boolean;
+}
+interface BillableMilestone { id: string; name: string; billable_amount: number; actual_end?: string }
+
 const MILESTONE_STATUS = ['not_started', 'in_progress', 'completed', 'blocked'];
 const TASK_STATUS = ['todo', 'in_progress', 'done', 'blocked'];
 const label = (s: string) => (s || '').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -57,7 +70,12 @@ export default function ProjectDetailPage() {
   const [variations, setVariations] = useState<Variation[]>([]);
   const [fin, setFin] = useState<Financials | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'progress' | 'money'>('progress');
+  const [tab, setTab] = useState<'progress' | 'money' | 'billing'>('progress');
+  const [billing, setBilling] = useState<{ position: BillingPosition | null; invoices: ProjectInvoice[]; billable_milestones: BillableMilestone[] } | null>(null);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [billForm, setBillForm] = useState({ amount: '', due_date: '', notes: '' });
+  const [releaseForm, setReleaseForm] = useState({ amount: '', due_date: '' });
+  const [billing_busy, setBillingBusy] = useState(false);
   const [confirm, setConfirm] = useState<{ title: string; message: string; danger?: boolean; run: () => void } | null>(null);
 
   const [msForm, setMsForm] = useState({ name: '', weight: '1', planned_end: '', billable_amount: '' });
@@ -76,6 +94,9 @@ export default function ProjectDetailPage() {
       setTasks(d.tasks || []);
       setVariations(d.variations || []);
       setFin(d.financials);
+      const b = await api.get(`/projects/${id}/billing`);
+      setBilling(b.data.data);
+      setPicked([]);
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Could not load the project');
     } finally {
@@ -145,6 +166,43 @@ export default function ProjectDetailPage() {
       toast.success(`${v.reference} ${decision}`);
       await load();
     } catch (e: any) { toast.error(e.response?.data?.message || 'Could not update'); }
+  };
+
+  const raiseApplication = async () => {
+    if (!billForm.due_date) return toast.error('Set a due date');
+    const usingMilestones = picked.length > 0;
+    const amt = parseFloat(billForm.amount);
+    if (!usingMilestones && (!Number.isFinite(amt) || amt <= 0)) {
+      return toast.error('Pick milestones to certify, or enter an amount');
+    }
+    setBillingBusy(true);
+    try {
+      const r = await api.post(`/projects/${id}/invoices`, {
+        ...(usingMilestones ? { milestone_ids: picked } : { amount: amt }),
+        due_date: billForm.due_date,
+        notes: billForm.notes || undefined,
+      });
+      toast.success(`${r.data.data.invoice_number} raised as a draft invoice`);
+      setBillForm({ amount: '', due_date: '', notes: '' });
+      await load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not raise the application');
+    } finally { setBillingBusy(false); }
+  };
+
+  const releaseRetention = async () => {
+    if (!releaseForm.due_date) return toast.error('Set a due date');
+    const amt = parseFloat(releaseForm.amount);
+    if (!Number.isFinite(amt) || amt <= 0) return toast.error('Enter the amount to release');
+    setBillingBusy(true);
+    try {
+      const r = await api.post(`/projects/${id}/retention-release`, { amount: amt, due_date: releaseForm.due_date });
+      toast.success(`${r.data.data.invoice_number} raised for retention`);
+      setReleaseForm({ amount: '', due_date: '' });
+      await load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not release retention');
+    } finally { setBillingBusy(false); }
   };
 
   const removeIt = (what: string, url: string, name: string) => setConfirm({
@@ -233,14 +291,14 @@ export default function ProjectDetailPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-200">
-          {(['progress', 'money'] as const).map(t => (
+          {(['progress', 'money', 'billing'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
                 tab === t ? 'border-[#0D3B6E] text-[#0D3B6E]' : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
-            >{t === 'progress' ? 'Progress' : 'Money'}</button>
+            >{t === 'progress' ? 'Progress' : t === 'money' ? 'Money' : 'Billing'}</button>
           ))}
         </div>
 
@@ -535,6 +593,173 @@ export default function ProjectDetailPage() {
             </div>
           </>
         )}
+
+        {tab === 'billing' && (() => {
+          const pos = billing?.position;
+          const pickedTotal = (billing?.billable_milestones || [])
+            .filter(m => picked.includes(m.id))
+            .reduce((s, m) => s + m.billable_amount, 0);
+          const gross = picked.length ? pickedTotal : (parseFloat(billForm.amount) || 0);
+          const retention = gross * ((pos?.retention_pct || 0) / 100);
+
+          return (
+            <>
+              {/* Position */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  ['Certified to date', pos?.certified_to_date, 'text-gray-900'],
+                  ['Left to certify', pos?.remaining_to_certify, 'text-gray-900'],
+                  ['Retention held by client', pos?.retention_outstanding, 'text-amber-600'],
+                  ['Received', pos?.received, 'text-green-600'],
+                ].map(([l, v, tone]) => (
+                  <div key={l as string} className="card">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{l as string}</p>
+                    <p className={`text-xl font-extrabold mt-1 ${tone as string}`}>{money(v as number)}</p>
+                  </div>
+                ))}
+              </div>
+
+              {(pos?.uncertified_earned || 0) > 0 && (
+                <div className="flex items-start gap-2.5 bg-blue-50 text-blue-800 rounded-xl px-4 py-3 text-sm">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>{money(pos!.uncertified_earned)} of work has been done but not yet put on an application.</span>
+                </div>
+              )}
+
+              {/* Raise an application */}
+              {canManage && (
+                <div className="card">
+                  <div className="mb-4">
+                    <h2 className="font-bold text-gray-900">Raise an application</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Certify completed stages, or enter an amount. Retention comes off the top and stays with the client until released.
+                    </p>
+                  </div>
+
+                  {(billing?.billable_milestones.length || 0) > 0 && (
+                    <div className="space-y-1.5 mb-4">
+                      <p className="form-label">Completed stages not yet billed</p>
+                      {billing!.billable_milestones.map(m => (
+                        <label key={m.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5 ring-1 ring-gray-100 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={picked.includes(m.id)}
+                            onChange={e => setPicked(p => e.target.checked ? [...p, m.id] : p.filter(x => x !== m.id))}
+                            className="w-4 h-4 accent-[#0D3B6E]"
+                          />
+                          <span className="flex-1 text-sm text-gray-800">{m.name}</span>
+                          <span className="text-sm font-semibold text-gray-900">{money(m.billable_amount)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="form-label">{picked.length ? 'Amount (from stages)' : 'Amount'}</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="0.00"
+                        value={picked.length ? pickedTotal.toFixed(2) : billForm.amount}
+                        disabled={picked.length > 0}
+                        onChange={e => setBillForm(f => ({ ...f, amount: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label">Due date *</label>
+                      <input type="date" className="form-input" value={billForm.due_date} onChange={e => setBillForm(f => ({ ...f, due_date: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="form-label">Note</label>
+                      <input className="form-input" placeholder="optional" value={billForm.notes} onChange={e => setBillForm(f => ({ ...f, notes: e.target.value }))} />
+                    </div>
+                  </div>
+
+                  {gross > 0 && (
+                    <dl className="mt-4 bg-gray-50 rounded-xl p-4 ring-1 ring-gray-100 space-y-2 text-sm max-w-sm">
+                      <div className="flex justify-between"><dt className="text-gray-500">Work certified</dt><dd className="font-semibold text-gray-900">{money(gross)}</dd></div>
+                      <div className="flex justify-between"><dt className="text-gray-500">Less retention ({pos?.retention_pct || 0}%)</dt><dd className="font-semibold text-amber-600">− {money(retention)}</dd></div>
+                      <div className="flex justify-between pt-2 border-t border-gray-200"><dt className="text-gray-900 font-semibold">Now due</dt><dd className="font-bold text-gray-900">{money(gross - retention)}</dd></div>
+                    </dl>
+                  )}
+
+                  <button type="button" className="btn-primary mt-4" onClick={raiseApplication} disabled={billing_busy}>
+                    <Plus className="w-4 h-4" /> {billing_busy ? 'Raising…' : 'Raise application'}
+                  </button>
+                  <p className="text-xs text-gray-400 mt-2">
+                    Creates a draft invoice. Send it from Accounting to post it to the ledger.
+                  </p>
+                </div>
+              )}
+
+              {/* Release retention */}
+              {canManage && (pos?.retention_outstanding || 0) > 0 && (
+                <div className="card">
+                  <div className="mb-4">
+                    <h2 className="font-bold text-gray-900">Release retention</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {money(pos!.retention_outstanding)} still held. Most contracts release in stages — part at completion, the rest after the defects period.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="form-label">Amount</label>
+                      <input type="number" className="form-input" placeholder="0.00" value={releaseForm.amount} onChange={e => setReleaseForm(f => ({ ...f, amount: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="form-label">Due date *</label>
+                      <input type="date" className="form-input" value={releaseForm.due_date} onChange={e => setReleaseForm(f => ({ ...f, due_date: e.target.value }))} />
+                    </div>
+                    <div className="flex items-end">
+                      <button type="button" className="btn-secondary w-full justify-center" onClick={releaseRetention} disabled={billing_busy}>
+                        Release
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Applications raised */}
+              <div className="card">
+                <h2 className="font-bold text-gray-900 mb-4">Applications</h2>
+                {!billing?.invoices.length ? (
+                  <p className="text-sm text-gray-400">Nothing raised yet.</p>
+                ) : (
+                  <div className="table-wrap">
+                    <table className="w-full text-sm min-w-[640px]">
+                      <thead>
+                        <tr className="table-header text-left">
+                          <th className="px-4 py-2.5">Invoice</th>
+                          <th className="px-4 py-2.5">Issued</th>
+                          <th className="px-4 py-2.5 text-right">Work certified</th>
+                          <th className="px-4 py-2.5 text-right">Retention</th>
+                          <th className="px-4 py-2.5 text-right">Due</th>
+                          <th className="px-4 py-2.5">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {billing.invoices.map(inv => (
+                          <tr key={inv.id} className="border-t border-gray-100">
+                            <td className="px-4 py-3 font-mono text-xs text-gray-600">
+                              {inv.invoice_number}
+                              {inv.is_retention_release && <span className="ml-2 badge bg-blue-50 text-blue-700">Retention</span>}
+                            </td>
+                            <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{new Date(inv.issue_date).toLocaleDateString()}</td>
+                            <td className="px-4 py-3 text-right text-gray-600">{inv.work_value ? money(inv.work_value) : '—'}</td>
+                            <td className="px-4 py-3 text-right text-amber-600">{inv.retention_amount ? `− ${money(inv.retention_amount)}` : '—'}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-gray-900 whitespace-nowrap">{money(inv.total)}</td>
+                            <td className="px-4 py-3"><span className="badge bg-gray-100 text-gray-600">{label(inv.status)}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          );
+        })()}
 
         <ConfirmDialog
           open={!!confirm}
