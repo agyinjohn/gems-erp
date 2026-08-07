@@ -13,6 +13,9 @@ export interface PosItem {
   item_type?: string;
   unit_type?: string;
   duration?: number;
+  pricing_mode?: string;
+  min_price?: number;
+  max_price?: number;
 }
 
 /**
@@ -76,13 +79,16 @@ export default function PosItemCard({
 
   const TypeIcon = isService ? Wrench : isBundle ? Layers : Package;
   const inCart = inCartQty > 0;
+  // Open-price items have no catalog amount — showing GH₵ 0.00 would read as
+  // free, so the tile says so and the amount is quoted when it's rung up.
+  const isOpenPrice = item.pricing_mode === 'open';
 
   return (
     <button
       type="button"
       onClick={() => !outOfStock && onSelect(item)}
       disabled={outOfStock}
-      aria-label={`${item.name}, GHS ${Number(item.price).toFixed(2)}${outOfStock ? ', out of stock' : ''}`}
+      aria-label={`${item.name}, ${isOpenPrice ? 'price on request' : `GHS ${Number(item.price).toFixed(2)}`}${outOfStock ? ', out of stock' : ''}`}
       className={`group text-left bg-white rounded-xl border overflow-hidden flex flex-col transition-all duration-200 ${
         outOfStock
           ? 'opacity-50 cursor-not-allowed border-gray-100'
@@ -141,9 +147,15 @@ export default function PosItemCard({
         <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2 min-h-[2.5rem]">{item.name}</h3>
         <div className="mt-auto pt-2">
           <div className="text-lg font-extrabold text-gray-900">
-            GH₵ {Number(item.price).toFixed(2)}
-            {isService && item.unit_type && UNIT_LABELS[item.unit_type] && (
-              <span className="text-xs font-normal text-gray-400 ml-1">{UNIT_LABELS[item.unit_type]}</span>
+            {isOpenPrice ? (
+              <span className="text-base text-purple-600">Price on request</span>
+            ) : (
+              <>
+                GH₵ {Number(item.price).toFixed(2)}
+                {isService && item.unit_type && UNIT_LABELS[item.unit_type] && (
+                  <span className="text-xs font-normal text-gray-400 ml-1">{UNIT_LABELS[item.unit_type]}</span>
+                )}
+              </>
             )}
           </div>
           <div className="text-[10px] font-semibold h-4">
@@ -151,7 +163,9 @@ export default function PosItemCard({
               ? <span className={accent.chip}>{inCartQty} in cart</span>
               : outOfStock
                 ? <span className="text-red-500">Unavailable</span>
-                : <span className="text-green-600">{isService ? 'Available' : 'In stock'}</span>}
+                : isOpenPrice
+                  ? <span className="text-purple-500">Quoted at sale</span>
+                  : <span className="text-green-600">{isService ? 'Available' : 'In stock'}</span>}
           </div>
         </div>
       </div>

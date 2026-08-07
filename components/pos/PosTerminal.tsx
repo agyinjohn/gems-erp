@@ -13,8 +13,10 @@ import {
   Clock, FileText, Loader2, Nfc, Monitor, Maximize2, Minimize2, AlertTriangle, Wrench,
 } from 'lucide-react';
 
-interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; item_type?: string; unit_type?: string; duration?: number; }
-interface CartItem { product: Product; quantity: number; }
+interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; item_type?: string; unit_type?: string; duration?: number; pricing_mode?: string; min_price?: number; max_price?: number; }
+// unit_price is set only for open-price items, which are quoted when they are
+// rung up. Everything else is priced from the catalog, server-side.
+interface CartItem { product: Product; quantity: number; unit_price?: number; }
 interface Receipt { order_number: string; items: CartItem[]; subtotal: number; tax_amount: number; total: number; payment_method: string; payment_ref?: string; amount_tendered: number; change: number; customer_name: string; customer_phone: string; createdAt: string; }
 
 const PAYMENT_METHODS = [
@@ -53,6 +55,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const [search, setSearch]           = useState('');
   const [filterCat, setFilterCat]     = useState('');
   const [filterType, setFilterType]   = useState<''|'product'|'service'>('');
+  const [quoting, setQuoting] = useState<{ product: Product; amount: string } | null>(null);
   // One source of truth for what the grid shows — the count bar, the sections
   // and the empty state all read from this, so they can't disagree.
   const visibleItems = filterType
@@ -260,16 +263,32 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   }, [products]);
 
   // Cart helpers
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, quotedPrice?: number) => {
     const isService = product.item_type === 'service';
     if (!isService && product.stock_qty <= 0) return;
+
+    // Open-price items have no amount until someone quotes one, so ask first
+    // rather than adding a line at a price that doesn't exist. Re-tapping a
+    // quoted line reopens the prompt with the current amount.
+    if (product.pricing_mode === 'open' && quotedPrice === undefined) {
+      const existing = cart.find(i => i.product.id === product.id);
+      setQuoting({ product, amount: existing?.unit_price != null ? String(existing.unit_price) : '' });
+      return;
+    }
+
     setCart(prev => {
       const existing = prev.find(i => i.product.id === product.id);
       if (existing) {
+        // A fresh quote on a line already in the cart corrects its price —
+        // re-quoting means fixing the amount, not selling a second bespoke job.
+        // Quantity is adjusted with the +/- controls instead.
+        if (quotedPrice !== undefined) {
+          return prev.map(i => i.product.id === product.id ? { ...i, unit_price: quotedPrice } : i);
+        }
         if (!isService && existing.quantity >= product.stock_qty) return prev;
         return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: 1, ...(quotedPrice !== undefined && { unit_price: quotedPrice }) }];
     });
   };
 
@@ -289,7 +308,8 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
     setTimeout(() => barcodeRef.current?.focus(), 100);
   };
 
-  const cartSubtotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+  const lineUnitPrice = (i: CartItem) => i.unit_price ?? i.product.price;
+  const cartSubtotal = cart.reduce((s, i) => s + lineUnitPrice(i) * i.quantity, 0);
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
   const [taxRate, setTaxRate] = useState(0);
   const taxAmount = taxRate > 0 ? Math.round(cartSubtotal * taxRate / 100 * 100) / 100 : 0;
@@ -525,7 +545,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
     try {
       if (paymentMethod === 'momo') {
         const initRes = await api.post('/pos/paystack/init', {
-          items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
+          items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity, ...(i.unit_price !== undefined && { unit_price: i.unit_price }) })),
           payment_method: paymentMethod,
           customer_name: customerName || 'Walk-in Customer',
           customer_phone: customerPhone,
@@ -537,7 +557,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
       if (paymentMethod === 'card' || paymentMethod === 'card_terminal') {
         const saleCustomerName = customerName || 'Walk-in Customer';
         const initRes = await api.post('/pos/paystack/init', {
-          items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
+          items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity, ...(i.unit_price !== undefined && { unit_price: i.unit_price }) })),
           payment_method: paymentMethod,
           customer_name: saleCustomerName,
           customer_phone: customerPhone,
@@ -553,7 +573,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
         return;
       }
       const r = await api.post('/pos/sale', {
-        items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
+        items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity, ...(i.unit_price !== undefined && { unit_price: i.unit_price }) })),
         payment_method: paymentMethod,
         amount_tendered: parseFloat(amountTendered) || cartTotal,
         customer_name: customerName || 'Walk-in Customer',
@@ -889,6 +909,55 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
           </div>
         </div>
 
+        {/* Quote prompt for open-price items */}
+        {quoting && (() => {
+          const p = quoting.product;
+          const value = parseFloat(quoting.amount);
+          const lo = Number(p.min_price) || 0;
+          const hi = Number(p.max_price) || 0;
+          const invalid = !Number.isFinite(value) || value <= 0;
+          const belowMin = !invalid && lo > 0 && value < lo;
+          const aboveMax = !invalid && hi > 0 && value > hi;
+          const blocked = invalid || belowMin || aboveMax;
+          const commit = () => { if (blocked) return; addToCart(p, Math.round(value * 100) / 100); setQuoting(null); };
+          return (
+            <PosModal onClose={() => setQuoting(null)}>
+              <div className="bg-white rounded-2xl shadow-2xl w-[min(92vw,380px)] p-6">
+                <p className="text-xs font-bold uppercase tracking-wider text-purple-600 mb-1">Price on request</p>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{p.name}</h3>
+                <p className="text-sm text-gray-500 mb-5">Enter the amount agreed with the customer.</p>
+
+                <label className="form-label">Amount (GH₵)</label>
+                <input
+                  autoFocus
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  className="form-input text-lg font-bold"
+                  value={quoting.amount}
+                  onChange={e => setQuoting(q => q && ({ ...q, amount: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setQuoting(null); }}
+                />
+                {(lo > 0 || hi > 0) && (
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    {lo > 0 && hi > 0 ? `Between GH₵ ${lo.toFixed(2)} and GH₵ ${hi.toFixed(2)}`
+                      : lo > 0 ? `Minimum GH₵ ${lo.toFixed(2)}`
+                      : `Maximum GH₵ ${hi.toFixed(2)}`}
+                  </p>
+                )}
+                {belowMin && <p className="text-xs text-red-500 mt-1.5">Below the minimum of GH₵ {lo.toFixed(2)}.</p>}
+                {aboveMax && <p className="text-xs text-red-500 mt-1.5">Above the maximum of GH₵ {hi.toFixed(2)}.</p>}
+
+                <div className="flex gap-2 mt-5">
+                  <button type="button" onClick={() => setQuoting(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold transition-colors">Cancel</button>
+                  <button type="button" onClick={commit} disabled={blocked} className="flex-1 px-4 py-2.5 rounded-xl bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors">Add to cart</button>
+                </div>
+              </div>
+            </PosModal>
+          );
+        })()}
+
         {/* ══ RIGHT: Cart Panel ══ */}
         <div className="w-full lg:w-[340px] xl:w-[380px] flex flex-col bg-white border-l border-gray-200 flex-shrink-0">
 
@@ -966,7 +1035,10 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                             <span className="text-[9px] font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full flex-shrink-0">BUNDLE</span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-0.5">GH₵ {parseFloat(String(i.product.price)).toFixed(2)} each</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          GH₵ {lineUnitPrice(i).toFixed(2)} each
+                          {i.unit_price !== undefined && <span className="text-purple-500 font-medium"> · quoted</span>}
+                        </p>
                         {/* Qty controls */}
                         <div className="flex items-center gap-2 mt-2">
                           <button
@@ -993,7 +1065,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                           <X className="w-4 h-4" />
                         </button>
                         <span className="text-sm font-extrabold text-gray-900 tabular-nums">
-                          GH₵ {(i.product.price * i.quantity).toFixed(2)}
+                          GH₵ {(lineUnitPrice(i) * i.quantity).toFixed(2)}
                         </span>
                       </div>
                     </div>
