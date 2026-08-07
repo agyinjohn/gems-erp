@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast, ResponsiveTable } from '@/components/ui';
-import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen, X, ChevronDown, MapPin } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen, X, ChevronDown, MapPin, Wrench } from 'lucide-react';
 import api, { apiCache } from '@/lib/api';
 import ProductImageUpload from '@/components/inventory/ProductImageUpload';
 
@@ -409,8 +409,8 @@ export default function InventoryPage() {
   const [catConfirm, setCatConfirm] = useState<any>(null);
   const [locConfirm, setLocConfirm] = useState<any>(null);
   const [locForm, setLocForm] = useState({ name:'', code:'', type:'shelf', description:'' });
-  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', item_type:'product' as 'product'|'service'|'bundle', unit_type:'unit' as string, duration:'' as string, images: [] as string[], attributes: {} as Record<string,any> });
-  const [catForm, setCatForm] = useState({ name:'', description:'', custom_fields: [] as FieldDef[] });
+  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', item_type:'product' as 'product'|'service'|'bundle', unit_type:'unit' as string, duration:'' as string, revenue_account_code:'' as string, images: [] as string[], attributes: {} as Record<string,any>, bundle_items: [] as {product_id:string; quantity:number; name?:string}[] });
+  const [catForm, setCatForm] = useState({ name:'', description:'', scope:'product' as 'product'|'service', custom_fields: [] as FieldDef[] });
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [adjustQty, setAdjustQty] = useState('');
   const [adjustType, setAdjustType] = useState<'add'|'remove'>('add');
@@ -464,8 +464,8 @@ export default function InventoryPage() {
     (!filterItemType || (p.item_type || 'product') === filterItemType)
   );
 
-  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',item_type:'product',unit_type:'unit',duration:'',images:[],attributes:{} }); setError(''); setModal('add'); };
-  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,item_type:p.item_type||'product',unit_type:p.unit_type||'unit',duration:p.duration||'',images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{} }); setError(''); setModal('edit'); };
+  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',item_type:'product',unit_type:'unit',duration:'',revenue_account_code:'',images:[],attributes:{},bundle_items:[] }); setError(''); setModal('add'); };
+  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,item_type:p.item_type||'product',unit_type:p.unit_type||'unit',duration:p.duration||'',revenue_account_code:p.revenue_account_code||'',images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{},bundle_items:(p.bundle_items||[]).map((bi:any)=>({product_id:bi.product_id||bi.product_id?._id,quantity:bi.quantity,name:products.find((x:any)=>x.id===(bi.product_id||bi.product_id?._id))?.name||''})) }); setError(''); setModal('edit'); };
   const openAdjust = (p: any) => { setSelected(p); setAdjustQty(''); setAdjustType('add'); setAdjustNote(''); setModal('adjust'); };
 
   const save = async () => {
@@ -579,12 +579,12 @@ export default function InventoryPage() {
   const inputProps = (key: string) => ({ value: (form as any)[key], onChange: (e: any) => setForm({...form, [key]: e.target.value}), className: 'form-input' });
 
   return (
-    <AppLayout title="Inventory" subtitle="Manage products, stock levels and categories" allowedRoles={['business_owner','branch_manager','warehouse_staff']}>
+    <AppLayout title="Inventory" subtitle="Manage products, services, bundles and categories" allowedRoles={['business_owner','branch_manager','warehouse_staff']}>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 mb-5 w-fit">
         <button onClick={() => setTab('products')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='products' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
-          <Package className="w-4 h-4" /> Products
+          <Package className="w-4 h-4" /> Catalog
           <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${ tab==='products' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }`}>{products.length}</span>
         </button>
         <button onClick={() => setTab('categories')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='categories' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
@@ -618,16 +618,16 @@ export default function InventoryPage() {
       </div>
 
       {/* Low stock alert */}
-      {products.filter(p => (p.item_type || 'product') !== 'service' && p.stock_qty <= p.low_stock_threshold).length > 0 && (
+      {products.filter(p => (p.item_type || 'product') === 'product' && p.stock_qty <= p.low_stock_threshold).length > 0 && (
         <div className="bg-[#0D3B6E]/8 border border-[#0D3B6E]/15 rounded-xl px-3 sm:px-4 py-3 flex items-start sm:items-center gap-2 sm:gap-3 mb-4 sm:mb-5 text-xs sm:text-sm text-[#0D3B6E]">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-          <span><strong>{products.filter(p => (p.item_type || 'product') !== 'service' && p.stock_qty <= p.low_stock_threshold).length} products</strong> are at or below their low stock threshold.</span>
+          <span><strong>{products.filter(p => (p.item_type || 'product') === 'product' && p.stock_qty <= p.low_stock_threshold).length} products</strong> are at or below their low stock threshold.</span>
         </div>
       )}
 
       {/* Table */}
       <div className="card p-0 overflow-hidden">
-        {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No products found" description={search || filterCat ? 'Try adjusting your search or filter.' : 'Add your first product to get started.'} icon={<Package className="w-9 h-9 text-gray-300" />} action={!search && !filterCat ? { label: '+ Add Product', onClick: openAdd } : undefined} /> : (
+        {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No items found" description={search || filterCat ? 'Try adjusting your search or filter.' : 'Add your first product or service to get started.'} icon={<Package className="w-9 h-9 text-gray-300" />} action={!search && !filterCat ? { label: '+ Add Item', onClick: openAdd } : undefined} /> : (
           <ResponsiveTable
             columns={[
               {
@@ -685,6 +685,19 @@ export default function InventoryPage() {
                       </div>
                     );
                   }
+                  if (p.item_type === 'bundle') {
+                    const items = p.bundle_items || [];
+                    if (!items.length) return <span className="text-xs text-gray-400">No components</span>;
+                    return (
+                      <div className="text-xs text-gray-600">
+                        {items.slice(0,2).map((bi:any, i:number) => {
+                          const cp = products.find((x:any) => x.id === (bi.product_id?._id || bi.product_id));
+                          return <div key={i} className="truncate max-w-[140px]">{bi.quantity}× {cp?.name || '—'}</div>;
+                        })}
+                        {items.length > 2 && <div className="text-gray-400">+{items.length - 2} more</div>}
+                      </div>
+                    );
+                  }
                   const isLow = p.stock_qty <= p.low_stock_threshold;
                   const isOut = p.stock_qty === 0;
                   const stockPct = Math.min(100, Math.round((p.stock_qty / Math.max(p.low_stock_threshold * 3, 1)) * 100));
@@ -714,8 +727,8 @@ export default function InventoryPage() {
                 label: 'Actions',
                 render: (_, p) => (
                   <div className="flex items-center justify-end gap-1">
-                    <button onClick={() => { setLabelProduct(p); setLabelQty(1); }} title="Print Label" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Tag className="w-4 h-4" /></button>
-                    {(p.item_type || 'product') !== 'service' && <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><TrendingDown className="w-4 h-4" /></button>}
+                    {(p.item_type || 'product') !== 'service' && <button onClick={() => { setLabelProduct(p); setLabelQty(1); }} title="Print Label" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Tag className="w-4 h-4" /></button>}
+                    {(p.item_type || 'product') === 'product' && <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><TrendingDown className="w-4 h-4" /></button>}
                     <button onClick={() => openEdit(p)} title="Edit" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Edit2 className="w-4 h-4" /></button>
                     <button onClick={() => setConfirm({ id: p.id, name: p.name })} title="Delete" className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </div>
@@ -753,7 +766,12 @@ export default function InventoryPage() {
           </>}
           <div>
             <label className="form-label">Category</label>
-            <select {...inputProps('category_id')}><option value="">Select category</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+            <select {...inputProps('category_id')}>
+              <option value="">Select category</option>
+              {categories
+                .filter(c => form.item_type === 'service' ? c.scope === 'service' : c.scope !== 'service')
+                .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </div>
           <div><label className="form-label">Selling Price (GH₵) *</label><input type="number" {...inputProps('price')} placeholder="0.00" /></div>
           <div><label className="form-label">Cost Price (GH₵)</label><input type="number" {...inputProps('cost_price')} placeholder="0.00" /></div>
@@ -771,6 +789,11 @@ export default function InventoryPage() {
               {form.unit_type !== 'fixed' && (
                 <div><label className="form-label">Duration ({form.unit_type === 'hour' ? 'hours' : 'days'})</label><input type="number" {...inputProps('duration')} placeholder="e.g. 2" /></div>
               )}
+              <div>
+                <label className="form-label">Revenue Account Code <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input {...inputProps('revenue_account_code')} placeholder="e.g. 4010" />
+                <p className="text-xs text-gray-400 mt-1">Overrides the default GL account for this service. Leave blank to use 4010 (Service Revenue).</p>
+              </div>
             </>
           ) : (
             <>
@@ -779,16 +802,80 @@ export default function InventoryPage() {
               <div><label className="form-label">Unit</label><input {...inputProps('unit')} placeholder="piece, kg, box…" /></div>
             </>
           )}
+
+          {/* Bundle composer */}
+          {form.item_type === 'bundle' && (
+            <div className="col-span-2">
+              <div className="border-t border-gray-100 pt-4 mt-1">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Bundle Components</p>
+                  <button type="button" onClick={() => {
+                    const opts = products.filter((p:any) => p.item_type !== 'bundle' && p.is_active && !form.bundle_items.some(bi => bi.product_id === p.id));
+                    if (!opts.length) return;
+                    setForm(f => ({ ...f, bundle_items: [...f.bundle_items, { product_id: opts[0].id, quantity: 1, name: opts[0].name }] }));
+                  }} className="text-xs text-[#0D3B6E] font-semibold hover:underline flex items-center gap-1">
+                    <Plus className="w-3.5 h-3.5" /> Add Component
+                  </button>
+                </div>
+                {form.bundle_items.length === 0 && (
+                  <p className="text-xs text-gray-400 py-3 text-center border border-dashed border-gray-200 rounded-xl">No components yet. Add products or services that make up this bundle.</p>
+                )}
+                <div className="space-y-2">
+                  {form.bundle_items.map((bi, i) => (
+                    <div key={i} className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                      <select
+                        className="form-input flex-1 text-sm py-1.5"
+                        value={bi.product_id}
+                        onChange={e => {
+                          const p = products.find((x:any) => x.id === e.target.value);
+                          setForm(f => ({ ...f, bundle_items: f.bundle_items.map((b,idx) => idx===i ? { ...b, product_id: e.target.value, name: p?.name||'' } : b) }));
+                        }}
+                      >
+                        {products.filter((p:any) => p.item_type !== 'bundle' && p.is_active).map((p:any) => (
+                          <option key={p.id} value={p.id}>{p.name}{p.item_type==='service'?' (service)':''}</option>
+                        ))}
+                      </select>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className="text-xs text-gray-400">Qty</span>
+                        <input
+                          type="number" min="1"
+                          className="form-input w-16 text-sm py-1.5 text-center"
+                          value={bi.quantity}
+                          onChange={e => setForm(f => ({ ...f, bundle_items: f.bundle_items.map((b,idx) => idx===i ? { ...b, quantity: Math.max(1,parseInt(e.target.value)||1) } : b) }))}
+                        />
+                      </div>
+                      <button type="button" onClick={() => setForm(f => ({ ...f, bundle_items: f.bundle_items.filter((_,idx)=>idx!==i) }))} className="text-gray-400 hover:text-red-500 flex-shrink-0">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {form.bundle_items.length > 0 && (() => {
+                  const total = form.bundle_items.reduce((sum, bi) => {
+                    const p = products.find((x:any) => x.id === bi.product_id);
+                    return sum + (p ? p.cost_price * bi.quantity : 0);
+                  }, 0);
+                  return total > 0 ? (
+                    <p className="text-xs text-gray-400 mt-2 text-right">Component cost total: <span className="font-semibold text-gray-600">GH₵ {total.toFixed(2)}</span></p>
+                  ) : null;
+                })()}
+              </div>
+            </div>
+          )}
+
           <div className="col-span-2"><label className="form-label">Description</label><textarea {...inputProps('description')} rows={3} placeholder="Description…" /></div>
-          <div className="col-span-2">
-            <ProductImageUpload
-              images={form.images}
-              onChange={(images) => setForm({ ...form, images })}
-            />
-          </div>
+          {form.item_type !== 'service' && (
+            <div className="col-span-2">
+              <ProductImageUpload
+                images={form.images}
+                onChange={(images) => setForm({ ...form, images })}
+              />
+            </div>
+          )}
 
           {/* Dynamic category attributes */}
           {(() => {
+            if (form.item_type === 'service') return null;
             const cat = categories.find(c => c.id === form.category_id);
             const fields: FieldDef[] = cat?.custom_fields || [];
             if (!fields.length) return null;
@@ -846,7 +933,7 @@ export default function InventoryPage() {
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save Product'}</button>
+          <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : modal === 'edit' ? `Update ${form.item_type === 'service' ? 'Service' : form.item_type === 'bundle' ? 'Bundle' : 'Product'}` : `Add ${form.item_type === 'service' ? 'Service' : form.item_type === 'bundle' ? 'Bundle' : 'Product'}`}</button>
         </div>
       </Modal>
 
@@ -899,79 +986,107 @@ export default function InventoryPage() {
 
       {/* ── CATEGORIES TAB ── */}
       {tab === 'categories' && (
-        <div>
-          <div className="flex justify-end mb-4">
-            <button className="btn-primary" onClick={() => { setSelectedCat(null); setCatForm({ name:'', description:'', custom_fields:[] }); setSelectedTemplate(''); setModal('cat-add'); }}>
-              <Plus className="w-4 h-4" /> Add Category
-            </button>
-          </div>
-          <div className="card p-0 overflow-hidden">
-            {loading ? <Spinner /> : categories.length === 0
-              ? <EmptyState message="No categories yet" icon={<FolderOpen className="w-8 h-8 text-gray-300" />} />
-              : (
-              <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="table-header">
-                  <tr>
-                    <th className="px-5 py-3 text-left">Name</th>
-                    <th className="px-5 py-3 text-left hidden md:table-cell">Description</th>
-                    <th className="px-5 py-3 text-left">Fields</th>
-                    <th className="px-5 py-3 text-right">Products</th>
-                    <th className="px-5 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {categories.map(c => {
-                    const count = products.filter(p => (p.category_id?._id || p.category_id) === c.id).length;
-                    const fields: FieldDef[] = c.custom_fields || [];
-                    return (
-                      <tr key={c.id} className="hover:bg-gray-50">
-                        <td className="px-5 py-3.5">
-                          <span className="inline-flex items-center gap-2 font-medium text-gray-900">
-                            <span className="w-2 h-2 rounded-full bg-[#0D3B6E]/40 flex-shrink-0" />
-                            {c.name}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5 hidden md:table-cell">
-                          <span className="text-gray-400 text-xs line-clamp-1 max-w-[200px] block">{c.description || '—'}</span>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          {fields.length === 0
-                            ? <span className="text-gray-300 text-xs">None</span>
-                            : <div className="flex items-center gap-1.5 flex-wrap">
-                                {fields.slice(0, 3).map(f => (
-                                  <span key={f.key} className="text-xs bg-[#0D3B6E]/8 text-[#0D3B6E] px-2 py-0.5 rounded-full whitespace-nowrap">{f.label}</span>
-                                ))}
-                                {fields.length > 3 && (
-                                  <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">+{fields.length - 3}</span>
-                                )}
+        <div className="space-y-8">
+          {loading ? <Spinner /> : (
+            (['product','service'] as const).map(scope => {
+              const scoped = categories.filter(c => (c.scope || 'product') === scope);
+              const isService = scope === 'service';
+              const accent = isService ? 'purple' : 'blue';
+              const headerBg = isService ? 'bg-purple-50 border-purple-100' : 'bg-blue-50 border-blue-100';
+              const iconBg   = isService ? 'bg-purple-100 text-purple-600' : 'bg-[#0D3B6E]/10 text-[#0D3B6E]';
+              const badgeBg  = isService ? 'bg-purple-100 text-purple-700' : 'bg-[#0D3B6E]/8 text-[#0D3B6E]';
+              const fieldBg  = isService ? 'bg-purple-50 text-purple-600' : 'bg-[#0D3B6E]/8 text-[#0D3B6E]';
+              return (
+                <div key={scope}>
+                  {/* Section header */}
+                  <div className={`flex items-center justify-between px-4 py-3 rounded-xl border mb-4 ${headerBg}`}>
+                    <div className="flex items-center gap-3">
+                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-base ${iconBg}`}>
+                        {isService ? <Wrench className="w-4 h-4" /> : <Package className="w-4 h-4" />}
+                      </span>
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{isService ? 'Service Categories' : 'Product Categories'}</p>
+                        <p className="text-xs text-gray-500">{scoped.length} {scoped.length === 1 ? 'category' : 'categories'}</p>
+                      </div>
+                    </div>
+                    <button
+                      className="btn-primary text-xs px-3 py-1.5"
+                      onClick={() => { setSelectedCat(null); setCatForm({ name:'', description:'', scope, custom_fields:[] }); setSelectedTemplate(''); setModal('cat-add'); }}
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add {isService ? 'Service' : 'Product'} Category
+                    </button>
+                  </div>
+
+                  {/* Cards grid */}
+                  {scoped.length === 0 ? (
+                    <div className="border-2 border-dashed border-gray-200 rounded-xl py-10 flex flex-col items-center gap-2 text-center">
+                      <FolderOpen className="w-8 h-8 text-gray-300" />
+                      <p className="text-sm font-medium text-gray-400">No {isService ? 'service' : 'product'} categories yet</p>
+                      <button
+                        className="text-xs text-[#0D3B6E] font-semibold hover:underline mt-1"
+                        onClick={() => { setSelectedCat(null); setCatForm({ name:'', description:'', scope, custom_fields:[] }); setSelectedTemplate(''); setModal('cat-add'); }}
+                      >+ Add one now</button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {scoped.map(c => {
+                        const count = products.filter(p => (p.category_id?._id || p.category_id) === c.id).length;
+                        const fields: FieldDef[] = c.custom_fields || [];
+                        return (
+                          <div key={c.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow flex flex-col gap-3">
+                            {/* Card header */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 ${iconBg}`}>
+                                  {c.name.charAt(0).toUpperCase()}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-gray-900 text-sm truncate">{c.name}</p>
+                                  {c.description && <p className="text-xs text-gray-400 truncate mt-0.5">{c.description}</p>}
+                                </div>
                               </div>
-                          }
-                        </td>
-                        <td className="px-5 py-3.5 text-right">
-                          <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{count}</span>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => { setSelectedCat(c); setCatForm({ name: c.name, description: c.description || '', custom_fields: c.custom_fields || [] }); setSelectedTemplate(''); setModal('cat-edit'); }}
-                              className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E]"
-                            ><Edit2 className="w-4 h-4" /></button>
-                            <button
-                              onClick={() => setCatConfirm(c)}
-                              className="p-1.5 hover:bg-red-50 rounded-lg text-red-400"
-                              title={count > 0 ? `${count} products use this category` : 'Delete'}
-                            ><Trash2 className="w-4 h-4" /></button>
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${badgeBg}`}>
+                                {count} item{count !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+
+                            {/* Custom fields */}
+                            <div className="flex flex-wrap gap-1.5 min-h-[24px]">
+                              {fields.length === 0 ? (
+                                <span className="text-xs text-gray-300 italic">No custom fields</span>
+                              ) : (
+                                <>
+                                  {fields.slice(0, 4).map(f => (
+                                    <span key={f.key} className={`text-xs px-2 py-0.5 rounded-full ${fieldBg}`}>{f.label}</span>
+                                  ))}
+                                  {fields.length > 4 && (
+                                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">+{fields.length - 4} more</span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center justify-end gap-1 pt-1 border-t border-gray-100">
+                              <button
+                                onClick={() => { setSelectedCat(c); setCatForm({ name:c.name, description:c.description||'', scope:c.scope||'product', custom_fields:c.custom_fields||[] }); setSelectedTemplate(''); setModal('cat-edit'); }}
+                                className="flex items-center gap-1.5 text-xs text-[#0D3B6E] font-medium px-2.5 py-1.5 rounded-lg hover:bg-[#0D3B6E]/8 transition-colors"
+                              ><Edit2 className="w-3.5 h-3.5" /> Edit</button>
+                              <button
+                                onClick={() => setCatConfirm(c)}
+                                className="flex items-center gap-1.5 text-xs text-red-500 font-medium px-2.5 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                                title={count > 0 ? `${count} items use this category` : 'Delete'}
+                              ><Trash2 className="w-3.5 h-3.5" /> Delete</button>
+                            </div>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              </div>
-            )}
-          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       )}
 
@@ -1115,6 +1230,21 @@ export default function InventoryPage() {
             <div>
               <label className="form-label">Description</label>
               <input className="form-input" value={catForm.description} onChange={e => setCatForm({...catForm, description: e.target.value})} placeholder="Optional" />
+            </div>
+          </div>
+
+          {/* Scope selector */}
+          <div>
+            <label className="form-label">Category Type</label>
+            <div className="flex gap-2">
+              {(['product','service'] as const).map(s => (
+                <button key={s} type="button"
+                  onClick={() => setCatForm(f => ({ ...f, scope: s }))}
+                  className={`flex-1 py-2 rounded-lg border text-sm font-medium capitalize transition-colors ${
+                    catForm.scope === s ? 'bg-[#0D3B6E] text-white border-[#0D3B6E]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                  }`}
+                >{s === 'product' ? <><Package className="w-3.5 h-3.5" /> Product</> : <><Wrench className="w-3.5 h-3.5" /> Service</>}</button>
+              ))}
             </div>
           </div>
 

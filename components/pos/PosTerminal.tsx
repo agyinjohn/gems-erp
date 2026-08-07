@@ -9,10 +9,10 @@ import { useAuth } from '@/lib/auth';
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, Package,
   Banknote, CreditCard, Smartphone, X, PrinterIcon, CheckCircle2, Barcode, RotateCcw,
-  Clock, FileText, Loader2, Nfc, Monitor, Maximize2, Minimize2, AlertTriangle,
+  Clock, FileText, Loader2, Nfc, Monitor, Maximize2, Minimize2, AlertTriangle, Wrench,
 } from 'lucide-react';
 
-interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; item_type?: string; }
+interface Product { id: string; name: string; sku: string; barcode: string | null; price: number; stock_qty: number; category_name: string; images: string[]; item_type?: string; unit_type?: string; duration?: number; }
 interface CartItem { product: Product; quantity: number; }
 interface Receipt { order_number: string; items: CartItem[]; subtotal: number; tax_amount: number; total: number; payment_method: string; payment_ref?: string; amount_tendered: number; change: number; customer_name: string; customer_phone: string; createdAt: string; }
 
@@ -47,8 +47,11 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const { tenant, user } = useAuth();
   const [products, setProducts]       = useState<Product[]>([]);
   const [categories, setCategories]   = useState<string[]>([]);
+  const [productCategories, setProductCategories] = useState<string[]>([]);
+  const [serviceCategories, setServiceCategories] = useState<string[]>([]);
   const [search, setSearch]           = useState('');
   const [filterCat, setFilterCat]     = useState('');
+  const [filterType, setFilterType]   = useState<''|'product'|'service'>('');
   const [loading, setLoading]         = useState(true);
   const [fetchError, setFetchError]   = useState('');
   const [cart, setCart]               = useState<CartItem[]>([]);
@@ -118,11 +121,18 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
     const cachedCats = apiCache.get('/pos/categories');
     if (cachedCats) {
       setCategories(cachedCats);
+      setProductCategories(cachedCats.product || []);
+      setServiceCategories(cachedCats.service || []);
     } else {
       api.get('/pos/products').then(r => {
-        const cats = [...new Set((r.data.data as Product[]).map(p => p.category_name).filter(Boolean))].sort() as string[];
-        apiCache.set('/pos/categories', cats);
-        setCategories(cats);
+        const all = r.data.data as Product[];
+        const prodCats = [...new Set(all.filter(p => (p.item_type || 'product') !== 'service').map(p => p.category_name).filter(Boolean))].sort() as string[];
+        const svcCats  = [...new Set(all.filter(p => p.item_type === 'service').map(p => p.category_name).filter(Boolean))].sort() as string[];
+        const allCats  = [...new Set(all.map(p => p.category_name).filter(Boolean))].sort() as string[];
+        apiCache.set('/pos/categories', { all: allCats, product: prodCats, service: svcCats });
+        setCategories(allCats);
+        setProductCategories(prodCats);
+        setServiceCategories(svcCats);
       }).catch(() => {});
     }
     setTimeout(() => barcodeRef.current?.focus(), 300);
@@ -734,44 +744,73 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
               </div>
             </div>
 
-            {/* Search */}
-            <div className="relative mb-3">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                placeholder="Search product name…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
+            {/* Type filter + Search row */}
+            <div className="flex gap-2 mb-3">
+              <div className="flex rounded-xl border border-gray-200 overflow-hidden shrink-0">
+                <button
+                  onClick={() => { setFilterType(''); setFilterCat(''); }}
+                  className={`px-3 py-2 text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 ${
+                    filterType === '' ? 'bg-[#0D3B6E] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
+                >All</button>
+                <button
+                  onClick={() => { setFilterType('product'); setFilterCat(''); }}
+                  className={`px-3 py-2 text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 border-l border-gray-200 ${
+                    filterType === 'product' ? 'bg-[#0D3B6E] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
+                  title="Products"
+                ><Package className="w-3.5 h-3.5" /></button>
+                <button
+                  onClick={() => { setFilterType('service'); setFilterCat(''); }}
+                  className={`px-3 py-2 text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 border-l border-gray-200 ${
+                    filterType === 'service' ? 'bg-purple-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
+                  title="Services"
+                ><Wrench className="w-3.5 h-3.5" /></button>
+              </div>
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  placeholder="Search…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+              </div>
             </div>
             {/* Category tabs */}
             <div className="flex gap-0 overflow-x-auto">
-              {['', ...categories].map(c => (
+              {['', ...(filterType === 'service' ? serviceCategories : filterType === 'product' ? productCategories : categories)].map(c => (
                 <button
                   key={c}
                   onClick={() => setFilterCat(c)}
                   className={`flex-shrink-0 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
                     filterCat === c
-                      ? 'border-[#0D3B6E] text-[#0D3B6E]'
+                      ? filterType === 'service' ? 'border-purple-600 text-purple-600' : 'border-[#0D3B6E] text-[#0D3B6E]'
                       : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                   }`}
                 >
-                  {c === '' ? 'All Products' : c}
+                  {c === '' ? 'All' : c}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Product count bar */}
-          {!loading && !fetchError && (
-            <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
-              <p className="text-xs text-gray-400">
-                {products.length} product{products.length !== 1 ? 's' : ''}
-                {filterCat && <span> in <strong className="text-gray-600">{filterCat}</strong></span>}
-                {search && <span> matching <strong className="text-gray-600">&ldquo;{search}&rdquo;</strong></span>}
-              </p>
-            </div>
-          )}
+          {!loading && !fetchError && (() => {
+            const visible = filterType
+              ? products.filter(p => (p.item_type || 'product') === filterType)
+              : products;
+            return (
+              <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
+                <p className="text-xs text-gray-400">
+                  {visible.length} {filterType === 'service' ? 'service' : filterType === 'product' ? 'product' : 'item'}{visible.length !== 1 ? 's' : ''}
+                  {filterCat && <span> in <strong className="text-gray-600">{filterCat}</strong></span>}
+                  {search && <span> matching <strong className="text-gray-600">&ldquo;{search}&rdquo;</strong></span>}
+                </p>
+              </div>
+            );
+          })()}
 
           {/* Product grid */}
           <div className="flex-1 overflow-y-auto">
@@ -804,11 +843,14 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-4">
-              {products.map(p => {
+              {products
+                .filter(p => !filterType || (p.item_type || 'product') === filterType)
+                .map(p => {
                 const inCart = cart.find(i => i.product.id === p.id);
                 const isService = p.item_type === 'service';
-                const outOfStock = !isService && p.stock_qty <= 0;
-                const lowStock = !isService && !outOfStock && p.stock_qty <= 5;
+                const isBundle  = p.item_type === 'bundle';
+                const outOfStock = !isService && !isBundle && p.stock_qty <= 0;
+                const lowStock   = !isService && !isBundle && !outOfStock && p.stock_qty <= 5;
                 const catGradients: Record<string, string> = {
                   'Electronics':       'from-blue-100 to-blue-50',
                   'Furniture':         'from-amber-100 to-amber-50',
@@ -827,6 +869,47 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                 };
                 const bg = catGradients[p.category_name] || 'from-gray-100 to-gray-50';
                 const iconColor = catIconColors[p.category_name] || 'text-gray-300';
+
+                // ── Service card ──
+                if (isService) {
+                  const unitLabel = p.unit_type === 'hour' ? '/hr' : p.unit_type === 'day' ? '/day' : p.unit_type === 'unit' ? '/unit' : '';
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => addToCart(p)}
+                      className={`bg-white rounded-xl border overflow-hidden flex flex-col transition-all duration-200 cursor-pointer ${
+                        inCart
+                          ? 'border-purple-500 ring-2 ring-purple-400 shadow-md'
+                          : 'border-gray-100 hover:shadow-lg hover:-translate-y-0.5'
+                      }`}
+                    >
+                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 px-4 py-5 flex flex-col gap-2 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wide bg-purple-100 px-2 py-0.5 rounded-full">Service</span>
+                          {inCart && (
+                            <span className="min-w-[22px] h-[22px] bg-purple-600 rounded-full flex items-center justify-center px-1 shadow">
+                              <span className="text-white text-[11px] font-extrabold">{inCart.quantity}</span>
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{p.name}</h3>
+                        <p className="text-[10px] text-purple-500 font-medium">{p.category_name || 'Service'}</p>
+                        <div className="mt-auto pt-2 flex items-end justify-between">
+                          <div>
+                            <span className="text-lg font-extrabold text-gray-900">GH₵ {parseFloat(String(p.price)).toFixed(2)}</span>
+                            {unitLabel && <span className="text-xs text-gray-400 ml-1">{unitLabel}</span>}
+                          </div>
+                          {inCart
+                            ? <span className="text-[10px] text-purple-600 font-semibold">{inCart.quantity} in cart</span>
+                            : <span className="text-[10px] text-green-600 font-semibold">Available</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // ── Product / Bundle card — tall image card ──
                 return (
                   <div
                     key={p.id}
@@ -839,39 +922,31 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                         : 'border-gray-100 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer'
                     }`}
                   >
-                    {/* Image — same structure as storefront */}
                     <div className={`relative h-44 shrink-0 bg-gradient-to-br ${bg} flex items-center justify-center overflow-hidden`}>
                       {p.images?.[0] ? (
                         <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
                       ) : (
                         <Package className={`w-16 h-16 ${iconColor}`} />
                       )}
-
                       {outOfStock && (
                         <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
                           <span className="text-xs font-bold text-red-500 bg-white px-3 py-1 rounded-full border border-red-200">Out of Stock</span>
                         </div>
                       )}
-
                       {lowStock && (
                         <div className="absolute top-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                           Only {p.stock_qty} left
                         </div>
                       )}
-                      {isService && (
-                        <div className="absolute top-2 left-2 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          Service
-                        </div>
+                      {isBundle && (
+                        <div className="absolute top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Bundle</div>
                       )}
-
                       {inCart && (
                         <div className="absolute top-2 right-2 min-w-[22px] h-[22px] bg-[#0D3B6E] rounded-full flex items-center justify-center px-1 shadow">
                           <span className="text-white text-[11px] font-extrabold">{inCart.quantity}</span>
                         </div>
                       )}
                     </div>
-
-                    {/* Info */}
                     <div className="p-4 flex flex-col flex-1">
                       <div className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide mb-1">{p.category_name || 'General'}</div>
                       <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 leading-snug">{p.name}</h3>
@@ -879,7 +954,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                         <div className="text-lg font-extrabold text-gray-900 mb-1">GH₵ {parseFloat(String(p.price)).toFixed(2)}</div>
                         {!outOfStock && (
                           <div className="text-[10px] text-green-600 font-semibold">
-                            {inCart ? `${inCart.quantity} in cart` : isService ? 'Available' : 'In Stock'}
+                            {inCart ? `${inCart.quantity} in cart` : 'In Stock'}
                           </div>
                         )}
                       </div>
@@ -960,7 +1035,15 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                       {/* Index number */}
                       <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-400 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{idx + 1}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-800 leading-snug truncate">{i.product.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-semibold text-gray-800 leading-snug truncate">{i.product.name}</p>
+                          {i.product.item_type === 'service' && (
+                            <span className="text-[9px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full flex-shrink-0">SVC</span>
+                          )}
+                          {i.product.item_type === 'bundle' && (
+                            <span className="text-[9px] font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full flex-shrink-0">BUNDLE</span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-400 mt-0.5">GH₵ {parseFloat(String(i.product.price)).toFixed(2)} each</p>
                         {/* Qty controls */}
                         <div className="flex items-center gap-2 mt-2">
