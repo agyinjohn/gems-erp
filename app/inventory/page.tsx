@@ -409,7 +409,7 @@ export default function InventoryPage() {
   const [catConfirm, setCatConfirm] = useState<any>(null);
   const [locConfirm, setLocConfirm] = useState<any>(null);
   const [locForm, setLocForm] = useState({ name:'', code:'', type:'shelf', description:'' });
-  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', item_type:'product' as 'product'|'service'|'bundle', unit_type:'unit' as string, duration:'' as string, revenue_account_code:'' as string, images: [] as string[], attributes: {} as Record<string,any>, bundle_items: [] as {product_id:string; quantity:number; name?:string}[] });
+  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', item_type:'product' as 'product'|'service'|'bundle', unit_type:'unit' as string, duration:'' as string, revenue_account_code:'' as string, pricing_mode:'fixed' as 'fixed'|'open', min_price:'' as string, max_price:'' as string, images: [] as string[], attributes: {} as Record<string,any>, bundle_items: [] as {product_id:string; quantity:number; name?:string}[] });
   const [catForm, setCatForm] = useState({ name:'', description:'', scope:'product' as 'product'|'service', custom_fields: [] as FieldDef[] });
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [adjustQty, setAdjustQty] = useState('');
@@ -464,8 +464,8 @@ export default function InventoryPage() {
     (!filterItemType || (p.item_type || 'product') === filterItemType)
   );
 
-  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',item_type:'product',unit_type:'unit',duration:'',revenue_account_code:'',images:[],attributes:{},bundle_items:[] }); setError(''); setModal('add'); };
-  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,item_type:p.item_type||'product',unit_type:p.unit_type||'unit',duration:p.duration||'',revenue_account_code:p.revenue_account_code||'',images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{},bundle_items:(p.bundle_items||[]).map((bi:any)=>({product_id:bi.product_id||bi.product_id?._id,quantity:bi.quantity,name:products.find((x:any)=>x.id===(bi.product_id||bi.product_id?._id))?.name||''})) }); setError(''); setModal('edit'); };
+  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',item_type:'product',unit_type:'unit',duration:'',revenue_account_code:'',pricing_mode:'fixed',min_price:'',max_price:'',images:[],attributes:{},bundle_items:[] }); setError(''); setModal('add'); };
+  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,item_type:p.item_type||'product',unit_type:p.unit_type||'unit',duration:p.duration||'',revenue_account_code:p.revenue_account_code||'',pricing_mode:p.pricing_mode==='open'?'open':'fixed',min_price:p.min_price?String(p.min_price):'',max_price:p.max_price?String(p.max_price):'',images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{},bundle_items:(p.bundle_items||[]).map((bi:any)=>({product_id:bi.product_id||bi.product_id?._id,quantity:bi.quantity,name:products.find((x:any)=>x.id===(bi.product_id||bi.product_id?._id))?.name||''})) }); setError(''); setModal('edit'); };
   const openAdjust = (p: any) => { setSelected(p); setAdjustQty(''); setAdjustType('add'); setAdjustNote(''); setModal('adjust'); };
 
   const save = async () => {
@@ -656,7 +656,11 @@ export default function InventoryPage() {
                 label: 'Price',
                 render: (_, p) => (
                   <div>
-                    <div className="font-semibold text-gray-900">GH₵ {parseFloat(p.price).toLocaleString('en-GH', { minimumFractionDigits: 2 })}</div>
+                    {p.pricing_mode === 'open' ? (
+                      <div className="font-semibold text-purple-600">On request</div>
+                    ) : (
+                      <div className="font-semibold text-gray-900">GH₵ {parseFloat(p.price).toLocaleString('en-GH', { minimumFractionDigits: 2 })}</div>
+                    )}
                     <div className="text-xs text-gray-400 mt-0.5">Cost: GH₵ {parseFloat(p.cost_price).toLocaleString('en-GH', { minimumFractionDigits: 2 })}</div>
                   </div>
                 )
@@ -680,8 +684,14 @@ export default function InventoryPage() {
                   if ((p.item_type || 'product') === 'service') {
                     return (
                       <div className="text-xs text-gray-500">
-                        <span className="capitalize">{p.unit_type || 'fixed'}</span>
-                        {p.duration ? <span className="ml-1 text-gray-400">· {p.duration} {p.unit_type === 'hour' ? 'hr' : p.unit_type === 'day' ? 'day' : ''}</span> : null}
+                        {p.pricing_mode === 'open' ? (
+                          <span className="text-purple-600 font-medium">Quoted at sale</span>
+                        ) : (
+                          <>
+                            <span className="capitalize">{p.unit_type || 'fixed'}</span>
+                            {p.duration ? <span className="ml-1 text-gray-400">· {p.duration} {p.unit_type === 'hour' ? 'hr' : p.unit_type === 'day' ? 'day' : ''}</span> : null}
+                          </>
+                        )}
                       </div>
                     );
                   }
@@ -773,20 +783,55 @@ export default function InventoryPage() {
                 .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
-          <div><label className="form-label">Selling Price (GH₵) *</label><input type="number" {...inputProps('price')} placeholder="0.00" /></div>
+          <div>
+            <label className="form-label">
+              {form.item_type === 'service' && form.pricing_mode === 'open'
+                ? 'Typical Price (GH₵)' : 'Selling Price (GH₵) *'}
+            </label>
+            <input type="number" {...inputProps('price')} placeholder="0.00" />
+            {form.item_type === 'service' && form.pricing_mode === 'open' && (
+              <p className="text-xs text-gray-400 mt-1">Not charged — the amount is entered when the service is sold. Leave 0 if there is no typical figure.</p>
+            )}
+          </div>
           <div><label className="form-label">Cost Price (GH₵)</label><input type="number" {...inputProps('cost_price')} placeholder="0.00" /></div>
           {form.item_type === 'service' ? (
             <>
               <div>
-                <label className="form-label">Unit Type</label>
-                <select {...inputProps('unit_type')}>
-                  <option value="fixed">Fixed price</option>
-                  <option value="hour">Per hour</option>
-                  <option value="day">Per day</option>
-                  <option value="unit">Per unit</option>
+                <label className="form-label">Pricing</label>
+                <select {...inputProps('pricing_mode')}>
+                  <option value="fixed">Set price</option>
+                  <option value="open">Price on request (quoted at sale)</option>
                 </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  {form.pricing_mode === 'open'
+                    ? 'Staff enter the amount at the till. Hidden from the online store, since customers can\u2019t quote themselves.'
+                    : 'Always charged at the price above.'}
+                </p>
               </div>
-              {form.unit_type !== 'fixed' && (
+              {form.pricing_mode === 'open' ? (
+                <>
+                  <div>
+                    <label className="form-label">Minimum (GH₵) <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <input type="number" {...inputProps('min_price')} placeholder="No minimum" />
+                  </div>
+                  <div>
+                    <label className="form-label">Maximum (GH₵) <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <input type="number" {...inputProps('max_price')} placeholder="No maximum" />
+                    <p className="text-xs text-gray-400 mt-1">Guards against a mistyped amount at the till.</p>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="form-label">Unit Type</label>
+                  <select {...inputProps('unit_type')}>
+                    <option value="fixed">Fixed price</option>
+                    <option value="hour">Per hour</option>
+                    <option value="day">Per day</option>
+                    <option value="unit">Per unit</option>
+                  </select>
+                </div>
+              )}
+              {form.pricing_mode !== 'open' && form.unit_type !== 'fixed' && (
                 <div><label className="form-label">Duration ({form.unit_type === 'hour' ? 'hours' : 'days'})</label><input type="number" {...inputProps('duration')} placeholder="e.g. 2" /></div>
               )}
               <div>
