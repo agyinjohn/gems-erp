@@ -18,7 +18,7 @@ interface Milestone {
 }
 interface Task {
   id: string; name: string; milestone_id?: string; weight: number; status: string;
-  due_date?: string; assignee_id?: { first_name: string; last_name: string } | null;
+  due_date?: string; assignee_id?: { name: string } | null;
 }
 interface Variation {
   id: string; reference: string; description: string; amount: number;
@@ -630,7 +630,7 @@ export default function ProjectDetailPage() {
                         }`}>{t.name}</p>
                         <p className="text-xs text-gray-400">
                           {milestones.find(m => m.id === t.milestone_id)?.name || 'No milestone'}
-                          {t.assignee_id && <> · {t.assignee_id.first_name} {t.assignee_id.last_name}</>}
+                          {t.assignee_id?.name && <> · {t.assignee_id.name}</>}
                           {t.weight !== 1 && <> · wt {t.weight}</>}
                         </p>
                       </div>

@@ -25,7 +25,7 @@ interface Project {
   planned_end_date?: string;
   is_overdue?: boolean;
   site_address?: string;
-  manager_id?: { first_name: string; last_name: string } | null;
+  manager_id?: { name: string } | null;
 }
 
 const STATUS_STYLES: Record<string, string> = {
