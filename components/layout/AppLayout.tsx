@@ -19,6 +19,7 @@ const ROUTE_MODULE_MAP: Record<string, string> = {
   '/reports':     'reports',
   '/store-settings': 'online_storefront',
   '/accounting':  'advanced_accounting',
+  '/projects':    'projects',
 };
 
 function getRequiredModule(pathname: string): string | null {

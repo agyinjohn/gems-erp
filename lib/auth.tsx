@@ -52,8 +52,8 @@ interface AuthContextType {
 
 const PLAN_MODULES: Record<string, string[]> = {
   starter:    ['pos', 'inventory', 'sales', 'reports'],
-  pro:        ['pos', 'inventory', 'sales', 'reports', 'online_storefront', 'procurement', 'hr', 'crm'],
-  enterprise: ['pos', 'inventory', 'sales', 'reports', 'online_storefront', 'procurement', 'hr', 'crm', 'advanced_accounting'],
+  pro:        ['pos', 'inventory', 'sales', 'reports', 'online_storefront', 'procurement', 'hr', 'crm', 'projects'],
+  enterprise: ['pos', 'inventory', 'sales', 'reports', 'online_storefront', 'procurement', 'hr', 'crm', 'advanced_accounting', 'projects'],
 };
 
 function getAllowedModules(tenant: Tenant | null): string[] {

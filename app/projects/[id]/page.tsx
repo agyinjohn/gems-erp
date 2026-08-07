@@ -7,7 +7,8 @@ import { useAuth } from '@/lib/auth';
 import { toast, ConfirmDialog } from '@/components/ui';
 import {
   Plus, RefreshCw, Trash2, Check, X, ArrowLeft, AlertTriangle,
-  TrendingUp, TrendingDown, Clock,
+  TrendingUp, TrendingDown, Clock, MapPin, Calendar, User,
+  CheckCircle2, PauseCircle, FileText, Activity,
 } from 'lucide-react';
 
 interface Milestone {
@@ -73,14 +74,29 @@ const WEATHER_LABEL: Record<string, string> = {
 };
 
 const MILESTONE_STATUS = ['not_started', 'in_progress', 'completed', 'blocked'];
-const TASK_STATUS = ['todo', 'in_progress', 'done', 'blocked'];
-const label = (s: string) => (s || '').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+const label = (s: string) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 const STATUS_TONE: Record<string, string> = {
   not_started: 'bg-gray-100 text-gray-600', in_progress: 'bg-amber-50 text-amber-700',
   completed: 'bg-green-50 text-green-700', blocked: 'bg-red-50 text-red-600',
   todo: 'bg-gray-100 text-gray-600', done: 'bg-green-50 text-green-700',
   pending: 'bg-amber-50 text-amber-700', approved: 'bg-green-50 text-green-700', rejected: 'bg-red-50 text-red-600',
+};
+
+const PROJECT_STATUS_STYLE: Record<string, string> = {
+  draft:     'bg-gray-100 text-gray-600',
+  active:    'bg-green-50 text-green-700',
+  on_hold:   'bg-amber-50 text-amber-700',
+  completed: 'bg-blue-50 text-blue-700',
+  cancelled: 'bg-red-50 text-red-600',
+};
+
+const PROJECT_STATUS_ICON: Record<string, React.ReactNode> = {
+  draft:     <FileText className="w-3 h-3" />,
+  active:    <Activity className="w-3 h-3" />,
+  on_hold:   <PauseCircle className="w-3 h-3" />,
+  completed: <CheckCircle2 className="w-3 h-3" />,
+  cancelled: <X className="w-3 h-3" />,
 };
 
 export default function ProjectDetailPage() {
@@ -96,6 +112,7 @@ export default function ProjectDetailPage() {
   const [variations, setVariations] = useState<Variation[]>([]);
   const [fin, setFin] = useState<Financials | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<'progress' | 'money' | 'billing' | 'site'>('progress');
   const [diary, setDiary] = useState<{ entries: DiaryEntry[]; summary: DiarySummary | null }>({ entries: [], summary: null });
   const [docs, setDocs] = useState<ProjectDoc[]>([]);
@@ -121,6 +138,7 @@ export default function ProjectDetailPage() {
   const money = (n: number) => `${fin?.currency || 'GHS'} ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const load = useCallback(async () => {
+    if (!id || id === 'undefined') { setLoading(false); return; }
     setLoading(true);
     try {
       const r = await api.get(`/projects/${id}`);
@@ -139,6 +157,7 @@ export default function ProjectDetailPage() {
       setDiary(dy.data.data);
       setDocs(dc.data.data || []);
       setPicked([]);
+      setLoaded(true);
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Could not load the project');
     } finally {
@@ -146,7 +165,7 @@ export default function ProjectDetailPage() {
     }
   }, [id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (id && id !== 'undefined') load(); }, [load, id]);
 
   const addMilestone = async () => {
     if (!msForm.name.trim()) return toast.error('Give the milestone a name');
@@ -290,15 +309,36 @@ export default function ProjectDetailPage() {
     },
   });
 
-  if (loading && !project) {
-    return <AppLayout title="Project" subtitle="Loading…"><div className="card animate-pulse h-40" /></AppLayout>;
+  if (loading || !loaded) {
+    return (
+      <AppLayout title="Project" subtitle="Loading…">
+        <div className="space-y-4">
+          <div className="card animate-pulse h-28" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[...Array(4)].map((_, i) => <div key={i} className="card animate-pulse h-20" />)}
+          </div>
+        </div>
+      </AppLayout>
+    );
   }
   if (!project) {
-    return <AppLayout title="Project" subtitle="Not found"><div className="card text-center py-16 text-gray-500">This project could not be loaded.</div></AppLayout>;
+    return (
+      <AppLayout title="Project" subtitle="Not found">
+        <div className="card text-center py-20">
+          <FileText className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+          <p className="font-semibold text-gray-600">Project not found</p>
+          <button className="btn-secondary mt-4" onClick={() => router.push('/projects')}>
+            <ArrowLeft className="w-4 h-4" /> Back to projects
+          </button>
+        </div>
+      </AppLayout>
+    );
   }
 
   const overdue = project.planned_end_date && !['completed', 'cancelled'].includes(project.status)
     && new Date(project.planned_end_date) < new Date();
+  const pct = Math.min(100, Math.max(0, fin?.progress_pct || 0));
+  const marginPositive = (fin?.margin_to_date || 0) >= 0;
 
   return (
     <AppLayout
@@ -307,85 +347,165 @@ export default function ProjectDetailPage() {
       allowedRoles={['platform_admin', 'business_owner', 'branch_manager', 'accountant']}
     >
       <div className="space-y-5">
+
+        {/* Top bar */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <button type="button" onClick={() => router.push('/projects')} className="btn-ghost text-sm">
             <ArrowLeft className="w-4 h-4" /> All projects
           </button>
           <button type="button" onClick={load} className="btn-secondary" disabled={loading}>
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
 
-        {overdue && (
-          <div className="flex items-start gap-2.5 bg-red-50 text-red-800 rounded-xl px-4 py-3 text-sm">
-            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>Past its planned completion of {new Date(project.planned_end_date).toLocaleDateString()} and still {label(project.status).toLowerCase()}.</span>
-          </div>
-        )}
-
-        {/* Headline numbers */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="card">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Progress</p>
-            <p className="text-2xl font-extrabold text-gray-900 mt-1">{Math.round(fin?.progress_pct || 0)}%</p>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-2">
-              <div className="h-full bg-[#0D3B6E] rounded-full" style={{ width: `${Math.min(100, fin?.progress_pct || 0)}%` }} />
+        {/* Project info banner */}
+        <div className="card">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="text-xs font-mono text-gray-400 tracking-wide">{project.code}</span>
+                <span className={`badge gap-1 ${PROJECT_STATUS_STYLE[project.status] || PROJECT_STATUS_STYLE.draft}`}>
+                  {PROJECT_STATUS_ICON[project.status]} {label(project.status)}
+                </span>
+                {overdue && (
+                  <span className="badge bg-red-50 text-red-600 gap-1">
+                    <AlertTriangle className="w-3 h-3" /> Overdue
+                  </span>
+                )}
+              </div>
+              <h1 className="text-lg font-bold text-gray-900 truncate">{project.name}</h1>
+              {project.description && (
+                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{project.description}</p>
+              )}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                {project.customer_name && (
+                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                    <User className="w-3 h-3" /> {project.customer_name}
+                  </span>
+                )}
+                {project.site_address && (
+                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" /> {project.site_address}
+                  </span>
+                )}
+                {project.start_date && (
+                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(project.start_date).toLocaleDateString()}
+                    {project.planned_end_date && ` → ${new Date(project.planned_end_date).toLocaleDateString()}`}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="card">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Contract</p>
-            <p className="text-2xl font-extrabold text-gray-900 mt-1">{money(fin?.effective_contract || 0)}</p>
-            {!!fin?.approved_variations && (
-              <p className="text-xs text-gray-400 mt-1">incl. {money(fin.approved_variations)} variations</p>
-            )}
-          </div>
-          <div className="card">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Cost so far</p>
-            <p className="text-2xl font-extrabold text-gray-900 mt-1">{money(fin?.actual_cost || 0)}</p>
-            {!!fin?.committed_cost && <p className="text-xs text-gray-400 mt-1">+ {money(fin.committed_cost)} committed</p>}
-          </div>
-          <div className="card">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Margin to date</p>
-            <p className={`text-2xl font-extrabold mt-1 inline-flex items-center gap-1 ${(fin?.margin_to_date || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {(fin?.margin_to_date || 0) >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
-              {money(Math.abs(fin?.margin_to_date || 0))}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">Work done less cost</p>
+            {/* Overall progress ring-style bar */}
+            <div className="sm:w-40 flex-shrink-0">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-gray-400 font-medium">Overall progress</span>
+                <span className="font-bold text-gray-800">{Math.round(pct)}%</span>
+              </div>
+              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    project.status === 'completed' ? 'bg-blue-500' :
+                    project.status === 'on_hold'   ? 'bg-amber-400' : 'bg-[#0D3B6E]'
+                  }`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                {milestones.length} milestone{milestones.length !== 1 ? 's' : ''} · {tasks.length} task{tasks.length !== 1 ? 's' : ''}
+              </p>
+            </div>
           </div>
         </div>
 
+        {/* Alerts */}
+        {overdue && (
+          <div className="flex items-start gap-2.5 bg-red-50 text-red-800 rounded-xl px-4 py-3 text-sm">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>
+              Past its planned completion of {new Date(project.planned_end_date).toLocaleDateString()} and still {label(project.status).toLowerCase()}.
+            </span>
+          </div>
+        )}
         {fin?.is_over_budget && (
           <div className="flex items-start gap-2.5 bg-amber-50 text-amber-800 rounded-xl px-4 py-3 text-sm">
             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <span>
-              Costs and commitments of {money(fin.forecast_cost)} are past the {money(fin.budget)} budget
-              by {money(Math.abs(fin.budget_variance))}.
+              Forecast cost of {money(fin.forecast_cost)} exceeds the {money(fin.budget)} budget by {money(Math.abs(fin.budget_variance))}.
             </span>
           </div>
         )}
 
+        {/* KPI cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="card">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Progress</p>
+            <p className="text-2xl font-extrabold text-gray-900 mt-1">{Math.round(pct)}%</p>
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-2">
+              <div className="h-full bg-[#0D3B6E] rounded-full transition-all" style={{ width: `${pct}%` }} />
+            </div>
+            <p className="text-xs text-gray-400 mt-1.5">{milestones.filter(m => m.status === 'completed').length} of {milestones.length} stages done</p>
+          </div>
+          <div className="card">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Contract</p>
+            <p className="text-2xl font-extrabold text-gray-900 mt-1">{money(fin?.effective_contract || 0)}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {fin?.approved_variations ? `+${money(fin.approved_variations)} variations` : 'No variations'}
+            </p>
+          </div>
+          <div className="card">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Cost so far</p>
+            <p className="text-2xl font-extrabold text-gray-900 mt-1">{money(fin?.actual_cost || 0)}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {fin?.committed_cost ? `+${money(fin.committed_cost)} committed` : 'No commitments'}
+            </p>
+          </div>
+          <div className="card">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Margin to date</p>
+            <p className={`text-2xl font-extrabold mt-1 inline-flex items-center gap-1 ${marginPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {marginPositive ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+              {money(Math.abs(fin?.margin_to_date || 0))}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">Earned value less cost</p>
+          </div>
+        </div>
+
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-gray-200">
-          {(['progress', 'money', 'billing', 'site'] as const).map(t => (
+        <div className="flex gap-0 border-b border-gray-200 overflow-x-auto">
+          {([
+            { key: 'progress', label: 'Progress' },
+            { key: 'money',    label: 'Money' },
+            { key: 'billing',  label: 'Billing' },
+            { key: 'site',     label: 'Site' },
+          ] as const).map(t => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
-                tab === t ? 'border-[#0D3B6E] text-[#0D3B6E]' : 'border-transparent text-gray-500 hover:text-gray-800'
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2.5 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors ${
+                tab === t.key
+                  ? 'border-[#0D3B6E] text-[#0D3B6E]'
+                  : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
-            >{t === 'progress' ? 'Progress' : t === 'money' ? 'Money' : t === 'billing' ? 'Billing' : 'Site'}</button>
+            >{t.label}</button>
           ))}
         </div>
 
-        {tab === 'progress' ? (
+        {tab === 'progress' && (
           <>
             {/* Milestones */}
             <div className="card">
-              <div className="mb-4">
-                <h2 className="font-bold text-gray-900">Milestones</h2>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  Overall progress is the weighted average of these — a heavier stage moves the number more.
-                </p>
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="font-bold text-gray-900">Milestones</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Overall progress is the weighted average — a heavier stage moves the number more.
+                  </p>
+                </div>
+                <span className="text-xs text-gray-400 font-medium whitespace-nowrap">
+                  {milestones.filter(m => m.status === 'completed').length}/{milestones.length} done
+                </span>
               </div>
 
               {milestones.length === 0 ? (
@@ -394,20 +514,28 @@ export default function ProjectDetailPage() {
                 <div className="space-y-2 mb-4">
                   {milestones.map(m => {
                     const own = tasks.filter(t => t.milestone_id === m.id);
+                    const doneTasks = own.filter(t => t.status === 'done').length;
                     return (
                       <div key={m.id} className="bg-gray-50 rounded-xl px-4 py-3 ring-1 ring-gray-100">
                         <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-semibold text-gray-800 text-sm">{m.name}</p>
                               <span className={`badge ${STATUS_TONE[m.status]}`}>{label(m.status)}</span>
-                              <span className="text-xs text-gray-400">weight {m.weight}</span>
+                              <span className="text-xs text-gray-400">wt {m.weight}</span>
                             </div>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              {Math.round(m.progress_pct)}% · {own.length} task{own.length === 1 ? '' : 's'}
-                              {m.billable_amount > 0 && <> · bills {money(m.billable_amount)}</>}
-                              {m.planned_end && <> · due {new Date(m.planned_end).toLocaleDateString()}</>}
-                            </p>
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                              <span className="text-xs text-gray-500">{Math.round(m.progress_pct)}% complete</span>
+                              {own.length > 0 && (
+                                <span className="text-xs text-gray-400">{doneTasks}/{own.length} tasks</span>
+                              )}
+                              {m.billable_amount > 0 && (
+                                <span className="text-xs text-gray-400">bills {money(m.billable_amount)}</span>
+                              )}
+                              {m.planned_end && (
+                                <span className="text-xs text-gray-400">due {new Date(m.planned_end).toLocaleDateString()}</span>
+                              )}
+                            </div>
                           </div>
                           {canManage && (
                             <div className="flex items-center gap-2 flex-shrink-0">
@@ -424,8 +552,15 @@ export default function ProjectDetailPage() {
                             </div>
                           )}
                         </div>
-                        <div className="h-1.5 bg-white rounded-full overflow-hidden mt-2">
-                          <div className="h-full bg-[#0D3B6E] rounded-full" style={{ width: `${Math.min(100, m.progress_pct)}%` }} />
+                        <div className="h-1.5 bg-white rounded-full overflow-hidden mt-2.5">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              m.status === 'completed' ? 'bg-green-500' :
+                              m.status === 'blocked'   ? 'bg-red-400' :
+                              m.status === 'in_progress' ? 'bg-[#0D3B6E]' : 'bg-gray-300'
+                            }`}
+                            style={{ width: `${Math.min(100, m.progress_pct)}%` }}
+                          />
                         </div>
                       </div>
                     );
@@ -436,7 +571,7 @@ export default function ProjectDetailPage() {
               {canManage && (
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 border-t border-gray-100 pt-4">
                   <div className="sm:col-span-2">
-                    <label className="form-label text-xs">Milestone</label>
+                    <label className="form-label text-xs">Milestone name</label>
                     <input className="form-input" placeholder="e.g. Foundation" value={msForm.name} onChange={e => setMsForm(f => ({ ...f, name: e.target.value }))} />
                   </div>
                   <div>
@@ -444,7 +579,7 @@ export default function ProjectDetailPage() {
                     <input type="number" min={0} className="form-input" value={msForm.weight} onChange={e => setMsForm(f => ({ ...f, weight: e.target.value }))} />
                   </div>
                   <div>
-                    <label className="form-label text-xs">Due</label>
+                    <label className="form-label text-xs">Due date</label>
                     <input type="date" className="form-input" value={msForm.planned_end} onChange={e => setMsForm(f => ({ ...f, planned_end: e.target.value }))} />
                   </div>
                   <div className="flex items-end">
@@ -458,42 +593,55 @@ export default function ProjectDetailPage() {
 
             {/* Tasks */}
             <div className="card">
-              <div className="mb-4">
-                <h2 className="font-bold text-gray-900">Tasks</h2>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  Tasks roll up into their milestone. In-progress counts as half done.
-                </p>
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="font-bold text-gray-900">Tasks</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Tasks roll up into their milestone. In-progress counts as half done.
+                  </p>
+                </div>
+                <span className="text-xs text-gray-400 font-medium whitespace-nowrap">
+                  {tasks.filter(t => t.status === 'done').length}/{tasks.length} done
+                </span>
               </div>
 
               {tasks.length === 0 ? (
-                <p className="text-sm text-gray-400 mb-4">No tasks yet.</p>
+                <p className="text-sm text-gray-400 mb-4">No tasks yet. Add tasks to track granular work within each milestone.</p>
               ) : (
                 <div className="space-y-1.5 mb-4">
                   {tasks.map(t => (
                     <div key={t.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5 ring-1 ring-gray-100">
                       <button
                         onClick={() => cycleTask(t)}
-                        title="Change status"
+                        title="Click to cycle status"
                         className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                          t.status === 'done' ? 'bg-green-500 border-green-500 text-white'
-                            : t.status === 'in_progress' ? 'border-amber-400 bg-amber-100'
-                            : t.status === 'blocked' ? 'border-red-400 bg-red-50'
-                            : 'border-gray-300 bg-white'
+                          t.status === 'done'        ? 'bg-green-500 border-green-500 text-white'
+                          : t.status === 'in_progress' ? 'border-amber-400 bg-amber-50'
+                          : t.status === 'blocked'     ? 'border-red-400 bg-red-50'
+                          : 'border-gray-300 bg-white'
                         }`}
                       >
-                        {t.status === 'done' && <Check className="w-3 h-3" />}
-                        {t.status === 'in_progress' && <Clock className="w-3 h-3 text-amber-600" />}
+                        {t.status === 'done'        && <Check className="w-3 h-3" />}
+                        {t.status === 'in_progress' && <Clock className="w-3 h-3 text-amber-500" />}
                       </button>
                       <div className="min-w-0 flex-1">
-                        <p className={`text-sm ${t.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{t.name}</p>
+                        <p className={`text-sm font-medium ${
+                          t.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-800'
+                        }`}>{t.name}</p>
                         <p className="text-xs text-gray-400">
-                          {milestones.find(m => m.id === t.milestone_id)?.name || 'Unassigned stage'}
+                          {milestones.find(m => m.id === t.milestone_id)?.name || 'No milestone'}
                           {t.assignee_id && <> · {t.assignee_id.first_name} {t.assignee_id.last_name}</>}
-                          {t.weight !== 1 && <> · weight {t.weight}</>}
+                          {t.weight !== 1 && <> · wt {t.weight}</>}
                         </p>
                       </div>
+                      <span className={`badge text-xs flex-shrink-0 ${
+                        t.status === 'done'        ? 'bg-green-50 text-green-700'
+                        : t.status === 'in_progress' ? 'bg-amber-50 text-amber-700'
+                        : t.status === 'blocked'     ? 'bg-red-50 text-red-600'
+                        : 'bg-gray-100 text-gray-500'
+                      }`}>{label(t.status)}</span>
                       {canManage && (
-                        <button onClick={() => removeIt('task', `/projects/${id}/tasks/${t.id}`, t.name)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
+                        <button onClick={() => removeIt('task', `/projects/${id}/tasks/${t.id}`, t.name)} className="text-gray-300 hover:text-red-500 flex-shrink-0 transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}
@@ -504,7 +652,7 @@ export default function ProjectDetailPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 border-t border-gray-100 pt-4">
                 <div className="sm:col-span-2">
-                  <label className="form-label text-xs">Task</label>
+                  <label className="form-label text-xs">Task name</label>
                   <input className="form-input" placeholder="e.g. Excavate footings" value={taskForm.name} onChange={e => setTaskForm(f => ({ ...f, name: e.target.value }))} />
                 </div>
                 <div>
@@ -526,77 +674,99 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           </>
-        ) : (
+        )}
+
+        {tab === 'money' && (
           <>
-            {/* Cost position */}
+            {/* Cost vs contract summary */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="card">
                 <h2 className="font-bold text-gray-900 mb-4">Cost position</h2>
-                <dl className="space-y-3 text-sm">
+                <dl className="space-y-2.5 text-sm">
                   {[
-                    ['Budget', fin?.budget, 'text-gray-900'],
-                    ['Expenses posted', fin?.expenses, 'text-gray-600'],
-                    ['Labour booked', fin?.labour_cost, 'text-gray-600'],
-                    ['Committed (POs raised)', fin?.committed_cost, 'text-gray-600'],
-                  ].map(([l, v, tone]) => (
-                    <div key={l as string} className="flex justify-between">
-                      <dt className="text-gray-500">{l as string}</dt>
-                      <dd className={`font-semibold ${tone as string}`}>{money(v as number)}</dd>
+                    { l: 'Budget',                  v: fin?.budget,         tone: 'text-gray-900', bold: false },
+                    { l: 'Expenses posted',          v: fin?.expenses,       tone: 'text-gray-700', bold: false },
+                    { l: 'Labour booked',            v: fin?.labour_cost,    tone: 'text-gray-700', bold: false },
+                    { l: 'Committed (POs raised)',   v: fin?.committed_cost, tone: 'text-gray-700', bold: false },
+                  ].map(({ l, v, tone, bold }) => (
+                    <div key={l} className="flex justify-between items-center">
+                      <dt className="text-gray-500">{l}</dt>
+                      <dd className={`${bold ? 'font-bold' : 'font-semibold'} ${tone}`}>{money(v as number)}</dd>
                     </div>
                   ))}
-                  <div className="flex justify-between pt-3 border-t border-gray-100">
-                    <dt className="text-gray-900 font-semibold">Forecast cost</dt>
-                    <dd className={`font-bold ${fin?.is_over_budget ? 'text-red-600' : 'text-gray-900'}`}>{money(fin?.forecast_cost || 0)}</dd>
+                  <div className="flex justify-between items-center pt-2.5 border-t border-gray-100">
+                    <dt className="font-semibold text-gray-900">Forecast cost</dt>
+                    <dd className={`font-bold ${fin?.is_over_budget ? 'text-red-600' : 'text-gray-900'}`}>
+                      {money(fin?.forecast_cost || 0)}
+                    </dd>
                   </div>
-                  <div className="flex justify-between">
-                    <dt className="text-gray-500">Against budget</dt>
-                    <dd className={`font-semibold ${(fin?.budget_variance || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  <div className="flex justify-between items-center">
+                    <dt className="text-gray-500">Budget variance</dt>
+                    <dd className={`font-semibold ${
+                      (fin?.budget_variance || 0) < 0 ? 'text-red-600' : 'text-green-600'
+                    }`}>
                       {(fin?.budget_variance || 0) < 0 ? '−' : '+'}{money(Math.abs(fin?.budget_variance || 0))}
                     </dd>
                   </div>
                 </dl>
-                <p className="text-xs text-gray-400 mt-4">
-                  Cost comes from expenses and purchase orders tagged to this project, plus booked labour — so it stays in step with your accounts.
+                {fin?.budget && fin.budget > 0 && (
+                  <div className="mt-4">
+                    <div className="flex justify-between text-xs text-gray-400 mb-1">
+                      <span>Spent vs budget</span>
+                      <span>{Math.round(((fin.actual_cost + fin.committed_cost) / fin.budget) * 100)}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          fin.is_over_budget ? 'bg-red-500' : 'bg-[#0D3B6E]'
+                        }`}
+                        style={{ width: `${Math.min(100, ((fin.actual_cost + fin.committed_cost) / fin.budget) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs text-gray-400 mt-3">
+                  Cost is pulled from expenses and POs tagged to this project, plus booked labour.
                 </p>
               </div>
 
               <div className="card">
-                <h2 className="font-bold text-gray-900 mb-4">Contract &amp; billing</h2>
-                <dl className="space-y-3 text-sm">
-                  <div className="flex justify-between">
+                <h2 className="font-bold text-gray-900 mb-4">Contract &amp; earned value</h2>
+                <dl className="space-y-2.5 text-sm">
+                  <div className="flex justify-between items-center">
                     <dt className="text-gray-500">Original contract</dt>
                     <dd className="font-semibold text-gray-900">{money(fin?.contract_value || 0)}</dd>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <dt className="text-gray-500">Approved variations</dt>
-                    <dd className="font-semibold text-gray-600">{money(fin?.approved_variations || 0)}</dd>
+                    <dd className="font-semibold text-gray-700">{money(fin?.approved_variations || 0)}</dd>
                   </div>
-                  <div className="flex justify-between pt-3 border-t border-gray-100">
-                    <dt className="text-gray-900 font-semibold">Effective contract</dt>
+                  <div className="flex justify-between items-center pt-2.5 border-t border-gray-100">
+                    <dt className="font-semibold text-gray-900">Effective contract</dt>
                     <dd className="font-bold text-gray-900">{money(fin?.effective_contract || 0)}</dd>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <dt className="text-gray-500">Work done ({Math.round(fin?.progress_pct || 0)}%)</dt>
                     <dd className="font-semibold text-gray-900">{money(fin?.earned_value || 0)}</dd>
                   </div>
-                  <div className="flex justify-between">
-                    <dt className="text-gray-500">Invoiced</dt>
-                    <dd className="font-semibold text-gray-600">{money(fin?.invoiced || 0)}</dd>
+                  <div className="flex justify-between items-center">
+                    <dt className="text-gray-500">Invoiced to date</dt>
+                    <dd className="font-semibold text-gray-700">{money(fin?.invoiced || 0)}</dd>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <dt className="text-gray-500">Not yet billed</dt>
                     <dd className="font-semibold text-amber-600">{money(fin?.unbilled || 0)}</dd>
                   </div>
                   {!!fin?.retention_pct && (
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <dt className="text-gray-500">Retention held ({fin.retention_pct}%)</dt>
                       <dd className="font-semibold text-gray-600">{money(fin.retention_held)}</dd>
                     </div>
                   )}
                 </dl>
                 {!!fin?.pending_variations && (
-                  <p className="text-xs text-amber-600 mt-4">
-                    {money(fin.pending_variations)} of variations are still pending and are not counted above.
+                  <p className="text-xs text-amber-600 mt-3 bg-amber-50 rounded-lg px-3 py-2">
+                    {money(fin.pending_variations)} in pending variations not counted above.
                   </p>
                 )}
               </div>
@@ -604,20 +774,27 @@ export default function ProjectDetailPage() {
 
             {/* Variations */}
             <div className="card">
-              <div className="mb-4">
-                <h2 className="font-bold text-gray-900">Variations</h2>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  Changes to the agreed scope. Only approved ones move the contract sum. A negative amount is an omission.
-                </p>
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="font-bold text-gray-900">Variations</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Changes to the agreed scope. Only approved ones move the contract sum.
+                  </p>
+                </div>
+                {variations.length > 0 && (
+                  <span className="text-xs text-gray-400 font-medium whitespace-nowrap">
+                    {variations.filter(v => v.status === 'approved').length} approved
+                  </span>
+                )}
               </div>
 
               {variations.length === 0 ? (
-                <p className="text-sm text-gray-400 mb-4">None raised.</p>
+                <p className="text-sm text-gray-400 mb-4">None raised yet.</p>
               ) : (
                 <div className="space-y-2 mb-4">
                   {variations.map(v => (
                     <div key={v.id} className="flex items-start justify-between gap-3 bg-gray-50 rounded-xl px-4 py-3 ring-1 ring-gray-100">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono text-xs text-gray-500">{v.reference}</span>
                           <span className={`badge ${STATUS_TONE[v.status]}`}>{label(v.status)}</span>
@@ -626,17 +803,28 @@ export default function ProjectDetailPage() {
                         <p className="text-xs text-gray-400 mt-0.5">{new Date(v.raised_on).toLocaleDateString()}</p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={`font-bold text-sm ${v.amount < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                        <span className={`font-bold text-sm ${
+                          v.amount < 0 ? 'text-red-600' : 'text-green-700'
+                        }`}>
                           {v.amount < 0 ? '−' : '+'}{money(Math.abs(v.amount))}
                         </span>
                         {isOwner && v.status === 'pending' && (
                           <>
-                            <button onClick={() => decide(v, 'approved')} title="Approve" className="p-1.5 rounded-lg text-green-600 hover:bg-green-50"><Check className="w-4 h-4" /></button>
-                            <button onClick={() => decide(v, 'rejected')} title="Reject" className="p-1.5 rounded-lg text-red-500 hover:bg-red-50"><X className="w-4 h-4" /></button>
+                            <button onClick={() => decide(v, 'approved')} title="Approve"
+                              className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors">
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => decide(v, 'rejected')} title="Reject"
+                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors">
+                              <X className="w-4 h-4" />
+                            </button>
                           </>
                         )}
                         {canManage && (
-                          <button onClick={() => removeIt('variation', `/projects/${id}/variations/${v.id}`, v.reference)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => removeIt('variation', `/projects/${id}/variations/${v.id}`, v.reference)}
+                            className="text-gray-300 hover:text-red-500 transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         )}
                       </div>
                     </div>
@@ -655,7 +843,7 @@ export default function ProjectDetailPage() {
                     <input className="form-input" placeholder="auto" value={voForm.reference} onChange={e => setVoForm(f => ({ ...f, reference: e.target.value }))} />
                   </div>
                   <div>
-                    <label className="form-label text-xs">Amount</label>
+                    <label className="form-label text-xs">Amount (+/−)</label>
                     <input type="number" className="form-input" placeholder="0.00" value={voForm.amount} onChange={e => setVoForm(f => ({ ...f, amount: e.target.value }))} />
                   </div>
                   <div className="flex items-end">
@@ -679,17 +867,17 @@ export default function ProjectDetailPage() {
 
           return (
             <>
-              {/* Position */}
+              {/* Billing position cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                  ['Certified to date', pos?.certified_to_date, 'text-gray-900'],
-                  ['Left to certify', pos?.remaining_to_certify, 'text-gray-900'],
-                  ['Retention held by client', pos?.retention_outstanding, 'text-amber-600'],
-                  ['Received', pos?.received, 'text-green-600'],
-                ].map(([l, v, tone]) => (
-                  <div key={l as string} className="card">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{l as string}</p>
-                    <p className={`text-xl font-extrabold mt-1 ${tone as string}`}>{money(v as number)}</p>
+                  { l: 'Certified to date',       v: pos?.certified_to_date,    tone: 'text-gray-900' },
+                  { l: 'Left to certify',          v: pos?.remaining_to_certify, tone: 'text-gray-900' },
+                  { l: 'Retention held by client', v: pos?.retention_outstanding, tone: 'text-amber-600' },
+                  { l: 'Received',                 v: pos?.received,             tone: 'text-green-600' },
+                ].map(({ l, v, tone }) => (
+                  <div key={l} className="card">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{l}</p>
+                    <p className={`text-xl font-extrabold mt-1 ${tone}`}>{money(v as number)}</p>
                   </div>
                 ))}
               </div>
@@ -697,17 +885,17 @@ export default function ProjectDetailPage() {
               {(pos?.uncertified_earned || 0) > 0 && (
                 <div className="flex items-start gap-2.5 bg-blue-50 text-blue-800 rounded-xl px-4 py-3 text-sm">
                   <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>{money(pos!.uncertified_earned)} of work has been done but not yet put on an application.</span>
+                  <span>{money(pos!.uncertified_earned)} of work is done but not yet on an application.</span>
                 </div>
               )}
 
-              {/* Raise an application */}
+              {/* Raise application */}
               {canManage && (
                 <div className="card">
                   <div className="mb-4">
                     <h2 className="font-bold text-gray-900">Raise an application</h2>
                     <p className="text-sm text-gray-500 mt-0.5">
-                      Certify completed stages, or enter an amount. Retention comes off the top and stays with the client until released.
+                      Certify completed stages or enter an amount. Retention is withheld and released separately.
                     </p>
                   </div>
 
@@ -715,7 +903,7 @@ export default function ProjectDetailPage() {
                     <div className="space-y-1.5 mb-4">
                       <p className="form-label">Completed stages not yet billed</p>
                       {billing!.billable_milestones.map(m => (
-                        <label key={m.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5 ring-1 ring-gray-100 cursor-pointer">
+                        <label key={m.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5 ring-1 ring-gray-100 cursor-pointer hover:bg-gray-100 transition-colors">
                           <input
                             type="checkbox"
                             checked={picked.includes(m.id)}
@@ -733,9 +921,7 @@ export default function ProjectDetailPage() {
                     <div>
                       <label className="form-label">{picked.length ? 'Amount (from stages)' : 'Amount'}</label>
                       <input
-                        type="number"
-                        className="form-input"
-                        placeholder="0.00"
+                        type="number" className="form-input" placeholder="0.00"
                         value={picked.length ? pickedTotal.toFixed(2) : billForm.amount}
                         disabled={picked.length > 0}
                         onChange={e => setBillForm(f => ({ ...f, amount: e.target.value }))}
@@ -753,18 +939,27 @@ export default function ProjectDetailPage() {
 
                   {gross > 0 && (
                     <dl className="mt-4 bg-gray-50 rounded-xl p-4 ring-1 ring-gray-100 space-y-2 text-sm max-w-sm">
-                      <div className="flex justify-between"><dt className="text-gray-500">Work certified</dt><dd className="font-semibold text-gray-900">{money(gross)}</dd></div>
-                      <div className="flex justify-between"><dt className="text-gray-500">Less retention ({pos?.retention_pct || 0}%)</dt><dd className="font-semibold text-amber-600">− {money(retention)}</dd></div>
-                      <div className="flex justify-between pt-2 border-t border-gray-200"><dt className="text-gray-900 font-semibold">Now due</dt><dd className="font-bold text-gray-900">{money(gross - retention)}</dd></div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-500">Work certified</dt>
+                        <dd className="font-semibold text-gray-900">{money(gross)}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-500">Less retention ({pos?.retention_pct || 0}%)</dt>
+                        <dd className="font-semibold text-amber-600">− {money(retention)}</dd>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t border-gray-200">
+                        <dt className="font-semibold text-gray-900">Now due</dt>
+                        <dd className="font-bold text-gray-900">{money(gross - retention)}</dd>
+                      </div>
                     </dl>
                   )}
 
-                  <button type="button" className="btn-primary mt-4" onClick={raiseApplication} disabled={billing_busy}>
-                    <Plus className="w-4 h-4" /> {billing_busy ? 'Raising…' : 'Raise application'}
-                  </button>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Creates a draft invoice. Send it from Accounting to post it to the ledger.
-                  </p>
+                  <div className="flex items-center gap-3 mt-4">
+                    <button type="button" className="btn-primary" onClick={raiseApplication} disabled={billing_busy}>
+                      <Plus className="w-4 h-4" /> {billing_busy ? 'Raising…' : 'Raise application'}
+                    </button>
+                    <p className="text-xs text-gray-400">Creates a draft invoice in Accounting.</p>
+                  </div>
                 </div>
               )}
 
@@ -774,7 +969,7 @@ export default function ProjectDetailPage() {
                   <div className="mb-4">
                     <h2 className="font-bold text-gray-900">Release retention</h2>
                     <p className="text-sm text-gray-500 mt-0.5">
-                      {money(pos!.retention_outstanding)} still held. Most contracts release in stages — part at completion, the rest after the defects period.
+                      {money(pos!.retention_outstanding)} still held. Release in stages — part at completion, rest after defects period.
                     </p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -795,9 +990,14 @@ export default function ProjectDetailPage() {
                 </div>
               )}
 
-              {/* Applications raised */}
+              {/* Applications table */}
               <div className="card">
-                <h2 className="font-bold text-gray-900 mb-4">Applications</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-bold text-gray-900">Applications raised</h2>
+                  {billing?.invoices.length ? (
+                    <span className="text-xs text-gray-400">{billing.invoices.length} invoice{billing.invoices.length !== 1 ? 's' : ''}</span>
+                  ) : null}
+                </div>
                 {!billing?.invoices.length ? (
                   <p className="text-sm text-gray-400">Nothing raised yet.</p>
                 ) : (
@@ -815,16 +1015,33 @@ export default function ProjectDetailPage() {
                       </thead>
                       <tbody>
                         {billing.invoices.map(inv => (
-                          <tr key={inv.id} className="border-t border-gray-100">
-                            <td className="px-4 py-3 font-mono text-xs text-gray-600">
-                              {inv.invoice_number}
-                              {inv.is_retention_release && <span className="ml-2 badge bg-blue-50 text-blue-700">Retention</span>}
+                          <tr key={inv.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-3">
+                              <span className="font-mono text-xs text-gray-700">{inv.invoice_number}</span>
+                              {inv.is_retention_release && (
+                                <span className="ml-2 badge bg-blue-50 text-blue-700">Retention</span>
+                              )}
                             </td>
-                            <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{new Date(inv.issue_date).toLocaleDateString()}</td>
-                            <td className="px-4 py-3 text-right text-gray-600">{inv.work_value ? money(inv.work_value) : '—'}</td>
-                            <td className="px-4 py-3 text-right text-amber-600">{inv.retention_amount ? `− ${money(inv.retention_amount)}` : '—'}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-gray-900 whitespace-nowrap">{money(inv.total)}</td>
-                            <td className="px-4 py-3"><span className="badge bg-gray-100 text-gray-600">{label(inv.status)}</span></td>
+                            <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">
+                              {new Date(inv.issue_date).toLocaleDateString()}
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-600 text-xs">
+                              {inv.work_value ? money(inv.work_value) : '—'}
+                            </td>
+                            <td className="px-4 py-3 text-right text-amber-600 text-xs">
+                              {inv.retention_amount ? `− ${money(inv.retention_amount)}` : '—'}
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-gray-900 whitespace-nowrap text-xs">
+                              {money(inv.total)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`badge ${
+                                inv.status === 'paid'           ? 'bg-green-50 text-green-700' :
+                                inv.status === 'partially_paid' ? 'bg-amber-50 text-amber-700' :
+                                inv.status === 'overdue'        ? 'bg-red-50 text-red-600' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>{label(inv.status)}</span>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
