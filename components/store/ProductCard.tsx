@@ -17,8 +17,9 @@ interface Props {
 }
 
 export default function ProductCard({ product: p, inCartQty, showBranch, cartLoading, wishlisted, onOpen, onAdd, onUpdateQty, onToggleWishlist }: Props) {
-  const outOfStock = p.stock_qty <= 0;
-  const lowStock = p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5);
+  const isService = p.item_type === 'service';
+  const outOfStock = !isService && p.stock_qty <= 0;
+  const lowStock = !isService && p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5);
   const multiImage = getProductImages(p).length > 1;
 
   return (
@@ -37,6 +38,11 @@ export default function ProductCard({ product: p, inCartQty, showBranch, cartLoa
           {lowStock && (
             <span className="absolute top-2 left-2 store-badge store-badge-warn text-[9px] px-2 py-0.5">
               Only {p.stock_qty} left
+            </span>
+          )}
+          {isService && (
+            <span className="absolute top-2 left-2 store-badge bg-purple-600 text-white text-[9px] px-2 py-0.5">
+              Service
             </span>
           )}
           {!lowStock && p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) + 0.01 && (
@@ -117,7 +123,7 @@ export default function ProductCard({ product: p, inCartQty, showBranch, cartLoa
                 disabled={cartLoading}
                 className="store-btn store-btn-primary store-btn-sm w-full disabled:opacity-60"
               >
-                {cartLoading ? '…' : 'Add to Cart'}
+                {cartLoading ? '…' : isService ? 'Add to Order' : 'Add to Cart'}
               </button>
             )}
           </div>

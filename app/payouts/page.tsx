@@ -258,7 +258,7 @@ export default function PayoutsPage() {
   return (
     <AppLayout
       title="Payouts"
-      subtitle="Withdraw the money your shop has collected through Paystack"
+      subtitle="Withdraw the money your shop has collected through Paystack."
       allowedRoles={['platform_admin', 'business_owner', 'branch_manager']}
     >
       <div className="space-y-5">

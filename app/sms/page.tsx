@@ -164,8 +164,8 @@ export default function SmsPage() {
 
   return (
     <AppLayout
-      title="Customer SMS"
-      subtitle="Buy credits and choose what your customers are told"
+      title="SMS"
+      subtitle="Send and manage SMS notifications."
       allowedRoles={['platform_admin', 'business_owner', 'branch_manager']}
     >
       <div className="space-y-5">

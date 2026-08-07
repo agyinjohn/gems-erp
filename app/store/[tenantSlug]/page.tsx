@@ -71,6 +71,9 @@ const toCartItem = (item: any): CartItem => ({
     branch_id: item.branch_id,
     branch_name: item.branch_name,
     is_active: item.is_active ?? true,
+    item_type: item.item_type,
+    unit_type: item.unit_type,
+    duration: item.duration,
   },
   quantity: item.quantity,
   branch_id: item.branch_id || '',
@@ -303,7 +306,7 @@ export default function TenantStorefrontPage() {
 
   const filtered = products.filter(p =>
     (!filterCat || p.category_name === filterCat) &&
-    (!inStockOnly || p.stock_qty > 0) &&
+    (!inStockOnly || p.item_type === 'service' || p.stock_qty > 0) &&
     (priceMin === 0 || p.price >= priceMin) &&
     (priceMax === '' || p.price <= priceMax)
   ).sort((a, b) => {
@@ -801,7 +804,11 @@ export default function TenantStorefrontPage() {
                     <div className="text-[10px] text-[#1A5294] font-bold uppercase tracking-widest mb-1.5">{selectedProduct.category_name || 'General'}</div>
                     <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug mb-3">{selectedProduct.name}</h1>
                     <div className="flex flex-wrap items-center gap-2">
-                      {selectedProduct.stock_qty > 0 ? (
+                      {selectedProduct.item_type === 'service' ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full ring-1 ring-purple-100">
+                          <BadgeCheck className="w-3.5 h-3.5" /> Service available
+                        </span>
+                      ) : selectedProduct.stock_qty > 0 ? (
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full ring-1 ring-emerald-100">
                           <BadgeCheck className="w-3.5 h-3.5" /> In stock · {selectedProduct.stock_qty} available
                         </span>
@@ -848,7 +855,38 @@ export default function TenantStorefrontPage() {
 
                   <div className="text-xs text-gray-400 pb-1 border-b border-gray-100">SKU: <span className="font-mono text-gray-600">{selectedProduct.sku || '—'}</span></div>
 
-                  {selectedProduct.stock_qty > 0 ? (
+                  {selectedProduct.item_type === 'service' ? (
+                    <>
+                      {selectedProduct.unit_type && selectedProduct.unit_type !== 'fixed' && (
+                        <div className="bg-purple-50 rounded-xl p-3 ring-1 ring-purple-100 text-sm text-purple-800">
+                          <span className="font-semibold capitalize">{selectedProduct.unit_type === 'hour' ? 'Hourly rate' : selectedProduct.unit_type === 'day' ? 'Daily rate' : 'Per unit'}</span>
+                          {selectedProduct.duration ? <span className="text-purple-600 ml-1">· {selectedProduct.duration} {selectedProduct.unit_type === 'hour' ? 'hr' : 'day'}{selectedProduct.duration > 1 ? 's' : ''} estimated</span> : null}
+                        </div>
+                      )}
+                      <div className="bg-slate-50 rounded-xl p-3 space-y-2 ring-1 ring-slate-100">
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Lock className="w-4 h-4 text-[#0D3B6E] flex-shrink-0" />
+                          <span>Secure Paystack checkout</span>
+                        </div>
+                      </div>
+                      {!inCart ? (
+                        <button type="button" onClick={() => { addToCart(selectedProduct, detailQty); setDetailQty(1); }} className="store-btn store-btn-primary w-full">
+                          Add to Order
+                        </button>
+                      ) : (
+                        <button type="button" onClick={() => setShowCart(true)} className="store-btn store-btn-primary w-full">
+                          View Cart ({inCart.quantity} item{inCart.quantity !== 1 ? 's' : ''})
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => { if (!inCart) { addToCart(selectedProduct, detailQty); } setStep('checkout'); if (deliveryLocation) setForm(f => ({ ...f, delivery_address: f.delivery_address || deliveryLocation })); }}
+                        className="store-btn w-full bg-amber-400 hover:bg-amber-300 text-gray-900 shadow-md shadow-amber-900/10"
+                      >
+                        Book Now
+                      </button>
+                    </>
+                  ) : selectedProduct.stock_qty > 0 ? (
                     <>
                       <div className="bg-slate-50 rounded-xl p-3 space-y-2 ring-1 ring-slate-100">
                         <div className="flex items-center gap-2 text-sm text-gray-700">
