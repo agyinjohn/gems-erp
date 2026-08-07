@@ -256,30 +256,26 @@ export default function PayoutsPage() {
   const canWithdraw = !!balance && !balance.is_overdrawn && balance.available >= minAmount && !!balance.destination;
 
   return (
-    <AppLayout title="Payouts" subtitle="Withdraw the money your shop has collected through Paystack.">
+    <AppLayout
+      title="Payouts"
+      subtitle="Withdraw the money your shop has collected through Paystack."
+      allowedRoles={['platform_admin', 'business_owner', 'branch_manager']}
+    >
       <div className="space-y-5">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Payouts</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Withdraw the money your shop has collected through Paystack.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isOwner && branches.length > 0 && (
-              <select
-                className="form-input !w-auto"
-                value={targetBranch}
-                onChange={e => setTargetBranch(e.target.value)}
-              >
-                <option value="">All branches</option>
-                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-            )}
-            <button type="button" onClick={load} className="btn-secondary" disabled={loading}>
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
-            </button>
-          </div>
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          {isOwner && branches.length > 0 && (
+            <select
+              className="form-input !w-auto"
+              value={targetBranch}
+              onChange={e => setTargetBranch(e.target.value)}
+            >
+              <option value="">All branches</option>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          )}
+          <button type="button" onClick={load} className="btn-secondary" disabled={loading}>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          </button>
         </div>
 
         {/* ── Balance + withdraw ── */}

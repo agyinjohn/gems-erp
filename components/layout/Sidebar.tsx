@@ -128,7 +128,7 @@ const navGroups = [
     items: [
       { href: '/payment-logs', label: 'Payments', icon: CreditCard, roles: ['business_owner', 'accountant'], permission: 'accounting.view' },
       { href: '/payouts', label: 'Payouts', icon: Wallet, roles: ['business_owner', 'branch_manager'], permission: null },
-      { href: '/sms', label: 'Customer SMS', icon: MessageSquare, roles: ['business_owner', 'branch_manager'], permission: null },
+      { href: '/sms', label: 'SMS', icon: MessageSquare, roles: ['business_owner', 'branch_manager'], permission: null },
     ],
   },
   {
