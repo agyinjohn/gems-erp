@@ -110,7 +110,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     // Step 2 — Contact
     email:'', phone:'', address:'', emergency_name:'', emergency_phone:'', emergency_relation:'',
     // Step 3 — Employment
-    employee_code:'', job_title:'', department_id:'', manager_id:'', user_id:'', gross_salary:'', start_date:'', employment_type:'full_time',
+    employee_code:'', job_title:'', department_id:'', manager_id:'', user_id:'', gross_salary:'', hourly_rate:'', start_date:'', employment_type:'full_time',
     annual_leave_entitlement:'21', sick_leave_entitlement:'10',
     // Step 3 — Statutory & payment
     ssnit_number:'', tin:'', payment_method:'bank', bank_name:'', bank_account_name:'', bank_account_number:'', bank_branch:'', momo_number:'',
@@ -325,7 +325,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     name:'', date_of_birth:'', gender:'', nationality:'', marital_status:'', national_id:'', photo:'',
     email:'', phone:'', address:'', emergency_name:'', emergency_phone:'', emergency_relation:'',
     employee_code:'EMP-'+Date.now().toString().slice(-4), job_title:'', department_id:'', manager_id:'', user_id:'',
-    gross_salary:'', start_date:'', employment_type:'full_time', annual_leave_entitlement:'21', sick_leave_entitlement:'10',
+    gross_salary:'', hourly_rate:'', start_date:'', employment_type:'full_time', annual_leave_entitlement:'21', sick_leave_entitlement:'10',
     ssnit_number:'', tin:'', payment_method:'bank', bank_name:'', bank_account_name:'', bank_account_number:'', bank_branch:'', momo_number:'',
   });
 
@@ -366,6 +366,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       manager_id: e.manager_id?._id || e.manager_id || '',
       user_id: e.user_id?._id || e.user_id || e.linked_user?.id || '',
       gross_salary: e.gross_salary ?? '',
+      hourly_rate: e.hourly_rate ? String(e.hourly_rate) : '',
       start_date: e.start_date ? String(e.start_date).slice(0, 10) : '',
       employment_type: e.employment_type || 'full_time',
       annual_leave_entitlement: String(e.annual_leave_entitlement ?? 21),
@@ -416,6 +417,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
       const payload = {
         ...empForm,
         gross_salary: parseFloat(empForm.gross_salary) || 0,
+        hourly_rate: parseFloat(empForm.hourly_rate) || 0,
         annual_leave_entitlement: parseInt(empForm.annual_leave_entitlement, 10) || 21,
         sick_leave_entitlement: parseInt(empForm.sick_leave_entitlement, 10) || 10,
         user_id: empForm.user_id || null,
@@ -2115,6 +2117,11 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               </select>
             </div>
             <div><label className="form-label">Gross Salary (GH₵) *</label><input type="number" className="form-input" value={empForm.gross_salary} onChange={e => setEmpForm({...empForm,gross_salary:e.target.value})} /></div>
+            <div>
+              <label className="form-label">Hourly rate (GH₵)</label>
+              <input type="number" min={0} className="form-input" placeholder="0 — derive from salary" value={empForm.hourly_rate} onChange={e => setEmpForm({...empForm,hourly_rate:e.target.value})} />
+              <p className="form-hint">What an hour costs a project. Leave at zero for salaried staff; set it for day labour.</p>
+            </div>
             <div><label className="form-label">Start Date</label><input type="date" className="form-input" value={empForm.start_date} onChange={e => setEmpForm({...empForm,start_date:e.target.value})} /></div>
             <div><label className="form-label">Annual leave entitlement (days)</label><input type="number" className="form-input" value={empForm.annual_leave_entitlement} onChange={e => setEmpForm({...empForm,annual_leave_entitlement:e.target.value})} /></div>
             <div><label className="form-label">Sick leave entitlement (days)</label><input type="number" className="form-input" value={empForm.sick_leave_entitlement} onChange={e => setEmpForm({...empForm,sick_leave_entitlement:e.target.value})} /></div>
