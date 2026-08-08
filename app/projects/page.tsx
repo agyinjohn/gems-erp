@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import api from '@/lib/api';
+import { loadProjectTypes, FALLBACK, type ProjectTypeProfile } from '@/lib/projectTypes';
 import { toast } from '@/components/ui';
 import {
   Plus, RefreshCw, Briefcase, AlertTriangle, Search,
@@ -26,6 +27,7 @@ interface Project {
   is_overdue?: boolean;
   site_address?: string;
   manager_id?: { name: string } | null;
+  project_type?: string;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -58,13 +60,15 @@ const money = (n: number, c = 'GHS') =>
   `${c} ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const EMPTY_FORM = {
-  name: '', customer_id: '', contract_value: '', retention_pct: '', payment_terms_days: '30',
+  name: '', customer_id: '', project_type: 'construction',
+  contract_value: '', retention_pct: '', payment_terms_days: '30',
   start_date: '', planned_end_date: '', site_address: '', description: '',
 };
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
+  const [typeProfiles, setTypeProfiles] = useState<ProjectTypeProfile[]>([FALLBACK]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
@@ -94,6 +98,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     api.get('/customers').then(r => setCustomers(r.data.data || [])).catch(() => {});
+    loadProjectTypes().then(setTypeProfiles);
   }, []);
 
   const create = async () => {
@@ -105,6 +110,7 @@ export default function ProjectsPage() {
         contract_value: parseFloat(form.contract_value) || 0,
         retention_pct: parseFloat(form.retention_pct) || 0,
         payment_terms_days: parseInt(form.payment_terms_days) || 0,
+        project_type: form.project_type,
         customer_id: form.customer_id || undefined,
         start_date: form.start_date || undefined,
         planned_end_date: form.planned_end_date || undefined,
@@ -194,6 +200,29 @@ export default function ProjectsPage() {
               </div>
               <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
+                  <label className="form-label">Kind of work *</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {typeProfiles.map(t => (
+                      <button
+                        key={t.key}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, project_type: t.key }))}
+                        className={`text-left rounded-xl px-3 py-2.5 ring-1 transition-colors ${
+                          form.project_type === t.key
+                            ? 'ring-[#0D3B6E] bg-blue-50 text-[#0D3B6E]'
+                            : 'ring-gray-200 hover:ring-gray-300 text-gray-700'
+                        }`}
+                      >
+                        <span className="block text-sm font-semibold">{t.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="form-hint">
+                    {typeProfiles.find(t => t.key === form.project_type)?.description}
+                    {' '}It decides which tabs the project has and what things are called. You can change it later.
+                  </p>
+                </div>
+                <div className="sm:col-span-2">
                   <label className="form-label">Project name *</label>
                   <input className="form-input" placeholder="e.g. Tema warehouse construction" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
                 </div>
@@ -220,11 +249,13 @@ export default function ProjectsPage() {
                   <label className="form-label">Planned completion</label>
                   <input type="date" className="form-input" value={form.planned_end_date} onChange={e => setForm(f => ({ ...f, planned_end_date: e.target.value }))} />
                 </div>
-                <div>
-                  <label className="form-label">Retention (%)</label>
-                  <input type="number" className="form-input" placeholder="0" value={form.retention_pct} onChange={e => setForm(f => ({ ...f, retention_pct: e.target.value }))} />
-                  <p className="form-hint">Held back by the client until completion.</p>
-                </div>
+                {typeProfiles.find(t => t.key === form.project_type)?.capabilities.retention !== false && (
+                  <div>
+                    <label className="form-label">Retention (%)</label>
+                    <input type="number" className="form-input" placeholder="0" value={form.retention_pct} onChange={e => setForm(f => ({ ...f, retention_pct: e.target.value }))} />
+                    <p className="form-hint">Held back by the client until completion.</p>
+                  </div>
+                )}
                 <div>
                   <label className="form-label">Payment terms (days)</label>
                   <input type="number" min={0} className="form-input" placeholder="30" value={form.payment_terms_days} onChange={e => setForm(f => ({ ...f, payment_terms_days: e.target.value }))} />
@@ -303,7 +334,14 @@ export default function ProjectsPage() {
                   {/* Header */}
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0">
-                      <p className="text-[11px] font-mono text-gray-400 tracking-wide">{p.code}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[11px] font-mono text-gray-400 tracking-wide">{p.code}</p>
+                        {p.project_type && p.project_type !== 'construction' && (
+                          <span className="text-[10px] uppercase tracking-wide font-semibold text-gray-400">
+                            {typeProfiles.find(t => t.key === p.project_type)?.label || p.project_type}
+                          </span>
+                        )}
+                      </div>
                       <h3 className="font-bold text-gray-900 truncate mt-0.5 group-hover:text-[#0D3B6E] transition-colors">
                         {p.name}
                       </h3>
