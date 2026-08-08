@@ -101,6 +101,9 @@ export default function ProjectsPage() {
     loadProjectTypes().then(setTypeProfiles);
   }, []);
 
+  const typeHasRetention =
+    typeProfiles.find(t => t.key === form.project_type)?.capabilities.retention !== false;
+
   const create = async () => {
     if (!form.name.trim()) return toast.error('Give the project a name');
     setSaving(true);
@@ -108,7 +111,9 @@ export default function ProjectsPage() {
       const r = await api.post('/projects', {
         ...form,
         contract_value: parseFloat(form.contract_value) || 0,
-        retention_pct: parseFloat(form.retention_pct) || 0,
+        // Hiding the field is not the same as clearing it — switching to a type
+        // without retention after typing a figure would otherwise store it.
+        retention_pct: typeHasRetention ? (parseFloat(form.retention_pct) || 0) : 0,
         payment_terms_days: parseInt(form.payment_terms_days) || 0,
         project_type: form.project_type,
         customer_id: form.customer_id || undefined,
@@ -219,7 +224,7 @@ export default function ProjectsPage() {
                   </div>
                   <p className="form-hint">
                     {typeProfiles.find(t => t.key === form.project_type)?.description}
-                    {' '}It decides which tabs the project has and what things are called. You can change it later.
+                    {' '}It decides which tabs the project has and what things are called.
                   </p>
                 </div>
                 <div className="sm:col-span-2">
@@ -249,7 +254,7 @@ export default function ProjectsPage() {
                   <label className="form-label">Planned completion</label>
                   <input type="date" className="form-input" value={form.planned_end_date} onChange={e => setForm(f => ({ ...f, planned_end_date: e.target.value }))} />
                 </div>
-                {typeProfiles.find(t => t.key === form.project_type)?.capabilities.retention !== false && (
+                {typeHasRetention && (
                   <div>
                     <label className="form-label">Retention (%)</label>
                     <input type="number" className="form-input" placeholder="0" value={form.retention_pct} onChange={e => setForm(f => ({ ...f, retention_pct: e.target.value }))} />

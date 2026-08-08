@@ -164,8 +164,6 @@ interface ProjectDoc {
 }
 
 const WEATHER = ['fine', 'overcast', 'light_rain', 'heavy_rain', 'storm'];
-const DELAY_CAUSES = ['weather', 'materials', 'labour', 'plant', 'client_instruction', 'access', 'other'];
-const DOC_CATEGORIES = ['contract', 'drawing', 'permit', 'certificate', 'photo', 'correspondence', 'other'];
 const WEATHER_LABEL: Record<string, string> = {
   fine: 'Fine', overcast: 'Overcast', light_rain: 'Light rain', heavy_rain: 'Heavy rain', storm: 'Storm',
 };
@@ -193,6 +191,8 @@ const CLAIM_TONE: Record<string, string> = {
 
 const MILESTONE_STATUS = ['not_started', 'in_progress', 'completed', 'blocked'];
 const label = (s: string) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+/** "an application", but "a invoice" is wrong — pick from the actual word. */
+const article = (word: string) => ('aeiou'.includes((word[0] || '').toLowerCase()) ? 'an' : 'a');
 
 const STATUS_TONE: Record<string, string> = {
   not_started: 'bg-gray-100 text-gray-600', in_progress: 'bg-amber-50 text-amber-700',
@@ -287,13 +287,19 @@ export default function ProjectDetailPage() {
       // The diary and time claims don't exist on every kind of job, and the API
       // refuses them rather than returning empty. Softened so one refusal can't
       // take the whole page down with it.
-      const optional = (fallback: any) => (e: any) => ({ data: { data: fallback } });
+      const optional = (fallback: any) => (e: any) => {
+        // Only a refusal is expected. A 500 or a dropped connection is a real
+        // failure, and showing it as "nothing here yet" would invite someone to
+        // re-enter a day that already exists.
+        if (e?.response?.status === 400) return { data: { data: fallback } };
+        throw e;
+      };
       const [b, dy, dc, sc, bl, cf, et] = await Promise.all([
         api.get(`/projects/${id}/billing`),
         api.get(`/projects/${id}/diary`).catch(optional({ entries: [], summary: null })),
         api.get(`/projects/${id}/documents`),
-        api.get(`/projects/${id}/schedule`),
-        api.get(`/projects/${id}/baseline`),
+        api.get(`/projects/${id}/schedule`).catch(optional({ has_baseline: false, actual_pct: 0, milestones: [], curve: [] })),
+        api.get(`/projects/${id}/baseline`).catch(optional([])),
         api.get(`/projects/${id}/cashflow`),
         api.get(`/projects/${id}/eot`).catch(optional({ claims: [], position: null })),
       ]);
@@ -323,6 +329,15 @@ export default function ProjectDetailPage() {
 
   useEffect(() => { if (id && id !== 'undefined') load(); }, [load, id]);
   useEffect(() => { loadProjectTypes().then(setTypeProfiles); }, []);
+
+  // The chosen document kind has to be one this type actually offers. A
+  // literal default only works while every profile happens to share a value.
+  const docCategories = profileFor(typeProfiles, project?.project_type).document_categories;
+  useEffect(() => {
+    if (docCategories.length && !docCategories.includes(docForm.category)) {
+      setDocForm(f => ({ ...f, category: docCategories[0] }));
+    }
+  }, [docCategories, docForm.category]);
 
   // Capabilities arrive after the first paint, so a tab can be open and then
   // turn out not to exist on this kind of job. Fall back rather than render it.
@@ -1941,7 +1956,10 @@ export default function ProjectDetailPage() {
             .filter(m => picked.includes(m.id))
             .reduce((s, m) => s + m.billable_amount, 0);
           const gross = picked.length ? pickedTotal : (parseFloat(billForm.amount) || 0);
-          const retention = gross * ((pos?.retention_pct || 0) / 100);
+          // A type without retention withholds nothing, whatever percentage is
+          // still sitting on the project — the server guards this too, and the
+          // preview has to agree with it or the figure on screen is a lie.
+          const retention = cap.retention ? gross * ((pos?.retention_pct || 0) / 100) : 0;
 
           return (
             <>
@@ -1971,7 +1989,7 @@ export default function ProjectDetailPage() {
               {canManage && (
                 <div className="card">
                   <div className="mb-4">
-                    <h2 className="font-bold text-gray-900">Raise {term.application === 'Application' ? 'an application' : `a ${term.application.toLowerCase()}`}</h2>
+                    <h2 className="font-bold text-gray-900">Raise {article(term.application)} {term.application.toLowerCase()}</h2>
                     <p className="text-sm text-gray-500 mt-0.5">
                       Certify completed stages or enter an amount. Retention is withheld and released separately.
                     </p>
