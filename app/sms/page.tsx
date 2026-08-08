@@ -11,7 +11,8 @@ import {
 
 interface Bundle { label: string; credits: number; price: number; unit_price: number }
 interface Template {
-  key: string; label: string; description: string;
+  key: string; group: string; label: string; description: string;
+  variables: string[];
   body: string; default_body: string;
   enabled: boolean; is_customised: boolean; segments: number;
 }
@@ -42,7 +43,6 @@ export default function SmsPage() {
 
   const [balance, setBalance] = useState<Balance | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [variables, setVariables] = useState<string[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<number | null>(null);
@@ -61,7 +61,6 @@ export default function SmsPage() {
       ]);
       setBalance(b.data.data);
       setTemplates(t.data.data || []);
-      setVariables(t.data.variables || []);
       setMessages(m.data.data || []);
       setEdited({});
     } catch (e: any) {
@@ -231,24 +230,27 @@ export default function SmsPage() {
           <div className="mb-5">
             <h2 className="font-bold text-gray-900">Messages</h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              Edit what customers receive, or switch a message off. Use{' '}
-              {variables.map((v, i) => (
-                <span key={v}>
-                  <code className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-xs">{v}</code>
-                  {i < variables.length - 1 ? ' ' : ''}
-                </span>
-              ))}{' '}
-              to fill in order details.
+              Edit what customers receive, or switch a message off. Each message lists the
+              placeholders it understands — anything else is left blank when it sends.
             </p>
           </div>
 
           <div className="space-y-4">
-            {templates.map(t => {
+            {templates.map((t, ti) => {
               const value = edited[t.key] ?? t.body;
               const dirty = edited[t.key] !== undefined && edited[t.key] !== t.body;
               const segs = segmentsOf(value);
+              // Templates arrive grouped; head each run with its own label so
+              // project messages don't read as more order ones.
+              const startsGroup = ti === 0 || templates[ti - 1].group !== t.group;
               return (
-                <div key={t.key} className={`rounded-xl ring-1 p-4 ${t.enabled ? 'ring-gray-100 bg-gray-50' : 'ring-gray-100 bg-gray-50/50 opacity-70'}`}>
+                <div key={t.key}>
+                {startsGroup && (
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 mt-2 first:mt-0">
+                    {t.group === 'Projects' ? 'Project clients' : t.group}
+                  </p>
+                )}
+                <div className={`rounded-xl ring-1 p-4 ${t.enabled ? 'ring-gray-100 bg-gray-50' : 'ring-gray-100 bg-gray-50/50 opacity-70'}`}>
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -281,6 +283,11 @@ export default function SmsPage() {
                     <p className="text-xs text-gray-400">
                       {value.length} characters · costs <span className="font-semibold text-gray-600">{segs} credit{segs === 1 ? '' : 's'}</span> per message
                     </p>
+                    <p className="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-1">
+                      {t.variables.map(v => (
+                        <code key={v} className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{v}</code>
+                      ))}
+                    </p>
                     {isOwner && (
                       <div className="flex items-center gap-2">
                         {t.is_customised && (
@@ -299,6 +306,7 @@ export default function SmsPage() {
                       </div>
                     )}
                   </div>
+                </div>
                 </div>
               );
             })}
