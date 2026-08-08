@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -235,6 +236,7 @@ export default function ProjectDetailPage() {
   const [eotForm, setEotForm] = useState({
     title: '', description: '', period_from: '', period_to: '', days_claimed: '', cost_claimed: '',
   });
+  const [clientSms, setClientSms] = useState({ enabled: false, phone: '' });
   const [decideFor, setDecideFor] = useState<string | null>(null);
   const [decideForm, setDecideForm] = useState({ days_granted: '', cost_granted: '', decision_notes: '', rebaseline: true });
   const [schedule, setSchedule] = useState<Schedule | null>(null);
@@ -296,6 +298,10 @@ export default function ProjectDetailPage() {
       setTerms({
         payment_terms_days: String(d.project.payment_terms_days ?? 30),
         defects_liability_days: String(d.project.defects_liability_days ?? 0),
+      });
+      setClientSms({
+        enabled: !!d.project.client_sms_enabled,
+        phone: d.project.client_phone || '',
       });
       setPicked([]);
       setLoaded(true);
@@ -508,6 +514,21 @@ export default function ProjectDetailPage() {
       await load();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Could not freeze the programme');
+    } finally { setPlanBusy(false); }
+  };
+
+  const saveClientSms = async (next: { enabled: boolean; phone: string }) => {
+    setPlanBusy(true);
+    try {
+      await api.put(`/projects/${id}`, {
+        client_sms_enabled: next.enabled,
+        client_phone: next.phone.trim(),
+      });
+      setClientSms(next);
+      toast.success(next.enabled ? 'Client updates are on' : 'Client updates are off');
+      await load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not save');
     } finally { setPlanBusy(false); }
   };
 
@@ -2009,6 +2030,66 @@ export default function ProjectDetailPage() {
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Keeping the client posted */}
+              {canManage && (
+                <div className="card">
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                      <h2 className="font-bold text-gray-900">Text the client</h2>
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        A short message when an application goes out, a payment lands, a stage finishes,
+                        or retention is released. Off unless you turn it on, and each message spends one
+                        SMS credit.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={clientSms.enabled}
+                      disabled={planBusy}
+                      onClick={() => saveClientSms({ ...clientSms, enabled: !clientSms.enabled })}
+                      className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+                        clientSms.enabled ? 'bg-[#0D3B6E]' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                        clientSms.enabled ? 'translate-x-5' : ''
+                      }`} />
+                    </button>
+                  </div>
+
+                  {clientSms.enabled && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2">
+                        <label className="form-label">Number to text</label>
+                        <input
+                          className="form-input"
+                          placeholder={project.customer_name ? `Blank uses ${project.customer_name}'s number on file` : 'Blank uses the client record'}
+                          value={clientSms.phone}
+                          onChange={e => setClientSms(c => ({ ...c, phone: e.target.value }))}
+                        />
+                        <p className="form-hint">
+                          Set this when the person to keep posted isn&apos;t whoever the account was opened with.
+                        </p>
+                      </div>
+                      <div className="flex items-start pt-6">
+                        <button type="button" className="btn-secondary w-full justify-center"
+                          disabled={planBusy} onClick={() => saveClientSms(clientSms)}>
+                          {planBusy ? 'Saving…' : 'Save number'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-gray-400 mt-3 flex items-start gap-1.5">
+                    <Info className="w-3.5 h-3.5 mt-px flex-shrink-0" />
+                    Wording is set once for the whole business on the{' '}
+                    <Link href="/sms" className="underline">SMS page</Link>, where any of the four can also
+                    be switched off outright.
+                  </p>
                 </div>
               )}
 
