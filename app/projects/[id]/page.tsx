@@ -6,6 +6,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { toast, ConfirmDialog } from '@/components/ui';
+import PaymentCertificate, { type Certificate } from '@/components/projects/PaymentCertificate';
 import {
   LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
@@ -237,6 +238,8 @@ export default function ProjectDetailPage() {
     title: '', description: '', period_from: '', period_to: '', days_claimed: '', cost_claimed: '',
   });
   const [clientSms, setClientSms] = useState({ enabled: false, phone: '' });
+  const [cert, setCert] = useState<Certificate | null>(null);
+  const [certBusy, setCertBusy] = useState<string | null>(null);
   const [decideFor, setDecideFor] = useState<string | null>(null);
   const [decideForm, setDecideForm] = useState({ days_granted: '', cost_granted: '', decision_notes: '', rebaseline: true });
   const [schedule, setSchedule] = useState<Schedule | null>(null);
@@ -515,6 +518,16 @@ export default function ProjectDetailPage() {
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Could not freeze the programme');
     } finally { setPlanBusy(false); }
+  };
+
+  const openCertificate = async (invoiceId: string) => {
+    setCertBusy(invoiceId);
+    try {
+      const r = await api.get(`/projects/${id}/invoices/${invoiceId}/certificate`);
+      setCert(r.data.data);
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not build the certificate');
+    } finally { setCertBusy(null); }
   };
 
   const saveClientSms = async (next: { enabled: boolean; phone: string }) => {
@@ -2114,6 +2127,7 @@ export default function ProjectDetailPage() {
                           <th className="px-4 py-2.5 text-right">Retention</th>
                           <th className="px-4 py-2.5 text-right">Due</th>
                           <th className="px-4 py-2.5">Status</th>
+                          <th className="px-4 py-2.5" />
                         </tr>
                       </thead>
                       <tbody>
@@ -2144,6 +2158,17 @@ export default function ProjectDetailPage() {
                                 inv.status === 'overdue'        ? 'bg-red-50 text-red-600' :
                                 'bg-gray-100 text-gray-600'
                               }`}>{label(inv.status)}</span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                className="btn-ghost !py-1 text-xs whitespace-nowrap"
+                                disabled={certBusy === inv.id}
+                                onClick={() => openCertificate(inv.id)}
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                                {certBusy === inv.id ? 'Building…' : 'Certificate'}
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -2373,6 +2398,8 @@ export default function ProjectDetailPage() {
             </div>
           </>
         )}
+
+        {cert && <PaymentCertificate cert={cert} onClose={() => setCert(null)} />}
 
         <ConfirmDialog
           open={!!confirm}
