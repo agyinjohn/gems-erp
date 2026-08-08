@@ -25,7 +25,7 @@ interface Project {
   planned_end_date?: string;
   is_overdue?: boolean;
   site_address?: string;
-  manager_id?: { first_name: string; last_name: string } | null;
+  manager_id?: { name: string } | null;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -58,7 +58,7 @@ const money = (n: number, c = 'GHS') =>
   `${c} ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const EMPTY_FORM = {
-  name: '', customer_id: '', contract_value: '', retention_pct: '',
+  name: '', customer_id: '', contract_value: '', retention_pct: '', payment_terms_days: '30',
   start_date: '', planned_end_date: '', site_address: '', description: '',
 };
 
@@ -104,6 +104,7 @@ export default function ProjectsPage() {
         ...form,
         contract_value: parseFloat(form.contract_value) || 0,
         retention_pct: parseFloat(form.retention_pct) || 0,
+        payment_terms_days: parseInt(form.payment_terms_days) || 0,
         customer_id: form.customer_id || undefined,
         start_date: form.start_date || undefined,
         planned_end_date: form.planned_end_date || undefined,
@@ -223,6 +224,11 @@ export default function ProjectsPage() {
                   <label className="form-label">Retention (%)</label>
                   <input type="number" className="form-input" placeholder="0" value={form.retention_pct} onChange={e => setForm(f => ({ ...f, retention_pct: e.target.value }))} />
                   <p className="form-hint">Held back by the client until completion.</p>
+                </div>
+                <div>
+                  <label className="form-label">Payment terms (days)</label>
+                  <input type="number" min={0} className="form-input" placeholder="30" value={form.payment_terms_days} onChange={e => setForm(f => ({ ...f, payment_terms_days: e.target.value }))} />
+                  <p className="form-hint">How long the client takes to pay. Drives the cash flow forecast.</p>
                 </div>
                 <div>
                   <label className="form-label">Site / location</label>
