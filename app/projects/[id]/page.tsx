@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { toast, ConfirmDialog } from '@/components/ui';
 import PaymentCertificate, { type Certificate } from '@/components/projects/PaymentCertificate';
+import { loadProjectTypes, profileFor, FALLBACK, type ProjectTypeProfile } from '@/lib/projectTypes';
 import {
   LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
@@ -239,6 +240,7 @@ export default function ProjectDetailPage() {
   });
   const [clientSms, setClientSms] = useState({ enabled: false, phone: '' });
   const [cert, setCert] = useState<Certificate | null>(null);
+  const [typeProfiles, setTypeProfiles] = useState<ProjectTypeProfile[]>([FALLBACK]);
   const [certBusy, setCertBusy] = useState<string | null>(null);
   const [decideFor, setDecideFor] = useState<string | null>(null);
   const [decideForm, setDecideForm] = useState({ days_granted: '', cost_granted: '', decision_notes: '', rebaseline: true });
@@ -257,7 +259,7 @@ export default function ProjectDetailPage() {
   });
   const [delayRows, setDelayRows] = useState<Delay[]>([]);
   const [siteBusy, setSiteBusy] = useState(false);
-  const [docForm, setDocForm] = useState({ category: 'drawing', name: '' });
+  const [docForm, setDocForm] = useState({ category: 'contract', name: '' });
   const [billing, setBilling] = useState<{ position: BillingPosition | null; invoices: ProjectInvoice[]; billable_milestones: BillableMilestone[] } | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
   const [billForm, setBillForm] = useState({ amount: '', due_date: '', notes: '' });
@@ -282,14 +284,18 @@ export default function ProjectDetailPage() {
       setTasks(d.tasks || []);
       setVariations(d.variations || []);
       setFin(d.financials);
+      // The diary and time claims don't exist on every kind of job, and the API
+      // refuses them rather than returning empty. Softened so one refusal can't
+      // take the whole page down with it.
+      const optional = (fallback: any) => (e: any) => ({ data: { data: fallback } });
       const [b, dy, dc, sc, bl, cf, et] = await Promise.all([
         api.get(`/projects/${id}/billing`),
-        api.get(`/projects/${id}/diary`),
+        api.get(`/projects/${id}/diary`).catch(optional({ entries: [], summary: null })),
         api.get(`/projects/${id}/documents`),
         api.get(`/projects/${id}/schedule`),
         api.get(`/projects/${id}/baseline`),
         api.get(`/projects/${id}/cashflow`),
-        api.get(`/projects/${id}/eot`),
+        api.get(`/projects/${id}/eot`).catch(optional({ claims: [], position: null })),
       ]);
       setEot(et.data.data);
       setBilling(b.data.data);
@@ -316,6 +322,15 @@ export default function ProjectDetailPage() {
   }, [id]);
 
   useEffect(() => { if (id && id !== 'undefined') load(); }, [load, id]);
+  useEffect(() => { loadProjectTypes().then(setTypeProfiles); }, []);
+
+  // Capabilities arrive after the first paint, so a tab can be open and then
+  // turn out not to exist on this kind of job. Fall back rather than render it.
+  const caps = profileFor(typeProfiles, project?.project_type).capabilities;
+  useEffect(() => {
+    if (tab === 'claims' && !caps.time_claims) setTab('progress');
+    if (tab === 'programme' && !caps.programme) setTab('progress');
+  }, [tab, caps.time_claims, caps.programme]);
 
   const addMilestone = async () => {
     if (!msForm.name.trim()) return toast.error('Give the milestone a name');
@@ -630,6 +645,12 @@ export default function ProjectDetailPage() {
     );
   }
 
+  // What kind of job this is decides which tabs exist and what things are
+  // called. Everything below reads from here rather than assuming construction.
+  const profile = profileFor(typeProfiles, project.project_type);
+  const cap = profile.capabilities;
+  const term = profile.terms;
+
   const overdue = project.planned_end_date && !['completed', 'cancelled'].includes(project.status)
     && new Date(project.planned_end_date) < new Date();
   const pct = Math.min(100, Math.max(0, fin?.progress_pct || 0));
@@ -663,6 +684,7 @@ export default function ProjectDetailPage() {
                 <span className={`badge gap-1 ${PROJECT_STATUS_STYLE[project.status] || PROJECT_STATUS_STYLE.draft}`}>
                   {PROJECT_STATUS_ICON[project.status]} {label(project.status)}
                 </span>
+                <span className="badge bg-gray-100 text-gray-600">{profile.label}</span>
                 {overdue && (
                   <span className="badge bg-red-50 text-red-600 gap-1">
                     <AlertTriangle className="w-3 h-3" /> Overdue
@@ -770,14 +792,14 @@ export default function ProjectDetailPage() {
         {/* Tabs */}
         <div className="flex gap-0 border-b border-gray-200 overflow-x-auto">
           {([
-            { key: 'progress',  label: 'Progress' },
-            { key: 'programme', label: 'Programme' },
-            { key: 'claims',    label: 'Time claims' },
-            { key: 'money',     label: 'Money' },
-            { key: 'cashflow',  label: 'Cash flow' },
-            { key: 'billing',   label: 'Billing' },
-            { key: 'site',      label: 'Site' },
-          ] as const).map(t => (
+            { key: 'progress',  label: 'Progress',   show: true },
+            { key: 'programme', label: 'Programme',  show: cap.programme },
+            { key: 'claims',    label: 'Time claims', show: cap.time_claims },
+            { key: 'money',     label: 'Money',      show: true },
+            { key: 'cashflow',  label: 'Cash flow',  show: true },
+            { key: 'billing',   label: 'Billing',    show: true },
+            { key: 'site',      label: term.site_tab, show: true },
+          ] as const).filter(t => t.show).map(t => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
@@ -796,7 +818,7 @@ export default function ProjectDetailPage() {
             <div className="card">
               <div className="flex items-start justify-between gap-3 mb-4">
                 <div>
-                  <h2 className="font-bold text-gray-900">Milestones</h2>
+                  <h2 className="font-bold text-gray-900">{term.stages}</h2>
                   <p className="text-sm text-gray-500 mt-0.5">
                     Overall progress is the weighted average — a heavier stage moves the number more.
                   </p>
@@ -869,7 +891,7 @@ export default function ProjectDetailPage() {
               {canManage && (
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 border-t border-gray-100 pt-4">
                   <div className="sm:col-span-2">
-                    <label className="form-label text-xs">Milestone name</label>
+                    <label className="form-label text-xs">{term.stage} name</label>
                     <input className="form-input" placeholder="e.g. Foundation" value={msForm.name} onChange={e => setMsForm(f => ({ ...f, name: e.target.value }))} />
                   </div>
                   <div>
@@ -954,7 +976,7 @@ export default function ProjectDetailPage() {
                   <input className="form-input" placeholder="e.g. Excavate footings" value={taskForm.name} onChange={e => setTaskForm(f => ({ ...f, name: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="form-label text-xs">Milestone</label>
+                  <label className="form-label text-xs">{term.stage}</label>
                   <select className="form-input" value={taskForm.milestone_id} onChange={e => setTaskForm(f => ({ ...f, milestone_id: e.target.value }))}>
                     <option value="">None</option>
                     {milestones.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -1949,7 +1971,7 @@ export default function ProjectDetailPage() {
               {canManage && (
                 <div className="card">
                   <div className="mb-4">
-                    <h2 className="font-bold text-gray-900">Raise an application</h2>
+                    <h2 className="font-bold text-gray-900">Raise {term.application === 'Application' ? 'an application' : `a ${term.application.toLowerCase()}`}</h2>
                     <p className="text-sm text-gray-500 mt-0.5">
                       Certify completed stages or enter an amount. Retention is withheld and released separately.
                     </p>
@@ -1957,7 +1979,7 @@ export default function ProjectDetailPage() {
 
                   {(billing?.billable_milestones.length || 0) > 0 && (
                     <div className="space-y-1.5 mb-4">
-                      <p className="form-label">Completed stages not yet billed</p>
+                      <p className="form-label">Completed {term.stages.toLowerCase()} not yet billed</p>
                       {billing!.billable_milestones.map(m => (
                         <label key={m.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5 ring-1 ring-gray-100 cursor-pointer hover:bg-gray-100 transition-colors">
                           <input
@@ -1999,10 +2021,12 @@ export default function ProjectDetailPage() {
                         <dt className="text-gray-500">Work certified</dt>
                         <dd className="font-semibold text-gray-900">{money(gross)}</dd>
                       </div>
+                      {cap.retention && (
                       <div className="flex justify-between">
                         <dt className="text-gray-500">Less retention ({pos?.retention_pct || 0}%)</dt>
                         <dd className="font-semibold text-amber-600">− {money(retention)}</dd>
                       </div>
+                      )}
                       <div className="flex justify-between pt-2 border-t border-gray-200">
                         <dt className="font-semibold text-gray-900">Now due</dt>
                         <dd className="font-bold text-gray-900">{money(gross - retention)}</dd>
@@ -2020,7 +2044,7 @@ export default function ProjectDetailPage() {
               )}
 
               {/* Release retention */}
-              {canManage && (pos?.retention_outstanding || 0) > 0 && (
+              {canManage && cap.retention && (pos?.retention_outstanding || 0) > 0 && (
                 <div className="card">
                   <div className="mb-4">
                     <h2 className="font-bold text-gray-900">Release retention</h2>
@@ -2109,7 +2133,7 @@ export default function ProjectDetailPage() {
               {/* Applications table */}
               <div className="card">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-bold text-gray-900">Applications raised</h2>
+                  <h2 className="font-bold text-gray-900">{term.applications} raised</h2>
                   {billing?.invoices.length ? (
                     <span className="text-xs text-gray-400">{billing.invoices.length} invoice{billing.invoices.length !== 1 ? 's' : ''}</span>
                   ) : null}
@@ -2160,6 +2184,7 @@ export default function ProjectDetailPage() {
                               }`}>{label(inv.status)}</span>
                             </td>
                             <td className="px-4 py-3 text-right">
+                              {cap.certificate && (
                               <button
                                 type="button"
                                 className="btn-ghost !py-1 text-xs whitespace-nowrap"
@@ -2169,6 +2194,7 @@ export default function ProjectDetailPage() {
                                 <FileText className="w-3.5 h-3.5" />
                                 {certBusy === inv.id ? 'Building…' : 'Certificate'}
                               </button>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -2183,6 +2209,8 @@ export default function ProjectDetailPage() {
 
         {tab === 'site' && (
           <>
+            {cap.site_diary && (
+            <>
             {/* Lost time */}
             {!!diary.summary?.entries && (
               <>
@@ -2276,7 +2304,7 @@ export default function ProjectDetailPage() {
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="form-label !mb-0">Delays</label>
-                  <button type="button" className="btn-ghost text-xs" onClick={() => setDelayRows(r => [...r, { cause: 'weather', hours_lost: 0, description: '' }])}>
+                  <button type="button" className="btn-ghost text-xs" onClick={() => setDelayRows(r => [...r, { cause: profile.delay_causes[0] || 'other', hours_lost: 0, description: '' }])}>
                     <Plus className="w-3.5 h-3.5" /> Add delay
                   </button>
                 </div>
@@ -2287,7 +2315,7 @@ export default function ProjectDetailPage() {
                     {delayRows.map((d, i) => (
                       <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_100px_2fr_auto] gap-2 items-center">
                         <select className="form-input" value={d.cause} onChange={e => setDelayRows(r => r.map((x, xi) => xi === i ? { ...x, cause: e.target.value } : x))}>
-                          {DELAY_CAUSES.map(c => <option key={c} value={c}>{label(c)}</option>)}
+                          {profile.delay_causes.map(c => <option key={c} value={c}>{label(c)}</option>)}
                         </select>
                         <input type="number" min={0} className="form-input" placeholder="hrs" value={d.hours_lost || ''} onChange={e => setDelayRows(r => r.map((x, xi) => xi === i ? { ...x, hours_lost: parseFloat(e.target.value) || 0 } : x))} />
                         <input className="form-input" placeholder="What happened" value={d.description || ''} onChange={e => setDelayRows(r => r.map((x, xi) => xi === i ? { ...x, description: e.target.value } : x))} />
@@ -2344,6 +2372,9 @@ export default function ProjectDetailPage() {
               )}
             </div>
 
+            </>
+            )}
+
             {/* Documents */}
             <div className="card">
               <div className="mb-4">
@@ -2355,7 +2386,7 @@ export default function ProjectDetailPage() {
                 <div>
                   <label className="form-label">Category</label>
                   <select className="form-input" value={docForm.category} onChange={e => setDocForm(f => ({ ...f, category: e.target.value }))}>
-                    {DOC_CATEGORIES.map(c => <option key={c} value={c}>{label(c)}</option>)}
+                    {profile.document_categories.map(c => <option key={c} value={c}>{label(c)}</option>)}
                   </select>
                 </div>
                 <div>
