@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { publicApi } from '@/lib/api';
 import {
   CheckCircle2, Circle, Clock, AlertTriangle, FileText, Download,
-  Building2, Phone, Mail, RefreshCw, CreditCard,
+  Building2, Phone, Mail, RefreshCw, CreditCard, Upload, Send, MessageSquare,
 } from 'lucide-react';
 
 /**
@@ -51,6 +51,17 @@ interface Tracked {
   outstanding?: number;
   notes_for_client?: string;
   placed_at?: string;
+
+  // Project: shared both ways
+  documents?: { id: string; name: string; category: string; url: string; size?: number; from_client: boolean; uploaded_at: string }[];
+  unread_messages?: number;
+  can_message?: boolean;
+  can_upload?: boolean;
+}
+
+interface Message {
+  id: string; body: string; from: 'client' | 'staff';
+  author: string; attachments: { name: string; url: string }[]; at: string;
 }
 
 const STAGES = ['awaiting_quote', 'quoted', 'queued', 'preparing', 'printing', 'finishing', 'ready', 'collected'];
@@ -69,6 +80,10 @@ export default function TrackPage() {
   const [error, setError] = useState('');
   const [responding, setResponding] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const money = (n: number) =>
     `${data?.currency || 'GHS'} ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -86,7 +101,40 @@ export default function TrackPage() {
     }
   }, [token]);
 
+  const loadMessages = useCallback(async () => {
+    try {
+      const r = await publicApi.get(`/track/${token}/messages`);
+      setMessages(r.data.data || []);
+    } catch { /* the thread is not the point of the page — fail quietly */ }
+  }, [token]);
+
   useEffect(() => { if (token) load(); }, [load, token]);
+  useEffect(() => { if (token && data?.can_message) loadMessages(); }, [token, data?.can_message, loadMessages]);
+
+  const send = async () => {
+    if (!draft.trim()) return;
+    setSending(true);
+    try {
+      await publicApi.post(`/track/${token}/messages`, { body: draft.trim() });
+      setDraft('');
+      await loadMessages();
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Could not send your message.');
+    } finally { setSending(false); }
+  };
+
+  const sendFile = async (file: File) => {
+    setUploading(true);
+    setError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      await publicApi.post(`/track/${token}/documents`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await load();
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Could not send that file.');
+    } finally { setUploading(false); }
+  };
 
   const respond = async (decision: 'accepted' | 'declined') => {
     setResponding(true);
@@ -418,6 +466,100 @@ export default function TrackPage() {
                 ))}
               </ul>
             )}
+          </section>
+        )}
+
+        {/* Shared files, both directions */}
+        {isProject && (
+          <section className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5">
+            <h2 className="font-bold text-gray-900">Documents</h2>
+            <p className="text-sm text-gray-500 mt-0.5 mb-4">
+              What {data.business.name} has shared with you, and anything you send back.
+            </p>
+
+            {!data.documents?.length ? (
+              <p className="text-sm text-gray-400 mb-4">Nothing shared yet.</p>
+            ) : (
+              <ul className="space-y-1.5 mb-4">
+                {data.documents.map(d => (
+                  <li key={d.id}>
+                    <a href={d.url} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-2.5 hover:bg-gray-100 transition-colors">
+                      <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm text-gray-800 truncate">{d.name}</span>
+                        <span className="block text-xs text-gray-400">
+                          {d.from_client ? 'Sent by you' : label(d.category)} · {date(d.uploaded_at)}
+                        </span>
+                      </span>
+                      <Download className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {data.can_upload && (
+              <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 px-4 py-4 cursor-pointer hover:border-[#0D3B6E]/40 transition-colors">
+                <Upload className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-semibold text-[#0D3B6E]">
+                  {uploading ? 'Sending…' : 'Send a file'}
+                </span>
+                <input type="file" className="hidden" accept="image/*,application/pdf" disabled={uploading}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) sendFile(f); e.target.value = ''; }} />
+              </label>
+            )}
+          </section>
+        )}
+
+        {/* The conversation */}
+        {isProject && data.can_message && (
+          <section className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5">
+            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-gray-400" /> Messages
+            </h2>
+            <p className="text-sm text-gray-500 mt-0.5 mb-4">
+              Anything you ask here stays with the job, so it can be found later.
+            </p>
+
+            {messages.length === 0 ? (
+              <p className="text-sm text-gray-400 mb-4">No messages yet. Ask away.</p>
+            ) : (
+              <ul className="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                {messages.map(m => (
+                  <li key={m.id} className={m.from === 'client' ? 'flex justify-end' : ''}>
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
+                      m.from === 'client' ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-900'
+                    }`}>
+                      <p className={`text-xs mb-0.5 ${m.from === 'client' ? 'text-white/70' : 'text-gray-500'}`}>
+                        {m.author} · {new Date(m.at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <p className="text-sm whitespace-pre-wrap">{m.body}</p>
+                      {m.attachments?.map((a, i) => (
+                        <a key={i} href={a.url} target="_blank" rel="noreferrer"
+                          className={`block text-xs underline mt-1 ${m.from === 'client' ? 'text-white/90' : 'text-[#0D3B6E]'}`}>
+                          {a.name}
+                        </a>
+                      ))}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="flex items-end gap-2">
+              <textarea
+                rows={2}
+                className="flex-1 rounded-xl ring-1 ring-gray-200 px-3 py-2.5 text-sm resize-none"
+                placeholder="Ask a question, or tell them something…"
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+              />
+              <button type="button" onClick={send} disabled={sending || !draft.trim()}
+                className="rounded-xl bg-[#0D3B6E] text-white px-4 py-3 disabled:opacity-40 flex-shrink-0">
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
           </section>
         )}
 

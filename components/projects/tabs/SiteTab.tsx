@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { toast } from '@/components/ui';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, Send, MessageSquare } from 'lucide-react';
 import type { TabProps } from '@/components/projects/shared';
 import { WEATHER, WEATHER_LABEL, label } from '@/components/projects/shared';
 import type { DiaryEntry, DiarySummary, ProjectDoc, Delay } from '@/components/projects/types';
@@ -31,6 +31,35 @@ export default function SiteTab({
   const [delayRows, setDelayRows] = useState<Delay[]>([]);
   const [siteBusy, setSiteBusy] = useState(false);
   const [docForm, setDocForm] = useState({ category: profile.document_categories[0] || 'other', name: '' });
+  const [messages, setMessages] = useState<any[]>([]);
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    api.get(`/projects/${projectId}/messages`)
+      .then(r => setMessages(r.data.data || []))
+      .catch(() => {});
+  }, [projectId, docs]);
+
+  /** Publish a document to the client's page, or take it back. */
+  const toggleShare = async (d: ProjectDoc) => {
+    try {
+      await api.patch(`/projects/${projectId}/documents/${d.id}/share`, { shared: !d.shared_with_client });
+      await reload();
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Could not change sharing'); }
+  };
+
+  const reply = async () => {
+    if (!draft.trim()) return;
+    setSending(true);
+    try {
+      const r = await api.post(`/projects/${projectId}/messages`, { body: draft.trim() });
+      setMessages(m => [...m, r.data.data]);
+      setDraft('');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not send');
+    } finally { setSending(false); }
+  };
 
   const saveDiary = async () => {
     setSiteBusy(true);
@@ -274,6 +303,25 @@ export default function SiteTab({
               <div key={d.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5 ring-1 ring-gray-100">
                 <span className="badge bg-blue-50 text-[#0D3B6E] flex-shrink-0">{label(d.category)}</span>
                 <a href={d.url} target="_blank" rel="noreferrer" className="flex-1 min-w-0 text-sm text-gray-800 hover:text-[#0D3B6E] truncate">{d.name}</a>
+                {d.from_client ? (
+                  <span className="badge bg-amber-50 text-amber-700 flex-shrink-0">From the client</span>
+                ) : canManage && (
+                  <button
+                    type="button"
+                    onClick={() => toggleShare(d)}
+                    title={d.shared_with_client
+                      ? 'Visible to the client — click to withdraw'
+                      : 'Internal — click to share with the client'}
+                    className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full flex-shrink-0 transition-colors ${
+                      d.shared_with_client
+                        ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    }`}
+                  >
+                    {d.shared_with_client ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                    {d.shared_with_client ? 'Shared' : 'Internal'}
+                  </button>
+                )}
                 <span className="text-xs text-gray-400 flex-shrink-0 hidden sm:inline">{new Date(d.createdAt).toLocaleDateString()}</span>
                 {canManage && (
                   <button onClick={() => removeIt('document', `/projects/${projectId}/documents/${d.id}`, d.name)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
@@ -282,6 +330,50 @@ export default function SiteTab({
                 )}
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Talking to the client */}
+      <div className="card">
+        <div className="mb-4">
+          <h2 className="font-bold text-gray-900 flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-gray-400" /> Messages with the client
+          </h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Kept with the job rather than in somebody&apos;s phone, so it can be found when it matters.
+            Sending here also texts the client, where updates are switched on.
+          </p>
+        </div>
+
+        {messages.length === 0 ? (
+          <p className="text-sm text-gray-400 mb-4">Nothing yet.</p>
+        ) : (
+          <ul className="space-y-3 mb-4 max-h-80 overflow-y-auto">
+            {messages.map((m: any) => (
+              <li key={m.id} className={m.from === 'staff' ? 'flex justify-end' : ''}>
+                <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
+                  m.from === 'staff' ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-900'
+                }`}>
+                  <p className={`text-xs mb-0.5 ${m.from === 'staff' ? 'text-white/70' : 'text-gray-500'}`}>
+                    {m.author_name || (m.from === 'staff' ? 'Your team' : 'The client')} ·{' '}
+                    {new Date(m.createdAt).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap">{m.body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {canManage && (
+          <div className="flex items-end gap-2">
+            <textarea rows={2} className="form-input resize-none flex-1"
+              placeholder="Write to the client…"
+              value={draft} onChange={e => setDraft(e.target.value)} />
+            <button type="button" className="btn-primary flex-shrink-0" disabled={sending || !draft.trim()} onClick={reply}>
+              <Send className="w-4 h-4" /> {sending ? 'Sending…' : 'Send'}
+            </button>
           </div>
         )}
       </div>
