@@ -6,9 +6,10 @@ import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { toast, ConfirmDialog } from '@/components/ui';
 import { loadProjectTypes, profileFor, FALLBACK, type ProjectTypeProfile } from '@/lib/projectTypes';
+import EditProjectDialog from '@/components/projects/EditProjectDialog';
 import {
   RefreshCw, ArrowLeft, AlertTriangle, TrendingUp, TrendingDown,
-  MapPin, Calendar, User, FileText,
+  MapPin, Calendar, User, FileText, Pencil, Trash2,
 } from 'lucide-react';
 
 import {
@@ -62,6 +63,7 @@ export default function ProjectDetailPage() {
   const [tab, setTab] = useState<TabKey>('progress');
   const [typeProfiles, setTypeProfiles] = useState<ProjectTypeProfile[]>([FALLBACK]);
   const [confirm, setConfirm] = useState<{ title: string; message: string; danger?: boolean; run: () => void } | null>(null);
+  const [editing, setEditing] = useState(false);
 
   const money = (n: number) => `${fin?.currency || 'GHS'} ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -123,6 +125,31 @@ export default function ProjectDetailPage() {
     (tab === 'claims' && !caps.time_claims) || (tab === 'programme' && !caps.programme)
       ? 'progress'
       : tab;
+
+  const deleteProject = () => {
+    // The server refuses a billed job outright. The page already knows whether
+    // it is one, so say so here rather than opening a dialog that only exists
+    // to be turned down.
+    const raised = (billing?.invoices || []).filter(i => i.status !== 'void').length;
+    if (raised) {
+      toast.error(`${project.code} has ${raised} invoice${raised === 1 ? '' : 's'} raised against it. Set it to cancelled instead — that keeps the billing history.`);
+      return;
+    }
+    setConfirm({
+      title: `Delete ${project.code}?`,
+      message: `“${project.name}” goes, and with it every stage, task, variation, diary entry, claim and document recorded against it. Expenses and purchase orders are kept — they are accounting records in their own right, and are simply untagged.`,
+      danger: true,
+      run: async () => {
+        try {
+          await api.delete(`/projects/${id}`);
+          toast.success(`${project.code} deleted`);
+          router.push('/projects');
+        } catch (e: any) {
+          toast.error(e.response?.data?.message || 'Could not delete the project');
+        }
+      },
+    });
+  };
 
   const removeIt = (what: string, url: string, name: string) => setConfirm({
     title: `Remove this ${what}?`,
@@ -194,10 +221,25 @@ export default function ProjectDetailPage() {
           <button type="button" onClick={() => router.push('/projects')} className="btn-ghost text-sm">
             <ArrowLeft className="w-4 h-4" /> All projects
           </button>
-          <button type="button" onClick={load} className="btn-secondary" disabled={loading}>
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={load} className="btn-secondary" disabled={loading}>
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            {canManage && (
+              <button type="button" onClick={() => setEditing(true)} className="btn-secondary">
+                <Pencil className="w-4 h-4" />
+                <span className="hidden sm:inline">Edit</span>
+              </button>
+            )}
+            {isOwner && (
+              <button type="button" onClick={deleteProject}
+                className="btn-secondary !text-red-600 hover:!bg-red-50">
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Delete</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Project info banner */}
@@ -345,6 +387,15 @@ export default function ProjectDetailPage() {
         {openTab === 'cashflow'  && <CashflowTab  {...tabProps} cash={cash} />}
         {openTab === 'billing'   && <BillingTab   {...tabProps} billing={billing} />}
         {openTab === 'site'      && <SiteTab      {...tabProps} diary={diary} docs={docs} />}
+
+        {editing && (
+          <EditProjectDialog
+            project={project}
+            types={typeProfiles}
+            onClose={() => setEditing(false)}
+            onSaved={load}
+          />
+        )}
 
         <ConfirmDialog
           open={!!confirm}
