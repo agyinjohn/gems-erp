@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { publicApi } from '@/lib/api';
 import {
   CheckCircle2, Circle, Clock, AlertTriangle, FileText, Download,
-  Building2, Phone, Mail, RefreshCw,
+  Building2, Phone, Mail, RefreshCw, CreditCard,
 } from 'lucide-react';
 
 /**
@@ -68,6 +68,7 @@ export default function TrackPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [responding, setResponding] = useState(false);
+  const [paying, setPaying] = useState(false);
 
   const money = (n: number) =>
     `${data?.currency || 'GHS'} ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -96,6 +97,55 @@ export default function TrackPage() {
       setError(e.response?.data?.message || 'Could not send your answer.');
     } finally {
       setResponding(false);
+    }
+  };
+
+  /**
+   * Pay for the job.
+   *
+   * The amount is fixed by the server before the popup opens — this page is
+   * reachable by anyone holding the link, and an amount set here would be an
+   * amount the payer chooses. Paystack is resumed from a code, not started
+   * from a figure.
+   */
+  const pay = async () => {
+    setPaying(true);
+    setError('');
+    try {
+      const r = await publicApi.post(`/track/${token}/pay`);
+      const { access_code } = r.data.data;
+
+      const open = () => {
+        const popup = (window as any).PaystackPop;
+        if (!popup?.resumeTransaction) {
+          setError('Could not open the payment window. Please try again.');
+          setPaying(false);
+          return;
+        }
+        popup.resumeTransaction(access_code, {
+          onSuccess: async () => {
+            try {
+              await publicApi.post(`/track/${token}/confirm-payment`, { reference: r.data.data.reference });
+              await load();
+            } catch (e: any) {
+              // The money may well have left — say so plainly rather than
+              // implying it failed, and give them something to quote.
+              setError(`We could not confirm the payment automatically. Quote reference ${r.data.data.reference} to ${data?.business.name}.`);
+            } finally { setPaying(false); }
+          },
+          onCancel: () => setPaying(false),
+        });
+      };
+
+      if ((window as any).PaystackPop) return open();
+      const script = document.createElement('script');
+      script.src = 'https://js.paystack.co/v2/inline.js';
+      script.onload = open;
+      script.onerror = () => { setError('Could not load the payment window.'); setPaying(false); };
+      document.body.appendChild(script);
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Could not start the payment.');
+      setPaying(false);
     }
   };
 
@@ -216,6 +266,40 @@ export default function TrackPage() {
               </button>
             </div>
           </section>
+        )}
+
+        {/* Money owing on an accepted job */}
+        {!isProject && data.quote_status === 'accepted' && (data.outstanding || 0) > 0 && (
+          <section className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5">
+            <p className="font-bold text-gray-900">Payment</p>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Pay now by card or mobile money, or settle at the counter when you collect.
+            </p>
+            <p className="text-3xl font-extrabold text-gray-900 mt-4">{money(data.outstanding || 0)}</p>
+            <button
+              type="button"
+              onClick={pay}
+              disabled={paying}
+              className="w-full sm:w-auto mt-4 rounded-xl bg-[#0D3B6E] text-white px-6 py-3 text-sm font-semibold disabled:opacity-60 inline-flex items-center justify-center gap-2"
+            >
+              <CreditCard className="w-4 h-4" />
+              {paying ? 'Opening…' : `Pay ${money(data.outstanding || 0)}`}
+            </button>
+          </section>
+        )}
+
+        {!isProject && data.payment_status === 'paid' && (
+          <div className="flex items-center gap-2.5 bg-green-50 text-green-800 rounded-xl px-4 py-3 text-sm">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <span>Paid in full. Thank you.</span>
+          </div>
+        )}
+
+        {error && data && (
+          <div className="flex items-start gap-2.5 bg-amber-50 text-amber-900 rounded-xl px-4 py-3 text-sm">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
         )}
 
         {/* Stages of a project */}
