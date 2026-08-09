@@ -148,4 +148,9 @@ export interface ProjectDoc {
   id: string; name: string; category: string; url: string;
   mime_type?: string; size?: number; createdAt: string;
   uploaded_by?: { name: string } | null;
+  /** Published to the client's page. Internal until somebody says otherwise. */
+  shared_with_client?: boolean;
+  /** Sent in by the client, so always visible to them. */
+  from_client?: boolean;
+  client_name?: string;
 }
