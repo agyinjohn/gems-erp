@@ -9,7 +9,7 @@ import { loadProjectTypes, profileFor, FALLBACK, type ProjectTypeProfile } from 
 import EditProjectDialog from '@/components/projects/EditProjectDialog';
 import {
   RefreshCw, ArrowLeft, AlertTriangle, TrendingUp, TrendingDown,
-  MapPin, Calendar, User, FileText, Pencil, Trash2,
+  MapPin, Calendar, User, FileText, Pencil, Trash2, Link2, Copy,
 } from 'lucide-react';
 
 import {
@@ -64,6 +64,7 @@ export default function ProjectDetailPage() {
   const [typeProfiles, setTypeProfiles] = useState<ProjectTypeProfile[]>([FALLBACK]);
   const [confirm, setConfirm] = useState<{ title: string; message: string; danger?: boolean; run: () => void } | null>(null);
   const [editing, setEditing] = useState(false);
+  const [clientLink, setClientLink] = useState<string | null>(null);
 
   const money = (n: number) => `${fin?.currency || 'GHS'} ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -125,6 +126,33 @@ export default function ProjectDetailPage() {
     (tab === 'claims' && !caps.time_claims) || (tab === 'programme' && !caps.programme)
       ? 'progress'
       : tab;
+
+  // The read-only page a client is given. Minted on first ask, so a job nobody
+  // shares never carries a token at all.
+  const shareWithClient = async () => {
+    try {
+      const r = await api.post(`/projects/${id}/track-link`);
+      const url = `${window.location.origin}${r.data.data.path}`;
+      setClientLink(url);
+      navigator.clipboard?.writeText(url);
+      toast.success('Client link copied — it shows progress and invoices, never costs');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not create the link');
+    }
+  };
+
+  const revokeClientLink = () => setConfirm({
+    title: 'Withdraw the client link?',
+    message: 'Anyone still holding it will get nothing. You can issue a new one at any time, but it will be a different address.',
+    danger: true,
+    run: async () => {
+      try {
+        await api.delete(`/projects/${id}/track-link`);
+        setClientLink(null);
+        toast.success('Link withdrawn');
+      } catch (e: any) { toast.error(e.response?.data?.message || 'Could not withdraw the link'); }
+    },
+  });
 
   const deleteProject = () => {
     // The server refuses a billed job outright. The page already knows whether
@@ -226,6 +254,12 @@ export default function ProjectDetailPage() {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
+            {canManage && (
+              <button type="button" onClick={shareWithClient} className="btn-secondary">
+                <Link2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Client link</span>
+              </button>
+            )}
             {canManage && (
               <button type="button" onClick={() => setEditing(true)} className="btn-secondary">
                 <Pencil className="w-4 h-4" />
@@ -387,6 +421,28 @@ export default function ProjectDetailPage() {
         {openTab === 'cashflow'  && <CashflowTab  {...tabProps} cash={cash} />}
         {openTab === 'billing'   && <BillingTab   {...tabProps} billing={billing} />}
         {openTab === 'site'      && <SiteTab      {...tabProps} diary={diary} docs={docs} />}
+
+        {clientLink && (
+          <div className="flex items-start gap-2.5 bg-blue-50 text-blue-900 rounded-xl px-4 py-3 text-sm flex-wrap">
+            <Link2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">The client can watch this job here</p>
+              <p className="font-mono text-xs break-all mt-0.5">{clientLink}</p>
+              <p className="text-xs mt-1 text-blue-800/80">
+                Read-only. It shows progress, stages and their own invoices — never cost, budget or margin.
+              </p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button type="button" className="btn-ghost !py-1 text-xs"
+                onClick={() => { navigator.clipboard?.writeText(clientLink); toast.success('Copied'); }}>
+                <Copy className="w-3.5 h-3.5" /> Copy
+              </button>
+              <button type="button" className="btn-ghost !py-1 text-xs !text-red-600" onClick={revokeClientLink}>
+                Withdraw
+              </button>
+            </div>
+          </div>
+        )}
 
         {editing && (
           <EditProjectDialog
