@@ -15,14 +15,7 @@ import { HR_SECTIONS } from '@/lib/hrNav';
 
 /** Sidebar highlight — avoid parent /pos matching /pos/shifts */
 function isNavActive(pathname: string, href: string): boolean {
-  // A link may carry a query — "Our services" is the catalogue filtered to
-  // services — and pathname never does, so compare the routes alone. Two
-  // entries pointing at one route both light up; disambiguating would mean
-  // reading search params here, which would stop every page prerendering for
-  // the sake of a highlight.
-  const route = href.split('?')[0];
-  if (pathname === route) return true;
-  href = route;
+  if (pathname === href) return true;
   if (href === '/accounting/overview' && pathname === '/accounting') return true;
   if (href === '/hr/employees' && pathname === '/hr') return true;
   if (href === '/platform' || href === '/dashboard') return false;
@@ -145,9 +138,9 @@ const navGroups = [
       { href: '/contracts', label: 'Contracts', icon: FileSignature, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
       { href: '/projects', label: 'Projects', icon: Briefcase, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
       { href: '/labour', label: 'Labour', icon: HardHat, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
-      // What we offer. Points at the catalogue filtered to services — the same
+      // What we offer — its own page, not a filtered view of stock. The same
       // list a client picks from when they send a request in.
-      { href: '/inventory?type=service', label: 'Our services', icon: Tag, roles: ['business_owner', 'branch_manager'], permission: 'inventory.view' },
+      { href: '/service-catalog', label: 'Our services', icon: Tag, roles: ['business_owner', 'branch_manager'], permission: 'inventory.view' },
       { href: '/crm', label: 'Customers', icon: UserCheck, roles: ['business_owner', 'branch_manager'], permission: 'crm.view' },
       { href: '/payment-logs', label: 'Payments', icon: CreditCard, roles: ['business_owner', 'branch_manager', 'accountant'], permission: 'accounting.view' },
     ],

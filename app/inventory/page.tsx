@@ -1,6 +1,5 @@
 'use client';
-import { useEffect, useState, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useState, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast, ResponsiveTable } from '@/components/ui';
 import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen, X, ChevronDown, MapPin, Wrench } from 'lucide-react';
@@ -407,16 +406,7 @@ const SERVICE_TYPES = [
   { key: 'professional', label: 'Professional services' },
 ];
 
-/**
- * Wrapped because useSearchParams makes this route client-rendered up to the
- * nearest boundary, and without one the whole page stops being prerendered.
- */
 export default function InventoryPage() {
-  return <Suspense fallback={null}><Inventory /></Suspense>;
-}
-
-function Inventory() {
-  const searchParams = useSearchParams();
   const [tab, setTab] = useState<'products'|'categories'|'locations'>('products');
   const [products, setProducts] = useState<any[]>(() => apiCache.get('/products') || []);
   const [categories, setCategories] = useState<any[]>(() => apiCache.get('/categories') || []);
@@ -424,13 +414,7 @@ function Inventory() {
   const [loading, setLoading] = useState(() => !apiCache.get('/products'));
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
-  // Operations links here for services alone — the same list that decides what
-  // a client can ask for. Read once as a starting point, not watched: having
-  // arrived, changing the filter is the user's business, not the URL's.
-  const [filterItemType, setFilterItemType] = useState(() => {
-    const asked = searchParams.get('type');
-    return ['product', 'service', 'bundle'].includes(asked || '') ? asked! : '';
-  });
+  const [filterItemType, setFilterItemType] = useState('');
   const [modal, setModal] = useState<'add'|'edit'|'adjust'|'cat-add'|'cat-edit'|'loc-add'|'loc-edit'|null>(null);
   const [selected, setSelected] = useState<any>(null);
   const [selectedCat, setSelectedCat] = useState<any>(null);
