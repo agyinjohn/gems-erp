@@ -2118,6 +2118,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             onChange={(allowance_lines) => setPayForm({ ...payForm, allowance_lines })}
             presets={ALLOWANCE_PRESETS}
             amountPrefix="+"
+            pensionable
           />
           <PayrollLineEditor
             label="Other deductions (PAYE & SSNIT added automatically)"
@@ -2226,6 +2227,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           onChange={(allowance_lines) => setPayRunForm({ ...payRunForm, allowance_lines })}
           presets={ALLOWANCE_PRESETS}
           amountPrefix="+"
+          pensionable
         />
         <PayrollLineEditor
           label="Shared deductions (PAYE & SSNIT added per employee)"

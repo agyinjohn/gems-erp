@@ -2,7 +2,7 @@
 
 import { Plus, Trash2 } from 'lucide-react';
 
-export type PayLine = { name: string; amount: string };
+export type PayLine = { name: string; amount: string; pensionable?: boolean };
 
 const ALLOWANCE_PRESETS = ['Transport allowance', 'Housing allowance', 'Meal allowance', 'Overtime', 'Bonus'];
 const DEDUCTION_PRESETS = ['Staff loan', 'Union dues', 'Welfare fund', 'Advance salary recovery'];
@@ -13,9 +13,16 @@ interface PayrollLineEditorProps {
   onChange: (lines: PayLine[]) => void;
   presets?: string[];
   amountPrefix?: '+' | '-';
+  /**
+   * Show the pensionable tick. Allowances only — a deduction never reaches the
+   * pension base, so offering the choice there would be offering a lie.
+   */
+  pensionable?: boolean;
 }
 
-export default function PayrollLineEditor({ label, lines, onChange, presets = [], amountPrefix }: PayrollLineEditorProps) {
+export default function PayrollLineEditor({
+  label, lines, onChange, presets = [], amountPrefix, pensionable = false,
+}: PayrollLineEditorProps) {
   const updateLine = (index: number, patch: Partial<PayLine>) => {
     onChange(lines.map((line, i) => (i === index ? { ...line, ...patch } : line)));
   };
@@ -47,9 +54,9 @@ export default function PayrollLineEditor({ label, lines, onChange, presets = []
       )}
       <div className="space-y-2">
         {lines.map((line, index) => (
-          <div key={index} className="flex gap-2 items-center">
+          <div key={index} className="flex gap-2 items-center flex-wrap">
             <input
-              className="form-input flex-1"
+              className="form-input flex-1 min-w-[140px]"
               placeholder="Name e.g. Transport allowance"
               value={line.name}
               onChange={(e) => updateLine(index, { name: e.target.value })}
@@ -64,6 +71,17 @@ export default function PayrollLineEditor({ label, lines, onChange, presets = []
                 onChange={(e) => updateLine(index, { amount: e.target.value })}
               />
             </div>
+            {pensionable && (
+              <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer whitespace-nowrap"
+                title="Tick only if this allowance attracts SSNIT. Most don't — pension is on basic salary.">
+                <input
+                  type="checkbox"
+                  checked={!!line.pensionable}
+                  onChange={(e) => updateLine(index, { pensionable: e.target.checked })}
+                />
+                Pensionable
+              </label>
+            )}
             {lines.length > 1 && (
               <button type="button" onClick={() => removeLine(index)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg">
                 <Trash2 className="w-4 h-4" />
@@ -72,6 +90,12 @@ export default function PayrollLineEditor({ label, lines, onChange, presets = []
           </div>
         ))}
       </div>
+      {pensionable && (
+        <p className="text-xs text-gray-400">
+          SSNIT is charged on basic salary. Tick an allowance only where you have agreed
+          it attracts pension too — PAYE applies to all of them either way.
+        </p>
+      )}
     </div>
   );
 }
@@ -82,7 +106,11 @@ export { ALLOWANCE_PRESETS, DEDUCTION_PRESETS };
 
 export function activePayLines(lines: PayLine[]) {
   return lines
-    .map((line) => ({ name: line.name.trim(), amount: parseFloat(line.amount) || 0 }))
+    .map((line) => ({
+      name: line.name.trim(),
+      amount: parseFloat(line.amount) || 0,
+      pensionable: !!line.pensionable,
+    }))
     .filter((line) => line.name && line.amount > 0);
 }
 
@@ -94,7 +122,7 @@ export function formatPayLinesForDisplay(payroll: any) {
     ? payroll.deduction_lines
     : [
       ...(parseFloat(payroll?.paye || 0) > 0 ? [{ name: 'PAYE', amount: payroll.paye }] : []),
-      ...(parseFloat(payroll?.ssnit_employee || 0) > 0 ? [{ name: 'SSNIT (employee 5.5%)', amount: payroll.ssnit_employee }] : []),
+      ...(parseFloat(payroll?.ssnit_employee || 0) > 0 ? [{ name: 'SSNIT (employee)', amount: payroll.ssnit_employee }] : []),
     ];
   return { allowances, deductions };
 }
