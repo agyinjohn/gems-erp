@@ -1,7 +1,7 @@
-import { Users, Clock, Umbrella, Banknote, Wallet, Star } from 'lucide-react';
+import { Users, Clock, Umbrella, Banknote, Wallet, Star, SlidersHorizontal } from 'lucide-react';
 import type { ComponentType } from 'react';
 
-export type HrSectionSlug = 'employees' | 'attendance' | 'leave' | 'payroll' | 'loans' | 'appraisals';
+export type HrSectionSlug = 'employees' | 'attendance' | 'leave' | 'payroll' | 'loans' | 'appraisals' | 'settings';
 
 export interface HrNavItem {
   slug: HrSectionSlug;
@@ -53,6 +53,15 @@ export const HR_SECTIONS: HrNavItem[] = [
     title: 'Performance Appraisals',
     subtitle: 'Rate employees each period and share feedback',
     icon: Star,
+  },
+  // Last, and deliberately its own place. Rules you set once and rarely revisit
+  // do not belong on the page you use every week to get people paid.
+  {
+    slug: 'settings',
+    label: 'Settings',
+    title: 'HR Settings',
+    subtitle: 'Statutory deductions and the working day',
+    icon: SlidersHorizontal,
   },
 ];
 
