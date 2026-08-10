@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { Modal, EmptyState, Spinner, ConfirmDialog, toast } from '@/components/ui';
+import { Modal, EmptyState, Spinner, ConfirmDialog, ResponsiveTable, toast } from '@/components/ui';
 import {
   Plus, Search, Pencil, Trash2, Tag, Paperclip, EyeOff, Eye,
 } from 'lucide-react';
@@ -248,63 +248,65 @@ export default function ServiceCatalogPage() {
           )}
         </div>
 
-        {loading && !loadedOnce ? <Spinner /> : visible.length === 0 ? (
-          <EmptyState
-            message={rows.length === 0
-              ? 'Nothing on the price list yet — add a service and clients can start requesting it'
-              : 'No services match that'}
-            icon={<Tag className="w-8 h-8 text-gray-300" />}
-          />
-        ) : (
-          <div className="space-y-2">
-            {visible.map(s => (
-              <div key={s.id} className={`card !p-0 overflow-hidden ${s.is_active === false ? 'opacity-60' : ''}`}>
-                <div className="flex items-start gap-3 px-4 py-3 flex-wrap">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-gray-900 text-sm">{s.name}</span>
-                      <span className="badge bg-gray-100 text-gray-600">{typeLabel(s.service_type)}</span>
-                      {s.requires_file && (
-                        <span className="badge bg-blue-50 text-blue-700 gap-1" title="A client must attach something to request this">
-                          <Paperclip className="w-3 h-3" /> File
-                        </span>
-                      )}
-                      {s.is_active === false && <span className="badge bg-gray-100 text-gray-400">Hidden</span>}
-                    </div>
-                    {s.description && <p className="text-xs text-gray-500 mt-0.5">{s.description}</p>}
-                    <p className="text-xs text-gray-400 mt-1">
-                      {unitLabel(s.unit_type)}
-                      {s.duration ? ` · about ${s.duration} ${s.unit_type === 'hour' ? 'hours' : 'days'}` : ''}
-                      {s.revenue_account_code ? ` · posts to ${s.revenue_account_code}` : ''}
-                    </p>
+        <div className="card p-0 overflow-hidden">
+          {loading && !loadedOnce ? <Spinner /> : visible.length === 0 ? (
+            <EmptyState
+              message={rows.length === 0
+                ? 'Nothing on the price list yet — add a service and clients can start requesting it'
+                : 'No services match that'}
+              icon={<Tag className="w-8 h-8 text-gray-300" />}
+            />
+          ) : (
+            <ResponsiveTable
+              headers={['Service', 'Kind of work', 'Client sends', 'Billed', 'Price', '']}
+              data={visible}
+              renderRow={(s: Service) => [
+                <div key="name" className={s.is_active === false ? 'opacity-60' : ''}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-gray-900">{s.name}</span>
+                    {s.is_active === false && <span className="badge bg-gray-100 text-gray-400">Hidden</span>}
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    {s.pricing_mode === 'open' ? (
-                      <span className="text-xs font-medium text-amber-700">Priced by hand</span>
-                    ) : (
-                      <p className="font-bold text-gray-900 tabular-nums">{money(s.price)}</p>
+                  {s.description && <div className="text-xs text-gray-400 mt-0.5">{s.description}</div>}
+                </div>,
+
+                <span key="type" className="text-gray-600">{typeLabel(s.service_type)}</span>,
+
+                // The one column worth scanning down: which services a client
+                // cannot request without attaching something.
+                s.requires_file ? (
+                  <span key="file" className="badge bg-blue-50 text-blue-700 gap-1">
+                    <Paperclip className="w-3 h-3" /> A file
+                  </span>
+                ) : <span key="file" className="text-gray-300">—</span>,
+
+                <span key="billed" className="text-gray-600">
+                  {unitLabel(s.unit_type)}
+                  {s.duration ? <span className="text-gray-400"> · ~{s.duration} {s.unit_type === 'hour' ? 'hrs' : 'days'}</span> : null}
+                </span>,
+
+                s.pricing_mode === 'open'
+                  ? <span key="price" className="text-xs font-medium text-amber-700">Priced by hand</span>
+                  : <span key="price" className="font-semibold text-gray-900 tabular-nums">{money(s.price)}</span>,
+
+                canManage ? (
+                  <div key="actions" className="flex items-center gap-1 justify-end">
+                    <button type="button" onClick={() => toggleActive(s)}
+                      title={s.is_active === false ? 'Put back on the list' : 'Hide from the list'}
+                      className="p-1.5 hover:bg-gray-100 rounded text-gray-500">
+                      {s.is_active === false ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    </button>
+                    <button type="button" onClick={() => openEdit(s)} title="Edit"
+                      className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"><Pencil className="w-4 h-4" /></button>
+                    {isOwner && (
+                      <button type="button" onClick={() => remove(s)} title="Delete"
+                        className="p-1.5 hover:bg-red-50 rounded text-red-600"><Trash2 className="w-4 h-4" /></button>
                     )}
                   </div>
-                  {canManage && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button type="button" onClick={() => toggleActive(s)}
-                        title={s.is_active === false ? 'Put back on the list' : 'Hide from the list'}
-                        className="p-1.5 hover:bg-gray-100 rounded text-gray-500">
-                        {s.is_active === false ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                      </button>
-                      <button type="button" onClick={() => openEdit(s)} title="Edit"
-                        className="p-1.5 hover:bg-[#0D3B6E]/8 rounded text-[#0D3B6E]"><Pencil className="w-4 h-4" /></button>
-                      {isOwner && (
-                        <button type="button" onClick={() => remove(s)} title="Delete"
-                          className="p-1.5 hover:bg-red-50 rounded text-red-600"><Trash2 className="w-4 h-4" /></button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                ) : <span key="actions" />,
+              ]}
+            />
+          )}
+        </div>
       </div>
 
       <Modal open={modal !== null} onClose={() => setModal(null)}
