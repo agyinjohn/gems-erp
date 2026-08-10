@@ -41,7 +41,7 @@ const money = (n: number, c = 'GHS') =>
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'overview',    label: 'Overview' },
-  { key: 'projects',    label: 'Projects' },
+  { key: 'projects',    label: 'Work' },
   { key: 'schedule',    label: 'Payment schedule' },
   { key: 'signatories', label: 'Signatories' },
   { key: 'documents',   label: 'Documents' },

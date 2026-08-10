@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { toast, ConfirmDialog } from '@/components/ui';
-import { Plus, X, ChevronRight, TrendingUp, CheckCircle2, PauseCircle, XCircle, FileText } from 'lucide-react';
+import { Plus, X, ChevronRight, TrendingUp, CheckCircle2, PauseCircle, XCircle, FileText, Hammer } from 'lucide-react';
 
 const STATUS_STYLE: Record<string, string> = {
   draft:     'bg-gray-100 text-gray-600',
@@ -20,6 +20,13 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   cancelled: <XCircle className="w-3 h-3" />,
 };
 
+const JOB_STATUS_STYLE: Record<string, string> = {
+  open:        'bg-gray-100 text-gray-600',
+  in_progress: 'bg-[#0D3B6E]/10 text-[#0D3B6E]',
+  done:        'bg-green-50 text-green-700',
+  invoiced:    'bg-blue-50 text-blue-700',
+};
+
 const label = (s: string) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 const money = (n: number, c = 'GHS') =>
   `${c} ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -30,8 +37,30 @@ interface Props {
   reload: () => Promise<void>;
 }
 
+/**
+ * What has actually been done under this contract.
+ *
+ * Projects and jobs both hang off a contract and both cost money, so they are
+ * shown together with one total. Splitting them across two tabs would mean
+ * nobody could answer "what has this client cost us" without adding two numbers
+ * from two screens — and the smaller of the two, a day's printing against a
+ * contract, is exactly the sort of thing that goes uncounted when it is filed
+ * somewhere else.
+ *
+ * Projects are linked by hand; jobs arrive already carrying their contract, so
+ * they are listed rather than managed here.
+ */
 export default function ProjectsTab({ contract, canManage, reload }: Props) {
   const linked: any[] = contract.projects || [];
+  const jobs: any[] = contract.jobs || [];
+
+  const currency = contract.currency || 'GHS';
+  const projectValue = linked.reduce((sum: number, p: any) => sum + (p.contract_value || 0), 0);
+  const jobValue = jobs.reduce((sum: number, j: any) => sum + (j.value || 0), 0);
+  const committed = projectValue + jobValue;
+  // Against the contract's own figure, so over-commitment is visible rather
+  // than something to notice later.
+  const contractValue = contract.value || 0;
 
   const [allProjects, setAllProjects] = useState<any[]>([]);
   const [selectedId, setSelectedId]   = useState('');
@@ -113,6 +142,37 @@ export default function ProjectsTab({ contract, canManage, reload }: Props) {
         </div>
       )}
 
+      {/* What it adds up to */}
+      {(linked.length > 0 || jobs.length > 0) && (
+        <div className="card">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Projects</p>
+              <p className="font-bold text-gray-900 tabular-nums mt-0.5">{money(projectValue, currency)}</p>
+              <p className="text-xs text-gray-400">{linked.length} linked</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Jobs</p>
+              <p className="font-bold text-gray-900 tabular-nums mt-0.5">{money(jobValue, currency)}</p>
+              <p className="text-xs text-gray-400">{jobs.length} raised</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Committed</p>
+              <p className="font-bold text-[#0D3B6E] tabular-nums mt-0.5">{money(committed, currency)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Contract value</p>
+              <p className="font-bold text-gray-900 tabular-nums mt-0.5">{money(contractValue, currency)}</p>
+              {contractValue > 0 && committed > contractValue && (
+                <p className="text-xs text-amber-700">
+                  {money(committed - contractValue, currency)} over
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Linked projects */}
       {linked.length === 0 ? (
         <div className="card text-center py-14">
@@ -165,6 +225,42 @@ export default function ProjectsTab({ contract, canManage, reload }: Props) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Jobs. Not linked here — a job carries its contract from the moment it
+          is raised, whether by hand or by an accepted service request. */}
+      {jobs.length > 0 && (
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-2 mt-5">
+            Jobs under this contract
+          </p>
+          <div className="space-y-2">
+            {jobs.map((j: any) => (
+              <div key={j.id} className="card !p-0 overflow-hidden">
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Hammer className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-mono text-gray-400">{j.code}</span>
+                      <span className={`badge ${JOB_STATUS_STYLE[j.status] || 'bg-gray-100 text-gray-600'}`}>
+                        {label(j.status)}
+                      </span>
+                      {j.due_date && (
+                        <span className="text-xs text-gray-400">
+                          due {new Date(j.due_date).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-semibold text-gray-900 text-sm mt-0.5 truncate">{j.title}</p>
+                  </div>
+                  <span className="text-sm font-bold text-gray-900 tabular-nums flex-shrink-0">
+                    {money(j.value, currency)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

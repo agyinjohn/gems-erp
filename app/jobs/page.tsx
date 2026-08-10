@@ -5,8 +5,7 @@ import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { toast, ConfirmDialog } from '@/components/ui';
 import {
-  Plus, RefreshCw, Briefcase, X, Filter,
-  Pencil, Trash2, Check, FileText, ChevronDown, ChevronUp,
+  Plus, RefreshCw, Briefcase, X, Pencil, Trash2, Check, FileText, ChevronDown, ChevronUp, Search,
 } from 'lucide-react';
 
 const JOB_TYPES = [
@@ -19,6 +18,26 @@ const JOB_TYPES = [
 ];
 
 const STATUSES = ['open', 'in_progress', 'done', 'invoiced'];
+
+type ViewKey = 'today' | 'scheduled' | 'all';
+const VIEWS: { key: ViewKey; label: string; hint: string }[] = [
+  { key: 'today',     label: 'Today',     hint: 'Due today, overdue, or with no due date — counter work' },
+  { key: 'scheduled', label: 'Scheduled', hint: 'Due further out — work that runs over days' },
+  { key: 'all',       label: 'All',       hint: 'Everything, including done and invoiced' },
+];
+
+/** Midnight tonight — anything due before it is today's problem. */
+const endOfToday = () => { const d = new Date(); d.setHours(23, 59, 59, 999); return d; };
+
+/**
+ * A job belongs to today if it is due today, overdue, or carries no due date
+ * at all. The last case is the important one: nobody types a due date on a
+ * walk-in print run they mean to hand over the same afternoon.
+ */
+const isForToday = (j: Job) => !j.due_date || new Date(j.due_date) <= endOfToday();
+const isOverdue  = (j: Job) =>
+  !!j.due_date && new Date(j.due_date) < new Date(new Date().setHours(0, 0, 0, 0))
+  && j.status !== 'done' && j.status !== 'invoiced';
 
 const STATUS_STYLE: Record<string, string> = {
   open:        'bg-gray-100 text-gray-600',
@@ -59,8 +78,9 @@ export default function JobsPage() {
   const [customers,  setCustomers] = useState<{ id: string; name: string; company?: string }[]>([]);
   const [employees,  setEmployees] = useState<{ id: string; name: string }[]>([]);
   const [loading,    setLoading]   = useState(true);
-  const [openOnly,   setOpenOnly]  = useState(true);
+  const [view,       setView]      = useState<ViewKey>('today');
   const [typeFilter, setTypeFilter] = useState('');
+  const [search,     setSearch]    = useState('');
   const [expanded,   setExpanded]  = useState<string | null>(null);
   const [showAdd,    setShowAdd]   = useState(false);
   const [editId,     setEditId]    = useState<string | null>(null);
@@ -75,14 +95,16 @@ export default function JobsPage() {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
-      if (openOnly)   params.open     = 'true';
-      if (typeFilter) params.job_type = typeFilter;
+      // Today and Scheduled are two cuts of live work; All is the archive.
+      if (view !== 'all')  params.open     = 'true';
+      if (typeFilter)      params.job_type = typeFilter;
+      if (search.trim())   params.search   = search.trim();
       const r = await api.get('/jobs', { params });
       setRows(r.data.data || []);
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Could not load jobs');
     } finally { setLoading(false); }
-  }, [openOnly, typeFilter]);
+  }, [view, typeFilter, search]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -201,15 +223,22 @@ export default function JobsPage() {
     },
   });
 
-  const open_count = rows.filter(j => j.status === 'open').length;
-  const wip_count  = rows.filter(j => j.status === 'in_progress').length;
-  const done_count = rows.filter(j => j.status === 'done').length;
-  const inv_count  = rows.filter(j => j.status === 'invoiced').length;
+  // What separates counter work from a job that runs for days is when it is
+  // due, which the job already records — so the two views are cuts of one list
+  // rather than two tables. Work with no due date counts as today's: nobody
+  // types a due date on a walk-in print run they intend to hand over at 4pm.
+  const visible = view === 'all' ? rows : rows.filter(j => (view === 'today' ? isForToday(j) : !isForToday(j)));
+
+  const open_count = visible.filter(j => j.status === 'open').length;
+  const wip_count  = visible.filter(j => j.status === 'in_progress').length;
+  const done_count = visible.filter(j => j.status === 'done').length;
+  const inv_count  = visible.filter(j => j.status === 'invoiced').length;
+  const overdue    = visible.filter(j => isOverdue(j)).length;
 
   return (
     <AppLayout
-      title="Daily jobs"
-      subtitle="Internal work assigned to staff"
+      title="Jobs"
+      subtitle="Work for customers, from a day's printing to a piece that runs for weeks"
       allowedRoles={['platform_admin', 'business_owner', 'branch_manager', 'sales_staff', 'accountant']}
     >
       <div className="space-y-5">
@@ -220,7 +249,9 @@ export default function JobsPage() {
             { label: 'Open',        value: open_count, tone: open_count ? 'text-gray-900'    : 'text-gray-400' },
             { label: 'In progress', value: wip_count,  tone: wip_count  ? 'text-[#0D3B6E]'  : 'text-gray-400' },
             { label: 'Done',        value: done_count, tone: done_count ? 'text-green-600'   : 'text-gray-400' },
-            { label: 'Invoiced',    value: inv_count,  tone: 'text-blue-600' },
+            { label: view === 'all' ? 'Invoiced' : 'Overdue',
+              value: view === 'all' ? inv_count : overdue,
+              tone: view === 'all' ? 'text-blue-600' : (overdue ? 'text-red-600' : 'text-gray-400') },
           ].map(s => (
             <div key={s.label} className="card">
               <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{s.label}</p>
@@ -231,9 +262,28 @@ export default function JobsPage() {
 
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className={openOnly ? 'btn-primary' : 'btn-secondary'} onClick={() => setOpenOnly(v => !v)}>
-            <Filter className="w-4 h-4" /> {openOnly ? 'Open jobs' : 'All jobs'}
-          </button>
+          <div className="inline-flex rounded-xl bg-gray-100 p-1">
+            {VIEWS.map(v => (
+              <button
+                key={v.key}
+                type="button"
+                onClick={() => setView(v.key)}
+                title={v.hint}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  view === v.key ? 'bg-white text-[#0D3B6E] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >{v.label}</button>
+            ))}
+          </div>
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              className="form-input pl-9 w-full !py-1.5 text-sm"
+              placeholder="Job code, title or customer…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
           <select className="form-input !w-auto !py-1.5 text-sm" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
             <option value="">All types</option>
             {JOB_TYPES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
@@ -285,19 +335,29 @@ export default function JobsPage() {
         )}
 
         {/* List */}
-        {loading && !rows.length ? (
+        {loading && !visible.length ? (
           <div className="space-y-2">{[...Array(4)].map((_, i) => <div key={i} className="card animate-pulse h-20" />)}</div>
-        ) : rows.length === 0 ? (
+        ) : visible.length === 0 ? (
           <div className="card text-center py-16">
             <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Briefcase className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="font-semibold text-gray-700">No jobs yet</p>
-            <p className="text-sm text-gray-400 mt-1">Create a job to assign daily work to staff.</p>
+            <p className="font-semibold text-gray-700">
+              {search.trim() ? 'Nothing matches that'
+                : view === 'today' ? 'Nothing due today'
+                : view === 'scheduled' ? 'Nothing scheduled ahead'
+                : 'No jobs yet'}
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              {search.trim() ? 'Try a job code, a title or a customer name.'
+                : view === 'today' ? 'Work with no due date, or due today, lands here.'
+                : view === 'scheduled' ? 'Jobs with a due date further out land here.'
+                : 'Accepted service requests raise a job automatically, or create one here.'}
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
-            {rows.map(j => {
+            {visible.map(j => {
               const isExpanded = expanded === j.id;
               const isEditing  = editId   === j.id;
               const total = j.items.reduce((s, i) => s + i.total, 0);
