@@ -15,6 +15,7 @@ const ROUTE_MODULE_MAP: Record<string, string> = {
   '/crm':         'crm',
   '/orders':      'sales',
   '/inventory':   'inventory',
+  '/service-catalog': 'inventory',
   '/pos':         'pos',
   '/reports':     'reports',
   '/store-settings': 'online_storefront',
