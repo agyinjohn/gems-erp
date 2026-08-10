@@ -50,6 +50,44 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
   const router = useRouter();
   const { open: sidebarOpen, collapsed: sidebarCollapsed, setOpen: setSidebarOpen, toggleCollapsed: toggleSidebarCollapse } = useSidebar();
 
+  /**
+   * Evict any service worker controlling the back office.
+   *
+   * The storefront's offline shell was once registered at the origin root, so a
+   * single visit to a shop page left it in charge of every admin page too —
+   * serving build assets from a cache that outlived the deploy they belonged
+   * to, which is how a page ends up unable to load. Narrowing the scope stops
+   * that happening again, but does nothing for the registrations already out
+   * there: only these pages can clear those, because only these pages are the
+   * ones being wrongly controlled.
+   *
+   * Runs once, does nothing when nothing is controlling, and reloads only if it
+   * actually removed something — the page in front of you was served by the
+   * worker being removed.
+   */
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    if (!navigator.serviceWorker.controller) return;
+
+    let cancelled = false;
+    navigator.serviceWorker.getRegistrations()
+      .then((regs) => Promise.all(
+        regs
+          .filter((r) => !new URL(r.scope).pathname.startsWith('/store/'))
+          .map((r) => r.unregister()),
+      ))
+      .then((results) => {
+        if (cancelled || !results.some(Boolean)) return;
+        return caches?.keys()
+          .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+          .catch(() => {})
+          .then(() => { if (!cancelled) window.location.reload(); });
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, []);
+
   useEffect(() => {
     if (!loading && !user) { router.push('/login'); return; }
     if (!loading && user && allowedRoles && !allowedRoles.includes(user.role)) {

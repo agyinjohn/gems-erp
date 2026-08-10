@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
   X, Monitor, TrendingUp, CreditCard, ChevronDown,
-  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet, MessageSquare, Briefcase, HardHat, ClipboardList, FileSignature, Hammer,
+  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet, MessageSquare, Briefcase, HardHat, ClipboardList, FileSignature, Hammer, Tag,
 } from 'lucide-react';
 import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 import { ACCOUNTING_SECTIONS } from '@/lib/accountingNav';
@@ -15,7 +15,14 @@ import { HR_SECTIONS } from '@/lib/hrNav';
 
 /** Sidebar highlight — avoid parent /pos matching /pos/shifts */
 function isNavActive(pathname: string, href: string): boolean {
-  if (pathname === href) return true;
+  // A link may carry a query — "Our services" is the catalogue filtered to
+  // services — and pathname never does, so compare the routes alone. Two
+  // entries pointing at one route both light up; disambiguating would mean
+  // reading search params here, which would stop every page prerendering for
+  // the sake of a highlight.
+  const route = href.split('?')[0];
+  if (pathname === route) return true;
+  href = route;
   if (href === '/accounting/overview' && pathname === '/accounting') return true;
   if (href === '/hr/employees' && pathname === '/hr') return true;
   if (href === '/platform' || href === '/dashboard') return false;
@@ -126,7 +133,6 @@ const navGroups = [
   {
     label: 'Finance',
     items: [
-      { href: '/payment-logs', label: 'Payments', icon: CreditCard, roles: ['business_owner', 'accountant'], permission: 'accounting.view' },
       { href: '/payouts', label: 'Payouts', icon: Wallet, roles: ['business_owner', 'branch_manager'], permission: null },
       { href: '/sms', label: 'SMS', icon: MessageSquare, roles: ['business_owner', 'branch_manager'], permission: null },
     ],
@@ -134,11 +140,16 @@ const navGroups = [
   {
     label: 'Operations',
     items: [
+      { href: '/service-requests', label: 'Service requests', icon: ClipboardList, roles: ['business_owner', 'branch_manager', 'sales_staff'], permission: null },
+      { href: '/jobs', label: 'Jobs', icon: Hammer, roles: ['business_owner', 'branch_manager', 'sales_staff', 'accountant'], permission: null },
       { href: '/contracts', label: 'Contracts', icon: FileSignature, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
       { href: '/projects', label: 'Projects', icon: Briefcase, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
-      { href: '/jobs', label: 'Jobs', icon: Hammer, roles: ['business_owner', 'branch_manager', 'sales_staff', 'accountant'], permission: null },
       { href: '/labour', label: 'Labour', icon: HardHat, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
-      { href: '/service-requests', label: 'Service requests', icon: ClipboardList, roles: ['business_owner', 'branch_manager', 'sales_staff'], permission: null },
+      // What we offer. Points at the catalogue filtered to services — the same
+      // list a client picks from when they send a request in.
+      { href: '/inventory?type=service', label: 'Our services', icon: Tag, roles: ['business_owner', 'branch_manager'], permission: 'inventory.view' },
+      { href: '/crm', label: 'Customers', icon: UserCheck, roles: ['business_owner', 'branch_manager'], permission: 'crm.view' },
+      { href: '/payment-logs', label: 'Payments', icon: CreditCard, roles: ['business_owner', 'branch_manager', 'accountant'], permission: 'accounting.view' },
     ],
   },
   {
@@ -148,12 +159,6 @@ const navGroups = [
     ],
   },
 
-  {
-    label: 'Customers',
-    items: [
-      { href: '/crm', label: 'CRM', icon: UserCheck, roles: ['business_owner', 'branch_manager'], permission: 'crm.view' },
-    ],
-  },
   {
     label: 'Reports',
     items: [
