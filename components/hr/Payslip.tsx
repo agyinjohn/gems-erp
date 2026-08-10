@@ -65,6 +65,16 @@ export default function Payslip({ run, employee, businessName, onClose }: Props)
             </div>
           )}
 
+          {/* Said plainly, because it is the question the payslip provokes:
+              why is SSNIT not 5.5% of everything I was paid? */}
+          {run.pensionable_base > 0 && run.pensionable_base !== (basic + (run.allowances || 0)) && (
+            <div className="text-[11px] text-gray-500 mb-4">
+              SSNIT charged on {fmtGhs(run.pensionable_base)} — basic pay
+              {run.pensionable_base > basic ? ' and pensionable allowances' : ''}. Allowances are
+              taxed but do not attract pension unless agreed otherwise.
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="card border border-gray-200 rounded-lg p-3">
               <div className="text-[11px] font-semibold uppercase text-gray-400 mb-1">Employee</div>
