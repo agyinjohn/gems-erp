@@ -93,7 +93,7 @@ const navGroups = [
     ],
   },
   {
-    label: 'Operations',
+    label: 'Sales & Stock',
     items: [
       { href: '/pos', label: 'POS', icon: Monitor, roles: ['business_owner', 'branch_manager'], permission: 'pos.view' },
       { href: '/pos/shifts', label: 'Shift History', icon: History, roles: ['business_owner', 'branch_manager'], permission: 'pos.view' },
@@ -132,7 +132,7 @@ const navGroups = [
     ],
   },
   {
-    label: 'Projects',
+    label: 'Operations',
     items: [
       { href: '/contracts', label: 'Contracts', icon: FileSignature, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
       { href: '/projects', label: 'Projects', icon: Briefcase, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
