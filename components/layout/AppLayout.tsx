@@ -20,6 +20,8 @@ const ROUTE_MODULE_MAP: Record<string, string> = {
   '/store-settings': 'online_storefront',
   '/accounting':  'advanced_accounting',
   '/projects':    'projects',
+  '/contracts':   'projects',
+  '/jobs':        'projects',
   '/labour':      'projects',
 };
 

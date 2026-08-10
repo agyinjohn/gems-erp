@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { toast, ConfirmDialog } from '@/components/ui';
 import {
   MessageSquare, ShoppingCart, RefreshCw, CheckCircle, XCircle, AlertCircle,
-  RotateCcw, Save, Ban,
+  RotateCcw, Save, Ban, Zap,
 } from 'lucide-react';
 
 interface Bundle { label: string; credits: number; price: number; unit_price: number }
@@ -29,13 +29,36 @@ interface Message {
 }
 
 const STATUS_STYLES: Record<string, { badge: string; icon: any; label: string }> = {
-  sent:                 { badge: 'bg-green-50 text-green-700', icon: CheckCircle, label: 'Sent' },
-  failed:               { badge: 'bg-red-50 text-red-600',     icon: XCircle,     label: 'Failed' },
-  insufficient_credits: { badge: 'bg-amber-50 text-amber-700', icon: AlertCircle, label: 'No credits' },
-  disabled:             { badge: 'bg-gray-100 text-gray-600',  icon: Ban,         label: 'Switched off' },
+  sent:                 { badge: 'bg-green-50 text-green-700',  icon: CheckCircle, label: 'Sent' },
+  failed:               { badge: 'bg-red-50 text-red-600',      icon: XCircle,     label: 'Failed' },
+  insufficient_credits: { badge: 'bg-amber-50 text-amber-700',  icon: AlertCircle, label: 'No credits' },
+  disabled:             { badge: 'bg-gray-100 text-gray-500',   icon: Ban,         label: 'Off' },
 };
 
 const cedis = (n: number) => `GHS ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+function Toggle({ on, onChange, disabled }: { on: boolean; onChange: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={onChange}
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${on ? 'bg-[#0D3B6E]' : 'bg-gray-300'}`}
+    >
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${on ? 'translate-x-6' : 'translate-x-1'}`} />
+    </button>
+  );
+}
+
+function fmtDate(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return isToday ? `Today ${time}` : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${time}`;
+}
 
 export default function SmsPage() {
   const { user } = useAuth();
@@ -46,6 +69,7 @@ export default function SmsPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<number | null>(null);
+  const [expandedMsg, setExpandedMsg] = useState<string | null>(null);
 
   const [edited, setEdited] = useState<Record<string, string>>({});
   const [savingKey, setSavingKey] = useState<string | null>(null);
@@ -78,7 +102,6 @@ export default function SmsPage() {
       const r = await api.post('/sms/purchase', { credits: bundle.credits });
       const d = r.data.data;
       if (!d.paystack_public_key) throw new Error('Paystack is not configured.');
-
       const run = () => {
         const handler = (window as any).PaystackPop.setup({
           key: d.paystack_public_key,
@@ -96,7 +119,6 @@ export default function SmsPage() {
         });
         handler.openIframe();
       };
-
       if ((window as any).PaystackPop) run();
       else {
         const script = document.createElement('script');
@@ -120,16 +142,15 @@ export default function SmsPage() {
       await load();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Could not save');
-    } finally {
-      setSavingKey(null);
-    }
+    } finally { setSavingKey(null); }
   };
 
   const toggleTemplate = async (t: Template) => {
+    setTemplates(prev => prev.map(x => x.key === t.key ? { ...x, enabled: !x.enabled } : x));
     try {
       await api.put(`/sms/templates/${t.key}`, { enabled: !t.enabled });
-      await load();
     } catch (e: any) {
+      setTemplates(prev => prev.map(x => x.key === t.key ? { ...x, enabled: t.enabled } : x));
       toast.error(e.response?.data?.message || 'Could not update');
     }
   };
@@ -137,7 +158,7 @@ export default function SmsPage() {
   const resetTemplate = (t: Template) => {
     setConfirm({
       title: 'Restore the default message?',
-      message: `“${t.label}” will go back to the wording GEMS ships with. Your version will be lost.`,
+      message: `"${t.label}" will go back to the wording GEMS ships with. Your version will be lost.`,
       danger: true,
       run: async () => {
         try {
@@ -151,15 +172,16 @@ export default function SmsPage() {
     });
   };
 
-  // Mirrors the server's segment counting so the cost shown while typing
-  // matches what will actually be charged.
   const segmentsOf = (text: string) => {
     if (!text.length) return 0;
     // eslint-disable-next-line no-control-regex
-    const gsm = /^[@£$¥èéùìòÇ\n\rØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-./0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà^{}\\[~\]|€]*$/.test(text);
+    const gsm = /^[@£$¥èéùìòÇ\n\rØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-./0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà^{}\\\[~\]|€]*$/.test(text);
     if (gsm) return text.length <= 160 ? 1 : Math.ceil(text.length / 153);
     return text.length <= 70 ? 1 : Math.ceil(text.length / 67);
   };
+
+  const bestValueIdx = (balance?.bundles || []).reduce((best, b, i, arr) =>
+    b.unit_price < arr[best].unit_price ? i : best, 0);
 
   return (
     <AppLayout
@@ -168,50 +190,80 @@ export default function SmsPage() {
       allowedRoles={['platform_admin', 'business_owner', 'branch_manager']}
     >
       <div className="space-y-5">
-        <div className="flex items-center justify-end gap-2 flex-wrap">
+        <div className="flex justify-end">
           <button type="button" onClick={load} className="btn-secondary" disabled={loading}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
         </div>
 
-        {/* ── Balance ── */}
+        {/* ── Balance + Top-up ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="card">
-            <div className="flex items-start gap-3 mb-4">
+
+          {/* Credits card */}
+          <div className="card flex flex-col gap-4">
+            <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
                 <MessageSquare className="w-5 h-5 text-[#0D3B6E]" />
               </div>
               <div>
-                <h2 className="font-bold text-gray-900">SMS credits</h2>
-                <p className="text-sm text-gray-500 mt-0.5">One credit sends one message</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">SMS credits</p>
+                <p className="text-3xl font-extrabold text-gray-900 leading-none mt-0.5">
+                  {loading && !balance ? '—' : (balance?.credits ?? 0).toLocaleString()}
+                </p>
               </div>
             </div>
-            <p className="text-4xl font-extrabold text-gray-900">{loading && !balance ? '—' : (balance?.credits ?? 0).toLocaleString()}</p>
-            <p className="text-xs text-gray-400 mt-1">
-              {balance?.messages_sent ?? 0} sent
-              {(balance?.messages_blocked ?? 0) > 0 && <> · <span className="text-amber-600 font-semibold">{balance?.messages_blocked} not sent (no credits)</span></>}
-            </p>
+
+            <div className="flex gap-4 text-sm">
+              <div>
+                <p className="text-xs text-gray-400">Sent</p>
+                <p className="font-semibold text-gray-700">{(balance?.messages_sent ?? 0).toLocaleString()}</p>
+              </div>
+              {(balance?.messages_blocked ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs text-gray-400">Blocked</p>
+                  <p className="font-semibold text-amber-600">{balance?.messages_blocked}</p>
+                </div>
+              )}
+              {balance?.sender_id && (
+                <div>
+                  <p className="text-xs text-gray-400">Sender ID</p>
+                  <p className="font-semibold text-gray-700">{balance.sender_id}</p>
+                </div>
+              )}
+            </div>
+
             {balance?.is_low && (
-              <div className="flex items-start gap-2.5 bg-amber-50 text-amber-800 rounded-xl px-4 py-3 text-sm mt-4">
+              <div className="flex items-start gap-2 bg-amber-50 text-amber-800 rounded-lg px-3 py-2.5 text-xs">
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <span>Running low — customers stop getting messages at zero.</span>
               </div>
             )}
           </div>
 
+          {/* Top-up */}
           <div className="lg:col-span-2 card">
-            <h2 className="font-bold text-gray-900 mb-1">Top up</h2>
-            <p className="text-sm text-gray-500 mb-4">Credits never expire.</p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-bold text-gray-900">Top up</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Credits never expire.</p>
+              </div>
+              {!isOwner && <p className="text-xs text-gray-400">Only a business owner can buy credits.</p>}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {(balance?.bundles || []).map(b => (
-                <div key={b.credits} className="border border-gray-200 rounded-xl p-4 hover:border-[#0D3B6E]/40 transition-colors flex flex-col">
+              {(balance?.bundles || []).map((b, i) => (
+                <div key={b.credits} className={`relative rounded-xl border p-4 flex flex-col transition-colors ${i === bestValueIdx ? 'border-[#0D3B6E] bg-[#0D3B6E]/[0.03]' : 'border-gray-200 hover:border-gray-300'}`}>
+                  {i === bestValueIdx && (
+                    <span className="absolute -top-2.5 left-3 inline-flex items-center gap-1 bg-[#0D3B6E] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      <Zap className="w-2.5 h-2.5" /> Best value
+                    </span>
+                  )}
                   <p className="text-xs font-bold uppercase tracking-wider text-[#0D3B6E]">{b.label}</p>
                   <p className="text-2xl font-extrabold text-gray-900 mt-1">{b.credits.toLocaleString()}</p>
                   <p className="text-xs text-gray-400 mb-3">messages · {cedis(b.unit_price)} each</p>
                   <p className="font-bold text-gray-900 mb-3 mt-auto">{cedis(b.price)}</p>
                   <button
                     type="button"
-                    className="btn-primary w-full justify-center"
+                    className={`w-full justify-center ${i === bestValueIdx ? 'btn-primary' : 'btn-secondary'}`}
                     disabled={!isOwner || buying !== null}
                     onClick={() => buy(b)}
                   >
@@ -221,7 +273,6 @@ export default function SmsPage() {
                 </div>
               ))}
             </div>
-            {!isOwner && <p className="text-xs text-gray-400 mt-3">Only a business owner can buy credits.</p>}
           </div>
         </div>
 
@@ -230,83 +281,75 @@ export default function SmsPage() {
           <div className="mb-5">
             <h2 className="font-bold text-gray-900">Messages</h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              Edit what customers receive, or switch a message off. Each message lists the
-              placeholders it understands — anything else is left blank when it sends.
+              Edit what customers receive, or switch a message off entirely.
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {templates.map((t, ti) => {
               const value = edited[t.key] ?? t.body;
               const dirty = edited[t.key] !== undefined && edited[t.key] !== t.body;
               const segs = segmentsOf(value);
-              // Templates arrive grouped; head each run with its own label so
-              // project messages don't read as more order ones.
               const startsGroup = ti === 0 || templates[ti - 1].group !== t.group;
               return (
                 <div key={t.key}>
-                {startsGroup && (
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 mt-2 first:mt-0">
-                    {t.group === 'Projects' ? 'Project clients' : t.group}
-                  </p>
-                )}
-                <div className={`rounded-xl ring-1 p-4 ${t.enabled ? 'ring-gray-100 bg-gray-50' : 'ring-gray-100 bg-gray-50/50 opacity-70'}`}>
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-gray-800 text-sm">{t.label}</p>
-                        {t.is_customised && <span className="text-xs bg-blue-50 text-[#0D3B6E] font-semibold px-2 py-0.5 rounded-full">Edited</span>}
-                        {!t.enabled && <span className="text-xs bg-gray-200 text-gray-600 font-semibold px-2 py-0.5 rounded-full">Off</span>}
+                  {startsGroup && (
+                    <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 mt-4 first:mt-0">
+                      {t.group === 'Projects' ? 'Project clients' : t.group}
+                    </p>
+                  )}
+                  <div className={`rounded-xl border p-4 transition-opacity ${t.enabled ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50 opacity-60'}`}>
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-gray-800 text-sm">{t.label}</p>
+                          {t.is_customised && (
+                            <span className="text-[10px] bg-blue-50 text-[#0D3B6E] font-semibold px-2 py-0.5 rounded-full">Edited</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5">{t.description}</p>
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">{t.description}</p>
+                      <Toggle on={t.enabled} onChange={() => isOwner && toggleTemplate(t)} disabled={!isOwner} />
                     </div>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={t.enabled}
-                      disabled={!isOwner}
-                      onClick={() => toggleTemplate(t)}
-                      className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-50 ${t.enabled ? 'bg-[#0D3B6E]' : 'bg-gray-300'}`}
-                    >
-                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${t.enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
 
-                  <textarea
-                    className="form-input font-mono text-xs leading-relaxed"
-                    rows={3}
-                    value={value}
-                    disabled={!isOwner}
-                    onChange={e => setEdited(p => ({ ...p, [t.key]: e.target.value }))}
-                  />
-                  <div className="flex items-center justify-between gap-3 mt-2 flex-wrap">
-                    <p className="text-xs text-gray-400">
-                      {value.length} characters · costs <span className="font-semibold text-gray-600">{segs} credit{segs === 1 ? '' : 's'}</span> per message
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-1">
-                      {t.variables.map(v => (
-                        <code key={v} className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{v}</code>
-                      ))}
-                    </p>
-                    {isOwner && (
-                      <div className="flex items-center gap-2">
-                        {t.is_customised && (
-                          <button type="button" className="btn-ghost text-xs" onClick={() => resetTemplate(t)}>
-                            <RotateCcw className="w-3.5 h-3.5" /> Restore default
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="btn-secondary text-xs"
-                          disabled={!dirty || savingKey === t.key}
-                          onClick={() => saveTemplate(t)}
-                        >
-                          <Save className="w-3.5 h-3.5" /> {savingKey === t.key ? 'Saving…' : 'Save'}
-                        </button>
+                    <textarea
+                      className="form-input font-mono text-xs leading-relaxed"
+                      rows={3}
+                      value={value}
+                      disabled={!isOwner}
+                      onChange={e => setEdited(p => ({ ...p, [t.key]: e.target.value }))}
+                    />
+
+                    <div className="flex items-center justify-between gap-3 mt-2 flex-wrap">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <p className="text-xs text-gray-400">
+                          {value.length} chars · <span className="font-medium text-gray-600">{segs} credit{segs === 1 ? '' : 's'}</span>
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {t.variables.map(v => (
+                            <code key={v} className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{v}</code>
+                          ))}
+                        </div>
                       </div>
-                    )}
+                      {isOwner && (
+                        <div className="flex items-center gap-2">
+                          {t.is_customised && (
+                            <button type="button" className="btn-ghost text-xs" onClick={() => resetTemplate(t)}>
+                              <RotateCcw className="w-3.5 h-3.5" /> Restore default
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="btn-secondary text-xs"
+                            disabled={!dirty || savingKey === t.key}
+                            onClick={() => saveTemplate(t)}
+                          >
+                            <Save className="w-3.5 h-3.5" /> {savingKey === t.key ? 'Saving…' : 'Save'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
                 </div>
               );
             })}
@@ -320,7 +363,7 @@ export default function SmsPage() {
             <p className="text-sm text-gray-400">Nothing sent yet.</p>
           ) : (
             <div className="table-wrap">
-              <table className="w-full text-sm min-w-[640px]">
+              <table className="w-full text-sm min-w-[600px]">
                 <thead>
                   <tr className="table-header text-left">
                     <th className="px-4 py-2.5">When</th>
@@ -334,12 +377,18 @@ export default function SmsPage() {
                   {messages.map(m => {
                     const s = STATUS_STYLES[m.status] || STATUS_STYLES.failed;
                     const Icon = s.icon;
+                    const expanded = expandedMsg === m.id;
                     return (
-                      <tr key={m.id} className="border-t border-gray-100">
-                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{new Date(m.createdAt).toLocaleString()}</td>
-                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{m.to}</td>
-                        <td className="px-4 py-3 text-gray-500 max-w-[280px] truncate" title={m.body}>{m.body}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">{m.credits_used}</td>
+                      <tr key={m.id} className="border-t border-gray-100 hover:bg-gray-50 cursor-pointer" onClick={() => setExpandedMsg(expanded ? null : m.id)}>
+                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{fmtDate(m.createdAt)}</td>
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap font-mono text-xs">{m.to}</td>
+                        <td className="px-4 py-3 text-gray-500 max-w-[300px]">
+                          {expanded
+                            ? <span className="text-xs whitespace-pre-wrap">{m.body}</span>
+                            : <span className="text-xs truncate block">{m.body}</span>
+                          }
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-600 text-xs">{m.credits_used}</td>
                         <td className="px-4 py-3">
                           <span className={`badge ${s.badge} inline-flex items-center gap-1`}>
                             <Icon className="w-3 h-3" /> {s.label}

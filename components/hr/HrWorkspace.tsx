@@ -31,6 +31,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const { tenant, isRole } = useAuth();
   const [payrollSettings, setPayrollSettings] = useState<any>({ apply_ssnit: true, apply_paye: true, paye_bands: [], pension_rates: [], national: null });
   const [payrollSettingsSaving, setPayrollSettingsSaving] = useState(false);
+  const [hrSettings, setHrSettings] = useState<any>({ default_annual_leave: 21, default_sick_leave: 10, tier3_enabled: false, tier3_employee_rate: 0.05, tier3_employer_rate: 0.05, payslip_address: '', payslip_signatory_name: '', payslip_signatory_title: '', payslip_footer: '' });
+  const [hrSettingsSaving, setHrSettingsSaving] = useState(false);
   const [payslipRow, setPayslipRow] = useState<any>(null);
   // ── Loans & advances ──
   const [loans, setLoans] = useState<any[]>([]);
@@ -60,7 +62,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const [holidays, setHolidays] = useState<any[]>([]);
   const [holidayForm, setHolidayForm] = useState({ name: '', date: '', is_recurring: false });
   const [holidaySaving, setHolidaySaving] = useState(false);
-  const [attendanceSettings, setAttendanceSettings] = useState({ standard_hours_per_day: 8 });
+  const [attendanceSettings, setAttendanceSettings] = useState({ standard_hours_per_day: 8, overtime_multiplier: 1.5 });
   const [clockEmployeeId, setClockEmployeeId] = useState('');
   const [clocking, setClocking] = useState(false);
   const [employees, setEmployees] = useState<any[]>(() => apiCache.get('/employees') || []);
@@ -113,7 +115,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     email:'', phone:'', address:'', emergency_name:'', emergency_phone:'', emergency_relation:'',
     // Step 3 — Employment
     employee_code:'', job_title:'', department_id:'', manager_id:'', user_id:'', gross_salary:'', hourly_rate:'', start_date:'', employment_type:'full_time',
-    annual_leave_entitlement:'21', sick_leave_entitlement:'10',
+    annual_leave_entitlement: String(hrSettings.default_annual_leave ?? 21), sick_leave_entitlement: String(hrSettings.default_sick_leave ?? 10),
     // Step 3 — Statutory & payment
     ssnit_number:'', tin:'', payment_method:'bank', bank_name:'', bank_account_name:'', bank_account_number:'', bank_branch:'', momo_number:'',
   });
@@ -256,6 +258,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     if (section === 'settings') {
       loadPayrollSettings();
       loadAttendanceSettings();
+      loadHrSettings();
       setLoading(false);
       return;
     }
@@ -330,7 +333,9 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     name:'', date_of_birth:'', gender:'', nationality:'', marital_status:'', national_id:'', photo:'',
     email:'', phone:'', address:'', emergency_name:'', emergency_phone:'', emergency_relation:'',
     employee_code:'EMP-'+Date.now().toString().slice(-4), job_title:'', department_id:'', manager_id:'', user_id:'',
-    gross_salary:'', hourly_rate:'', start_date:'', employment_type:'full_time', annual_leave_entitlement:'21', sick_leave_entitlement:'10',
+    gross_salary:'', hourly_rate:'', start_date:'', employment_type:'full_time',
+    annual_leave_entitlement: String(hrSettings.default_annual_leave ?? 21),
+    sick_leave_entitlement: String(hrSettings.default_sick_leave ?? 10),
     ssnit_number:'', tin:'', payment_method:'bank', bank_name:'', bank_account_name:'', bank_account_number:'', bank_branch:'', momo_number:'',
   });
 
@@ -665,18 +670,18 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   };
 
   const togglePayrollSetting = async (key: 'apply_ssnit' | 'apply_paye') => {
-    const next = { ...payrollSettings, [key]: !payrollSettings[key] };
     setPayrollSettingsSaving(true);
-    try {
-      await api.patch('/hr/payroll-settings', { [key]: next[key] });
-      // Re-read rather than trusting the write's echo: the PATCH replies with
-      // what was stored, not with the national schedule or the figures now in
-      // force, and both are on screen.
-      await loadPayrollSettings();
-      toast.success('Payroll settings updated');
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Failed to update payroll settings');
-    } finally { setPayrollSettingsSaving(false); }
+    setPayrollSettings((prev: any) => {
+      const newVal = !prev[key];
+      api.patch('/hr/payroll-settings', { [key]: newVal })
+        .then(() => { toast.success('Payroll settings updated'); loadPayrollSettings(); })
+        .catch((e: any) => {
+          setPayrollSettings((p: any) => ({ ...p, [key]: !newVal }));
+          toast.error(e.response?.data?.message || 'Failed to update payroll settings');
+        })
+        .finally(() => setPayrollSettingsSaving(false));
+      return { ...prev, [key]: newVal };
+    });
   };
 
   // ── Loans & advances ──
@@ -967,11 +972,39 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     } catch { /* ignore */ }
   };
 
+  const loadHrSettings = async () => {
+    try {
+      const r = await api.get('/hr/settings');
+      setHrSettings(r.data.data);
+    } catch { /* ignore */ }
+  };
+
+  const saveHrSettings = async (patch: Record<string, any>) => {
+    setHrSettingsSaving(true);
+    try {
+      const r = await api.patch('/hr/settings', patch);
+      setHrSettings(r.data.data);
+      toast.success('Settings saved');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to save settings');
+    } finally { setHrSettingsSaving(false); }
+  };
+
   const updateStandardHours = async (hours: string) => {
     try {
       const r = await api.patch('/hr/attendance-settings', { standard_hours_per_day: parseFloat(hours) });
       setAttendanceSettings(r.data.data);
       toast.success('Attendance settings updated');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to update');
+    }
+  };
+
+  const updateOvertimeMultiplier = async (val: string) => {
+    try {
+      const r = await api.patch('/hr/attendance-settings', { standard_hours_per_day: attendanceSettings.standard_hours_per_day, overtime_multiplier: parseFloat(val) });
+      setAttendanceSettings(r.data.data);
+      toast.success('Overtime rate updated');
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Failed to update');
     }
@@ -2143,7 +2176,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
 
       {/* HR Settings — rules, not daily work */}
       {section === 'settings' && (
-        <div className="space-y-5 max-w-3xl">
+        <div className="space-y-5">
           <p className="text-sm text-gray-500">
             Set these once. They apply to everything HR calculates from here on, and
             nothing already recorded changes.
@@ -2161,9 +2194,8 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               { key: 'apply_ssnit' as const, label: 'SSNIT', hint: 'Pension contribution (5.5% employee / 13% employer)' },
               { key: 'apply_paye' as const, label: 'PAYE', hint: 'Progressive income tax' },
             ]).map(({ key, label, hint }) => (
-              <label key={key} className={`flex items-center gap-3 ${isRole('business_owner') ? 'cursor-pointer' : 'cursor-default'}`}>
+              <label key={key} onClick={() => isRole('business_owner') && !payrollSettingsSaving && togglePayrollSetting(key)} className={`flex items-center gap-3 ${isRole('business_owner') ? 'cursor-pointer' : 'cursor-default'}`}>
                 <span
-                  onClick={() => isRole('business_owner') && !payrollSettingsSaving && togglePayrollSetting(key)}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${payrollSettings[key] ? 'bg-[#0D3B6E]' : 'bg-gray-300'} ${!isRole('business_owner') || payrollSettingsSaving ? 'opacity-60' : ''}`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${payrollSettings[key] ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -2195,16 +2227,168 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
             a day is booked to a project.
             {!isRole('business_owner') && ' Only the business owner can change this.'}
           </p>
-          <div className="flex items-center gap-3">
-            <input
-              type="number"
-              step="0.5"
-              className="form-input w-24"
-              defaultValue={attendanceSettings.standard_hours_per_day}
-              onBlur={(e) => e.target.value && updateStandardHours(e.target.value)}
-              disabled={!isRole('business_owner')}
-            />
-            <span className="text-sm text-gray-600">hours per day</span>
+          <div className="flex flex-wrap items-end gap-6">
+            <div>
+              <label className="form-label">Standard hours per day</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number" step="0.5"
+                  className="form-input w-24"
+                  defaultValue={attendanceSettings.standard_hours_per_day}
+                  onBlur={(e) => e.target.value && updateStandardHours(e.target.value)}
+                  disabled={!isRole('business_owner')}
+                />
+                <span className="text-sm text-gray-600">hours</span>
+              </div>
+            </div>
+            <div>
+              <label className="form-label">Overtime rate multiplier</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number" step="0.25" min="1"
+                  className="form-input w-24"
+                  defaultValue={attendanceSettings.overtime_multiplier ?? 1.5}
+                  onBlur={(e) => e.target.value && updateOvertimeMultiplier(e.target.value)}
+                  disabled={!isRole('business_owner')}
+                />
+                <span className="text-sm text-gray-600">× normal rate</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">e.g. 1.5 = time-and-a-half</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Default leave entitlements */}
+        <div className="card">
+          <h3 className="font-semibold text-gray-900 text-sm mb-1">Default leave entitlements</h3>
+          <p className="text-xs text-gray-400 mb-3">
+            Applied automatically when a new employee is added. Changing this does not affect existing employees.
+            {!isRole('business_owner') && ' Only the business owner can change this.'}
+          </p>
+          <div className="flex flex-wrap gap-6 items-end">
+            <div>
+              <label className="form-label">Annual leave (days/year)</label>
+              <input
+                type="number" min="0"
+                className="form-input w-28"
+                defaultValue={hrSettings.default_annual_leave}
+                onBlur={(e) => isRole('business_owner') && saveHrSettings({ default_annual_leave: parseInt(e.target.value) || 0 })}
+                disabled={!isRole('business_owner')}
+              />
+            </div>
+            <div>
+              <label className="form-label">Sick leave (days/year)</label>
+              <input
+                type="number" min="0"
+                className="form-input w-28"
+                defaultValue={hrSettings.default_sick_leave}
+                onBlur={(e) => isRole('business_owner') && saveHrSettings({ default_sick_leave: parseInt(e.target.value) || 0 })}
+                disabled={!isRole('business_owner')}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Tier 3 pension */}
+        <div className="card">
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <h3 className="font-semibold text-gray-900 text-sm mb-1">Tier 3 pension (voluntary)</h3>
+              <p className="text-xs text-gray-400">
+                Ghana&apos;s voluntary provident fund. When enabled, the rates below are deducted from each payslip and shown separately.
+                {!isRole('business_owner') && ' Only the business owner can change this.'}
+              </p>
+            </div>
+            <span
+              onClick={() => isRole('business_owner') && !hrSettingsSaving && saveHrSettings({ tier3_enabled: !hrSettings.tier3_enabled })}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                hrSettings.tier3_enabled ? 'bg-[#0D3B6E]' : 'bg-gray-300'
+              } ${!isRole('business_owner') || hrSettingsSaving ? 'opacity-60 cursor-default' : ''}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${hrSettings.tier3_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+            </span>
+          </div>
+          {hrSettings.tier3_enabled && (
+            <div className="flex flex-wrap gap-6 items-end">
+              <div>
+                <label className="form-label">Employee rate</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number" step="0.005" min="0" max="1"
+                    className="form-input w-28"
+                    defaultValue={hrSettings.tier3_employee_rate}
+                    onBlur={(e) => isRole('business_owner') && saveHrSettings({ tier3_employee_rate: parseFloat(e.target.value) || 0 })}
+                    disabled={!isRole('business_owner')}
+                  />
+                  <span className="text-sm text-gray-500">{((hrSettings.tier3_employee_rate || 0) * 100).toFixed(1)}%</span>
+                </div>
+              </div>
+              <div>
+                <label className="form-label">Employer rate</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number" step="0.005" min="0" max="1"
+                    className="form-input w-28"
+                    defaultValue={hrSettings.tier3_employer_rate}
+                    onBlur={(e) => isRole('business_owner') && saveHrSettings({ tier3_employer_rate: parseFloat(e.target.value) || 0 })}
+                    disabled={!isRole('business_owner')}
+                  />
+                  <span className="text-sm text-gray-500">{((hrSettings.tier3_employer_rate || 0) * 100).toFixed(1)}%</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 w-full">Rates as fractions — 0.05 is 5%. Shown on payslips and excluded from Tier 1/2 remittance.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Payslip branding */}
+        <div className="card">
+          <h3 className="font-semibold text-gray-900 text-sm mb-1">Payslip branding</h3>
+          <p className="text-xs text-gray-400 mb-3">
+            Printed on every payslip. Leave blank to use defaults.
+            {!isRole('business_owner') && ' Only the business owner can change this.'}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="form-label">Company address</label>
+              <input
+                className="form-input"
+                defaultValue={hrSettings.payslip_address}
+                placeholder="e.g. 12 Independence Ave, Accra, Ghana"
+                onBlur={(e) => isRole('business_owner') && saveHrSettings({ payslip_address: e.target.value })}
+                disabled={!isRole('business_owner')}
+              />
+            </div>
+            <div>
+              <label className="form-label">Authorised signatory name</label>
+              <input
+                className="form-input"
+                defaultValue={hrSettings.payslip_signatory_name}
+                placeholder="e.g. Kwame Asante"
+                onBlur={(e) => isRole('business_owner') && saveHrSettings({ payslip_signatory_name: e.target.value })}
+                disabled={!isRole('business_owner')}
+              />
+            </div>
+            <div>
+              <label className="form-label">Signatory title</label>
+              <input
+                className="form-input"
+                defaultValue={hrSettings.payslip_signatory_title}
+                placeholder="e.g. HR Manager"
+                onBlur={(e) => isRole('business_owner') && saveHrSettings({ payslip_signatory_title: e.target.value })}
+                disabled={!isRole('business_owner')}
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="form-label">Footer note</label>
+              <input
+                className="form-input"
+                defaultValue={hrSettings.payslip_footer}
+                placeholder="e.g. This is a confidential document. Please contact HR for queries."
+                onBlur={(e) => isRole('business_owner') && saveHrSettings({ payslip_footer: e.target.value })}
+                disabled={!isRole('business_owner')}
+              />
+            </div>
           </div>
         </div>
         </div>
@@ -2382,6 +2566,12 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           run={payslipRow}
           employee={employees.find((e) => (e.id || e._id) === (payslipRow.employee_id?._id || payslipRow.employee_id)) || payslipRow.employee}
           businessName={tenant?.business_name}
+          branding={{
+            address:         hrSettings.payslip_address,
+            signatory_name:  hrSettings.payslip_signatory_name,
+            signatory_title: hrSettings.payslip_signatory_title,
+            footer:          hrSettings.payslip_footer,
+          }}
           onClose={() => setPayslipRow(null)}
         />
       )}

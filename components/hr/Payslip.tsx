@@ -6,15 +6,21 @@ import { fmtGhs, printReport } from '@/lib/reportUtils';
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 interface Props {
-  run: any;               // a PayrollRun (with amounts + optional embedded employee)
-  employee?: any;         // employee record (name, code, bank, ssnit, tin…)
+  run: any;
+  employee?: any;
   businessName?: string;
+  branding?: {
+    address?: string;
+    signatory_name?: string;
+    signatory_title?: string;
+    footer?: string;
+  };
   onClose: () => void;
 }
 
 const NAVY = '#0D3B6E';
 
-export default function Payslip({ run, employee, businessName, onClose }: Props) {
+export default function Payslip({ run, employee, businessName, branding, onClose }: Props) {
   const emp = employee || run.employee || {};
   const name = run.employee_name || emp.name || '—';
   const period = `${MONTHS[(run.month || 1) - 1]} ${run.year || ''}`;
@@ -42,10 +48,11 @@ export default function Payslip({ run, employee, businessName, onClose }: Props)
         </div>
 
         <div id={printId} className="px-6 py-5 text-sm text-gray-800">
-          {/* Letterhead — colors set inline so they survive the print popup, which doesn't load the app stylesheet */}
+          {/* Letterhead */}
           <div className="flex items-start justify-between border-b-2 pb-3 mb-4" style={{ borderColor: NAVY }}>
             <div>
               <div className="text-xl font-extrabold" style={{ color: NAVY }}>{businessName || 'GEMS'}</div>
+              {branding?.address && <div className="text-xs text-gray-500 mt-0.5">{branding.address}</div>}
               <div className="text-xs text-gray-500 mt-0.5">Payslip · {period}</div>
             </div>
             <div className="text-right">
@@ -137,7 +144,14 @@ export default function Payslip({ run, employee, businessName, onClose }: Props)
 
           <div className="text-[11px] text-gray-400 border-t border-gray-100 pt-3">
             <div>Employer SSNIT contribution (13%, not deducted from pay): {fmtGhs(run.ssnit_employer)}</div>
-            <div className="mt-1">Generated {new Date().toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })} · {businessName || 'GEMS'} · This is a system-generated payslip.</div>
+            {(branding?.signatory_name || branding?.signatory_title) && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="text-[11px] text-gray-500">Authorised by</div>
+                <div className="font-semibold text-gray-700 text-xs mt-0.5">{branding.signatory_name}</div>
+                {branding.signatory_title && <div className="text-[11px] text-gray-400">{branding.signatory_title}</div>}
+              </div>
+            )}
+            <div className="mt-2">{branding?.footer || `Generated ${new Date().toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })} · ${businessName || 'GEMS'} · This is a system-generated payslip.`}</div>
           </div>
         </div>
       </div>

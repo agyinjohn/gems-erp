@@ -6,7 +6,7 @@ export default function BranchSelector() {
   const { isOrgLevel, branches, activeBranchId, setActiveBranch } = useAuth();
 
   // Branch-level users are pinned server-side — no selector needed
-  if (!isOrgLevel || branches.length < 2) return null;
+  if (!isOrgLevel || !branches || branches.length < 2) return null;
 
   const active = branches.find(b => b.id === activeBranchId);
 
