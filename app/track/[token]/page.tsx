@@ -39,9 +39,15 @@ interface Tracked {
     invoices: { number: string; issued: string; due: string; total: number; paid: number; status: string; is_retention_release: boolean }[];
   };
 
-  // Order / print job
+  // Order / service request
   production_stage?: string | null;
   production_label?: string | null;
+  // The steps this particular job goes through, in the client's words. Sent by
+  // the server rather than listed here, because a repair and a print run do not
+  // share a journey and this page has no business knowing either. Not `stages`
+  // — a tracked project already uses that for its milestones.
+  journey?: { key: string; label: string }[];
+  service_type?: string;
   quote_status?: string | null;
   payment_status?: string;
   items?: { name: string; quantity: number; unit_price: number; total: number; spec?: string | null }[];
@@ -65,12 +71,6 @@ interface Message {
   author: string; attachments: { name: string; url: string }[]; at: string;
 }
 
-const STAGES = ['awaiting_quote', 'quoted', 'queued', 'preparing', 'printing', 'finishing', 'ready', 'collected'];
-const STAGE_SHORT: Record<string, string> = {
-  awaiting_quote: 'Being priced', quoted: 'Quote sent', queued: 'In the queue',
-  preparing: 'Preparing artwork', printing: 'On the press', finishing: 'Finishing',
-  ready: 'Ready for collection', collected: 'Collected',
-};
 const date = (d?: string | null) =>
   (d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 const label = (s: string) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -290,7 +290,8 @@ export default function TrackPage() {
   if (!data) return null;
 
   const isProject = data.kind === 'project';
-  const stageIndex = STAGES.indexOf(data.production_stage || '');
+  const journey = data.journey || [];
+  const stageIndex = journey.findIndex(s => s.key === data.production_stage);
   const awaitingQuote = !isProject && data.quote_status === 'quoted';
   const owing = !isProject && data.quote_status === 'accepted' && (data.outstanding || 0) > 0;
   const needsAction = awaitingQuote || owing;
@@ -356,14 +357,14 @@ export default function TrackPage() {
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Right now</p>
                 <p className="text-2xl font-extrabold text-[#0D3B6E] leading-tight mt-0.5">{data.production_label}</p>
               </div>
-              {data.production_stage !== 'cancelled' && (
+              {data.production_stage !== 'cancelled' && journey.length > 0 && (
                 <ol className="mt-6">
-                  {STAGES.map((s, i) => (
+                  {journey.map((s, i) => (
                     <Step
-                      key={s}
-                      title={STAGE_SHORT[s]}
+                      key={s.key}
+                      title={s.label}
                       state={stageIndex > i ? 'done' : stageIndex === i ? 'now' : 'todo'}
-                      last={i === STAGES.length - 1}
+                      last={i === journey.length - 1}
                     />
                   ))}
                 </ol>

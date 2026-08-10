@@ -5,49 +5,66 @@ import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { toast } from '@/components/ui';
 import {
-  RefreshCw, FileText, Printer, ExternalLink, Copy, Filter, Clock,
+  RefreshCw, FileText, ClipboardList, ExternalLink, Copy, Filter, Clock,
 } from 'lucide-react';
 
 /**
- * The print shop's queue.
+ * The work queue: everything clients have asked the business to do.
  *
  * Requests arrive priced only where the list could price them, so the job here
- * is: open the file, put a number on it, send it back. Work can't start until
- * the client has agreed — the server enforces that, and this reflects it.
+ * is: look at what was sent, put a number on it, send it back. Work can't start
+ * until the client has agreed — the server enforces that, and this reflects it.
+ *
+ * A job's stages come with the job rather than being listed here, because they
+ * are not the same for every trade. The server knows a repair does not go on a
+ * press; this page draws whatever steps it is given.
  */
 
+interface Stage { key: string; label: string; client: string }
 interface Item {
   _id?: string; product_name: string; quantity: number;
-  unit_price: number; total: number; print_spec?: string;
+  unit_price: number; total: number; spec?: string;
 }
 interface Req {
   id: string; order_number: string; customer_name: string; customer_phone: string;
   customer_email?: string; items: Item[]; files: { name: string; url: string; size?: number }[];
   subtotal: number; total: number; notes?: string; quote_note?: string;
   quote_status: string | null; production_stage: string | null;
+  service_type: string; stages: Stage[];
   payment_status: string; track_token?: string; createdAt: string;
 }
+interface TypeProfile { key: string; label: string; stages: Stage[] }
 
-const STAGES = ['queued', 'preparing', 'printing', 'finishing', 'ready', 'collected'];
-const STAGE_TONE: Record<string, string> = {
-  awaiting_quote: 'bg-amber-50 text-amber-700',
-  quoted:         'bg-blue-50 text-blue-700',
-  queued:         'bg-gray-100 text-gray-600',
-  preparing:      'bg-gray-100 text-gray-600',
-  printing:       'bg-[#0D3B6E]/10 text-[#0D3B6E]',
-  finishing:      'bg-[#0D3B6E]/10 text-[#0D3B6E]',
-  ready:          'bg-green-50 text-green-700',
-  collected:      'bg-gray-100 text-gray-400',
-  cancelled:      'bg-red-50 text-red-600',
+/**
+ * Colour by what the stage means, not what it is called. A stage is either
+ * waiting on us, moving, finished or off — and every trade has all four under
+ * different names, so they are matched by position in the job's own list.
+ */
+const toneFor = (r: Req, stage: string) => {
+  if (stage === 'awaiting_quote') return 'bg-amber-50 text-amber-700';
+  if (stage === 'quoted') return 'bg-blue-50 text-blue-700';
+  if (stage === 'cancelled') return 'bg-red-50 text-red-600';
+  const steps = r.stages || [];
+  const at = steps.findIndex(s => s.key === stage);
+  if (at < 0) return 'bg-gray-100 text-gray-600';
+  if (at === steps.length - 1) return 'bg-gray-100 text-gray-400';   // handed over
+  if (at === steps.length - 2) return 'bg-green-50 text-green-700';  // ready
+  return 'bg-[#0D3B6E]/10 text-[#0D3B6E]';                           // under way
 };
+
+const stageName = (r: Req, key: string | null) =>
+  (r.stages || []).find(s => s.key === key)?.label || label(key || 'new');
+
 const label = (s: string) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 const money = (n: number) => `GHS ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export default function PrintRequestsPage() {
+export default function ServiceRequestsPage() {
   const { user } = useAuth();
   const [rows, setRows] = useState<Req[]>([]);
+  const [profiles, setProfiles] = useState<TypeProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [openOnly, setOpenOnly] = useState(true);
+  const [typeFilter, setTypeFilter] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [note, setNote] = useState('');
@@ -56,16 +73,26 @@ export default function PrintRequestsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/print-requests', { params: openOnly ? { open: 'true' } : {} });
+      const r = await api.get('/service-requests', {
+        params: { ...(openOnly ? { open: 'true' } : {}), ...(typeFilter ? { type: typeFilter } : {}) },
+      });
       setRows(r.data.data || []);
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Could not load print requests');
+      toast.error(e.response?.data?.message || 'Could not load service requests');
     } finally {
       setLoading(false);
     }
-  }, [openOnly]);
+  }, [openOnly, typeFilter]);
 
   useEffect(() => { load(); }, [load]);
+
+  // The kinds of work this business takes on, for the filter. Only worth
+  // showing once there is more than one.
+  useEffect(() => {
+    api.get('/service-requests/types')
+      .then(r => setProfiles(r.data.data || []))
+      .catch(() => { /* the filter is a convenience, not the page */ });
+  }, []);
 
   const openRow = (r: Req) => {
     if (open === r.id) { setOpen(null); return; }
@@ -77,7 +104,7 @@ export default function PrintRequestsPage() {
   const sendQuote = async (r: Req) => {
     setBusy(true);
     try {
-      await api.post(`/print-requests/${r.id}/quote`, {
+      await api.post(`/service-requests/${r.id}/quote`, {
         lines: r.items.map(i => ({ id: String(i._id), unit_price: parseFloat(draft[String(i._id)]) || 0 })),
         note,
       });
@@ -91,7 +118,7 @@ export default function PrintRequestsPage() {
 
   const moveTo = async (r: Req, stage: string) => {
     try {
-      await api.patch(`/print-requests/${r.id}/stage`, { stage });
+      await api.patch(`/service-requests/${r.id}/stage`, { stage });
       await load();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Could not update the stage');
@@ -104,15 +131,19 @@ export default function PrintRequestsPage() {
     toast.success('Tracking link copied');
   };
 
+  // "Under way" and "ready" are read off each job's own stage list rather than
+  // a fixed set of names, so a repair in progress counts the same as a print
+  // job on the press.
+  const positionOf = (r: Req) => (r.stages || []).findIndex(s => s.key === r.production_stage);
   const awaiting = rows.filter(r => r.quote_status === 'awaiting_quote').length;
   const quoted = rows.filter(r => r.quote_status === 'quoted').length;
-  const onFloor = rows.filter(r => ['queued', 'preparing', 'printing', 'finishing'].includes(r.production_stage || '')).length;
-  const ready = rows.filter(r => r.production_stage === 'ready').length;
+  const underWay = rows.filter(r => { const at = positionOf(r); return at >= 0 && at < (r.stages.length - 2); }).length;
+  const ready = rows.filter(r => positionOf(r) === r.stages.length - 2).length;
 
   return (
     <AppLayout
-      title="Print requests"
-      subtitle="Jobs clients have sent in"
+      title="Service requests"
+      subtitle="Work clients have asked for"
       allowedRoles={['platform_admin', 'business_owner', 'branch_manager', 'sales_staff']}
     >
       <div className="space-y-5">
@@ -121,8 +152,8 @@ export default function PrintRequestsPage() {
           {[
             ['To price', awaiting, awaiting ? 'text-amber-700' : 'text-gray-900'],
             ['Awaiting the client', quoted, 'text-blue-700'],
-            ['On the floor', onFloor, 'text-gray-900'],
-            ['Ready for collection', ready, ready ? 'text-green-600' : 'text-gray-900'],
+            ['Under way', underWay, 'text-gray-900'],
+            ['Ready', ready, ready ? 'text-green-600' : 'text-gray-900'],
           ].map(([l, v, tone]) => (
             <div key={l as string} className="card">
               <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{l as string}</p>
@@ -135,6 +166,13 @@ export default function PrintRequestsPage() {
           <button type="button" className={openOnly ? 'btn-primary' : 'btn-secondary'} onClick={() => setOpenOnly(v => !v)}>
             <Filter className="w-4 h-4" /> {openOnly ? 'Open jobs' : 'Everything'}
           </button>
+          {profiles.length > 1 && (
+            <select className="form-input !py-1.5 !w-auto text-sm" value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value)}>
+              <option value="">All kinds of work</option>
+              {profiles.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+            </select>
+          )}
           <button type="button" onClick={load} className="btn-secondary ml-auto" disabled={loading}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
@@ -146,11 +184,11 @@ export default function PrintRequestsPage() {
         ) : rows.length === 0 ? (
           <div className="card text-center py-16">
             <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Printer className="w-7 h-7 text-gray-300" />
+              <ClipboardList className="w-7 h-7 text-gray-300" />
             </div>
             <p className="font-semibold text-gray-700">Nothing waiting</p>
             <p className="text-sm text-gray-400 mt-1 max-w-sm mx-auto">
-              Requests clients send from your print page land here.
+              Requests clients send from your services page land here.
             </p>
           </div>
         ) : (
@@ -166,8 +204,8 @@ export default function PrintRequestsPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono text-xs text-gray-500">{r.order_number}</span>
-                          <span className={`badge ${STAGE_TONE[r.production_stage || ''] || 'bg-gray-100 text-gray-600'}`}>
-                            {label(r.production_stage || 'new')}
+                          <span className={`badge ${toneFor(r, r.production_stage || '')}`}>
+                            {stageName(r, r.production_stage)}
                           </span>
                           {r.payment_status === 'paid' && <span className="badge bg-green-50 text-green-700">Paid</span>}
                         </div>
@@ -193,7 +231,9 @@ export default function PrintRequestsPage() {
 
                   {isOpen && (
                     <div className="border-t border-gray-100 px-4 py-4 bg-gray-50/60 space-y-4">
-                      {/* The files */}
+                      {/* Whatever they sent in, if anything. Not every kind of
+                          work has something to attach. */}
+                      {r.files.length > 0 && (
                       <div>
                         <p className="form-label">Files</p>
                         <ul className="space-y-1.5">
@@ -209,6 +249,7 @@ export default function PrintRequestsPage() {
                           ))}
                         </ul>
                       </div>
+                      )}
 
                       {r.notes && (
                         <div>
@@ -226,7 +267,7 @@ export default function PrintRequestsPage() {
                               <div key={String(i._id)} className="grid grid-cols-[1fr_110px] gap-2 items-center">
                                 <div className="min-w-0">
                                   <p className="text-sm text-gray-800 truncate">{i.quantity} × {i.product_name}</p>
-                                  {i.print_spec && <p className="text-xs text-gray-500 truncate">{i.print_spec}</p>}
+                                  {i.spec && <p className="text-xs text-gray-500 truncate">{i.spec}</p>}
                                 </div>
                                 <input type="number" min={0} step="0.01" className="form-input !py-1.5 text-sm"
                                   placeholder="unit price"
@@ -261,13 +302,13 @@ export default function PrintRequestsPage() {
                           </p>
                         ) : (
                           <div className="flex flex-wrap gap-1.5">
-                            {STAGES.map(s => (
-                              <button key={s} type="button" onClick={() => moveTo(r, s)}
+                            {(r.stages || []).map(s => (
+                              <button key={s.key} type="button" onClick={() => moveTo(r, s.key)}
                                 className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
-                                  r.production_stage === s
+                                  r.production_stage === s.key
                                     ? 'bg-[#0D3B6E] text-white font-semibold'
                                     : 'bg-white ring-1 ring-gray-200 text-gray-600 hover:ring-gray-300'
-                                }`}>{label(s)}</button>
+                                }`}>{s.label}</button>
                             ))}
                           </div>
                         )}
