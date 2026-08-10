@@ -72,6 +72,13 @@ export default function Payslip({ run, employee, businessName, branding, onClose
             </div>
           )}
 
+          {run.tier3_employee > 0 && (
+            <div className="text-[11px] text-gray-500 mb-1">
+              Includes a voluntary Tier 3 contribution of {fmtGhs(run.tier3_employee)}
+              {run.tier3_employer > 0 ? `, with ${fmtGhs(run.tier3_employer)} added by the employer` : ''}.
+            </div>
+          )}
+
           {/* Said plainly, because it is the question the payslip provokes:
               why is SSNIT not 5.5% of everything I was paid? */}
           {run.pensionable_base > 0 && run.pensionable_base !== (basic + (run.allowances || 0)) && (

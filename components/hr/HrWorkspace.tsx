@@ -2336,7 +2336,13 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                   <span className="text-sm text-gray-500">{((hrSettings.tier3_employer_rate || 0) * 100).toFixed(1)}%</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 w-full">Rates as fractions — 0.05 is 5%. Shown on payslips and excluded from Tier 1/2 remittance.</p>
+              <p className="text-xs text-gray-400 w-full">
+                Rates as fractions — 0.05 is 5%. Charged on the same base as SSNIT: basic pay
+                plus any pensionable allowance. The employee&apos;s half is deducted and reduces
+                their tax; the employer&apos;s is a cost on top of salary. Relief on pension
+                contributions stops at 16.5% of that base, counting the 5.5% SSNIT — above it
+                the money still leaves the payslip, it just isn&apos;t tax-free.
+              </p>
             </div>
           )}
         </div>
@@ -2441,7 +2447,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                 out from a single "deductions" figure. */}
             <div className="rounded-lg border border-gray-200 p-3">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Still to remit</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
                 <div>
                   <div className="text-xs text-gray-400">PAYE → GRA</div>
                   <div className="font-semibold tabular-nums">GH₵ {parseFloat(batchDetail.batch.total_paye || 0).toFixed(2)}</div>
@@ -2454,6 +2460,22 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
                   <div className="text-xs text-gray-400">Tier 2 → trustee</div>
                   <div className="font-semibold tabular-nums">GH₵ {parseFloat(batchDetail.batch.total_ssnit_tier2 || 0).toFixed(2)}</div>
                 </div>
+                {/* Only where the voluntary fund is actually running. A zero
+                    here would read as an unpaid obligation rather than none. */}
+                {(parseFloat(batchDetail.batch.total_tier3_employee || 0)
+                  + parseFloat(batchDetail.batch.total_tier3_employer || 0)) > 0 && (
+                  <div>
+                    <div className="text-xs text-gray-400">Tier 3 → fund</div>
+                    <div className="font-semibold tabular-nums">
+                      GH₵ {(parseFloat(batchDetail.batch.total_tier3_employee || 0)
+                        + parseFloat(batchDetail.batch.total_tier3_employer || 0)).toFixed(2)}
+                    </div>
+                    <div className="text-[11px] text-gray-400 tabular-nums">
+                      {parseFloat(batchDetail.batch.total_tier3_employee || 0).toFixed(2)} staff
+                      · {parseFloat(batchDetail.batch.total_tier3_employer || 0).toFixed(2)} business
+                    </div>
+                  </div>
+                )}
               </div>
               <p className="text-xs text-gray-400 mt-2">
                 Pension is GH₵ {(parseFloat(batchDetail.batch.total_ssnit_employee || 0) + parseFloat(batchDetail.batch.total_ssnit_employer || 0)).toFixed(2)} in
