@@ -5,7 +5,7 @@ import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { toast } from '@/components/ui';
 import {
-  RefreshCw, FileText, ClipboardList, ExternalLink, Copy, Filter, Clock,
+  RefreshCw, FileText, ClipboardList, ExternalLink, Copy, Filter, Clock, Hammer, AlertTriangle,
 } from 'lucide-react';
 
 /**
@@ -32,6 +32,9 @@ interface Req {
   quote_status: string | null; production_stage: string | null;
   service_type: string; stages: Stage[];
   payment_status: string; track_token?: string; createdAt: string;
+  /** The internal job this became, once the client accepted the quote. */
+  job_id?: string | null;
+  job?: { id: string; code: string; title: string } | null;
 }
 interface TypeProfile { key: string; label: string; stages: Stage[] }
 
@@ -314,11 +317,26 @@ export default function ServiceRequestsPage() {
                         )}
                       </div>
 
-                      {r.track_token && (
-                        <button type="button" onClick={() => copyLink(r)} className="btn-ghost text-xs">
-                          <Copy className="w-3.5 h-3.5" /> Copy the client&apos;s tracking link
-                        </button>
-                      )}
+                      <div className="flex flex-wrap items-center gap-3">
+                        {r.track_token && (
+                          <button type="button" onClick={() => copyLink(r)} className="btn-ghost text-xs">
+                            <Copy className="w-3.5 h-3.5" /> Copy the client&apos;s tracking link
+                          </button>
+                        )}
+                        {/* Accepting raises the job automatically. Saying so —
+                            and linking to it — is what stops somebody creating
+                            a second one for the same work. */}
+                        {r.job ? (
+                          <span className="text-xs text-gray-500 inline-flex items-center gap-1.5">
+                            <Hammer className="w-3.5 h-3.5 text-gray-400" />
+                            Raised as <span className="font-mono text-gray-700">{r.job.code}</span>
+                          </span>
+                        ) : r.quote_status === 'accepted' ? (
+                          <span className="text-xs text-amber-700 inline-flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5" /> No job was raised for this
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   )}
                 </div>
