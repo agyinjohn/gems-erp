@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { groupPayrollByRun } from '@/lib/payrollGroups';
 import EmployeeDocuments from '@/components/hr/EmployeeDocuments';
 import Payslip from '@/components/hr/Payslip';
+import StatutoryRates from '@/components/hr/StatutoryRates';
 import PayrollLineEditor, {
   DEFAULT_ALLOWANCE_LINES,
   DEFAULT_DEDUCTION_LINES,
@@ -28,7 +29,7 @@ interface HrWorkspaceProps {
 
 export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const { tenant, isRole } = useAuth();
-  const [payrollSettings, setPayrollSettings] = useState({ apply_ssnit: true, apply_paye: true });
+  const [payrollSettings, setPayrollSettings] = useState<any>({ apply_ssnit: true, apply_paye: true, paye_bands: [], pension_rates: [], national: null });
   const [payrollSettingsSaving, setPayrollSettingsSaving] = useState(false);
   const [payslipRow, setPayslipRow] = useState<any>(null);
   // ── Loans & advances ──
@@ -667,8 +668,11 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     const next = { ...payrollSettings, [key]: !payrollSettings[key] };
     setPayrollSettingsSaving(true);
     try {
-      const r = await api.patch('/hr/payroll-settings', { [key]: next[key] });
-      setPayrollSettings(r.data.data);
+      await api.patch('/hr/payroll-settings', { [key]: next[key] });
+      // Re-read rather than trusting the write's echo: the PATCH replies with
+      // what was stored, not with the national schedule or the figures now in
+      // force, and both are on screen.
+      await loadPayrollSettings();
       toast.success('Payroll settings updated');
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Failed to update payroll settings');
@@ -2172,6 +2176,16 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
           </div>
         </div>
 
+        {payrollSettings.national && (
+          <StatutoryRates
+            payeBands={payrollSettings.paye_bands || []}
+            pensionRates={payrollSettings.pension_rates || []}
+            national={payrollSettings.national}
+            canEdit={isRole('business_owner')}
+            onSaved={loadPayrollSettings}
+          />
+        )}
+
         <div className="card">
           <h3 className="font-semibold text-gray-900 text-sm mb-1">The working day</h3>
           <p className="text-xs text-gray-400 mb-3">
@@ -2235,6 +2249,31 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
               <div className="rounded-lg border border-gray-200 p-2"><div className="text-xs text-gray-400">Total gross</div><div className="font-bold">GH₵ {parseFloat(batchDetail.batch.total_gross || 0).toFixed(2)}</div></div>
               <div className="rounded-lg border border-gray-200 p-2"><div className="text-xs text-gray-400">Deductions</div><div className="font-bold">GH₵ {parseFloat(batchDetail.batch.total_deductions || 0).toFixed(2)}</div></div>
               <div className="rounded-lg border border-gray-200 p-2"><div className="text-xs text-gray-400">Total net</div><div className="font-bold text-[#0D3B6E]">GH₵ {parseFloat(batchDetail.batch.total_net || 0).toFixed(2)}</div></div>
+            </div>
+            {/* What has to be paid out, and to whom. Net goes to staff; the rest
+                goes to three different institutions, and nobody can work that
+                out from a single "deductions" figure. */}
+            <div className="rounded-lg border border-gray-200 p-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Still to remit</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                <div>
+                  <div className="text-xs text-gray-400">PAYE → GRA</div>
+                  <div className="font-semibold tabular-nums">GH₵ {parseFloat(batchDetail.batch.total_paye || 0).toFixed(2)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-400">Tier 1 → SSNIT</div>
+                  <div className="font-semibold tabular-nums">GH₵ {parseFloat(batchDetail.batch.total_ssnit_tier1 || 0).toFixed(2)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-400">Tier 2 → trustee</div>
+                  <div className="font-semibold tabular-nums">GH₵ {parseFloat(batchDetail.batch.total_ssnit_tier2 || 0).toFixed(2)}</div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                Pension is GH₵ {(parseFloat(batchDetail.batch.total_ssnit_employee || 0) + parseFloat(batchDetail.batch.total_ssnit_employer || 0)).toFixed(2)} in
+                total — GH₵ {parseFloat(batchDetail.batch.total_ssnit_employee || 0).toFixed(2)} withheld from staff,
+                GH₵ {parseFloat(batchDetail.batch.total_ssnit_employer || 0).toFixed(2)} from the business — split between the two tiers above.
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${batchDetail.batch.status === 'paid' ? 'bg-green-100 text-green-700' : batchDetail.batch.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{batchDetail.batch.status}</span>
