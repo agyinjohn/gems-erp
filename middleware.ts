@@ -6,10 +6,18 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 async function resolveCustomDomainStore(host: string): Promise<string | null> {
   if (!host || host === 'localhost' || host.startsWith('127.0.0.1')) return null;
+  // On Vercel the API URL must be set — if it isn't, skip the lookup rather
+  // than hanging on a fetch to localhost which will never resolve.
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiUrl || apiUrl.includes('localhost')) return null;
   try {
-    const res = await fetch(`${API_URL}/storefront/resolve-domain?host=${encodeURIComponent(host)}`, {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(`${apiUrl}/storefront/resolve-domain?host=${encodeURIComponent(host)}`, {
       next: { revalidate: 300 },
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     if (!res.ok) return null;
     const json = await res.json();
     return json.data?.slug || null;
