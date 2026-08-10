@@ -392,6 +392,20 @@ const CATEGORY_TEMPLATES: Record<string, Template> = {
 
 const BLANK_FIELD: FieldDef = { label: '', key: '', type: 'text', options: [], required: false };
 
+/**
+ * Kinds of service, mirroring config/serviceTypes.js on the server. Held here
+ * rather than fetched because it is four words in a dropdown, and the server
+ * rejects anything it does not recognise regardless.
+ */
+const SERVICE_TYPES = [
+  { key: 'general',      label: 'General service' },
+  { key: 'printing',     label: 'Printing & production' },
+  { key: 'design',       label: 'Design & artwork' },
+  { key: 'repair',       label: 'Repair & servicing' },
+  { key: 'installation', label: 'Installation & site work' },
+  { key: 'professional', label: 'Professional services' },
+];
+
 export default function InventoryPage() {
   const [tab, setTab] = useState<'products'|'categories'|'locations'>('products');
   const [products, setProducts] = useState<any[]>(() => apiCache.get('/products') || []);
@@ -409,7 +423,7 @@ export default function InventoryPage() {
   const [catConfirm, setCatConfirm] = useState<any>(null);
   const [locConfirm, setLocConfirm] = useState<any>(null);
   const [locForm, setLocForm] = useState({ name:'', code:'', type:'shelf', description:'' });
-  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', item_type:'product' as 'product'|'service'|'bundle', unit_type:'unit' as string, duration:'' as string, revenue_account_code:'' as string, pricing_mode:'fixed' as 'fixed'|'open', min_price:'' as string, max_price:'' as string, images: [] as string[], attributes: {} as Record<string,any>, bundle_items: [] as {product_id:string; quantity:number; name?:string}[] });
+  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', item_type:'product' as 'product'|'service'|'bundle', unit_type:'unit' as string, service_type:'general' as string, requires_file:false, duration:'' as string, revenue_account_code:'' as string, pricing_mode:'fixed' as 'fixed'|'open', min_price:'' as string, max_price:'' as string, images: [] as string[], attributes: {} as Record<string,any>, bundle_items: [] as {product_id:string; quantity:number; name?:string}[] });
   const [catForm, setCatForm] = useState({ name:'', description:'', scope:'product' as 'product'|'service', custom_fields: [] as FieldDef[] });
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [adjustQty, setAdjustQty] = useState('');
@@ -464,8 +478,8 @@ export default function InventoryPage() {
     (!filterItemType || (p.item_type || 'product') === filterItemType)
   );
 
-  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',item_type:'product',unit_type:'unit',duration:'',revenue_account_code:'',pricing_mode:'fixed',min_price:'',max_price:'',images:[],attributes:{},bundle_items:[] }); setError(''); setModal('add'); };
-  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,item_type:p.item_type||'product',unit_type:p.unit_type||'unit',duration:p.duration||'',revenue_account_code:p.revenue_account_code||'',pricing_mode:p.pricing_mode==='open'?'open':'fixed',min_price:p.min_price?String(p.min_price):'',max_price:p.max_price?String(p.max_price):'',images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{},bundle_items:(p.bundle_items||[]).map((bi:any)=>({product_id:bi.product_id||bi.product_id?._id,quantity:bi.quantity,name:products.find((x:any)=>x.id===(bi.product_id||bi.product_id?._id))?.name||''})) }); setError(''); setModal('edit'); };
+  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',item_type:'product',unit_type:'unit',service_type:'general',requires_file:false,duration:'',revenue_account_code:'',pricing_mode:'fixed',min_price:'',max_price:'',images:[],attributes:{},bundle_items:[] }); setError(''); setModal('add'); };
+  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,item_type:p.item_type||'product',unit_type:p.unit_type||'unit',service_type:p.service_type||'general',requires_file:!!p.requires_file,duration:p.duration||'',revenue_account_code:p.revenue_account_code||'',pricing_mode:p.pricing_mode==='open'?'open':'fixed',min_price:p.min_price?String(p.min_price):'',max_price:p.max_price?String(p.max_price):'',images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{},bundle_items:(p.bundle_items||[]).map((bi:any)=>({product_id:bi.product_id||bi.product_id?._id,quantity:bi.quantity,name:products.find((x:any)=>x.id===(bi.product_id||bi.product_id?._id))?.name||''})) }); setError(''); setModal('edit'); };
   const openAdjust = (p: any) => { setSelected(p); setAdjustQty(''); setAdjustType('add'); setAdjustNote(''); setModal('adjust'); };
 
   const save = async () => {
@@ -796,6 +810,36 @@ export default function InventoryPage() {
           <div><label className="form-label">Cost Price (GH₵)</label><input type="number" {...inputProps('cost_price')} placeholder="0.00" /></div>
           {form.item_type === 'service' ? (
             <>
+              <div className="col-span-2">
+                <label className="form-label">Kind of work</label>
+                <select className="form-input" value={form.service_type}
+                  onChange={e => setForm(f => ({
+                    ...f,
+                    service_type: e.target.value,
+                    // Printing and design normally need something sent in, so
+                    // the box is ticked for you. It stays yours to change.
+                    requires_file: ['printing', 'design'].includes(e.target.value),
+                  }))}>
+                  {SERVICE_TYPES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Decides the stages a request for this runs through, and what the client is told
+                  it&apos;s doing — a print job goes &ldquo;on the press&rdquo;, a repair is &ldquo;being repaired&rdquo;.
+                </p>
+              </div>
+              <div className="col-span-2">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input type="checkbox" className="mt-0.5" checked={form.requires_file}
+                    onChange={e => setForm(f => ({ ...f, requires_file: e.target.checked }))} />
+                  <span>
+                    <span className="text-sm font-medium text-gray-800">Needs a file from the client</span>
+                    <span className="block text-xs text-gray-400">
+                      Requests for this can&apos;t be sent without an attachment. Right for artwork
+                      and documents; wrong for a call-out, where there&apos;s nothing to attach.
+                    </span>
+                  </span>
+                </label>
+              </div>
               <div>
                 <label className="form-label">Pricing</label>
                 <select {...inputProps('pricing_mode')}>
