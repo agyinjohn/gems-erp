@@ -114,6 +114,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const [openingPaystack, setOpeningPaystack] = useState(false);
   const [pendingToCancel, setPendingToCancel] = useState<PendingPayment | null>(null);
   const [cancelProcessing, setCancelProcessing] = useState(false);
+  const [taxRate, setTaxRate] = useState(0);
 
   const loadShift = useCallback(async () => {
     try {
@@ -332,7 +333,6 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   const lineUnitPrice = (i: CartItem) => i.unit_price ?? i.product.price;
   const cartSubtotal = cart.reduce((s, i) => s + lineUnitPrice(i) * i.quantity, 0);
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
-  const [taxRate, setTaxRate] = useState(0);
   const taxAmount = taxRate > 0 ? Math.round(cartSubtotal * taxRate / 100 * 100) / 100 : 0;
   const cartTotal = cartSubtotal + taxAmount;
   const change = paymentMethod === 'cash' && amountTendered ? Math.max(0, parseFloat(amountTendered) - cartTotal) : 0;
