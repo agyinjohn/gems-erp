@@ -12,11 +12,10 @@ export default function PosShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) router.push('/login');
-    if (!loading && user && !POS_ROLES.includes(user.role)) {
-      if (user.role !== 'business_owner') {
-        router.push(user.role === 'platform_admin' ? '/platform' : user.role === 'employee' ? '/ess' : '/dashboard');
-      }
+    if (loading) return;
+    if (!user) { router.replace('/login'); return; }
+    if (!POS_ROLES.includes(user.role)) {
+      router.replace(user.role === 'platform_admin' ? '/platform' : user.role === 'employee' ? '/ess' : '/dashboard');
     }
   }, [user, loading, router]);
 
