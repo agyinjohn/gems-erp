@@ -144,7 +144,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   useEffect(() => {
     const cachedCats = apiCache.get('/pos/categories');
     if (cachedCats) {
-      setCategories(cachedCats);
+      setCategories(cachedCats.all || []);
       setProductCategories(cachedCats.product || []);
       setServiceCategories(cachedCats.service || []);
     } else {
