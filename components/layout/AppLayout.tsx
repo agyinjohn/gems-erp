@@ -69,6 +69,7 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
     if (!navigator.serviceWorker.controller) return;
+    if (sessionStorage.getItem('sw_cleaned')) return;
 
     let cancelled = false;
     navigator.serviceWorker.getRegistrations()
@@ -79,6 +80,7 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
       ))
       .then((results) => {
         if (cancelled || !results.some(Boolean)) return;
+        sessionStorage.setItem('sw_cleaned', '1');
         return caches?.keys()
           .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
           .catch(() => {})
@@ -90,19 +92,17 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) { router.push('/login'); return; }
-    if (!loading && user && allowedRoles && !allowedRoles.includes(user.role)) {
-      if (!['business_owner'].includes(user.role)) {
-        router.push(user.role === 'platform_admin' ? '/platform' : user.role === 'employee' ? '/ess' : '/dashboard');
-        return;
-      }
+    if (loading) return;
+    if (!user) { router.replace('/login'); return; }
+    if (allowedRoles && !allowedRoles.includes(user.role) && user.role !== 'business_owner') {
+      router.replace(user.role === 'platform_admin' ? '/platform' : user.role === 'employee' ? '/ess' : '/dashboard');
+      return;
     }
-    // Module access gate
-    if (!loading && user && tenant) {
+    if (tenant) {
       const requiredModule = getRequiredModule(pathname);
       if (requiredModule && !hasModule(requiredModule)) {
         toast.error('Your current plan does not include this feature. Upgrade to unlock it.');
-        router.push('/dashboard');
+        router.replace('/dashboard');
       }
     }
   }, [user, loading, router, allowedRoles, pathname, tenant, hasModule]);
