@@ -52,14 +52,23 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 globally
+// Handle 401 globally — debounced so a burst of parallel requests (e.g. the
+// POS pending-payment poller) only triggers one redirect, and only after the
+// page has fully mounted (avoids firing during Next.js client-side navigation
+// when the token hasn't been read from localStorage yet).
+let redirecting = false;
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('gems_token');
-      localStorage.removeItem('gems_user');
-      window.location.href = '/login';
+    if (error.response?.status === 401 && typeof window !== 'undefined' && !redirecting) {
+      const token = localStorage.getItem('gems_token');
+      // Only redirect if there genuinely is no token — not just a race during
+      // page load where the request fired before the token was attached.
+      if (!token) {
+        redirecting = true;
+        localStorage.removeItem('gems_user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

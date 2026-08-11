@@ -40,9 +40,10 @@ export default function CustomerDisplayPage() {
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) router.push('/login');
-    if (!loading && user && !['business_owner', 'branch_manager', 'sales_staff'].includes(user.role)) {
-      router.push('/dashboard');
+    if (loading) return;
+    if (!user) { router.replace('/login'); return; }
+    if (!['business_owner', 'branch_manager', 'sales_staff'].includes(user.role)) {
+      router.replace('/dashboard');
     }
   }, [user, loading, router]);
 
