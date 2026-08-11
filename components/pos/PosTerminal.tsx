@@ -142,35 +142,20 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
 
   // Load categories once on mount
   useEffect(() => {
-    const cachedCats = apiCache.get('/pos/categories');
-    if (cachedCats) {
-      setCategories(cachedCats.all || []);
-      setProductCategories(cachedCats.product || []);
-      setServiceCategories(cachedCats.service || []);
-    } else {
-      api.get('/pos/products').then(r => {
-        const all = r.data.data as Product[];
-        const prodCats = [...new Set(all.filter(p => (p.item_type || 'product') !== 'service').map(p => p.category_name).filter(Boolean))].sort() as string[];
-        const svcCats  = [...new Set(all.filter(p => p.item_type === 'service').map(p => p.category_name).filter(Boolean))].sort() as string[];
-        const allCats  = [...new Set(all.map(p => p.category_name).filter(Boolean))].sort() as string[];
-        apiCache.set('/pos/categories', { all: allCats, product: prodCats, service: svcCats });
-        setCategories(allCats);
-        setProductCategories(prodCats);
-        setServiceCategories(svcCats);
-      }).catch(() => {});
-    }
+    api.get('/pos/products').then(r => {
+      const all = r.data.data as Product[];
+      const prodCats = [...new Set(all.filter(p => (p.item_type || 'product') !== 'service').map(p => p.category_name).filter(Boolean))].sort() as string[];
+      const svcCats  = [...new Set(all.filter(p => p.item_type === 'service').map(p => p.category_name).filter(Boolean))].sort() as string[];
+      const allCats  = [...new Set(all.map(p => p.category_name).filter(Boolean))].sort() as string[];
+      setCategories(allCats);
+      setProductCategories(prodCats);
+      setServiceCategories(svcCats);
+    }).catch(() => {});
     setTimeout(() => barcodeRef.current?.focus(), 300);
     loadShift();
-    const cachedTax = apiCache.get('/storefront/settings');
-    if (cachedTax !== null) {
-      setTaxRate(Number(cachedTax));
-    } else {
-      api.get('/storefront/settings').then(r => {
-        const rate = Number(r.data.data?.tax_rate || 0);
-        apiCache.set('/storefront/settings', rate);
-        setTaxRate(rate);
-      }).catch(() => {});
-    }
+    api.get('/storefront/settings').then(r => {
+      setTaxRate(Number(r.data.data?.tax_rate || 0));
+    }).catch(() => {});
   }, [loadShift]);
 
   useEffect(() => {
