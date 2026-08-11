@@ -140,7 +140,7 @@ const navGroups = [
       { href: '/labour', label: 'Labour', icon: HardHat, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
       // What we offer — its own page, not a filtered view of stock. The same
       // list a client picks from when they send a request in.
-      { href: '/service-catalog', label: 'Our services', icon: Tag, roles: ['business_owner', 'branch_manager'], permission: 'inventory.view' },
+      { href: '/service-catalog', label: 'Services & solutions', icon: Tag, roles: ['business_owner', 'branch_manager'], permission: 'inventory.view' },
       { href: '/crm', label: 'Customers', icon: UserCheck, roles: ['business_owner', 'branch_manager'], permission: 'crm.view' },
       { href: '/payment-logs', label: 'Payments', icon: CreditCard, roles: ['business_owner', 'branch_manager', 'accountant'], permission: 'accounting.view' },
     ],
@@ -162,7 +162,6 @@ const navGroups = [
     label: 'Settings',
     items: [
       { href: '/store-settings', label: 'Online Store', icon: ShoppingBag, roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },
-      { href: '/catalog', label: 'Catalog', icon: Package, roles: ['business_owner', 'branch_manager', 'warehouse_staff'], permission: 'inventory.view' },
       { href: '/branches', label: 'Branches', icon: Store, roles: ['business_owner'], permission: 'branches.manage' },
       { href: '/departments', label: 'Departments', icon: Building2, roles: ['business_owner', 'hr_manager'], permission: 'hr.view' },
       { href: '/users', label: 'Users', icon: Settings, roles: ['business_owner'], permission: 'users.manage' },

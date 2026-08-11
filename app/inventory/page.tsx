@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast, ResponsiveTable } from '@/components/ui';
-import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen, X, ChevronDown, MapPin, Wrench } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen, X, MapPin, Wrench, Layers } from 'lucide-react';
 import api, { apiCache } from '@/lib/api';
 import ProductImageUpload from '@/components/inventory/ProductImageUpload';
 
@@ -393,18 +394,14 @@ const CATEGORY_TEMPLATES: Record<string, Template> = {
 const BLANK_FIELD: FieldDef = { label: '', key: '', type: 'text', options: [], required: false };
 
 /**
- * Kinds of service, mirroring config/serviceTypes.js on the server. Held here
- * rather than fetched because it is four words in a dropdown, and the server
- * rejects anything it does not recognise regardless.
+ * Stock, and only stock.
+ *
+ * Services and solutions used to be made here too, on the grounds that the
+ * server keeps all three in one table. That is a fact about the database, not
+ * about the work: nobody counting cartons in a storeroom is also deciding what
+ * the design service costs. Both now live on Services & solutions, and this
+ * page lists, counts and reorders physical goods.
  */
-const SERVICE_TYPES = [
-  { key: 'general',      label: 'General service' },
-  { key: 'printing',     label: 'Printing & production' },
-  { key: 'design',       label: 'Design & artwork' },
-  { key: 'repair',       label: 'Repair & servicing' },
-  { key: 'installation', label: 'Installation & site work' },
-  { key: 'professional', label: 'Professional services' },
-];
 
 export default function InventoryPage() {
   const [tab, setTab] = useState<'products'|'categories'|'locations'>('products');
@@ -414,7 +411,6 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(() => !apiCache.get('/products'));
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
-  const [filterItemType, setFilterItemType] = useState('');
   const [modal, setModal] = useState<'add'|'edit'|'adjust'|'cat-add'|'cat-edit'|'loc-add'|'loc-edit'|null>(null);
   const [selected, setSelected] = useState<any>(null);
   const [selectedCat, setSelectedCat] = useState<any>(null);
@@ -423,7 +419,7 @@ export default function InventoryPage() {
   const [catConfirm, setCatConfirm] = useState<any>(null);
   const [locConfirm, setLocConfirm] = useState<any>(null);
   const [locForm, setLocForm] = useState({ name:'', code:'', type:'shelf', description:'' });
-  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', item_type:'product' as 'product'|'service'|'bundle', unit_type:'unit' as string, service_type:'general' as string, requires_file:false, duration:'' as string, revenue_account_code:'' as string, pricing_mode:'fixed' as 'fixed'|'open', min_price:'' as string, max_price:'' as string, images: [] as string[], attributes: {} as Record<string,any>, bundle_items: [] as {product_id:string; quantity:number; name?:string}[] });
+  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', sell_online:true, images: [] as string[], attributes: {} as Record<string,any> });
   const [catForm, setCatForm] = useState({ name:'', description:'', scope:'product' as 'product'|'service', custom_fields: [] as FieldDef[] });
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [adjustQty, setAdjustQty] = useState('');
@@ -472,14 +468,17 @@ export default function InventoryPage() {
     if (hasCache && apiCache.isStale('/products')) load(true);
   }, []);
 
-  const filtered = products.filter(p =>
+  // Everything with stock. Services and solutions come back on the same
+  // endpoint and are somebody else's page.
+  const stocked = products.filter(p => (p.item_type || 'product') === 'product');
+
+  const filtered = stocked.filter(p =>
     (!search || p.name.toLowerCase().includes(search.toLowerCase()) || (p.sku||'').toLowerCase().includes(search.toLowerCase())) &&
-    (!filterCat || (p.category_id?._id || p.category_id) == filterCat) &&
-    (!filterItemType || (p.item_type || 'product') === filterItemType)
+    (!filterCat || (p.category_id?._id || p.category_id) == filterCat)
   );
 
-  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',item_type:'product',unit_type:'unit',service_type:'general',requires_file:false,duration:'',revenue_account_code:'',pricing_mode:'fixed',min_price:'',max_price:'',images:[],attributes:{},bundle_items:[] }); setError(''); setModal('add'); };
-  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,item_type:p.item_type||'product',unit_type:p.unit_type||'unit',service_type:p.service_type||'general',requires_file:!!p.requires_file,duration:p.duration||'',revenue_account_code:p.revenue_account_code||'',pricing_mode:p.pricing_mode==='open'?'open':'fixed',min_price:p.min_price?String(p.min_price):'',max_price:p.max_price?String(p.max_price):'',images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{},bundle_items:(p.bundle_items||[]).map((bi:any)=>({product_id:bi.product_id||bi.product_id?._id,quantity:bi.quantity,name:products.find((x:any)=>x.id===(bi.product_id||bi.product_id?._id))?.name||''})) }); setError(''); setModal('edit'); };
+  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',sell_online:true,images:[],attributes:{} }); setError(''); setModal('add'); };
+  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,sell_online:p.sell_online!==false,images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{} }); setError(''); setModal('edit'); };
   const openAdjust = (p: any) => { setSelected(p); setAdjustQty(''); setAdjustType('add'); setAdjustNote(''); setModal('adjust'); };
 
   const save = async () => {
@@ -593,13 +592,13 @@ export default function InventoryPage() {
   const inputProps = (key: string) => ({ value: (form as any)[key], onChange: (e: any) => setForm({...form, [key]: e.target.value}), className: 'form-input' });
 
   return (
-    <AppLayout title="Inventory" subtitle="Manage products, services, bundles and categories" allowedRoles={['business_owner','branch_manager','warehouse_staff']}>
+    <AppLayout title="Inventory" subtitle="Stock on hand, categories and where it is kept" allowedRoles={['business_owner','branch_manager','warehouse_staff']}>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 mb-5 w-fit">
         <button onClick={() => setTab('products')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='products' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
-          <Package className="w-4 h-4" /> Catalog
-          <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${ tab==='products' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }`}>{products.length}</span>
+          <Package className="w-4 h-4" /> Products
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${ tab==='products' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }`}>{stocked.length}</span>
         </button>
         <button onClick={() => setTab('categories')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='categories' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
           <FolderOpen className="w-4 h-4" /> Categories
@@ -622,37 +621,39 @@ export default function InventoryPage() {
           <option value="">All Categories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <select className="form-input sm:w-auto" value={filterItemType} onChange={e => setFilterItemType(e.target.value)}>
-          <option value="">All Types</option>
-          <option value="product">Products</option>
-          <option value="service">Services</option>
-          <option value="bundle">Bundles</option>
-        </select>
-        <button className="btn-primary w-full sm:w-auto" onClick={openAdd}><Plus className="w-4 h-4" />Add Item</button>
+        <button className="btn-primary w-full sm:w-auto" onClick={openAdd}><Plus className="w-4 h-4" />Add Product</button>
+      </div>
+
+      {/* Where the other two kinds went. Worth saying once, on the page people
+          have been making services on for months. */}
+      <div className="flex items-center gap-2 text-xs text-gray-500 mb-4 sm:mb-5">
+        <Layers className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+        <span>
+          Services and solutions are on <Link href="/service-catalog" className="text-[#0D3B6E] font-semibold hover:underline">Services &amp; solutions</Link>.
+        </span>
       </div>
 
       {/* Low stock alert */}
-      {products.filter(p => (p.item_type || 'product') === 'product' && p.stock_qty <= p.low_stock_threshold).length > 0 && (
+      {stocked.filter(p => p.stock_qty <= p.low_stock_threshold).length > 0 && (
         <div className="bg-[#0D3B6E]/8 border border-[#0D3B6E]/15 rounded-xl px-3 sm:px-4 py-3 flex items-start sm:items-center gap-2 sm:gap-3 mb-4 sm:mb-5 text-xs sm:text-sm text-[#0D3B6E]">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-          <span><strong>{products.filter(p => (p.item_type || 'product') === 'product' && p.stock_qty <= p.low_stock_threshold).length} products</strong> are at or below their low stock threshold.</span>
+          <span><strong>{stocked.filter(p => p.stock_qty <= p.low_stock_threshold).length} products</strong> are at or below their low stock threshold.</span>
         </div>
       )}
 
       {/* Table */}
       <div className="card p-0 overflow-hidden">
-        {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No items found" description={search || filterCat ? 'Try adjusting your search or filter.' : 'Add your first product or service to get started.'} icon={<Package className="w-9 h-9 text-gray-300" />} action={!search && !filterCat ? { label: '+ Add Item', onClick: openAdd } : undefined} /> : (
+        {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState message="No products found" description={search || filterCat ? 'Try adjusting your search or filter.' : 'Add your first product to get started.'} icon={<Package className="w-9 h-9 text-gray-300" />} action={!search && !filterCat ? { label: '+ Add Product', onClick: openAdd } : undefined} /> : (
           <ResponsiveTable
             columns={[
               {
                 key: 'name',
-                label: 'Item',
+                label: 'Product',
                 render: (_, p) => (
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900">{p.name}</span>
-                      {(p.item_type === 'service') && <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">Service</span>}
-                      {(p.item_type === 'bundle') && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">Bundle</span>}
+                      {p.sell_online === false && <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">Not on the store</span>}
                     </div>
                     {p.sku && <div className="text-xs text-gray-400 font-mono mt-0.5">{p.sku}</div>}
                   </div>
@@ -693,35 +694,8 @@ export default function InventoryPage() {
               },
               {
                 key: 'stock',
-                label: 'Stock / Type',
+                label: 'Stock',
                 render: (_, p) => {
-                  if ((p.item_type || 'product') === 'service') {
-                    return (
-                      <div className="text-xs text-gray-500">
-                        {p.pricing_mode === 'open' ? (
-                          <span className="text-purple-600 font-medium">Quoted at sale</span>
-                        ) : (
-                          <>
-                            <span className="capitalize">{p.unit_type || 'fixed'}</span>
-                            {p.duration ? <span className="ml-1 text-gray-400">· {p.duration} {p.unit_type === 'hour' ? 'hr' : p.unit_type === 'day' ? 'day' : ''}</span> : null}
-                          </>
-                        )}
-                      </div>
-                    );
-                  }
-                  if (p.item_type === 'bundle') {
-                    const items = p.bundle_items || [];
-                    if (!items.length) return <span className="text-xs text-gray-400">No components</span>;
-                    return (
-                      <div className="text-xs text-gray-600">
-                        {items.slice(0,2).map((bi:any, i:number) => {
-                          const cp = products.find((x:any) => x.id === (bi.product_id?._id || bi.product_id));
-                          return <div key={i} className="truncate max-w-[140px]">{bi.quantity}× {cp?.name || '—'}</div>;
-                        })}
-                        {items.length > 2 && <div className="text-gray-400">+{items.length - 2} more</div>}
-                      </div>
-                    );
-                  }
                   const isLow = p.stock_qty <= p.low_stock_threshold;
                   const isOut = p.stock_qty === 0;
                   const stockPct = Math.min(100, Math.round((p.stock_qty / Math.max(p.low_stock_threshold * 3, 1)) * 100));
@@ -751,8 +725,8 @@ export default function InventoryPage() {
                 label: 'Actions',
                 render: (_, p) => (
                   <div className="flex items-center justify-end gap-1">
-                    {(p.item_type || 'product') !== 'service' && <button onClick={() => { setLabelProduct(p); setLabelQty(1); }} title="Print Label" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Tag className="w-4 h-4" /></button>}
-                    {(p.item_type || 'product') === 'product' && <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><TrendingDown className="w-4 h-4" /></button>}
+                    <button onClick={() => { setLabelProduct(p); setLabelQty(1); }} title="Print Label" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Tag className="w-4 h-4" /></button>
+                    <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><TrendingDown className="w-4 h-4" /></button>
                     <button onClick={() => openEdit(p)} title="Edit" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Edit2 className="w-4 h-4" /></button>
                     <button onClick={() => setConfirm({ id: p.id, name: p.name })} title="Delete" className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </div>
@@ -766,205 +740,56 @@ export default function InventoryPage() {
       </div>
 
       {/* Add / Edit Modal */}
-      <Modal open={modal === 'add' || modal === 'edit'} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Item' : 'Edit Item'} size="lg">
+      <Modal open={modal === 'add' || modal === 'edit'} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Product' : 'Edit Product'} size="lg">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          {/* Item type selector */}
-          <div className="col-span-2">
-            <label className="form-label">Item Type *</label>
-            <div className="flex gap-2">
-              {(['product','service','bundle'] as const).map(t => (
-                <button key={t} type="button"
-                  onClick={() => setForm(f => ({ ...f, item_type: t }))}
-                  className={`flex-1 py-2 rounded-lg border text-sm font-medium capitalize transition-colors ${
-                    form.item_type === t ? 'bg-[#0D3B6E] text-white border-[#0D3B6E]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                  }`}
-                >{t}</button>
-              ))}
-            </div>
-          </div>
-          <div className="col-span-2"><label className="form-label">{form.item_type === 'service' ? 'Service Name' : 'Product Name'} *</label><input {...inputProps('name')} placeholder={form.item_type === 'service' ? 'e.g. Website Design' : 'e.g. Laptop Pro 15'} /></div>
-          {form.item_type !== 'service' && <>
-            <div><label className="form-label">SKU <span className="text-gray-400 font-normal">(optional)</span></label><input {...inputProps('sku')} placeholder="e.g. ELEC-001" /></div>
-            <div><label className="form-label">Barcode <span className="text-gray-400 font-normal">(optional)</span></label><input {...inputProps('barcode')} placeholder="e.g. 6001234567890" /></div>
-          </>}
+          <div className="col-span-2"><label className="form-label">Product Name *</label><input {...inputProps('name')} placeholder="e.g. Laptop Pro 15" /></div>
+          <div><label className="form-label">SKU <span className="text-gray-400 font-normal">(optional)</span></label><input {...inputProps('sku')} placeholder="e.g. ELEC-001" /></div>
+          <div><label className="form-label">Barcode <span className="text-gray-400 font-normal">(optional)</span></label><input {...inputProps('barcode')} placeholder="e.g. 6001234567890" /></div>
           <div>
             <label className="form-label">Category</label>
             <select {...inputProps('category_id')}>
               <option value="">Select category</option>
               {categories
-                .filter(c => form.item_type === 'service' ? c.scope === 'service' : c.scope !== 'service')
+                .filter(c => c.scope !== 'service')
                 .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="form-label">
-              {form.item_type === 'service' && form.pricing_mode === 'open'
-                ? 'Typical Price (GH₵)' : 'Selling Price (GH₵) *'}
-            </label>
+            <label className="form-label">Selling Price (GH₵) *</label>
             <input type="number" {...inputProps('price')} placeholder="0.00" />
-            {form.item_type === 'service' && form.pricing_mode === 'open' && (
-              <p className="text-xs text-gray-400 mt-1">Not charged — the amount is entered when the service is sold. Leave 0 if there is no typical figure.</p>
-            )}
           </div>
           <div><label className="form-label">Cost Price (GH₵)</label><input type="number" {...inputProps('cost_price')} placeholder="0.00" /></div>
-          {form.item_type === 'service' ? (
-            <>
-              <div className="col-span-2">
-                <label className="form-label">Kind of work</label>
-                <select className="form-input" value={form.service_type}
-                  onChange={e => setForm(f => ({
-                    ...f,
-                    service_type: e.target.value,
-                    // Printing and design normally need something sent in, so
-                    // the box is ticked for you. It stays yours to change.
-                    requires_file: ['printing', 'design'].includes(e.target.value),
-                  }))}>
-                  {SERVICE_TYPES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
-                </select>
-                <p className="text-xs text-gray-400 mt-1">
-                  Decides the stages a request for this runs through, and what the client is told
-                  it&apos;s doing — a print job goes &ldquo;on the press&rdquo;, a repair is &ldquo;being repaired&rdquo;.
-                </p>
-              </div>
-              <div className="col-span-2">
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input type="checkbox" className="mt-0.5" checked={form.requires_file}
-                    onChange={e => setForm(f => ({ ...f, requires_file: e.target.checked }))} />
-                  <span>
-                    <span className="text-sm font-medium text-gray-800">Needs a file from the client</span>
-                    <span className="block text-xs text-gray-400">
-                      Requests for this can&apos;t be sent without an attachment. Right for artwork
-                      and documents; wrong for a call-out, where there&apos;s nothing to attach.
-                    </span>
-                  </span>
-                </label>
-              </div>
-              <div>
-                <label className="form-label">Pricing</label>
-                <select {...inputProps('pricing_mode')}>
-                  <option value="fixed">Set price</option>
-                  <option value="open">Price on request (quoted at sale)</option>
-                </select>
-                <p className="text-xs text-gray-400 mt-1">
-                  {form.pricing_mode === 'open'
-                    ? 'Staff enter the amount at the till. Hidden from the online store, since customers can\u2019t quote themselves.'
-                    : 'Always charged at the price above.'}
-                </p>
-              </div>
-              {form.pricing_mode === 'open' ? (
-                <>
-                  <div>
-                    <label className="form-label">Minimum (GH₵) <span className="text-gray-400 font-normal">(optional)</span></label>
-                    <input type="number" {...inputProps('min_price')} placeholder="No minimum" />
-                  </div>
-                  <div>
-                    <label className="form-label">Maximum (GH₵) <span className="text-gray-400 font-normal">(optional)</span></label>
-                    <input type="number" {...inputProps('max_price')} placeholder="No maximum" />
-                    <p className="text-xs text-gray-400 mt-1">Guards against a mistyped amount at the till.</p>
-                  </div>
-                </>
-              ) : (
-                <div>
-                  <label className="form-label">Unit Type</label>
-                  <select {...inputProps('unit_type')}>
-                    <option value="fixed">Fixed price</option>
-                    <option value="hour">Per hour</option>
-                    <option value="day">Per day</option>
-                    <option value="unit">Per unit</option>
-                  </select>
-                </div>
-              )}
-              {form.pricing_mode !== 'open' && form.unit_type !== 'fixed' && (
-                <div><label className="form-label">Duration ({form.unit_type === 'hour' ? 'hours' : 'days'})</label><input type="number" {...inputProps('duration')} placeholder="e.g. 2" /></div>
-              )}
-              <div>
-                <label className="form-label">Revenue Account Code <span className="text-gray-400 font-normal">(optional)</span></label>
-                <input {...inputProps('revenue_account_code')} placeholder="e.g. 4010" />
-                <p className="text-xs text-gray-400 mt-1">Overrides the default GL account for this service. Leave blank to use 4010 (Service Revenue).</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div><label className="form-label">{modal === 'add' ? 'Initial Stock' : 'Stock Quantity'}</label><input type="number" {...inputProps('stock_qty')} placeholder="0" /></div>
-              <div><label className="form-label">Low Stock Alert</label><input type="number" {...inputProps('low_stock_threshold')} /></div>
-              <div><label className="form-label">Unit</label><input {...inputProps('unit')} placeholder="piece, kg, box…" /></div>
-            </>
-          )}
+          <div><label className="form-label">{modal === 'add' ? 'Initial Stock' : 'Stock Quantity'}</label><input type="number" {...inputProps('stock_qty')} placeholder="0" /></div>
+          <div><label className="form-label">Low Stock Alert</label><input type="number" {...inputProps('low_stock_threshold')} /></div>
+          <div><label className="form-label">Unit</label><input {...inputProps('unit')} placeholder="piece, kg, box…" /></div>
 
-          {/* Bundle composer */}
-          {form.item_type === 'bundle' && (
-            <div className="col-span-2">
-              <div className="border-t border-gray-100 pt-4 mt-1">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Bundle Components</p>
-                  <button type="button" onClick={() => {
-                    const opts = products.filter((p:any) => p.item_type !== 'bundle' && p.is_active && !form.bundle_items.some(bi => bi.product_id === p.id));
-                    if (!opts.length) return;
-                    setForm(f => ({ ...f, bundle_items: [...f.bundle_items, { product_id: opts[0].id, quantity: 1, name: opts[0].name }] }));
-                  }} className="text-xs text-[#0D3B6E] font-semibold hover:underline flex items-center gap-1">
-                    <Plus className="w-3.5 h-3.5" /> Add Component
-                  </button>
-                </div>
-                {form.bundle_items.length === 0 && (
-                  <p className="text-xs text-gray-400 py-3 text-center border border-dashed border-gray-200 rounded-xl">No components yet. Add products or services that make up this bundle.</p>
-                )}
-                <div className="space-y-2">
-                  {form.bundle_items.map((bi, i) => (
-                    <div key={i} className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                      <select
-                        className="form-input flex-1 text-sm py-1.5"
-                        value={bi.product_id}
-                        onChange={e => {
-                          const p = products.find((x:any) => x.id === e.target.value);
-                          setForm(f => ({ ...f, bundle_items: f.bundle_items.map((b,idx) => idx===i ? { ...b, product_id: e.target.value, name: p?.name||'' } : b) }));
-                        }}
-                      >
-                        {products.filter((p:any) => p.item_type !== 'bundle' && p.is_active).map((p:any) => (
-                          <option key={p.id} value={p.id}>{p.name}{p.item_type==='service'?' (service)':''}</option>
-                        ))}
-                      </select>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <span className="text-xs text-gray-400">Qty</span>
-                        <input
-                          type="number" min="1"
-                          className="form-input w-16 text-sm py-1.5 text-center"
-                          value={bi.quantity}
-                          onChange={e => setForm(f => ({ ...f, bundle_items: f.bundle_items.map((b,idx) => idx===i ? { ...b, quantity: Math.max(1,parseInt(e.target.value)||1) } : b) }))}
-                        />
-                      </div>
-                      <button type="button" onClick={() => setForm(f => ({ ...f, bundle_items: f.bundle_items.filter((_,idx)=>idx!==i) }))} className="text-gray-400 hover:text-red-500 flex-shrink-0">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                {form.bundle_items.length > 0 && (() => {
-                  const total = form.bundle_items.reduce((sum, bi) => {
-                    const p = products.find((x:any) => x.id === bi.product_id);
-                    return sum + (p ? p.cost_price * bi.quantity : 0);
-                  }, 0);
-                  return total > 0 ? (
-                    <p className="text-xs text-gray-400 mt-2 text-right">Component cost total: <span className="font-semibold text-gray-600">GH₵ {total.toFixed(2)}</span></p>
-                  ) : null;
-                })()}
-              </div>
-            </div>
-          )}
+          {/* On by default, because that is what everything already in stock has
+              been doing. Off keeps it to the till and the shop floor. */}
+          <div className="col-span-2">
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" className="mt-0.5" checked={form.sell_online}
+                onChange={e => setForm(f => ({ ...f, sell_online: e.target.checked }))} />
+              <span>
+                <span className="text-sm font-medium text-gray-800">Sell it on the online store</span>
+                <span className="block text-xs text-gray-400">
+                  Customers can find it and buy it themselves. Turn off for anything sold only in
+                  person — display stock, spare parts, anything you don&apos;t ship.
+                </span>
+              </span>
+            </label>
+          </div>
 
           <div className="col-span-2"><label className="form-label">Description</label><textarea {...inputProps('description')} rows={3} placeholder="Description…" /></div>
-          {form.item_type !== 'service' && (
-            <div className="col-span-2">
-              <ProductImageUpload
-                images={form.images}
-                onChange={(images) => setForm({ ...form, images })}
-              />
-            </div>
-          )}
+          <div className="col-span-2">
+            <ProductImageUpload
+              images={form.images}
+              onChange={(images) => setForm({ ...form, images })}
+            />
+          </div>
 
           {/* Dynamic category attributes */}
           {(() => {
-            if (form.item_type === 'service') return null;
             const cat = categories.find(c => c.id === form.category_id);
             const fields: FieldDef[] = cat?.custom_fields || [];
             if (!fields.length) return null;
@@ -1022,7 +847,7 @@ export default function InventoryPage() {
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : modal === 'edit' ? `Update ${form.item_type === 'service' ? 'Service' : form.item_type === 'bundle' ? 'Bundle' : 'Product'}` : `Add ${form.item_type === 'service' ? 'Service' : form.item_type === 'bundle' ? 'Bundle' : 'Product'}`}</button>
+          <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : modal === 'edit' ? 'Update Product' : 'Add Product'}</button>
         </div>
       </Modal>
 

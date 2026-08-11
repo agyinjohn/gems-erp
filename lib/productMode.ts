@@ -21,7 +21,7 @@ export const MODE_HOME: Record<ProductMode, string> = {
 export const MODE_NAV: Record<ProductMode, string[] | null> = {
   full: null,
   pos: ['/pos', '/inventory', '/orders', '/payment-logs', '/users', '/branches', '/billing', '/dashboard', '/ess', '/reports'],
-  storefront: ['/store-settings', '/catalog', '/orders', '/users', '/branches', '/billing', '/dashboard', '/ess', '/api-docs'],
+  storefront: ['/store-settings', '/inventory', '/service-catalog', '/orders', '/users', '/branches', '/billing', '/dashboard', '/ess', '/api-docs'],
   accounting: ['/accounting', '/payment-logs', '/approvals', '/reports', '/users', '/billing', '/dashboard', '/ess'],
 };
 

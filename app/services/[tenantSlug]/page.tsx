@@ -29,6 +29,8 @@ interface Service {
   id: string; name: string; description: string;
   unit_type: string; priced: boolean; price: number | null;
   service_type: string; requires_file: boolean;
+  // A package of work sold as one thing, rather than a single job.
+  is_solution?: boolean;
 }
 interface Store { name: string; slug: string; phone?: string; email?: string; logo?: string }
 
@@ -214,7 +216,14 @@ export default function ServiceRequestPage() {
                         on ? 'bg-[#0D3B6E] ring-[#0D3B6E] text-white' : 'ring-slate-300'
                       }`}>{on && <CheckCircle2 className="w-3.5 h-3.5" />}</span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-semibold text-slate-900">{s.name}</span>
+                        <span className="block text-sm font-semibold text-slate-900">
+                          {s.name}
+                          {s.is_solution && (
+                            <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-[#0D3B6E] bg-blue-50 rounded-full px-2 py-0.5">
+                              Package
+                            </span>
+                          )}
+                        </span>
                         {s.description && <span className="block text-xs text-slate-500">{s.description}</span>}
                       </span>
                       <span className="text-sm font-semibold text-slate-900 flex-shrink-0 text-right">
