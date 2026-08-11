@@ -1,7 +1,16 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import AppLayout from '@/components/layout/AppLayout';
-import PosTerminal from '@/components/pos/PosTerminal';
+
+const PosTerminal = dynamic(() => import('@/components/pos/PosTerminal'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-[#0D3B6E] border-t-transparent rounded-full animate-spin" />
+    </div>
+  ),
+});
 
 export default function POSPage() {
   return (
@@ -14,4 +23,3 @@ export default function POSPage() {
     </AppLayout>
   );
 }
-// -DXzpmsIakm-Fa89SpRWdV_2TCg
