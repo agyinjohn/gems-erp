@@ -162,7 +162,11 @@ export default function EmailPanel() {
   const [testTo, setTestTo] = useState('');
   // Kept on screen rather than in a toast: this is the thing somebody reads
   // twice, retypes a password over, and eventually pastes to whoever they ask.
-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string; detail?: string } | null>(null);
+  const [testResult, setTestResult] = useState<{
+    ok: boolean; message: string; detail?: string;
+    /** Settings the server proved do work, when a timeout was the wrong port. */
+    suggestion?: { port: number; secure: boolean };
+  } | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
   const [edited, setEdited] = useState<Record<string, { subject?: string; body?: string }>>({});
@@ -260,11 +264,14 @@ export default function EmailPanel() {
       setTestResult({ ok: true, message: r.data.message });
       load();
     } catch (e) {
-      const err = e as ApiError & { response?: { data?: { data?: { detail?: string } } } };
+      const err = e as ApiError & {
+        response?: { data?: { data?: { detail?: string; suggestion?: { port: number; secure: boolean } } } };
+      };
       setTestResult({
         ok: false,
         message: reason(e, 'The mailbox did not answer'),
         detail: err.response?.data?.data?.detail || '',
+        suggestion: err.response?.data?.data?.suggestion,
       });
       load();
     } finally { setVerifying(false); }
@@ -626,6 +633,25 @@ export default function EmailPanel() {
                       {!testResult.ok && /app password/i.test(testResult.message) && (
                         <button type="button" onClick={() => setShowSteps(true)} className="font-semibold underline ml-1">
                           Show me how to get one
+                        </button>
+                      )}
+                      {/* The server already proved these work — no reason to
+                          make somebody copy two numbers across by hand. */}
+                      {testResult.suggestion && (
+                        <button
+                          type="button"
+                          className="block mt-2 btn-primary !py-1 !px-2.5 text-xs"
+                          onClick={() => {
+                            setForm(f => ({
+                              ...f,
+                              port: String(testResult.suggestion!.port),
+                              secure: testResult.suggestion!.secure,
+                            }));
+                            setTestResult(null);
+                            toast.success('Changed — save, then test again');
+                          }}
+                        >
+                          Use port {testResult.suggestion.port} with TLS {testResult.suggestion.secure ? 'on' : 'off'}
                         </button>
                       )}
                       {testResult.detail && (
