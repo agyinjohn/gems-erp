@@ -104,33 +104,6 @@ const navGroups = [
     ],
   },
   {
-    label: 'HR & Payroll',
-    items: HR_SECTIONS.map((s) => ({
-      href: `/hr/${s.slug}`,
-      label: s.label,
-      icon: s.icon,
-      roles: ['business_owner', 'hr_manager'],
-      permission: 'hr.view',
-    })),
-  },
-  {
-    label: 'Accounting',
-    items: ACCOUNTING_SECTIONS.map((s) => ({
-      href: `/accounting/${s.slug}`,
-      label: s.label,
-      icon: s.icon,
-      roles: ['business_owner', 'accountant'],
-      permission: 'accounting.view',
-    })),
-  },
-  {
-    label: 'Finance',
-    items: [
-      { href: '/payouts', label: 'Payouts', icon: Wallet, roles: ['business_owner', 'branch_manager'], permission: null },
-      { href: '/sms', label: 'SMS', icon: MessageSquare, roles: ['business_owner', 'branch_manager'], permission: null },
-    ],
-  },
-  {
     label: 'Operations',
     items: [
       { href: '/service-requests', label: 'Service requests', icon: ClipboardList, roles: ['business_owner', 'branch_manager', 'sales_staff'], permission: null },
@@ -145,6 +118,35 @@ const navGroups = [
       { href: '/payment-logs', label: 'Payments', icon: CreditCard, roles: ['business_owner', 'branch_manager', 'accountant'], permission: 'accounting.view' },
     ],
   },
+  {
+    label: 'HR & Payroll',
+    items: HR_SECTIONS.map((s) => ({
+      href: `/hr/${s.slug}`,
+      label: s.label,
+      icon: s.icon,
+      roles: ['business_owner', 'hr_manager'],
+      permission: 'hr.view',
+    })),
+  },
+  {
+    label: 'Finance',
+    items: [
+      { href: '/payouts', label: 'Payouts', icon: Wallet, roles: ['business_owner', 'branch_manager'], permission: null },
+      { href: '/sms', label: 'SMS', icon: MessageSquare, roles: ['business_owner', 'branch_manager'], permission: null },
+    ],
+  },
+  {
+    label: 'Accounting',
+    items: ACCOUNTING_SECTIONS.map((s) => ({
+      href: `/accounting/${s.slug}`,
+      label: s.label,
+      icon: s.icon,
+      roles: ['business_owner', 'accountant'],
+      permission: 'accounting.view',
+    })),
+  },
+  // Not in the order asked for, and kept next to Accounting because that is
+  // what is being signed off.
   {
     label: 'Approvals',
     items: [
