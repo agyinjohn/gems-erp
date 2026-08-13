@@ -71,6 +71,13 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
     { key: 'products', label: 'Products', items: visibleProducts },
     { key: 'services', label: 'Services', items: visibleServices },
   ];
+  // A shop that sells only one of the two has nothing to filter between, and a
+  // "Products" button on a list with no products is just something to press by
+  // mistake. Read from the whole catalogue, not the filtered view, or choosing
+  // a type would hide the way back.
+  const sellsWork = products.some(p => p.item_type === 'service');
+  const sellsGoods = products.some(p => (p.item_type || 'product') !== 'service');
+  const mixedCatalog = sellsWork && sellsGoods;
   const [loading, setLoading]         = useState(true);
   const [fetchError, setFetchError]   = useState('');
   const [cart, setCart]               = useState<CartItem[]>([]);
@@ -805,7 +812,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                 </div>
               </div>
 
-              <div className="flex h-10 rounded-xl border border-gray-200 overflow-hidden shrink-0">
+              <div className={`h-10 rounded-xl border border-gray-200 overflow-hidden shrink-0 ${mixedCatalog ? 'flex' : 'hidden'}`}>
                 <button
                   onClick={() => { setFilterType(''); setFilterCat(''); }}
                   className={`px-3 h-full text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 ${
@@ -822,7 +829,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                 <button
                   onClick={() => { setFilterType('service'); setFilterCat(''); }}
                   className={`px-3 h-full text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 border-l border-gray-200 ${
-                    filterType === 'service' ? 'bg-purple-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                    filterType === 'service' ? 'bg-[#1D5FA8] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
                   }`}
                   title="Services"
                 ><Wrench className="w-3.5 h-3.5" /></button>
@@ -836,7 +843,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                   onClick={() => setFilterCat(c)}
                   className={`flex-shrink-0 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
                     filterCat === c
-                      ? filterType === 'service' ? 'border-purple-600 text-purple-600' : 'border-[#0D3B6E] text-[#0D3B6E]'
+                      ? filterType === 'service' ? 'border-[#1D5FA8] text-[#1D5FA8]' : 'border-[#0D3B6E] text-[#0D3B6E]'
                       : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                   }`}
                 >
@@ -941,7 +948,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
           return (
             <PosModal onClose={() => setQuoting(null)}>
               <div className="bg-white rounded-2xl shadow-2xl w-[min(92vw,380px)] p-6">
-                <p className="text-xs font-bold uppercase tracking-wider text-purple-600 mb-1">Price on request</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#1D5FA8] mb-1">Price on request</p>
                 <h3 className="text-lg font-bold text-gray-900 mb-1">{p.name}</h3>
                 <p className="text-sm text-gray-500 mb-5">Enter the amount agreed with the customer.</p>
 
@@ -1047,7 +1054,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                         <div className="flex items-center gap-1.5">
                           <p className="text-sm font-semibold text-gray-800 leading-snug truncate">{i.product.name}</p>
                           {i.product.item_type === 'service' && (
-                            <span className="text-[9px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full flex-shrink-0">SVC</span>
+                            <span className="text-[9px] font-bold text-[#1D5FA8] bg-[#0D3B6E]/8 px-1.5 py-0.5 rounded-full flex-shrink-0">SVC</span>
                           )}
                           {i.product.item_type === 'bundle' && (
                             <span className="text-[9px] font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full flex-shrink-0">BUNDLE</span>
@@ -1055,7 +1062,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
                         </div>
                         <p className="text-xs text-gray-400 mt-0.5">
                           GH₵ {lineUnitPrice(i).toFixed(2)} each
-                          {i.unit_price !== undefined && <span className="text-purple-500 font-medium"> · quoted</span>}
+                          {i.unit_price !== undefined && <span className="text-[#1D5FA8] font-medium"> · quoted</span>}
                         </p>
                         {/* Qty controls */}
                         <div className="flex items-center gap-2 mt-2">

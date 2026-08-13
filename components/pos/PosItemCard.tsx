@@ -74,7 +74,7 @@ export default function PosItemCard({
 
   const tone = categoryTone(item.category_name);
   const accent = isService
-    ? { ring: 'border-purple-500 ring-purple-400', badge: 'bg-purple-600', chip: 'text-purple-600' }
+    ? { ring: 'border-[#1D5FA8] ring-[#1D5FA8]', badge: 'bg-[#1D5FA8]', chip: 'text-[#1D5FA8]' }
     : { ring: 'border-[#0D3B6E] ring-[#0D3B6E]', badge: 'bg-[#0D3B6E]', chip: 'text-[#0D3B6E]' };
 
   const TypeIcon = isService ? Wrench : isBundle ? Layers : Package;
@@ -99,7 +99,7 @@ export default function PosItemCard({
     >
       {/* Media — same height for every type, so rows stay even */}
       <div className={`relative h-36 shrink-0 flex items-center justify-center overflow-hidden bg-gradient-to-br ${
-        isService ? 'from-purple-100 to-purple-50' : tone.media
+        isService ? 'from-[#0D3B6E]/12 to-[#0D3B6E]/4' : tone.media
       }`}>
         {item.images?.[0] && !isService ? (
           <img
@@ -108,12 +108,12 @@ export default function PosItemCard({
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <TypeIcon className={`w-14 h-14 ${isService ? 'text-purple-300' : tone.icon}`} />
+          <TypeIcon className={`w-14 h-14 ${isService ? 'text-[#0D3B6E]/25' : tone.icon}`} />
         )}
 
         {(isService || isBundle) && (
           <span className={`absolute top-2 left-2 text-white text-[10px] font-bold px-2 py-0.5 rounded-full ${
-            isService ? 'bg-purple-600' : 'bg-blue-600'
+            isService ? 'bg-[#1D5FA8]' : 'bg-[#0D3B6E]'
           }`}>
             {isService ? 'Service' : 'Bundle'}
           </span>
@@ -140,7 +140,7 @@ export default function PosItemCard({
       {/* Content — fixed slots so prices align across a row */}
       <div className="p-3.5 flex flex-col flex-1">
         <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1 truncate ${
-          isService ? 'text-purple-500' : tone.label
+          isService ? 'text-[#1D5FA8]' : tone.label
         }`}>
           {item.category_name || (isService ? 'Service' : 'General')}
         </p>
@@ -148,7 +148,7 @@ export default function PosItemCard({
         <div className="mt-auto pt-2">
           <div className="text-lg font-extrabold text-gray-900">
             {isOpenPrice ? (
-              <span className="text-base text-purple-600">Price on request</span>
+              <span className="text-base text-[#1D5FA8]">Price on request</span>
             ) : (
               <>
                 GH₵ {Number(item.price).toFixed(2)}
@@ -164,7 +164,7 @@ export default function PosItemCard({
               : outOfStock
                 ? <span className="text-red-500">Unavailable</span>
                 : isOpenPrice
-                  ? <span className="text-purple-500">Quoted at sale</span>
+                  ? <span className="text-[#1D5FA8]">Quoted at sale</span>
                   : <span className="text-green-600">{isService ? 'Available' : 'In stock'}</span>}
           </div>
         </div>

@@ -219,7 +219,7 @@ export default function ServiceRequestPage() {
                         <span className="block text-sm font-semibold text-slate-900">
                           {s.name}
                           {s.is_solution && (
-                            <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-[#0D3B6E] bg-blue-50 rounded-full px-2 py-0.5">
+                            <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-[#0D3B6E] bg-[#0D3B6E]/8 rounded-full px-2 py-0.5">
                               Package
                             </span>
                           )}

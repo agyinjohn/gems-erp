@@ -5,6 +5,7 @@ import { StatCard, Badge, Spinner } from '@/components/ui';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Package, ShoppingCart, Users, AlertTriangle, TrendingUp, UserCheck, Truck, ClipboardList, ArrowDown, ArrowUp, RefreshCw, Building2, Wallet, Cake, Award, FileText } from 'lucide-react';
 import HrReport from '@/components/hr/HrReport';
+import DateRangePicker, { ALL_TIME, rangeLabel, type DateRange } from '@/components/dashboard/DateRangePicker';
 
 const CedisIcon = ({ className }: { className?: string }) => (
   <span className={`font-bold leading-none flex items-center justify-center ${className}`} style={{ fontFamily: 'serif' }}>₵</span>
@@ -21,31 +22,36 @@ export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showHrReport, setShowHrReport] = useState(false);
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const role = user?.role || '';
 
   const can = (...roles: string[]) => roles.includes(role);
   const isAdmin = can('super_admin', 'business_owner', 'branch_manager');
 
+  // Cached per window, or picking a period would show the last one's figures
+  // while the right ones are still in flight.
+  const key = range.from || range.to ? `/dashboard?from=${range.from}&to=${range.to}` : '/dashboard';
+
   useEffect(() => {
-    const cached = apiCache.get('/dashboard');
+    const params = range.from || range.to ? { from: range.from || undefined, to: range.to || undefined } : undefined;
+    const fetch = () => api.get('/dashboard', { params })
+      .then(r => { apiCache.set(key, r.data.data); setData(r.data.data); });
+
+    const cached = apiCache.get(key);
     if (cached) {
       setData(cached);
       setLoading(false);
-      if (apiCache.isStale('/dashboard')) {
-        api.get('/dashboard').then(r => {
-          apiCache.set('/dashboard', r.data.data);
-          setData(r.data.data);
-        }).catch(console.error);
-      }
+      if (apiCache.isStale(key)) fetch().catch(console.error);
     } else {
-      api.get('/dashboard')
-        .then(r => { apiCache.set('/dashboard', r.data.data); setData(r.data.data); })
-        .catch(console.error)
-        .finally(() => setLoading(false));
+      setLoading(true);
+      fetch().catch(console.error).finally(() => setLoading(false));
     }
-  }, []);
+  }, [key, range.from, range.to]);
 
-  if (loading) return <AppLayout title="Dashboard" allowedRoles={ALL_ROLES}><Spinner /></AppLayout>;
+  // Only the first load blanks the page. Changing the window keeps what is on
+  // screen and swaps it when the new figures land, so the picker stays put
+  // rather than vanishing under the hand that just used it.
+  if (loading && !data) return <AppLayout title="Dashboard" allowedRoles={ALL_ROLES}><Spinner /></AppLayout>;
 
   const kpis = data?.kpis || {};
 
@@ -293,20 +299,40 @@ export default function DashboardPage() {
     procurement_officer:  "Here's your procurement overview.",
   };
 
+  // The window only reaches figures counted over time, which is the sales and
+  // spending side. HR and procurement dashboards answer different questions and
+  // ignore it, so they are not offered a control that would do nothing.
+  const datedRoles = can('super_admin', 'business_owner', 'branch_manager', 'sales_staff');
+  const period = rangeLabel(range);
+  const overPeriod = (allTime: string) => (range.from || range.to ? period : allTime);
+
   return (
     <AppLayout title="Dashboard" subtitle={subtitle[role] || "Welcome back!"} allowedRoles={ALL_ROLES}>
       <div className="min-w-0 max-w-full space-y-0">
+
+      {datedRoles && (
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <p className="text-xs text-gray-400">
+            Sales, orders and spending below cover <span className="font-semibold text-gray-600">{period.toLowerCase()}</span>.
+            Stock, staff and customer counts are as they stand now.
+          </p>
+          <div className="flex items-center gap-2">
+            {loading && <RefreshCw className="w-3.5 h-3.5 text-gray-300 animate-spin" />}
+            <DateRangePicker value={range} onChange={setRange} />
+          </div>
+        </div>
+      )}
 
       {/* ── ROW 1: KPIs visible to admin + relevant roles ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
 
         {/* Revenue — admin, sales (accountant has own dashboard) */}
         {can('super_admin','business_owner','branch_manager','sales_staff') && (
-          <StatCard label="Total Revenue" value={fmt(kpis.total_revenue)} icon={<CedisIcon className="w-6 h-6 text-[#0D3B6E] text-xl" />} color="bg-[#0D3B6E]/8" sub="All time paid orders" />
+          <StatCard label="Total Revenue" value={fmt(kpis.total_revenue)} icon={<CedisIcon className="w-6 h-6 text-[#0D3B6E] text-xl" />} color="bg-[#0D3B6E]/8" sub={`${overPeriod('All time')} · paid orders`} />
         )}
 
         {can('super_admin','business_owner','branch_manager','sales_staff') && (
-          <StatCard label="Total Orders" value={kpis.total_orders} icon={<ShoppingCart className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub="Paid orders" />
+          <StatCard label="Total Orders" value={kpis.total_orders} icon={<ShoppingCart className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`Paid orders · ${overPeriod('all time')}`} />
         )}
 
         {can('super_admin','business_owner','branch_manager','warehouse_staff') && (
@@ -322,7 +348,7 @@ export default function DashboardPage() {
         )}
 
         {can('super_admin','business_owner','branch_manager') && (
-          <StatCard label="Monthly Expenses" value={fmt(kpis.monthly_expenses)} icon={<CedisIcon className="w-6 h-6 text-red-500 text-xl" />} color="bg-red-50" sub="This month" />
+          <StatCard label={range.from || range.to ? 'Expenses' : 'Monthly Expenses'} value={fmt(kpis.monthly_expenses)} icon={<CedisIcon className="w-6 h-6 text-red-500 text-xl" />} color="bg-red-50" sub={overPeriod('This month')} />
         )}
 
         {can('super_admin','business_owner','branch_manager','sales_staff') && (

@@ -2,6 +2,8 @@
 
 import dynamic from 'next/dynamic';
 import AppLayout from '@/components/layout/AppLayout';
+import { useAuth } from '@/lib/auth';
+import { counterName } from '@/lib/counter';
 
 const PosTerminal = dynamic(() => import('@/components/pos/PosTerminal'), {
   ssr: false,
@@ -13,10 +15,13 @@ const PosTerminal = dynamic(() => import('@/components/pos/PosTerminal'), {
 });
 
 export default function POSPage() {
+  const { tenant } = useAuth();
+  const name = counterName(tenant?.sells);
+
   return (
     <AppLayout
-      title="Point of Sale"
-      subtitle="Walk-in sales terminal"
+      title={name.title}
+      subtitle={name.subtitle}
       allowedRoles={['business_owner', 'branch_manager', 'sales_staff']}
     >
       <PosTerminal />

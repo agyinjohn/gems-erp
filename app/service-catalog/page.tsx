@@ -435,7 +435,7 @@ export default function OfferingsPage() {
                 // The one column worth scanning down: which services a client
                 // cannot request without attaching something.
                 s.requires_file ? (
-                  <span key="file" className="badge bg-blue-50 text-blue-700 gap-1">
+                  <span key="file" className="badge bg-[#0D3B6E]/8 text-[#0D3B6E] gap-1">
                     <Paperclip className="w-3 h-3" /> A file
                   </span>
                 ) : <span key="file" className="text-gray-300">—</span>,

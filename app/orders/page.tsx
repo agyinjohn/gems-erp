@@ -355,7 +355,7 @@ export default function OrdersPage() {
                   <tr key={item._id || item.product_id} className="border-t">
                     <td className="px-3 py-2">
                       <span>{item.product_name}</span>
-                      {item.item_type === 'service' && <span className="ml-1.5 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">Service</span>}
+                      {item.item_type === 'service' && <span className="ml-1.5 text-xs bg-[#0D3B6E]/8 text-[#0D3B6E] px-1.5 py-0.5 rounded-full">Service</span>}
                     </td>
                     <td className="px-3 py-2 text-right">{item.quantity}</td>
                     <td className="px-3 py-2 text-right">GH₵ {parseFloat(item.unit_price).toFixed(2)}</td>

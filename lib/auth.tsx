@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useRouter } from 'next/navigation';
 import api, { apiCache } from './api';
 import { getLoginRedirect } from './productMode';
+import type { CatalogMix } from './counter';
 
 interface User {
   id: string;
@@ -23,6 +24,8 @@ interface Tenant {
   subscription_status: string;
   subscription_expires_at: string;
   removed_features?: string[];
+  /** What the catalogue holds, which decides what the counter is called. */
+  sells?: CatalogMix;
 }
 
 interface Branch {

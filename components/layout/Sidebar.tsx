@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 import { ACCOUNTING_SECTIONS } from '@/lib/accountingNav';
+import { counterName } from '@/lib/counter';
 import { HR_SECTIONS } from '@/lib/hrNav';
 
 /** Sidebar highlight — avoid parent /pos matching /pos/shifts */
@@ -255,8 +256,14 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
 
   const toggle = (gi: number) => setOpenGroups(prev => ({ ...prev, [gi]: !prev[gi] }));
 
+  // The counter is called what the business would call it — a firm that sells
+  // only work has no point of sale, it has a service counter.
+  const counter = counterName(tenant?.sells);
+  const named = (item: NavItem): NavItem =>
+    (item.href === '/pos' ? { ...item, label: counter.nav } : item);
+
   const filterByProductMode = (items: NavItem[]) =>
-    items.filter((item) => isNavAllowed(item.href) && isModuleAllowed(item.href));
+    items.filter((item) => isNavAllowed(item.href) && isModuleAllowed(item.href)).map(named);
 
   const renderContent = (isCollapsed: boolean) => (
     <aside className="h-full w-full flex flex-col bg-[#0D3B6E] border-r border-white/10">
