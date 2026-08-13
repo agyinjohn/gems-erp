@@ -270,9 +270,16 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
   }, [products, visibleItems]);
 
   // Cart helpers
+
+  /**
+   * Only a plain product can run out. A service is work, and a solution is a
+   * package of other things whose own count is always zero — treating either as
+   * stock is what made them unsellable at the till.
+   */
+  const tracksStock = (p: Product) => (p.item_type || 'product') === 'product';
+
   const addToCart = (product: Product, quotedPrice?: number) => {
-    const isService = product.item_type === 'service';
-    if (!isService && product.stock_qty <= 0) return;
+    if (tracksStock(product) && product.stock_qty <= 0) return;
 
     // Open-price items have no amount until someone quotes one, so ask first
     // rather than adding a line at a price that doesn't exist. Re-tapping a
@@ -292,7 +299,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
         if (quotedPrice !== undefined) {
           return prev.map(i => i.product.id === product.id ? { ...i, unit_price: quotedPrice } : i);
         }
-        if (!isService && existing.quantity >= product.stock_qty) return prev;
+        if (tracksStock(product) && existing.quantity >= product.stock_qty) return prev;
         return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
       return [...prev, { product, quantity: 1, ...(quotedPrice !== undefined && { unit_price: quotedPrice }) }];
@@ -304,7 +311,7 @@ export default function PosTerminal({ standalone = false }: { standalone?: boole
       if (i.product.id !== id) return i;
       const q = i.quantity + delta;
       if (q <= 0) return i;
-      if (i.product.item_type !== 'service' && q > i.product.stock_qty) return i;
+      if (tracksStock(i.product) && q > i.product.stock_qty) return i;
       return { ...i, quantity: q };
     }));
   };
