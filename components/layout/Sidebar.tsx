@@ -167,7 +167,7 @@ const navGroups = [
     label: 'Settings',
     items: [
       { href: '/store-settings', label: 'Online Store', icon: ShoppingBag, roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },
-      { href: '/sms', label: 'SMS', icon: MessageSquare, roles: ['business_owner', 'branch_manager'], permission: null },
+      { href: '/messaging', label: 'Messaging', icon: MessageSquare, roles: ['business_owner', 'branch_manager'], permission: null },
       { href: '/branches', label: 'Branches', icon: Store, roles: ['business_owner'], permission: 'branches.manage' },
       { href: '/departments', label: 'Departments', icon: Building2, roles: ['business_owner', 'hr_manager'], permission: 'hr.view' },
       { href: '/users', label: 'Users', icon: Settings, roles: ['business_owner'], permission: 'users.manage' },

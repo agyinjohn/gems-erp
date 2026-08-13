@@ -293,7 +293,7 @@ export default function BillingTab({
           <p className="text-xs text-gray-400 mt-3 flex items-start gap-1.5">
             <Info className="w-3.5 h-3.5 mt-px flex-shrink-0" />
             Wording is set once for the whole business on the{' '}
-            <Link href="/sms" className="underline">SMS page</Link>, where any of the four can also
+            <Link href="/messaging" className="underline">Messaging page</Link>, where any of the four can also
             be switched off outright.
           </p>
         </div>
