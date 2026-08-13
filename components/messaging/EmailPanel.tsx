@@ -159,6 +159,11 @@ export default function EmailPanel() {
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [testTo, setTestTo] = useState('');
+  // Kept on screen rather than in a toast: this is the thing somebody reads
+  // twice, retypes a password over, and eventually pastes to whoever they ask.
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string; detail?: string } | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
 
   const [edited, setEdited] = useState<Record<string, { subject?: string; body?: string }>>({});
   const [savingKey, setSavingKey] = useState<string | null>(null);
@@ -248,12 +253,19 @@ export default function EmailPanel() {
 
   const verify = async () => {
     setVerifying(true);
+    setTestResult(null);
+    setShowDetail(false);
     try {
-      await api.post('/email/verify');
-      toast.success('The mailbox answered. Email is ready to send.');
+      const r = await api.post('/email/verify', { to: testTo.trim() || undefined });
+      setTestResult({ ok: true, message: r.data.message });
       load();
     } catch (e) {
-      toast.error(reason(e, 'The mailbox did not answer'));
+      const err = e as ApiError & { response?: { data?: { data?: { detail?: string } } } };
+      setTestResult({
+        ok: false,
+        message: reason(e, 'The mailbox did not answer'),
+        detail: err.response?.data?.data?.detail || '',
+      });
       load();
     } finally { setVerifying(false); }
   };
@@ -572,18 +584,73 @@ export default function EmailPanel() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 justify-end">
-              {settings?.verified_at && (
-                <span className="text-xs text-green-700 inline-flex items-center gap-1 mr-auto">
+            <div className="border-t border-gray-100 pt-3 space-y-2">
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="form-label">
+                    Send a test to <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    className="form-input" type="email"
+                    placeholder={user?.email || 'your own address'}
+                    value={testTo}
+                    onChange={e => setTestTo(e.target.value)}
+                  />
+                </div>
+                <button type="button" className="btn-secondary" onClick={verify} disabled={verifying || saving}>
+                  <ShieldCheck className={`w-4 h-4 ${verifying ? 'animate-spin' : ''}`} />
+                  {verifying ? 'Testing…' : testTo.trim() ? 'Send a test email' : 'Test the mailbox'}
+                </button>
+                <button type="button" className="btn-primary" onClick={save} disabled={saving}>
+                  <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-400">
+                {testTo.trim()
+                  ? 'Signs in and posts a real message, so you can watch it arrive.'
+                  : 'Signs in only — nothing is sent. Put an address above to prove the whole path.'}
+              </p>
+
+              {/* Whatever just happened, said plainly and left there. */}
+              {testResult && (
+                <div className={`rounded-lg px-3 py-2.5 text-xs ${
+                  testResult.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-700'
+                }`}>
+                  <div className="flex items-start gap-2">
+                    {testResult.ok
+                      ? <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      : <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+                    <span className="min-w-0">
+                      {testResult.message}
+                      {!testResult.ok && /app password/i.test(testResult.message) && (
+                        <button type="button" onClick={() => setShowSteps(true)} className="font-semibold underline ml-1">
+                          Show me how to get one
+                        </button>
+                      )}
+                      {testResult.detail && (
+                        <>
+                          {' '}
+                          <button type="button" onClick={() => setShowDetail(v => !v)} className="font-semibold underline">
+                            {showDetail ? 'Hide' : 'What the server said'}
+                          </button>
+                          {showDetail && (
+                            <code className="block mt-1.5 bg-white/60 rounded px-2 py-1.5 font-mono text-[11px] break-all">
+                              {testResult.detail}
+                            </code>
+                          )}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {settings?.verified_at && !testResult && (
+                <span className="text-xs text-green-700 inline-flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" /> Last proved working {fmtDate(settings.verified_at)}
                 </span>
               )}
-              <button type="button" className="btn-secondary" onClick={verify} disabled={verifying || saving}>
-                <ShieldCheck className={`w-4 h-4 ${verifying ? 'animate-spin' : ''}`} /> Test the mailbox
-              </button>
-              <button type="button" className="btn-primary" onClick={save} disabled={saving}>
-                <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save'}
-              </button>
             </div>
           </div>
         )}
