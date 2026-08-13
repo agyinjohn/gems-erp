@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { toast, ConfirmDialog } from '@/components/ui';
 import {
   Mail, RefreshCw, CheckCircle, XCircle, AlertCircle, Ban, Save, RotateCcw,
-  Send, ShieldCheck, Eye, EyeOff,
+  Send, ShieldCheck, Eye, EyeOff, KeyRound, ExternalLink, ChevronDown,
 } from 'lucide-react';
 
 /**
@@ -22,7 +22,15 @@ import {
  * what do the messages say, and what actually went out.
  */
 
-interface Preset { key: string; label: string; host: string; port: number; secure: boolean; note: string }
+interface Preset {
+  key: string; label: string; host: string; port: number; secure: boolean;
+  note: string;
+  username_hint: string;
+  needs_app_password: boolean;
+  help_url: string;
+  steps: string[];
+  caveat: string;
+}
 
 interface Settings {
   enabled: boolean;
@@ -108,6 +116,7 @@ export default function EmailPanel() {
 
   const [compose, setCompose] = useState({ to: '', subject: '', body: '' });
   const [sending, setSending] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -134,12 +143,32 @@ export default function EmailPanel() {
 
   useEffect(() => { const t = setTimeout(load, 0); return () => clearTimeout(t); }, [load]);
 
-  const applyPreset = (preset: Preset) => setForm(f => ({
-    ...f, host: preset.host, port: String(preset.port), secure: preset.secure,
-    // Nearly every provider wants the full address, and the one that doesn't
-    // is easier to correct than to guess.
-    username: f.username || f.from_email,
-  }));
+  const [presetKey, setPresetKey] = useState<string>('');
+
+  const applyPreset = (preset: Preset) => {
+    setPresetKey(preset.key);
+    // Whoever just picked their provider is about to need the instructions.
+    setShowSteps(true);
+    setForm(f => ({
+      ...f,
+      host: preset.host || f.host,
+      port: String(preset.port),
+      secure: preset.secure,
+      // Nearly every provider wants the full address, and the one that doesn't
+      // is easier to correct than to guess.
+      username: f.username || f.from_email,
+    }));
+  };
+
+  /**
+   * Which provider's instructions to show. What was just clicked if anything,
+   * otherwise whatever the saved server matches — somebody coming back to a
+   * half-finished setup should not have to remember what they chose.
+   */
+  const presets = settings?.presets || [];
+  const chosen = presets.find(p => p.key === presetKey)
+    || presets.find(p => p.host && p.host === form.host)
+    || null;
 
   const save = async () => {
     setSaving(true);
@@ -302,7 +331,16 @@ export default function EmailPanel() {
           {settings?.last_error && (
             <div className="mt-4 flex items-start gap-2 bg-red-50 text-red-700 rounded-lg px-3 py-2.5 text-xs">
               <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>Last attempt failed: {settings.last_error}</span>
+              <span>
+                Last attempt failed: {settings.last_error}
+                {/* The commonest failure by a distance, and the one nobody
+                    solves without being shown where the setting lives. */}
+                {isOwner && /app password/i.test(settings.last_error) && (
+                  <button type="button" onClick={() => setShowSteps(true)} className="font-semibold underline ml-1">
+                    Show me how to get one
+                  </button>
+                )}
+              </span>
             </div>
           )}
         </div>
@@ -318,23 +356,86 @@ export default function EmailPanel() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
-              {(settings?.presets || []).map(p => (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => applyPreset(p)}
-                  className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                    form.host === p.host ? 'bg-[#0D3B6E] text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div>
+              <p className="text-xs text-gray-500 mb-2">Who provides your email?</p>
+              <div className="flex flex-wrap gap-1.5">
+                {presets.map(p => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => applyPreset(p)}
+                    className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                      chosen?.key === p.key ? 'bg-[#0D3B6E] text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            {(settings?.presets || []).filter(p => p.host === form.host).map(p => (
-              <p key={p.key} className="text-xs text-gray-500 -mt-2">{p.note}</p>
-            ))}
+
+            {/* How to get a password out of the chosen provider. The single
+                thing that stops this working: somebody types the password they
+                sign in with, Google refuses it, and without being told why they
+                conclude the feature is broken. */}
+            {chosen && (
+              <div className="rounded-xl border border-[#0D3B6E]/15 bg-[#0D3B6E]/[0.04] overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowSteps(v => !v)}
+                  className="w-full flex items-start gap-2.5 px-3.5 py-3 text-left"
+                >
+                  <KeyRound className="w-4 h-4 text-[#0D3B6E] mt-0.5 flex-shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-gray-800">
+                      {chosen.needs_app_password
+                        ? `Getting an app password from ${chosen.label}`
+                        : `Setting up ${chosen.label}`}
+                    </span>
+                    <span className="block text-xs text-gray-500 mt-0.5">{chosen.note}</span>
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${showSteps ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showSteps && (
+                  <div className="px-3.5 pb-3.5 pt-0 space-y-3">
+                    <ol className="space-y-2">
+                      {chosen.steps.map((step, i) => (
+                        <li key={i} className="flex gap-2.5 text-xs text-gray-600 leading-relaxed">
+                          <span className="w-4 h-4 rounded-full bg-[#0D3B6E] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                            {i + 1}
+                          </span>
+                          <span>{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+
+                    {chosen.caveat && (
+                      <p className="flex items-start gap-2 text-xs text-amber-800 bg-amber-50 rounded-lg px-2.5 py-2">
+                        <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                        <span>{chosen.caveat}</span>
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      {chosen.help_url && (
+                        <a
+                          href={chosen.help_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D3B6E] hover:underline"
+                        >
+                          Open {chosen.label} <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      <span className="text-[11px] text-gray-400">
+                        If those menus have moved, search their help for &ldquo;app password&rdquo; — their own page is the one that&apos;s right.
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -378,12 +479,12 @@ export default function EmailPanel() {
               </div>
               <div>
                 <label className="form-label">Username *</label>
-                <input className="form-input" placeholder="Usually the full email address"
+                <input className="form-input" placeholder={chosen?.username_hint || 'Usually the full email address'}
                   value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} />
               </div>
               <div>
                 <label className="form-label">
-                  Password *
+                  {chosen?.needs_app_password ? 'App password *' : 'Password *'}
                   {settings?.smtp.password_set && !form.password && (
                     <span className="text-gray-400 font-normal"> (one is saved — leave blank to keep it)</span>
                   )}
@@ -402,8 +503,15 @@ export default function EmailPanel() {
                   </button>
                 </div>
                 <p className="text-xs text-gray-400 mt-1">
-                  Stored encrypted and never shown again. If the mailbox has two-step verification,
-                  this must be an app password rather than the one you sign in with.
+                  {chosen?.needs_app_password
+                    ? 'Not the password you sign in with — that one will be refused.'
+                    : 'If the mailbox has two-step verification, this must be an app password rather than the one you sign in with.'}
+                  {' '}Stored encrypted and never shown again.
+                  {chosen && (
+                    <button type="button" onClick={() => setShowSteps(true)} className="text-[#0D3B6E] font-semibold hover:underline ml-1">
+                      Where do I find it?
+                    </button>
+                  )}
                 </p>
               </div>
             </div>
