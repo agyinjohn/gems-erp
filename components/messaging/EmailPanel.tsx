@@ -35,18 +35,28 @@ interface Preset {
   caveat: string;
 }
 
+/** How email leaves the building. */
+interface Route {
+  key: string; label: string; tagline: string; good: string; bad: string;
+}
+interface RouteSetup { label: string; steps: Step[]; caveat: string }
+
 interface Settings {
   enabled: boolean;
   from_name: string;
   from_email: string;
   reply_to: string;
+  provider: string;
   smtp: { host: string; port: number; secure: boolean; username: string; password_set: boolean };
+  api_key_set: boolean;
   configured: boolean;
   missing: string[];
   verified_at: string | null;
   last_error: string;
   sends: number;
   failures: number;
+  routes: Route[];
+  route_setup: Record<string, RouteSetup>;
   presets: Preset[];
   preview_from: string;
 }
@@ -130,6 +140,78 @@ function AddressChip({ url }: { url: string }) {
   );
 }
 
+/**
+ * Numbered instructions with their addresses attached.
+ *
+ * One implementation for both routes: getting an app password out of Gmail and
+ * getting an API key out of Brevo are the same task with different words, and
+ * the person doing either is stuck in the same way.
+ */
+function StepPanel({
+  title, note, steps, caveat, fallbackUrl, fallbackLabel, open, onToggle,
+}: {
+  title: string;
+  note: string;
+  steps: Step[];
+  caveat?: string;
+  fallbackUrl?: string;
+  fallbackLabel?: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-[#0D3B6E]/15 bg-[#0D3B6E]/[0.04] overflow-hidden">
+      <button type="button" onClick={onToggle} className="w-full flex items-start gap-2.5 px-3.5 py-3 text-left">
+        <KeyRound className="w-4 h-4 text-[#0D3B6E] mt-0.5 flex-shrink-0" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-gray-800">{title}</span>
+          <span className="block text-xs text-gray-500 mt-0.5">{note}</span>
+        </span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="px-3.5 pb-3.5 pt-0 space-y-3">
+          <ol className="space-y-2.5">
+            {steps.map((step, i) => (
+              <li key={i} className="flex gap-2.5 text-xs text-gray-600 leading-relaxed">
+                <span className="w-4 h-4 rounded-full bg-[#0D3B6E] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                  {i + 1}
+                </span>
+                <span className="min-w-0">
+                  {step.text}
+                  {step.url && <><br /><AddressChip url={step.url} /></>}
+                </span>
+              </li>
+            ))}
+          </ol>
+
+          {caveat && (
+            <p className="flex items-start gap-2 text-xs text-amber-800 bg-amber-50 rounded-lg px-2.5 py-2">
+              <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              <span>{caveat}</span>
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Only when no step carried one of its own — otherwise this is one
+                more link saying the same thing. */}
+            {fallbackUrl && !steps.some(s => s.url) && (
+              <a href={fallbackUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D3B6E] hover:underline">
+                Open {fallbackLabel} <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+            <span className="text-[11px] text-gray-400">
+              If those menus have moved, search their help — their own page is the one that&apos;s right.
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Toggle({ on, onChange, disabled }: { on: boolean; onChange: () => void; disabled?: boolean }) {
   return (
     <button
@@ -143,6 +225,8 @@ function Toggle({ on, onChange, disabled }: { on: boolean; onChange: () => void;
 
 const BLANK_FORM = {
   from_name: '', from_email: '', reply_to: '',
+  provider: 'smtp',
+  api_key: '',
   host: '', port: '587', secure: false, username: '', password: '',
 };
 
@@ -192,6 +276,8 @@ export default function EmailPanel() {
       setMessages(m.data.data || []);
       setForm({
         from_name: data.from_name, from_email: data.from_email, reply_to: data.reply_to,
+        provider: data.provider || 'smtp',
+        api_key: '',
         host: data.smtp.host, port: String(data.smtp.port || 587),
         secure: data.smtp.secure, username: data.smtp.username,
         password: '',
@@ -230,6 +316,10 @@ export default function EmailPanel() {
     || presets.find(p => p.host && p.host === form.host)
     || null;
 
+  /** The mailbox route asks for a server and a password; the others, a key. */
+  const isSmtp = form.provider === 'smtp';
+  const routeSetup = settings?.route_setup?.[form.provider] || null;
+
   const save = async () => {
     setSaving(true);
     try {
@@ -237,6 +327,8 @@ export default function EmailPanel() {
         from_name: form.from_name,
         from_email: form.from_email,
         reply_to: form.reply_to,
+        provider: form.provider,
+        ...(form.api_key ? { api_key: form.api_key } : {}),
         smtp: {
           host: form.host,
           port: Number(form.port) || 587,
@@ -248,7 +340,7 @@ export default function EmailPanel() {
         },
       });
       setSettings(r.data.data);
-      setForm(f => ({ ...f, password: '' }));
+      setForm(f => ({ ...f, password: '', api_key: '' }));
       toast.success('Saved');
     } catch (e) {
       toast.error(reason(e, 'Could not save'));
@@ -426,6 +518,32 @@ export default function EmailPanel() {
               </p>
             </div>
 
+            {/* How it gets out, first — it decides what the rest of this form
+                even asks for. */}
+            <div>
+              <p className="text-xs text-gray-500 mb-2">How should email be sent?</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {(settings?.routes || []).map(r => (
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, provider: r.key }))}
+                    className={`text-left rounded-xl border p-3 transition-colors ${
+                      form.provider === r.key
+                        ? 'border-[#0D3B6E] bg-[#0D3B6E]/[0.04] ring-1 ring-[#0D3B6E]'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold text-gray-800">{r.label}</span>
+                    <span className="block text-xs text-gray-500 mt-0.5">{r.tagline}</span>
+                    <span className="block text-[11px] text-green-700 mt-1.5">+ {r.good}</span>
+                    <span className="block text-[11px] text-amber-700 mt-0.5">− {r.bad}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {isSmtp && (
             <div>
               <p className="text-xs text-gray-500 mb-2">Who provides your email?</p>
               <div className="flex flex-wrap gap-1.5">
@@ -443,73 +561,38 @@ export default function EmailPanel() {
                 ))}
               </div>
             </div>
+            )}
+
+            {/* Getting a key out of the service, same treatment as the app
+                password steps — numbered, with the addresses copyable. */}
+            {!isSmtp && routeSetup && (
+              <StepPanel
+                title={`Getting an API key from ${routeSetup.label}`}
+                note="Free to sign up, and it sends over the web so hosting restrictions do not apply."
+                steps={routeSetup.steps}
+                caveat={routeSetup.caveat}
+                open={showSteps}
+                onToggle={() => setShowSteps(v => !v)}
+              />
+            )}
 
             {/* How to get a password out of the chosen provider. The single
                 thing that stops this working: somebody types the password they
                 sign in with, Google refuses it, and without being told why they
                 conclude the feature is broken. */}
-            {chosen && (
-              <div className="rounded-xl border border-[#0D3B6E]/15 bg-[#0D3B6E]/[0.04] overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setShowSteps(v => !v)}
-                  className="w-full flex items-start gap-2.5 px-3.5 py-3 text-left"
-                >
-                  <KeyRound className="w-4 h-4 text-[#0D3B6E] mt-0.5 flex-shrink-0" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-gray-800">
-                      {chosen.needs_app_password
-                        ? `Getting an app password from ${chosen.label}`
-                        : `Setting up ${chosen.label}`}
-                    </span>
-                    <span className="block text-xs text-gray-500 mt-0.5">{chosen.note}</span>
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${showSteps ? 'rotate-180' : ''}`} />
-                </button>
-
-                {showSteps && (
-                  <div className="px-3.5 pb-3.5 pt-0 space-y-3">
-                    <ol className="space-y-2.5">
-                      {chosen.steps.map((step, i) => (
-                        <li key={i} className="flex gap-2.5 text-xs text-gray-600 leading-relaxed">
-                          <span className="w-4 h-4 rounded-full bg-[#0D3B6E] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                            {i + 1}
-                          </span>
-                          <span className="min-w-0">
-                            {step.text}
-                            {step.url && <><br /><AddressChip url={step.url} /></>}
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-
-                    {chosen.caveat && (
-                      <p className="flex items-start gap-2 text-xs text-amber-800 bg-amber-50 rounded-lg px-2.5 py-2">
-                        <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                        <span>{chosen.caveat}</span>
-                      </p>
-                    )}
-
-                    <div className="flex flex-wrap items-center gap-3">
-                      {/* Only when no step carried one of its own — otherwise
-                          this is a fourth link saying the same thing. */}
-                      {chosen.help_url && !chosen.steps.some(s => s.url) && (
-                        <a
-                          href={chosen.help_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D3B6E] hover:underline"
-                        >
-                          Open {chosen.label} <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                      <span className="text-[11px] text-gray-400">
-                        If those menus have moved, search their help for &ldquo;app password&rdquo; — their own page is the one that&apos;s right.
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
+            {isSmtp && chosen && (
+              <StepPanel
+                title={chosen.needs_app_password
+                  ? `Getting an app password from ${chosen.label}`
+                  : `Setting up ${chosen.label}`}
+                note={chosen.note}
+                steps={chosen.steps}
+                caveat={chosen.caveat}
+                fallbackUrl={chosen.help_url}
+                fallbackLabel={chosen.label}
+                open={showSteps}
+                onToggle={() => setShowSteps(v => !v)}
+              />
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -529,6 +612,7 @@ export default function EmailPanel() {
                   value={form.reply_to} onChange={e => setForm(f => ({ ...f, reply_to: e.target.value }))} />
               </div>
 
+              {isSmtp ? (<>
               <div className="sm:col-span-2 border-t border-gray-100 pt-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Mail server</p>
               </div>
@@ -589,6 +673,35 @@ export default function EmailPanel() {
                   )}
                 </p>
               </div>
+              </>) : (
+                <div className="sm:col-span-2 border-t border-gray-100 pt-3">
+                  <label className="form-label">
+                    {routeSetup?.label || 'Service'} API key *
+                    {settings?.api_key_set && !form.api_key && (
+                      <span className="text-gray-400 font-normal"> (one is saved — leave blank to keep it)</span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <input
+                      className="form-input pr-10 font-mono text-sm"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder={settings?.api_key_set ? '••••••••••••' : 'Paste the key here'}
+                      value={form.api_key}
+                      onChange={e => setForm(f => ({ ...f, api_key: e.target.value }))}
+                    />
+                    <button type="button" onClick={() => setShowPassword(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Stored encrypted and never shown again.
+                    <button type="button" onClick={() => setShowSteps(true)} className="text-[#0D3B6E] font-semibold hover:underline ml-1">
+                      Where do I get one?
+                    </button>
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-gray-100 pt-3 space-y-2">
