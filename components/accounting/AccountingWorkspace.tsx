@@ -10,7 +10,6 @@ import AccountingJournalPanel from '@/components/accounting/AccountingJournalPan
 import AccountingReceivablesPanel from '@/components/accounting/AccountingReceivablesPanel';
 import AccountingPayablesPanel from '@/components/accounting/AccountingPayablesPanel';
 import AccountingCreditNotesPanel from '@/components/accounting/AccountingCreditNotesPanel';
-import AccountingRefundsPanel from '@/components/accounting/AccountingRefundsPanel';
 import AccountingVendorBillsPanel from '@/components/accounting/AccountingVendorBillsPanel';
 import AccountingReconciliationPanel from '@/components/accounting/AccountingReconciliationPanel';
 import AccountingPlPanel from '@/components/accounting/AccountingPlPanel';
@@ -93,10 +92,6 @@ export default function AccountingWorkspace({ section }: AccountingWorkspaceProp
 
       {section === 'credit-notes' && (
         <AccountingCreditNotesPanel onDataChange={load} />
-      )}
-
-      {section === 'refunds' && (
-        <AccountingRefundsPanel onDataChange={load} />
       )}
 
       {section === 'ap' && (

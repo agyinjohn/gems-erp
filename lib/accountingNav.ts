@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, BookMarked, Receipt, BookOpen, ArrowDownCircle, ArrowUpCircle,
-  FileText, Landmark, DollarSign, Activity, TrendingUp, RotateCcw,
+  FileText, Landmark, DollarSign, Activity, TrendingUp,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
@@ -8,7 +8,7 @@ export type AccountingSectionSlug =
   | 'overview' | 'accounts' | 'expenses' | 'journal'
   | 'ar' | 'ap' | 'vendor-bills' | 'credit-notes' | 'reconciliation'
   | 'pl' | 'bs' | 'cashflow' | 'budget' | 'tax' | 'trial-balance'
-  | 'invoices' | 'periods' | 'refunds';
+  | 'invoices' | 'periods';
 
 export interface AccountingNavItem {
   slug: AccountingSectionSlug;
@@ -29,7 +29,6 @@ export const ACCOUNTING_SECTIONS: AccountingNavItem[] = [
   { slug: 'ap',             label: 'Payables',       title: 'Accounts Payable',       subtitle: 'Supplier balances and payments',             icon: ArrowUpCircle },
   { slug: 'vendor-bills',   label: 'Vendor Bills',   title: 'Vendor Bills',           subtitle: 'Non-PO supplier invoices',                   icon: Receipt },
   { slug: 'credit-notes',   label: 'Credit Notes',   title: 'Credit Notes',           subtitle: 'Customer refunds and adjustments',           icon: FileText },
-  { slug: 'refunds',        label: 'Refunds',        title: 'Refund Records',          subtitle: 'POS and storefront refund history',          icon: RotateCcw },
 
   // ── Ledger ─────────────────────────────────────────────────────────────────
   { slug: 'journal',        label: 'Journal',        title: 'Journal Entries',        subtitle: 'Manual general ledger postings',             icon: BookOpen },
@@ -47,6 +46,15 @@ export const ACCOUNTING_SECTIONS: AccountingNavItem[] = [
 ];
 
 const SLUG_SET = new Set(ACCOUNTING_SECTIONS.map((s) => s.slug));
+
+/**
+ * Sections that used to live here and have moved. Somebody's bookmark, or a
+ * link in an old email, should still land on the page rather than on Overview
+ * with no explanation.
+ */
+export const MOVED_SECTIONS: Record<string, string> = {
+  refunds: '/refunds',
+};
 
 export function isAccountingSection(slug: string): slug is AccountingSectionSlug {
   return SLUG_SET.has(slug as AccountingSectionSlug);

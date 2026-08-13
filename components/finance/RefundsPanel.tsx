@@ -49,7 +49,7 @@ interface Props {
   onDataChange?: () => void;
 }
 
-export default function AccountingRefundsPanel(_: Props) {
+export default function RefundsPanel(_: Props) {
   const [logs, setLogs] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);

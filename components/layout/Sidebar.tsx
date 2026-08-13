@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
   X, Monitor, TrendingUp, CreditCard, ChevronDown,
-  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet, MessageSquare, Briefcase, HardHat, ClipboardList, FileSignature, Hammer, Tag,
+  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet, MessageSquare, Briefcase, HardHat, ClipboardList, FileSignature, Hammer, Tag, RotateCcw,
 } from 'lucide-react';
 import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 import { ACCOUNTING_SECTIONS } from '@/lib/accountingNav';
@@ -115,7 +115,6 @@ const navGroups = [
       // list a client picks from when they send a request in.
       { href: '/service-catalog', label: 'Services & solutions', icon: Tag, roles: ['business_owner', 'branch_manager'], permission: 'inventory.view' },
       { href: '/crm', label: 'Customers', icon: UserCheck, roles: ['business_owner', 'branch_manager'], permission: 'crm.view' },
-      { href: '/payment-logs', label: 'Payments', icon: CreditCard, roles: ['business_owner', 'branch_manager', 'accountant'], permission: 'accounting.view' },
     ],
   },
   {
@@ -128,11 +127,14 @@ const navGroups = [
       permission: 'hr.view',
     })),
   },
+  // Money in, money back out, money on its way to a bank account. What the
+  // ledger does with it afterwards is Accounting's business, below.
   {
     label: 'Finance',
     items: [
+      { href: '/payment-logs', label: 'Payments', icon: CreditCard, roles: ['business_owner', 'branch_manager', 'accountant'], permission: 'accounting.view' },
+      { href: '/refunds', label: 'Refunds', icon: RotateCcw, roles: ['business_owner', 'branch_manager', 'accountant'], permission: 'accounting.view' },
       { href: '/payouts', label: 'Payouts', icon: Wallet, roles: ['business_owner', 'branch_manager'], permission: null },
-      { href: '/sms', label: 'SMS', icon: MessageSquare, roles: ['business_owner', 'branch_manager'], permission: null },
     ],
   },
   {
@@ -164,6 +166,7 @@ const navGroups = [
     label: 'Settings',
     items: [
       { href: '/store-settings', label: 'Online Store', icon: ShoppingBag, roles: ['business_owner', 'branch_manager'], permission: 'branches.manage' },
+      { href: '/sms', label: 'SMS', icon: MessageSquare, roles: ['business_owner', 'branch_manager'], permission: null },
       { href: '/branches', label: 'Branches', icon: Store, roles: ['business_owner'], permission: 'branches.manage' },
       { href: '/departments', label: 'Departments', icon: Building2, roles: ['business_owner', 'hr_manager'], permission: 'hr.view' },
       { href: '/users', label: 'Users', icon: Settings, roles: ['business_owner'], permission: 'users.manage' },

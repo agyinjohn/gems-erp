@@ -22,7 +22,7 @@ export const MODE_NAV: Record<ProductMode, string[] | null> = {
   full: null,
   pos: ['/pos', '/inventory', '/orders', '/payment-logs', '/users', '/branches', '/billing', '/dashboard', '/ess', '/reports'],
   storefront: ['/store-settings', '/inventory', '/service-catalog', '/orders', '/users', '/branches', '/billing', '/dashboard', '/ess', '/api-docs'],
-  accounting: ['/accounting', '/payment-logs', '/approvals', '/reports', '/users', '/billing', '/dashboard', '/ess'],
+  accounting: ['/accounting', '/payment-logs', '/refunds', '/approvals', '/reports', '/users', '/billing', '/dashboard', '/ess'],
 };
 
 const PUBLIC_APP_PATHS = [
