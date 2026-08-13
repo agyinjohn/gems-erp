@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { toast, ConfirmDialog } from '@/components/ui';
 import {
   Mail, RefreshCw, CheckCircle, XCircle, AlertCircle, Ban, Save, RotateCcw,
-  Send, ShieldCheck, Eye, EyeOff, KeyRound, ExternalLink, ChevronDown,
+  Send, ShieldCheck, Eye, EyeOff, KeyRound, ExternalLink, ChevronDown, Copy, Check,
 } from 'lucide-react';
 
 /**
@@ -22,13 +22,16 @@ import {
  * what do the messages say, and what actually went out.
  */
 
+/** A step, and the page it sends you to if it names one. */
+interface Step { text: string; url?: string }
+
 interface Preset {
   key: string; label: string; host: string; port: number; secure: boolean;
   note: string;
   username_hint: string;
   needs_app_password: boolean;
   help_url: string;
-  steps: string[];
+  steps: Step[];
   caveat: string;
 }
 
@@ -77,6 +80,54 @@ function fmtDate(iso: string) {
   const isToday = d.toDateString() === new Date().toDateString();
   const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   return isToday ? `Today ${time}` : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${time}`;
+}
+
+/**
+ * An address you can take with you.
+ *
+ * Copy first, open second. Half of these pages are opened on a phone while the
+ * mailbox is being set up on a laptop, and an address buried in a sentence gets
+ * retyped by hand — which is how myaccount.google.com/apppasswords becomes
+ * apppassword and the whole thing is abandoned as broken.
+ */
+function AddressChip({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+  const shown = url.replace(/^https?:\/\//, '');
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Could not copy — select the address and copy it by hand');
+    }
+  };
+
+  return (
+    <span className="inline-flex items-stretch rounded-lg border border-[#0D3B6E]/20 bg-white overflow-hidden mt-1.5 max-w-full">
+      <code className="px-2 py-1 text-[11px] font-mono text-[#0D3B6E] truncate">{shown}</code>
+      <button
+        type="button"
+        onClick={copy}
+        title="Copy this address"
+        className="px-2 border-l border-[#0D3B6E]/15 text-gray-400 hover:text-[#0D3B6E] hover:bg-[#0D3B6E]/5 flex items-center flex-shrink-0"
+      >
+        {copied
+          ? <Check className="w-3.5 h-3.5 text-green-600" />
+          : <Copy className="w-3.5 h-3.5" />}
+      </button>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Open in a new tab"
+        className="px-2 border-l border-[#0D3B6E]/15 text-gray-400 hover:text-[#0D3B6E] hover:bg-[#0D3B6E]/5 flex items-center flex-shrink-0"
+      >
+        <ExternalLink className="w-3.5 h-3.5" />
+      </a>
+    </span>
+  );
 }
 
 function Toggle({ on, onChange, disabled }: { on: boolean; onChange: () => void; disabled?: boolean }) {
@@ -399,13 +450,16 @@ export default function EmailPanel() {
 
                 {showSteps && (
                   <div className="px-3.5 pb-3.5 pt-0 space-y-3">
-                    <ol className="space-y-2">
+                    <ol className="space-y-2.5">
                       {chosen.steps.map((step, i) => (
                         <li key={i} className="flex gap-2.5 text-xs text-gray-600 leading-relaxed">
                           <span className="w-4 h-4 rounded-full bg-[#0D3B6E] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                             {i + 1}
                           </span>
-                          <span>{step}</span>
+                          <span className="min-w-0">
+                            {step.text}
+                            {step.url && <><br /><AddressChip url={step.url} /></>}
+                          </span>
                         </li>
                       ))}
                     </ol>
@@ -418,7 +472,9 @@ export default function EmailPanel() {
                     )}
 
                     <div className="flex flex-wrap items-center gap-3">
-                      {chosen.help_url && (
+                      {/* Only when no step carried one of its own — otherwise
+                          this is a fourth link saying the same thing. */}
+                      {chosen.help_url && !chosen.steps.some(s => s.url) && (
                         <a
                           href={chosen.help_url}
                           target="_blank"
