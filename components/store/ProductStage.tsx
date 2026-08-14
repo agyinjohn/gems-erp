@@ -4,28 +4,30 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatGhs } from './theme';
 
 /**
- * One product, lit and standing on something.
+ * The goods, lit.
  *
- * It used to be three tiles arranged around each other. Three small pictures of
- * a shop's goods is three small pictures — none big enough to want anything,
- * and at a glance they read as a stack of coloured cards rather than as things
- * for sale. One frame, most of the panel, is the whole idea: the photograph
- * gets to be a photograph.
+ * Not framed. A photograph in a rounded rectangle reads as a card in a user
+ * interface — the corner radius is the giveaway, because nothing in a
+ * photograph has one — and no amount of shadow or hairline fixes that. What
+ * the reference designs are actually doing is floating a cut-out product in
+ * light, with no edge anywhere.
  *
- * What the three tiles were doing — showing there is more than one thing here —
- * is done better by rotating through the shop's goods in that single frame,
- * with the name and price of whatever is currently in it. That is a real
- * product at a real price rather than decoration.
+ * A shop on GEMS uploads rectangular photographs, not cut-outs on transparent
+ * backgrounds, so that exact trick is not available. Feathering is: the picture
+ * is masked with a soft ellipse so it has no edge at all, and dissolves into
+ * the panel instead of sitting on it. The result is closer to the intent than a
+ * frame ever was, and it works with whatever a shop happens to upload.
  *
- * The two states are deliberately different rather than one degrading into the
- * other. With photographs, the picture fills the frame and the caption floats
- * at its corner. With none, the frame becomes the caption: the product's name
- * and price set large on a dark tinted panel. The drawn tiles used elsewhere
- * are built for a 120px card, and blown up to fill a hero they are a pale slab
- * with an enormous letter on it — worse than the plain page they replaced.
+ * Around it, an arc rather than a ring. A complete circle reads as a border
+ * somebody forgot to remove; an arc reads as light travelling.
+ *
+ * The rule the rest of this storefront follows still applies: a picture is
+ * mounted invisibly and only reaches the stage once the browser confirms it
+ * loaded. A shop with no photographs gets its goods set as type in the same
+ * light, which is a composition rather than a placeholder.
  */
 
-/** How long each product holds before the next one comes forward. */
+/** How long each product holds before the next comes forward. */
 const HOLD_MS = 5000;
 
 export interface StageItem {
@@ -37,7 +39,7 @@ export interface StageItem {
 interface Props {
   items?: StageItem[];
   seedHue?: number;
-  /** Smaller panels — the promo banner — skip the caption and the dots. */
+  /** Smaller panels — the promo banner — drop the caption and the ticks. */
   compact?: boolean;
 }
 
@@ -72,7 +74,7 @@ export default function ProductStage({ items = [], compact = false }: Props) {
   const live = shots.filter(s => !dead.includes(s.image!));
 
   /**
-   * What the frame turns through. Photographs when there are any, otherwise the
+   * What the stage turns through. Photographs when there are any, otherwise the
    * products themselves — a shop with no photography still has goods worth
    * naming, and standing on one name forever would waste the panel.
    */
@@ -100,8 +102,8 @@ export default function ProductStage({ items = [], compact = false }: Props) {
   if (!slots.length) return null;
 
   return (
-    <div className="relative w-full aspect-[4/3] select-none">
-      {/* Loaders. Invisible, and the only way into the frame. */}
+    <div className="relative w-full aspect-square sm:aspect-[5/4] select-none">
+      {/* Loaders. Invisible, and the only way onto the stage. */}
       <div aria-hidden className="hidden">
         {live.map((s, i) => (
           <img
@@ -111,10 +113,9 @@ export default function ProductStage({ items = [], compact = false }: Props) {
             loading={i === 0 ? 'eager' : 'lazy'}
             decoding="async"
             // A cached picture can already be complete by the time React
-            // attaches onLoad, and then that event never fires and the frame
+            // attaches onLoad, and then that event never fires and the stage
             // sits on the fallback for the whole visit — on a return visit,
-            // which is when everything is cached, so it would have been the
-            // common case rather than the rare one. The ref runs at commit and
+            // which is when everything is cached. The ref runs at commit and
             // asks the element directly.
             ref={el => { if (el?.complete && el.naturalWidth > 0) markReady(s.image!); }}
             onLoad={() => markReady(s.image!)}
@@ -123,81 +124,105 @@ export default function ProductStage({ items = [], compact = false }: Props) {
         ))}
       </div>
 
-      {/* The light behind it. */}
-      <div aria-hidden className="absolute inset-[2%] rounded-full store-stage-glow" />
-      <div aria-hidden className="absolute inset-[6%] rounded-full store-stage-ring" />
+      {/* The light it stands in. */}
+      <div aria-hidden className="absolute inset-[6%] rounded-full store-stage-glow" />
 
-      {/* The frame. One thing, as large as the panel allows. */}
-      <div className="store-stage-frame absolute inset-[11%] rounded-[1.75rem] overflow-hidden">
-        {hasPhoto ? (
-          <>
-            {ready.map(src => (
-              <img
-                key={src}
-                src={src}
-                alt=""
-                aria-hidden
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[900ms] ease-in-out ${
-                  src === shown?.image ? 'opacity-100' : 'opacity-0'
-                }`}
-              />
-            ))}
-            {/* Light falling across the top-left, so the frame reads as lit
-                rather than pasted on. Faint by design — it sits over somebody
-                else's photograph. */}
-            <div aria-hidden className="absolute inset-0 store-stage-gloss" />
-          </>
-        ) : (
-          /* No photography. The frame becomes the product. */
-          <div className="store-stage-blank absolute inset-0 flex flex-col justify-end p-6 sm:p-7">
-            <div aria-hidden className="absolute inset-0 store-stage-gloss" />
-            <p className="relative text-[10px] font-bold uppercase tracking-[0.16em] store-ink-accent">
-              In stock
-            </p>
-            <p className="relative mt-2 text-xl sm:text-2xl font-extrabold text-white leading-tight text-balance line-clamp-3">
-              {shown?.name}
-            </p>
-            {typeof shown?.price === 'number' && shown.price > 0 && (
-              <p className="relative mt-1.5 text-lg font-bold text-white/70 tabular-nums">
-                {formatGhs(shown.price)}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+      {/* Arcs, not a ring: a closed circle reads as a stray border, an open one
+          reads as light travelling around the thing in the middle. */}
+      <svg
+        aria-hidden
+        viewBox="0 0 200 200"
+        className="absolute inset-0 w-full h-full overflow-visible store-stage-arcs"
+      >
+        <circle
+          cx="100" cy="100" r="88"
+          fill="none"
+          stroke="var(--store-brand-on-ink)"
+          strokeWidth="0.9"
+          strokeOpacity="0.55"
+          strokeLinecap="round"
+          strokeDasharray="300 253"
+          transform="rotate(-115 100 100)"
+        />
+        <circle
+          cx="100" cy="100" r="72"
+          fill="none"
+          stroke="var(--store-brand-on-ink)"
+          strokeWidth="0.6"
+          strokeOpacity="0.28"
+          strokeLinecap="round"
+          strokeDasharray="120 332"
+          transform="rotate(58 100 100)"
+        />
+      </svg>
 
-      {/* What is in the frame, and what it costs. Only alongside a photograph —
-          without one the frame already says both, larger. */}
-      {!compact && hasPhoto && shown?.name && (
-        <div className="store-stage-caption absolute left-[4%] bottom-[12%] max-w-[62%]">
-          <p className="text-[11px] font-semibold text-white/60 truncate">{shown.name}</p>
-          {typeof shown.price === 'number' && shown.price > 0 && (
-            <p className="text-base font-extrabold text-white tabular-nums leading-tight">
-              {formatGhs(shown.price)}
-            </p>
+      {hasPhoto ? (
+        /* The picture, with no edge anywhere — masked to nothing before it
+           reaches a boundary, so there is no shape to read as a card. */
+        <div className="absolute inset-[4%] store-stage-feather">
+          {ready.map(src => (
+            <img
+              key={src}
+              src={src}
+              alt=""
+              aria-hidden
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[900ms] ease-in-out ${
+                src === shown?.image ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+          ))}
+        </div>
+      ) : (
+        /* No photography. The goods set as type, in the same light. */
+        <div className="absolute inset-[16%] flex flex-col items-center justify-center text-center">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] store-ink-accent">In stock</p>
+          <p className="mt-3 text-2xl sm:text-3xl font-extrabold text-white leading-[1.1] text-balance line-clamp-3">
+            {shown?.name}
+          </p>
+          {typeof shown?.price === 'number' && shown.price > 0 && (
+            <p className="mt-2 text-lg font-bold text-white/55 tabular-nums">{formatGhs(shown.price)}</p>
           )}
         </div>
       )}
 
-      {/* Where you are in the set. Only worth drawing when there is a set. */}
+      {/* What is in the light, and what it costs. Plain type under a short rule
+          rather than a glass card — a card here would put back exactly the
+          boxed-in look the feathering removes. Only alongside a photograph;
+          without one the middle of the stage already says both, larger. */}
+      {!compact && hasPhoto && shown?.name && (
+        <div className="absolute left-0 bottom-0 max-w-[70%]">
+          <span aria-hidden className="block h-px w-9 mb-3 store-stage-rule" />
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">In stock</p>
+          <p className="mt-1 text-base font-bold text-white truncate">{shown.name}</p>
+          {typeof shown.price === 'number' && shown.price > 0 && (
+            <p className="text-sm font-semibold text-white/55 tabular-nums">{formatGhs(shown.price)}</p>
+          )}
+        </div>
+      )}
+
+      {/* Where you are in the set — a row of rules rather than dots, to sit
+          with the arcs rather than argue with them. Laid out across: stacked,
+          three hairlines one above another read as a menu icon rather than as
+          a scale. */}
       {!compact && slots.length > 1 && (
-        <div className="absolute right-[6%] bottom-[13%] flex items-center gap-1.5 z-10">
+        <div className="absolute right-0 bottom-1 flex items-center gap-2 z-10">
           {slots.map((s, i) => (
             <button
               key={`${s.image || s.name}-${i}`}
               type="button"
               onClick={() => setFront(i)}
               aria-label={`Show item ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === front % slots.length ? 'w-5 bg-white' : 'w-1.5 bg-white/35 hover:bg-white/60'
-              }`}
-            />
+              className="py-2 group/tick"
+            >
+              <span
+                className={`block h-px transition-all duration-300 ${
+                  i === front % slots.length ? 'w-8 bg-white' : 'w-4 bg-white/30 group-hover/tick:bg-white/60'
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}
-
-      {/* What it stands on. */}
-      <div aria-hidden className="absolute left-[14%] right-[14%] bottom-[3%] h-[8%] rounded-[50%] store-stage-plinth" />
     </div>
   );
 }

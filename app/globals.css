@@ -428,61 +428,54 @@
     radial-gradient(500px 260px at 92% 110%, rgba(255,255,255,0.12), transparent 55%);
 }
 
-/* ── The product stage ──
- *
- * The goods lit on a plinth, rather than a photograph stretched behind text.
- * The glow is the shop's colour and sits behind everything; the plinth is the
- * ellipse the products stand on; the shadow is what stops them floating.
- */
+/* The light the goods stand in — the shop's colour, bloomed. */
 .store-stage-glow {
-  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--store-brand-on-ink) 62%, transparent), transparent 66%);
-  filter: blur(38px);
+  background: radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--store-brand-on-ink) 58%, transparent), transparent 68%);
+  filter: blur(42px);
 }
-/* The lit ring behind the goods.
-   Not a gradient border: painting one needs a padding-box layer underneath,
-   and any colour there fills the middle of the circle — which put an opaque
-   black disc behind the products instead of a ring around them. A plain
-   translucent edge plus an outer bloom and a faint inner one gives the same
-   impression and cannot fill anything. */
-.store-stage-ring {
-  border: 1.5px solid color-mix(in srgb, var(--store-brand-on-ink) 40%, transparent);
-  box-shadow:
-    0 0 90px -14px color-mix(in srgb, var(--store-brand-on-ink) 60%, transparent),
-    inset 0 0 60px -22px color-mix(in srgb, var(--store-brand-on-ink) 55%, transparent);
+/* ── The stage ──
+ *
+ * The picture has no edge. It is masked with a soft ellipse so it fades to
+ * nothing well before any boundary, which is the whole point: a rounded
+ * rectangle reads as a card in a user interface, because nothing in a
+ * photograph has a corner radius. Feathered, the photograph dissolves into the
+ * panel and reads as light on a subject instead.
+ *
+ * The mask is doubled for WebKit, which still wants the prefix.
+ */
+.store-stage-feather {
+  /* The radii are the part that matters, and they are easy to get wrong in
+     both directions. Too small and the photograph becomes a soft orb with no
+     readable detail — a different mistake from the frame, but still not a
+     photograph. Too large and the fade lands outside the box entirely, which
+     puts back a hard-edged rectangle, corners and all.
+
+     The gradient's radii are fractions of the box, measured from the centre,
+     so anything at or above 50% reaches the edge before it has finished
+     fading. At 60% with the last stop at 80%, the picture is solid across its
+     middle three-fifths and gone by the boundary. */
+  --stage-mask: radial-gradient(ellipse 60% 60% at 50% 47%, #000 50%, rgba(0,0,0,0.62) 66%, transparent 80%);
+  -webkit-mask-image: var(--stage-mask);
+  mask-image: var(--stage-mask);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
 }
-.store-stage-plinth {
-  background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.2), rgba(255,255,255,0.04) 56%, transparent 74%);
+
+/* Light travelling around the subject. Slow enough to be felt rather than
+   watched, and stopped entirely for anybody who asked for less motion. */
+@keyframes store-orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
-/* The single frame the product stands in. The hairline keeps its edge legible
-   against a dark ground; the drop shadow is what puts it above the plinth
-   rather than printed on it. */
-.store-stage-frame {
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-    0 40px 70px -24px rgba(0, 0, 0, 0.95);
-  animation: store-float 7s ease-in-out infinite;
+.store-stage-arcs {
+  animation: store-orbit 60s linear infinite;
+  transform-origin: 50% 50%;
 }
-/* Light falling across the top-left. Deliberately faint — it sits over a
-   shop's own photograph, and a strong sheen would just look like haze. */
-.store-stage-gloss {
-  background: linear-gradient(150deg, rgba(255,255,255,0.14), transparent 42%);
-  pointer-events: none;
-}
-/* The frame when the shop has photographed nothing. Tinted with its colour so
-   it belongs to the panel rather than sitting on it as a pale hole. */
-.store-stage-blank {
-  background:
-    radial-gradient(120% 105% at 18% 8%, color-mix(in srgb, var(--store-brand-on-ink) 26%, transparent), transparent 62%),
-    linear-gradient(158deg, #18222f 0%, #0e1521 58%, #080c12 100%);
-}
-/* The name and price of whatever is currently in the frame. */
-.store-stage-caption {
-  background: rgba(10, 14, 20, 0.62);
-  backdrop-filter: blur(14px);
-  box-shadow: inset 0 0 0 1px var(--store-ink-line);
-  border-radius: 0.9rem;
-  padding: 0.6rem 0.9rem;
-}
+
+/* The short rule above the caption, in the shop's colour. */
+.store-stage-rule { background: var(--store-brand-on-ink); }
 
 /* ── The trust strip ──
  *
@@ -666,7 +659,7 @@
   .store-product-card { transition: none; }
   .store-product-card:hover { transform: none; }
   .store-category-tile:hover { transform: none; }
-  .store-drift, .store-rise, .store-float, .store-stage-frame { animation: none; }
+  .store-drift, .store-rise, .store-float, .store-stage-arcs { animation: none; }
 }
 
 @layer components {
