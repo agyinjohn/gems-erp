@@ -15,8 +15,14 @@ import GeneratedArt from './GeneratedArt';
  * row never has a hole in it.
  */
 
+/**
+ * What the categories endpoint returns. Plain strings are accepted too, since
+ * more than one caller in this app has a list of names rather than records.
+ */
+type CategoryLike = string | { id?: string; name?: string };
+
 interface Props {
-  categories: string[];
+  categories: CategoryLike[];
   /** Every product, to count each category and find it a picture. */
   products: { category_name?: string; images?: string[] | string | null }[];
   active: string;
@@ -30,10 +36,16 @@ const firstImage = (value: unknown): string => {
   return '';
 };
 
-export default function CategoryTiles({ categories, products, active, seedHue, onSelect }: Props) {
-  if (categories.length < 2) return null;
+/** A name, whichever of the two shapes it arrived in. */
+const nameOf = (c: CategoryLike): string =>
+  (typeof c === 'string' ? c : String(c?.name ?? '')).trim();
 
-  const tiles = categories.slice(0, 8).map(name => {
+export default function CategoryTiles({ categories, products, active, seedHue, onSelect }: Props) {
+  // A category with no name is nothing anybody can be sent to.
+  const names = categories.map(nameOf).filter(Boolean);
+  if (names.length < 2) return null;
+
+  const tiles = names.slice(0, 8).map(name => {
     const inCategory = products.filter(p => (p.category_name || 'General') === name);
     const image = inCategory.map(p => firstImage(p.images)).find(Boolean) || '';
     return { name, count: inCategory.length, image };
@@ -75,7 +87,7 @@ export default function CategoryTiles({ categories, products, active, seedHue, o
           </button>
         ))}
 
-        {categories.length > 8 && (
+        {names.length > 8 && (
           <button
             type="button"
             onClick={() => onSelect('')}
@@ -86,7 +98,7 @@ export default function CategoryTiles({ categories, products, active, seedHue, o
             </span>
             <span className="min-w-0">
               <span className="block text-sm font-bold text-gray-900">Everything else</span>
-              <span className="block text-xs text-gray-500">{categories.length - 8} more categories</span>
+              <span className="block text-xs text-gray-500">{names.length - 8} more categories</span>
             </span>
           </button>
         )}

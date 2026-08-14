@@ -17,10 +17,17 @@
  * whole wheel, so a wall of these still looks like one shop's wall.
  */
 
-/** Stable, well-spread, and the same on the server as in the browser. */
-function hashOf(text: string) {
+/**
+ * Stable, well-spread, and the same on the server as in the browser.
+ *
+ * Coerced rather than trusted. This draws every product tile in every shop, so
+ * one caller handing it something that is not a string must not be able to
+ * take a storefront down — which is exactly what happened when the categories
+ * endpoint turned out to return records rather than names.
+ */
+function hashOf(text: unknown) {
   let hash = 0;
-  const key = (text || '').trim().toLowerCase();
+  const key = String(text ?? '').trim().toLowerCase();
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   return hash;
 }
@@ -30,14 +37,15 @@ type Pattern = typeof PATTERNS[number];
 
 interface Props {
   /** What the picture is drawn from. */
-  name: string;
+  name: unknown;
   /** Steers the palette toward the shop's colour. */
   seedHue?: number;
   className?: string;
 }
 
 export default function GeneratedArt({ name, seedHue, className = '' }: Props) {
-  const hash = hashOf(name);
+  const label = String(name ?? '').trim();
+  const hash = hashOf(label);
 
   // Within 50° of the shop's hue: related, never uniform. Without a shop hue,
   // the whole wheel is fair game.
@@ -105,7 +113,7 @@ export default function GeneratedArt({ name, seedHue, className = '' }: Props) {
         fill={ink} fillOpacity="0.5"
         fontFamily="ui-sans-serif, system-ui, sans-serif"
       >
-        {(name || '?').trim().charAt(0).toUpperCase()}
+        {(label || '?').charAt(0).toUpperCase()}
       </text>
     </svg>
   );
