@@ -365,7 +365,7 @@
     radial-gradient(500px 260px at 92% 110%, rgba(255,255,255,0.12), transparent 55%);
 }
 .store-hero-stat {
-  @apply rounded-xl bg-white/10 backdrop-blur-sm p-4 ring-1 ring-white/10;
+  @apply rounded-xl bg-white/10 backdrop-blur-sm p-3 sm:p-4 ring-1 ring-white/10;
 }
 
 /* A category, shown as a place to go rather than a word in a list. */
