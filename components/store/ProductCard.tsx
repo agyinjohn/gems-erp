@@ -45,19 +45,21 @@ export default function ProductCard({ product: p, seedHue, index = 0, inCartQty,
             </div>
           )}
           {lowStock && (
-            <span className="absolute top-2 left-2 store-badge store-badge-warn text-[9px] px-2 py-0.5">
+            <span className="absolute top-2.5 left-2.5 store-badge store-badge-warn">
               Only {p.stock_qty} left
             </span>
           )}
           {isService && (
-            <span className="absolute top-2 left-2 store-badge text-[9px] px-2 py-0.5"
+            <span className="absolute top-2.5 left-2.5 store-badge"
               style={{ background: 'var(--store-brand)', color: 'var(--store-on-brand)' }}>
               Service
             </span>
           )}
           {!lowStock && p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) + 0.01 && (
-            <span className="absolute top-2 left-2 store-badge bg-red-500 text-white text-[9px] px-2 py-0.5">
-              {p.promotion_name ? p.promotion_name : `-${Math.round((1 - parseFloat(p.price) / parseFloat(p.compare_price)) * 100)}%`}
+            <span className="absolute top-2.5 left-2.5 store-badge store-badge-sale">
+              {p.promotion_name
+                ? p.promotion_name
+                : `Sale · ${Math.round((1 - parseFloat(p.price) / parseFloat(p.compare_price)) * 100)}% off`}
             </span>
           )}
           {showBranch && p.branch_name && (
@@ -71,20 +73,22 @@ export default function ProductCard({ product: p, seedHue, index = 0, inCartQty,
           <button
             type="button"
             onClick={e => { e.stopPropagation(); onToggleWishlist(); }}
-            className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center hover:scale-110 transition-transform"
+            className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm ring-1 ring-black/5 flex items-center justify-center hover:scale-110 transition-transform"
             aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           >
-            <Heart className={`w-3.5 h-3.5 ${wishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+            <Heart className={`w-4 h-4 ${wishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
           </button>
         )}
       </div>
 
-      <div className="p-2.5 sm:p-3 flex flex-col flex-1 gap-1">
-        <div className="text-[9px] font-bold uppercase tracking-wider truncate" style={{ color: 'var(--store-brand-lift)' }}>
+      <div className="p-3 sm:p-3.5 flex flex-col flex-1 gap-1">
+        {/* brand-lift here was the same contrast bug the section eyebrows had:
+            on a bright shop colour it is unreadable on white. */}
+        <div className="text-[10px] font-bold uppercase tracking-[0.1em] truncate" style={{ color: 'var(--store-brand-on-paper)' }}>
           {p.category_name || 'General'}
         </div>
         <button type="button" onClick={onOpen} className="text-left">
-          <h3 className="text-[13px] sm:text-sm font-semibold text-gray-900 line-clamp-2 leading-snug transition-colors group-hover:[color:var(--store-brand)]">
+          <h3 className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug transition-colors group-hover:[color:var(--store-brand-on-paper)]">
             {p.name}
           </h3>
         </button>
@@ -92,12 +96,12 @@ export default function ProductCard({ product: p, seedHue, index = 0, inCartQty,
         <div className="mt-auto pt-0.5">
           <div className="flex items-baseline gap-1.5 flex-wrap">
             {parseFloat(p.price) > 0 ? (
-              <span className="text-base sm:text-lg font-extrabold text-gray-900 tracking-tight">{formatGhs(parseFloat(p.price))}</span>
+              <span className="text-lg font-extrabold text-gray-900 tracking-tight tabular-nums">{formatGhs(parseFloat(p.price))}</span>
             ) : (
               <span className="text-sm font-semibold text-gray-400 italic">Price on request</span>
             )}
             {parseFloat(p.price) > 0 && p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) + 0.01 && (
-              <span className="text-xs text-gray-400 line-through">{formatGhs(parseFloat(p.compare_price))}</span>
+              <span className="text-xs text-gray-400 line-through tabular-nums">{formatGhs(parseFloat(p.compare_price))}</span>
             )}
           </div>
 

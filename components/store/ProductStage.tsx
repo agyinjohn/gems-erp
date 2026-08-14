@@ -77,7 +77,7 @@ export default function ProductStage({ images = [], names = [], seedHue }: Props
   const drawn = [...names, 'Products', 'In stock', 'New in'].slice(0, 3);
 
   return (
-    <div className="relative w-full aspect-[4/3] sm:aspect-[5/4] select-none">
+    <div className="relative w-full aspect-[4/3] select-none">
       {/* Loaders. Invisible, and the only way onto the stage. */}
       <div aria-hidden className="hidden">
         {live.map((src, i) => (
@@ -94,8 +94,8 @@ export default function ProductStage({ images = [], names = [], seedHue }: Props
       </div>
 
       {/* The light behind everything. */}
-      <div aria-hidden className="absolute inset-[8%] rounded-full store-stage-glow" />
-      <div aria-hidden className="absolute inset-[14%] rounded-full store-stage-ring" />
+      <div aria-hidden className="absolute inset-[6%] rounded-full store-stage-glow" />
+      <div aria-hidden className="absolute inset-[10%] rounded-full store-stage-ring" />
 
       {hero ? (
         <>
@@ -104,8 +104,8 @@ export default function ProductStage({ images = [], names = [], seedHue }: Props
             <div
               key={src}
               aria-hidden
-              className={`store-stage-item w-[30%] aspect-square rounded-2xl ${
-                i === 0 ? 'left-0 top-[8%]' : 'right-0 bottom-[10%]'
+              className={`store-stage-item w-[25%] aspect-square rounded-2xl ${
+                i === 0 ? 'left-[3%] top-[11%]' : 'right-[3%] bottom-[13%]'
               }`}
               style={{ animationDelay: `${(i + 1) * 1.4}s` }}
             >
@@ -114,7 +114,7 @@ export default function ProductStage({ images = [], names = [], seedHue }: Props
           ))}
 
           {/* The one in front. */}
-          <div className="store-stage-item inset-x-[27%] inset-y-[16%] rounded-3xl">
+          <div className="store-stage-item inset-x-[30%] inset-y-[15%] rounded-3xl">
             {ready.map(src => (
               <img
                 key={src}
@@ -131,13 +131,13 @@ export default function ProductStage({ images = [], names = [], seedHue }: Props
         /* Nothing photographed yet. Three drawn tiles, arranged the same way,
            so an empty shop still has a composed stage rather than a hole. */
         <>
-          <div aria-hidden className="store-stage-item left-0 top-[8%] w-[30%] aspect-square rounded-2xl">
+          <div aria-hidden className="store-stage-item left-[3%] top-[11%] w-[25%] aspect-square rounded-2xl">
             <GeneratedArt name={drawn[1]} seedHue={seedHue} />
           </div>
-          <div aria-hidden className="store-stage-item right-0 bottom-[10%] w-[30%] aspect-square rounded-2xl" style={{ animationDelay: '2.8s' }}>
+          <div aria-hidden className="store-stage-item right-[3%] bottom-[13%] w-[25%] aspect-square rounded-2xl" style={{ animationDelay: '2.8s' }}>
             <GeneratedArt name={drawn[2]} seedHue={seedHue} />
           </div>
-          <div aria-hidden className="store-stage-item inset-x-[27%] inset-y-[16%] rounded-3xl" style={{ animationDelay: '1.4s' }}>
+          <div aria-hidden className="store-stage-item inset-x-[30%] inset-y-[15%] rounded-3xl" style={{ animationDelay: '1.4s' }}>
             <GeneratedArt name={drawn[0]} seedHue={seedHue} />
           </div>
         </>

@@ -7,12 +7,13 @@ import { formatGhs } from './theme';
 /**
  * The one thing the shop most wants said, given a band of its own.
  *
- * Reference designs put a "Limited time offer" banner here, and GEMS has no
- * concept of an offer — no compare-at price, no sale flag — so inventing one
- * would mean printing a discount that does not exist. What a shop does have is
- * the announcement it typed into store settings, which is exactly this: the
- * thing it wants everybody to see. It used to render as a thin amber strip
- * under the navigation, where it read as a cookie notice.
+ * Reference designs put a "Limited time offer" banner here. GEMS does carry
+ * real discounts — products have compare_price and promotion_name, and the
+ * product cards badge them — but a discount belongs to one product, and this
+ * band speaks for the whole shop. What speaks for the whole shop is the
+ * announcement typed into store settings: it is, by definition, the thing the
+ * owner wants everybody to see. It used to render as a thin amber strip under
+ * the navigation, where it read as a cookie notice.
  *
  * Failing that, the delivery promise is the next most useful thing a shop can
  * say to somebody deciding whether to fill a basket. If it has neither, this
@@ -81,7 +82,7 @@ export default function PromoBanner({
             and every child of the stage is absolutely positioned, so without an
             explicit width the box shrink-to-fits to nothing and the stage
             disappears entirely. */}
-        <div className="hidden sm:block w-full min-w-0 max-w-[260px] ml-auto">
+        <div className="hidden sm:block w-full min-w-0 max-w-[210px] ml-auto">
           <ProductStage images={productImages} names={productNames} seedHue={seedHue} />
         </div>
       </div>

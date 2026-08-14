@@ -14,7 +14,7 @@ export default function ProductCardImage({ product, seedHue, className = '' }: P
   const images = getProductImages(product);
 
   return (
-    <div className={`relative aspect-[4/3] sm:aspect-[3/2] overflow-hidden bg-slate-50 ${className}`}>
+    <div className={`relative aspect-[4/3] overflow-hidden bg-slate-50/80 ${className}`}>
       {images.length > 0 ? (
         <img
           src={images[0]}

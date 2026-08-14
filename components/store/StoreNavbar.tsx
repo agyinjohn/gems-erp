@@ -21,7 +21,7 @@ interface Props {
   onOpenLocation: () => void;
   onToggleBranchMenu: () => void;
   onSelectBranch: (branch: any | null) => void;
-  onOpenMobileFilters?: () => void;
+  onOpenFilters?: () => void;
   onOpenAccount?: () => void;
 }
 
@@ -44,7 +44,7 @@ export default function StoreNavbar({
   onOpenLocation,
   onToggleBranchMenu,
   onSelectBranch,
-  onOpenMobileFilters,
+  onOpenFilters,
   onOpenAccount,
   customerName,
 }: Props) {
@@ -112,8 +112,8 @@ export default function StoreNavbar({
                 value={search}
                 onChange={e => { onSearchChange(e.target.value); onResetPage(); }}
               />
-              {onOpenMobileFilters && (
-                <button type="button" onClick={onOpenMobileFilters} className="lg:hidden p-2 text-gray-500 hover:[color:var(--store-brand)]" aria-label="Filters">
+              {onOpenFilters && (
+                <button type="button" onClick={onOpenFilters} className="p-2 text-gray-500 hover:[color:var(--store-brand)]" aria-label="Filters">
                   <SlidersHorizontal className="w-4 h-4" />
                 </button>
               )}

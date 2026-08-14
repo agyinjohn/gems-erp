@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import ProductStage from './ProductStage';
 
 /**
@@ -56,19 +56,19 @@ function StoreMark({ logo, businessName }: { logo?: string; businessName: string
       <img
         src={logo}
         alt=""
-        className="w-11 h-11 rounded-xl object-cover bg-white/10 ring-1 ring-white/20 flex-shrink-0"
+        className="w-6 h-6 rounded-full object-cover bg-white/10 ring-1 ring-white/20 flex-shrink-0"
       />
     );
   }
 
   return (
-    <div
+    <span
       aria-hidden
-      className="w-11 h-11 rounded-xl bg-white/10 ring-1 ring-white/20 flex-shrink-0
-        flex items-center justify-center text-lg font-extrabold text-white"
+      className="w-6 h-6 rounded-full bg-white/12 ring-1 ring-white/20 flex-shrink-0
+        flex items-center justify-center text-[11px] font-extrabold text-white"
     >
       {businessName.trim().charAt(0).toUpperCase() || '?'}
-    </div>
+    </span>
   );
 }
 
@@ -77,7 +77,7 @@ export default function StoreHero({
   productCount, categoryCount, seedHue, onShop, onSecondary, secondaryLabel,
 }: Props) {
   return (
-    <section className="store-hero">
+    <section className="store-hero-band">
       <div className="absolute inset-0 store-ink-panel" />
 
       {/* A shop that went to the trouble of uploading a banner still gets it,
@@ -90,32 +90,32 @@ export default function StoreHero({
         </>
       )}
 
-      <div className="relative grid lg:grid-cols-[1.05fr_0.95fr] items-center gap-8 lg:gap-4
-        px-6 sm:px-10 lg:px-12 py-10 sm:py-14">
+      <div className="relative max-w-7xl mx-auto grid lg:grid-cols-[1.02fr_0.98fr] items-center
+        gap-10 lg:gap-6 px-4 sm:px-6 py-12 sm:py-16 lg:py-20">
 
-        {/* The shop's name is said once here, as the accent line of the
-            headline. It was being said three times — in the lockup, in the
-            headline and again in the navigation — which is how a hero starts
-            to read like a form rather than a shopfront. The mark stays, since
-            it is the only place a shop's logo appears above the fold. */}
+        {/* The shop's name is said once, as the accent line of the headline.
+            It was being said three times — mark, headline and navigation —
+            which is how a hero starts to read like a form. The mark now sits
+            inside the chip rather than floating above it on its own line,
+            where it read as an orphan. */}
         <div className="min-w-0">
-          <StoreMark logo={logo} businessName={businessName} />
-
-          <span className="store-chip-ink mt-6 mb-4">
-            <Sparkles className="w-3 h-3" /> Now open online
+          <span className="store-chip-ink mb-6 !pl-1.5">
+            <StoreMark logo={logo} businessName={businessName} />
+            Now open online
           </span>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-[2.7rem] font-extrabold text-white tracking-tight leading-[1.05] text-balance">
+          <h1 className="font-extrabold text-white tracking-[-0.035em] leading-[0.98] text-balance
+            text-[2.5rem] sm:text-[3.25rem] lg:text-[3.75rem]">
             Everything from
             <br />
             <span className="store-ink-accent">{businessName}</span>
           </h1>
 
-          <p className="mt-4 text-[15px] text-white/60 leading-relaxed max-w-lg">
+          <p className="mt-5 text-base text-white/55 leading-relaxed max-w-md">
             {tagline || 'Order online and we’ll take it from there.'}
           </p>
 
-          <div className="mt-7 flex flex-wrap items-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center gap-3">
             <button type="button" onClick={onShop} className="store-btn store-btn-hero inline-flex items-center gap-2">
               Start shopping <ArrowRight className="w-4 h-4" />
             </button>
@@ -127,7 +127,7 @@ export default function StoreHero({
           </div>
 
           {productCount > 0 && (
-            <p className="mt-5 text-xs text-white/40">
+            <p className="mt-6 text-xs text-white/35">
               {productCount} item{productCount === 1 ? '' : 's'} in stock
               {categoryCount > 1 && ` across ${categoryCount} categories`}
             </p>

@@ -413,6 +413,10 @@
 }
 .store-rise { animation: store-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* The hero runs edge to edge, like the band under a shop's signage. The promo
+   banner further down stays a rounded card inside the container — the two are
+   different things and should not look like the same thing twice. */
+.store-hero-band { @apply relative overflow-hidden; }
 .store-hero { @apply relative overflow-hidden rounded-3xl shadow-2xl; }
 .store-hero-bg {
   background: linear-gradient(135deg, var(--store-brand) 0%, var(--store-brand-lift) 50%, var(--store-brand-deep) 100%);
@@ -431,15 +435,32 @@
  * ellipse the products stand on; the shadow is what stops them floating.
  */
 .store-stage-glow {
-  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--store-brand-on-ink) 42%, transparent), transparent 62%);
-  filter: blur(28px);
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--store-brand-on-ink) 62%, transparent), transparent 66%);
+  filter: blur(38px);
 }
+/* The lit ring behind the goods.
+   Not a gradient border: painting one needs a padding-box layer underneath,
+   and any colour there fills the middle of the circle — which put an opaque
+   black disc behind the products instead of a ring around them. A plain
+   translucent edge plus an outer bloom and a faint inner one gives the same
+   impression and cannot fill anything. */
 .store-stage-ring {
-  border: 1px solid color-mix(in srgb, var(--store-brand-on-ink) 34%, transparent);
-  box-shadow: 0 0 70px -12px color-mix(in srgb, var(--store-brand-on-ink) 46%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--store-brand-on-ink) 40%, transparent);
+  box-shadow:
+    0 0 90px -14px color-mix(in srgb, var(--store-brand-on-ink) 60%, transparent),
+    inset 0 0 60px -22px color-mix(in srgb, var(--store-brand-on-ink) 55%, transparent);
 }
 .store-stage-plinth {
-  background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.16), rgba(255,255,255,0.03) 58%, transparent 72%);
+  background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.2), rgba(255,255,255,0.04) 56%, transparent 74%);
+}
+/* What the goods stand in. Without it they hang in the air. */
+.store-stage-item::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 34%;
+  background: linear-gradient(to top, color-mix(in srgb, var(--store-ink) 62%, transparent), transparent);
+  pointer-events: none;
 }
 /* One item on the stage. The inset hairline is what separates a pale product
    tile from the one behind it — without an edge, three overlapping tiles read
@@ -519,7 +540,7 @@
 }
 
 .store-product-card {
-  @apply bg-white rounded-2xl overflow-hidden border border-gray-100/80 transition-all duration-300 hover:-translate-y-1;
+  @apply bg-white rounded-2xl overflow-hidden border border-gray-200/70 transition-all duration-300 hover:-translate-y-1;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 .store-product-card:hover {
@@ -528,9 +549,12 @@
 }
 
 .store-badge {
-  @apply inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full;
+  @apply inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm;
 }
-.store-badge-warn { @apply bg-orange-500 text-white shadow; }
+.store-badge-warn { @apply bg-orange-500 text-white; }
+/* A reduced price. Green rather than red: red on a product card reads as a
+   warning, and this is the opposite of one. */
+.store-badge-sale { @apply bg-emerald-600 text-white; }
 .store-badge-dark { @apply bg-black/55 text-white backdrop-blur-sm; }
 
 .store-btn {

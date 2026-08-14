@@ -128,7 +128,7 @@ export default function TenantStorefrontPage() {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'default'|'price_asc'|'price_desc'|'name'>('default');
   const [openSections, setOpenSections] = useState<Record<string,boolean>>({ categories: true, price: true, availability: true, sort: true });
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StorefrontSettings>({ ...DEFAULT_STOREFRONT_SETTINGS });
   // Carries the split params too, so a retry pays through the same subaccount —
   // otherwise the retry would land wholly in the platform account while the
@@ -661,7 +661,7 @@ export default function TenantStorefrontPage() {
         onOpenLocation={() => setShowLocationModal(true)}
         onToggleBranchMenu={() => setShowBranchMenu(b => !b)}
         onSelectBranch={b => { setActiveBranch(b); setShowBranchMenu(false); }}
-        onOpenMobileFilters={() => setShowMobileFilters(true)}
+        onOpenFilters={() => setShowFilters(true)}
         onOpenAccount={openAccount}
         customerName={storeCustomer?.name}
       />
@@ -691,7 +691,7 @@ export default function TenantStorefrontPage() {
             widget. Once somebody is searching or filtering they are past being
             sold to, so the whole block steps aside. */}
         {isBrowsing && (
-          <div className="px-4 sm:px-6 pt-5 sm:pt-6 space-y-6 sm:space-y-8">
+          <>
             <StoreHero
               businessName={tenant?.business_name || 'Our store'}
               tagline={storeSettings.tagline}
@@ -707,6 +707,7 @@ export default function TenantStorefrontPage() {
               secondaryLabel={categories.length > 1 ? 'Browse categories' : undefined}
             />
 
+            <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-8 space-y-8">
             <TrustStrip
               freeDeliveryOver={storeSettings.free_delivery_threshold}
               deliveryFee={storeSettings.delivery_fee}
@@ -742,45 +743,17 @@ export default function TenantStorefrontPage() {
               seedHue={brandHue}
               onShop={() => productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             />
-          </div>
+            </div>
+          </>
         )}
 
-        <div className="flex min-h-[calc(100vh-7rem)]">
-
-          {/* ── Desktop filters sidebar ── */}
-          <aside className="hidden lg:flex flex-col w-64 xl:w-72 flex-shrink-0 bg-white/80 backdrop-blur-sm border-r border-gray-200/80 min-h-full">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
-              <span className="font-bold text-gray-900">Filters</span>
-              {activeFilterCount > 0 && (
-                <button type="button" onClick={clearAllFilters} className="text-xs text-red-500 hover:text-red-700 font-semibold transition-colors">
-                  Clear all ({activeFilterCount})
-                </button>
-              )}
-            </div>
-            <StoreFilters
-              categories={categories}
-              products={products}
-              filterCat={filterCat}
-              priceMin={priceMin}
-              priceMax={priceMax}
-              maxProductPrice={maxProductPrice}
-              inStockOnly={inStockOnly}
-              sortBy={sortBy}
-              openSections={openSections}
-              activeFilterCount={activeFilterCount}
-              onFilterCat={setFilterCat}
-              onPriceMin={setPriceMin}
-              onPriceMax={setPriceMax}
-              onInStockOnly={setInStockOnly}
-              onSortBy={setSortBy}
-              onToggleSection={toggleSection}
-              onResetPage={resetPage}
-              onClearAll={clearAllFilters}
-            />
-          </aside>
-
-          {/* ── Main content ── */}
-          <div className="flex-1 min-w-0 px-4 xl:px-6 py-6">
+        {/* The filter sidebar is gone. It took 288px of every desktop screen to
+            show controls most customers never touched, pushed the goods into a
+            narrower column than the hero above them, and gave the page two
+            competing left edges. The same filters are one tap away in the
+            drawer, which now opens at every width rather than only on a
+            phone. */}
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
 
           {/* Results count */}
           {(search || filterCat || inStockOnly || priceMax !== '') && (
@@ -816,8 +789,25 @@ export default function TenantStorefrontPage() {
                     <span className="text-sm font-normal text-gray-400 flex-shrink-0">{filtered.length} item{filtered.length === 1 ? '' : 's'}</span>
                   </h2>
                 </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(true)}
+                  className="store-section-action"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span
+                      className="ml-0.5 min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center px-1"
+                      style={{ background: 'var(--store-brand)', color: 'var(--store-on-brand)' }}
+                    >
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
                 <select
-                  className="lg:hidden text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none"
+                  className="text-xs border border-gray-200 rounded-xl px-2.5 py-2 text-gray-600 bg-white focus:outline-none"
                   value={sortBy}
                   onChange={e => { setSortBy(e.target.value as typeof sortBy); resetPage(); }}
                 >
@@ -826,6 +816,7 @@ export default function TenantStorefrontPage() {
                   <option value="price_desc">Price: High–Low</option>
                   <option value="name">Name A–Z</option>
                 </select>
+                </div>
               </div>
 
               {filtered.length === 0 ? (
@@ -873,7 +864,6 @@ export default function TenantStorefrontPage() {
             <p className="text-center text-xs text-gray-400 py-3">Loading more products…</p>
           )}
 
-          </div>
         </div>
         </>
       )}
@@ -1296,9 +1286,9 @@ export default function TenantStorefrontPage() {
       )}
 
       {/* Mobile filter sheet */}
-      {showMobileFilters && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowMobileFilters(false)} />
+      {showFilters && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowFilters(false)} />
           <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-3xl max-h-[85vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -1308,7 +1298,7 @@ export default function TenantStorefrontPage() {
                   <span className="text-xs bg-[#0D3B6E] text-white px-2 py-0.5 rounded-full">{activeFilterCount}</span>
                 )}
               </div>
-              <button type="button" onClick={() => setShowMobileFilters(false)} className="p-2 text-gray-400 hover:text-gray-700">
+              <button type="button" onClick={() => setShowFilters(false)} className="p-2 text-gray-400 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1332,11 +1322,11 @@ export default function TenantStorefrontPage() {
                 onSortBy={setSortBy}
                 onToggleSection={toggleSection}
                 onResetPage={resetPage}
-                onClearAll={() => { clearAllFilters(); setShowMobileFilters(false); }}
+                onClearAll={() => { clearAllFilters(); setShowFilters(false); }}
               />
             </div>
             <div className="p-4 border-t border-gray-100 flex-shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              <button type="button" onClick={() => setShowMobileFilters(false)} className="store-btn store-btn-primary w-full py-3">
+              <button type="button" onClick={() => setShowFilters(false)} className="store-btn store-btn-primary w-full py-3">
                 Show {filtered.length} result{filtered.length !== 1 ? 's' : ''}
               </button>
             </div>
@@ -1575,11 +1565,11 @@ export default function TenantStorefrontPage() {
         <MobileBottomBar
           cartCount={cartCount}
           filterCount={activeFilterCount}
-          active={showMobileFilters ? 'filters' : step === 'track' ? 'track' : step === 'orders' ? 'account' : showCart ? 'cart' : 'shop'}
-          onHome={() => { setStep('shop'); setShowMobileFilters(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          onFilters={() => setShowMobileFilters(true)}
+          active={showFilters ? 'filters' : step === 'track' ? 'track' : step === 'orders' ? 'account' : showCart ? 'cart' : 'shop'}
+          onHome={() => { setStep('shop'); setShowFilters(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          onFilters={() => setShowFilters(true)}
           onCart={() => setShowCart(true)}
-          onTrack={() => { setTrackInput(''); setTrackResult(null); setTrackError(''); setStep('track'); setShowMobileFilters(false); }}
+          onTrack={() => { setTrackInput(''); setTrackResult(null); setTrackError(''); setStep('track'); setShowFilters(false); }}
           onAccount={openAccount}
           customerName={storeCustomer?.name}
         />
