@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, Badge, Spinner } from '@/components/ui';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -315,9 +314,6 @@ export default function DashboardPage() {
   // spending side. HR and procurement dashboards answer different questions and
   // ignore it, so they are not offered a control that would do nothing.
   const datedRoles = can('super_admin', 'business_owner', 'branch_manager', 'sales_staff');
-  // Standing state, not a period figure — what is waiting is waiting now, so it
-  // takes no notice of the date range above it.
-  const ops = data?.operations;
   const period = rangeLabel(range);
   const overPeriod = (allTime: string) => (range.from || range.to ? period : allTime);
 
@@ -335,54 +331,6 @@ export default function DashboardPage() {
             {loading && <RefreshCw className="w-3.5 h-3.5 text-gray-300 animate-spin" />}
             <DateRangePicker value={range} onChange={setRange} />
           </div>
-        </div>
-      )}
-
-      {/* ── ROW 0: today, and what is waiting ──
-          Above the totals on purpose. A total since the beginning of time is
-          something you look at once a month; these are the four things somebody
-          opens this app to find out, and none of them were on it. */}
-      {isAdmin && ops && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <Link href="/pos" className="card hover:border-[#0D3B6E]/30 transition-colors">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Taken today</p>
-            <p className="text-2xl font-extrabold text-gray-900 mt-1">{fmt(ops.takings_today)}</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {ops.sales_today ? `${ops.sales_today} sale${ops.sales_today === 1 ? '' : 's'}` : 'Nothing yet today'}
-            </p>
-          </Link>
-
-          <Link href="/service-requests" className="card hover:border-[#0D3B6E]/30 transition-colors">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Waiting on a price</p>
-            <p className={`text-2xl font-extrabold mt-1 ${ops.awaiting_quote ? 'text-amber-600' : 'text-gray-900'}`}>
-              {ops.awaiting_quote}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {ops.quoted_awaiting_client
-                ? `${ops.quoted_awaiting_client} quoted, with the client`
-                : 'Requests nobody has quoted'}
-            </p>
-          </Link>
-
-          <Link href="/jobs" className="card hover:border-[#0D3B6E]/30 transition-colors">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Work in hand</p>
-            <p className="text-2xl font-extrabold text-gray-900 mt-1">{ops.jobs_open}</p>
-            <p className={`text-xs mt-0.5 ${ops.jobs_overdue ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
-              {ops.jobs_overdue
-                ? `${ops.jobs_overdue} past its due date`
-                : `${ops.active_projects} project${ops.active_projects === 1 ? '' : 's'} running`}
-            </p>
-          </Link>
-
-          <Link href="/accounting/ar" className="card hover:border-[#0D3B6E]/30 transition-colors">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Owed to you</p>
-            <p className="text-2xl font-extrabold text-gray-900 mt-1">{fmt(ops.owed_total)}</p>
-            <p className={`text-xs mt-0.5 ${ops.overdue_total ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
-              {ops.overdue_total
-                ? `${fmt(ops.overdue_total)} overdue`
-                : `${ops.owed_count} unpaid invoice${ops.owed_count === 1 ? '' : 's'}`}
-            </p>
-          </Link>
         </div>
       )}
 
