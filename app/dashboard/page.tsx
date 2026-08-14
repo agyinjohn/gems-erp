@@ -68,6 +68,26 @@ export default function DashboardPage() {
   const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const payrollTrend = (data?.payroll_trend || []).map((t: any) => ({ label: `${MONTHS_SHORT[t.month - 1]} ${String(t.year).slice(2)}`, total: t.total }));
   const payrollTotal = payrollTrend.reduce((sum: number, t: any) => sum + (t.total || 0), 0);
+
+  /**
+   * Attendance read against the staff it should account for.
+   *
+   * A bare count says nothing — eleven present is good news in a shop of twelve
+   * and bad news in a shop of forty. Anyone on approved leave is subtracted
+   * first, because they are not missing, they are off.
+   */
+  const attendance = (() => {
+    const present = kpis.present_today;
+    if (present === undefined || present === null) return { sub: 'Marked in today', short: false };
+    const expected = Math.max(0, (kpis.total_employees || 0) - (kpis.on_leave || 0));
+    if (!expected) return { sub: 'Marked in today', short: false };
+    const pct = Math.round((present / expected) * 100);
+    return {
+      sub: `${present} of ${expected} expected · ${pct}%`,
+      // Not an alarm, a nudge: below four in five is worth a look before nine.
+      short: pct < 80,
+    };
+  })();
   const upcomingPeople = [
     ...(data?.upcoming_birthdays || []).map((b: any) => ({ ...b, kind: 'birthday' as const })),
     ...(data?.upcoming_anniversaries || []).map((a: any) => ({ ...a, kind: 'anniversary' as const })),
@@ -385,6 +405,15 @@ export default function DashboardPage() {
             <StatCard label="On Leave"        value={kpis.on_leave        ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-amber-500" />} color="bg-amber-50"    sub="Currently away" />
             <StatCard label="Pending Leave"   value={kpis.pending_leave   ?? '—'} icon={<AlertTriangle className="w-6 h-6 text-red-500" />}   color="bg-red-50"     sub="Awaiting approval" />
             <StatCard label="Outstanding Loans" value={fmt(data?.outstanding_loans_total || 0)} icon={<Wallet className="w-6 h-6 text-[#0D3B6E]" />} color="bg-[#0D3B6E]/8" sub={`${data?.outstanding_loans_count ?? 0} active`} />
+            {/* Who is actually at work. The figure a manager wants before nine
+                in the morning, computed for months and shown nowhere. */}
+            <StatCard
+              label="Present Today"
+              value={kpis.present_today ?? '—'}
+              icon={<UserCheck className={`w-6 h-6 ${attendance.short ? 'text-amber-500' : 'text-[#0D3B6E]'}`} />}
+              color={attendance.short ? 'bg-amber-50' : 'bg-[#0D3B6E]/8'}
+              sub={attendance.sub}
+            />
           </>
         )}
       </div>
