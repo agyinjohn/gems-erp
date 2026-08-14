@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, Badge, Spinner } from '@/components/ui';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Package, ShoppingCart, Users, AlertTriangle, TrendingUp, UserCheck, Truck, ClipboardList, ArrowDown, ArrowUp, RefreshCw, Building2, Wallet, Cake, Award, FileText } from 'lucide-react';
 import HrReport from '@/components/hr/HrReport';
 import DateRangePicker, { ALL_TIME, rangeLabel, type DateRange } from '@/components/dashboard/DateRangePicker';
@@ -14,6 +15,16 @@ import api, { apiCache } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
 const fmt = (n: number) => n >= 1000 ? `GH₵ ${(n/1000).toFixed(1)}k` : `GH₵ ${n?.toFixed(2) || '0.00'}`;
+const cedis = (n: number) => `GH₵ ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/**
+ * Slice colours, all out of the sidebar's navy.
+ *
+ * A pie needs its slices told apart, but a dashboard full of unrelated hues
+ * reads as a different product on every card — so the shades are one family,
+ * darkest first, which also puts the eye on the biggest slice.
+ */
+const SLICE_COLOURS = ['#0D3B6E', '#1D5FA8', '#3B82C4', '#6BA3D6', '#9CC3E4', '#C5DCEF', '#E1EDF7'];
 
 const ALL_ROLES = ['super_admin','business_owner','branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer'];
 
@@ -57,6 +68,7 @@ export default function DashboardPage() {
 
   const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const payrollTrend = (data?.payroll_trend || []).map((t: any) => ({ label: `${MONTHS_SHORT[t.month - 1]} ${String(t.year).slice(2)}`, total: t.total }));
+  const payrollTotal = payrollTrend.reduce((sum: number, t: any) => sum + (t.total || 0), 0);
   const upcomingPeople = [
     ...(data?.upcoming_birthdays || []).map((b: any) => ({ ...b, kind: 'birthday' as const })),
     ...(data?.upcoming_anniversaries || []).map((a: any) => ({ ...a, kind: 'anniversary' as const })),
@@ -303,6 +315,9 @@ export default function DashboardPage() {
   // spending side. HR and procurement dashboards answer different questions and
   // ignore it, so they are not offered a control that would do nothing.
   const datedRoles = can('super_admin', 'business_owner', 'branch_manager', 'sales_staff');
+  // Standing state, not a period figure — what is waiting is waiting now, so it
+  // takes no notice of the date range above it.
+  const ops = data?.operations;
   const period = rangeLabel(range);
   const overPeriod = (allTime: string) => (range.from || range.to ? period : allTime);
 
@@ -320,6 +335,54 @@ export default function DashboardPage() {
             {loading && <RefreshCw className="w-3.5 h-3.5 text-gray-300 animate-spin" />}
             <DateRangePicker value={range} onChange={setRange} />
           </div>
+        </div>
+      )}
+
+      {/* ── ROW 0: today, and what is waiting ──
+          Above the totals on purpose. A total since the beginning of time is
+          something you look at once a month; these are the four things somebody
+          opens this app to find out, and none of them were on it. */}
+      {isAdmin && ops && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <Link href="/pos" className="card hover:border-[#0D3B6E]/30 transition-colors">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Taken today</p>
+            <p className="text-2xl font-extrabold text-gray-900 mt-1">{fmt(ops.takings_today)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {ops.sales_today ? `${ops.sales_today} sale${ops.sales_today === 1 ? '' : 's'}` : 'Nothing yet today'}
+            </p>
+          </Link>
+
+          <Link href="/service-requests" className="card hover:border-[#0D3B6E]/30 transition-colors">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Waiting on a price</p>
+            <p className={`text-2xl font-extrabold mt-1 ${ops.awaiting_quote ? 'text-amber-600' : 'text-gray-900'}`}>
+              {ops.awaiting_quote}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {ops.quoted_awaiting_client
+                ? `${ops.quoted_awaiting_client} quoted, with the client`
+                : 'Requests nobody has quoted'}
+            </p>
+          </Link>
+
+          <Link href="/jobs" className="card hover:border-[#0D3B6E]/30 transition-colors">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Work in hand</p>
+            <p className="text-2xl font-extrabold text-gray-900 mt-1">{ops.jobs_open}</p>
+            <p className={`text-xs mt-0.5 ${ops.jobs_overdue ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+              {ops.jobs_overdue
+                ? `${ops.jobs_overdue} past its due date`
+                : `${ops.active_projects} project${ops.active_projects === 1 ? '' : 's'} running`}
+            </p>
+          </Link>
+
+          <Link href="/accounting/ar" className="card hover:border-[#0D3B6E]/30 transition-colors">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Owed to you</p>
+            <p className="text-2xl font-extrabold text-gray-900 mt-1">{fmt(ops.owed_total)}</p>
+            <p className={`text-xs mt-0.5 ${ops.overdue_total ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+              {ops.overdue_total
+                ? `${fmt(ops.overdue_total)} overdue`
+                : `${ops.owed_count} unpaid invoice${ops.owed_count === 1 ? '' : 's'}`}
+            </p>
+          </Link>
         </div>
       )}
 
@@ -631,31 +694,59 @@ export default function DashboardPage() {
             </div>
 
             <div className="card">
-              <h3 className="font-semibold text-gray-800 mb-4">Payroll Trend</h3>
+              <div className="flex items-baseline justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Payroll by Month</h3>
+                {payrollTotal > 0 && (
+                  <span className="text-xs text-gray-400">{cedis(payrollTotal)} over {payrollTrend.length} months</span>
+                )}
+              </div>
               {payrollTrend.length ? (
-                <ResponsiveContainer width="100%" height={200} minWidth={0}>
-                  <BarChart data={payrollTrend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(v: any) => [`GH₵ ${Number(v).toLocaleString()}`, 'Net pay']} />
-                    <Bar dataKey="total" fill="#0D3B6E" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                <ResponsiveContainer width="100%" height={220} minWidth={0}>
+                  <PieChart>
+                    <Pie
+                      data={payrollTrend}
+                      dataKey="total"
+                      nameKey="label"
+                      innerRadius={45}
+                      outerRadius={80}
+                      paddingAngle={2}
+                    >
+                      {payrollTrend.map((_: unknown, i: number) => (
+                        <Cell key={i} fill={SLICE_COLOURS[i % SLICE_COLOURS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: unknown, n: unknown) => [cedis(Number(v)), String(n)]} />
+                    <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
                 </ResponsiveContainer>
               ) : <p className="text-gray-400 text-sm text-center py-8">No approved payroll runs yet</p>}
             </div>
 
             <div className="card">
-              <h3 className="font-semibold text-gray-800 mb-4">Headcount by Department</h3>
+              <div className="flex items-baseline justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Headcount by Department</h3>
+                {kpis.total_employees > 0 && (
+                  <span className="text-xs text-gray-400">{kpis.total_employees} staff</span>
+                )}
+              </div>
               {data?.department_breakdown?.length ? (
-                <ResponsiveContainer width="100%" height={200} minWidth={0}>
-                  <BarChart data={data.department_breakdown} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-                    <YAxis dataKey="department" type="category" tick={{ fontSize: 11 }} width={100} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#0D3B6E" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                <ResponsiveContainer width="100%" height={220} minWidth={0}>
+                  <PieChart>
+                    <Pie
+                      data={data.department_breakdown}
+                      dataKey="count"
+                      nameKey="department"
+                      innerRadius={45}
+                      outerRadius={80}
+                      paddingAngle={2}
+                    >
+                      {data.department_breakdown.map((_: unknown, i: number) => (
+                        <Cell key={i} fill={SLICE_COLOURS[i % SLICE_COLOURS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: unknown, n: unknown) => [`${Number(v)} staff`, String(n)]} />
+                    <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
                 </ResponsiveContainer>
               ) : <p className="text-gray-400 text-sm text-center py-8">No active employees yet</p>}
             </div>
