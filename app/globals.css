@@ -453,26 +453,35 @@
 .store-stage-plinth {
   background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.2), rgba(255,255,255,0.04) 56%, transparent 74%);
 }
-/* What the goods stand in. Without it they hang in the air. */
-.store-stage-item::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 34%;
-  background: linear-gradient(to top, color-mix(in srgb, var(--store-ink) 62%, transparent), transparent);
-  pointer-events: none;
-}
-/* One item on the stage. The inset hairline is what separates a pale product
-   tile from the one behind it — without an edge, three overlapping tiles read
-   as one shape. The drop shadow is what puts them above the plinth rather than
-   printed on it. */
-.store-stage-item {
-  position: absolute;
-  overflow: hidden;
-  animation: store-float 7s ease-in-out infinite;
+/* The single frame the product stands in. The hairline keeps its edge legible
+   against a dark ground; the drop shadow is what puts it above the plinth
+   rather than printed on it. */
+.store-stage-frame {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-    0 26px 46px -18px rgba(0, 0, 0, 0.9);
+    0 40px 70px -24px rgba(0, 0, 0, 0.95);
+  animation: store-float 7s ease-in-out infinite;
+}
+/* Light falling across the top-left. Deliberately faint — it sits over a
+   shop's own photograph, and a strong sheen would just look like haze. */
+.store-stage-gloss {
+  background: linear-gradient(150deg, rgba(255,255,255,0.14), transparent 42%);
+  pointer-events: none;
+}
+/* The frame when the shop has photographed nothing. Tinted with its colour so
+   it belongs to the panel rather than sitting on it as a pale hole. */
+.store-stage-blank {
+  background:
+    radial-gradient(120% 105% at 18% 8%, color-mix(in srgb, var(--store-brand-on-ink) 26%, transparent), transparent 62%),
+    linear-gradient(158deg, #18222f 0%, #0e1521 58%, #080c12 100%);
+}
+/* The name and price of whatever is currently in the frame. */
+.store-stage-caption {
+  background: rgba(10, 14, 20, 0.62);
+  backdrop-filter: blur(14px);
+  box-shadow: inset 0 0 0 1px var(--store-ink-line);
+  border-radius: 0.9rem;
+  padding: 0.6rem 0.9rem;
 }
 
 /* ── The trust strip ──
@@ -644,7 +653,7 @@
   .store-product-card { transition: none; }
   .store-product-card:hover { transform: none; }
   .store-category-tile:hover { transform: none; }
-  .store-drift, .store-rise, .store-float, .store-stage-item { animation: none; }
+  .store-drift, .store-rise, .store-float, .store-stage-frame { animation: none; }
 }
 
 @layer components {

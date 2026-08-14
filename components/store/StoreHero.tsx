@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowRight } from 'lucide-react';
-import ProductStage from './ProductStage';
+import ProductStage, { type StageItem } from './ProductStage';
 
 /**
  * The first thing a customer sees.
@@ -28,13 +28,13 @@ interface Props {
   tagline?: string;
   /** Set by the shop; used as a faint backdrop behind the whole panel. */
   bannerImage?: string;
-  /** The shop's own product photographs, for the stage. */
-  productImages?: string[];
-  /** Product names, to seed the drawn tiles when there are no photographs. */
-  productNames?: string[];
+  /** The goods on the stage — picture, name and price. */
+  stageItems?: StageItem[];
   logo?: string;
   productCount: number;
   categoryCount: number;
+  /** The shop's own words, e.g. "3 – 5 business days". */
+  deliveryEstimate?: string;
   /** Steers the drawn tiles toward the shop's colour. */
   seedHue?: number;
   onShop: () => void;
@@ -73,9 +73,18 @@ function StoreMark({ logo, businessName }: { logo?: string; businessName: string
 }
 
 export default function StoreHero({
-  businessName, tagline, bannerImage, productImages, productNames, logo,
-  productCount, categoryCount, seedHue, onShop, onSecondary, secondaryLabel,
+  businessName, tagline, bannerImage, stageItems = [], logo,
+  productCount, categoryCount, deliveryEstimate, seedHue,
+  onShop, onSecondary, secondaryLabel,
 }: Props) {
+  // Only figures the shop actually has. A shop with one category should not be
+  // told it has one category, and a zero is worse than a gap.
+  const stats = [
+    productCount > 0 && { value: String(productCount), label: productCount === 1 ? 'Item in stock' : 'Items in stock' },
+    categoryCount > 1 && { value: String(categoryCount), label: 'Categories' },
+    deliveryEstimate?.trim() && { value: deliveryEstimate.trim(), label: 'Delivery' },
+  ].filter(Boolean) as { value: string; label: string }[];
+
   return (
     <section className="store-hero-band">
       <div className="absolute inset-0 store-ink-panel" />
@@ -126,16 +135,30 @@ export default function StoreHero({
             )}
           </div>
 
-          {productCount > 0 && (
-            <p className="mt-6 text-xs text-white/35">
-              {productCount} item{productCount === 1 ? '' : 's'} in stock
-              {categoryCount > 1 && ` across ${categoryCount} categories`}
-            </p>
+          {/* The same three facts that used to be one grey sentence nobody
+              read. Set as figures, they are the part of the hero a customer
+              actually scans — and every one is a live count, not a claim.
+              Deliberately none of them repeats the trust strip below. */}
+          {stats.length > 0 && (
+            <dl className="mt-9 flex flex-wrap items-start gap-x-7 gap-y-4">
+              {/* The dividing rule only from sm up: at 390px the third figure
+                  wraps to its own line, and a leading divider there is a stray
+                  mark against nothing. */}
+              {stats.map(({ value, label }, i) => (
+                <div key={label} className={i > 0 ? 'sm:pl-7 sm:border-l sm:border-white/10' : ''}>
+                  <dt className="sr-only">{label}</dt>
+                  <dd className="text-xl font-extrabold text-white tabular-nums leading-none">{value}</dd>
+                  <p aria-hidden className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/35">
+                    {label}
+                  </p>
+                </div>
+              ))}
+            </dl>
           )}
         </div>
 
         <div className="min-w-0">
-          <ProductStage images={productImages} names={productNames} seedHue={seedHue} />
+          <ProductStage items={stageItems} seedHue={seedHue} />
         </div>
       </div>
     </section>

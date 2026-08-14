@@ -176,12 +176,19 @@ export default function TenantStorefrontPage() {
    * angles of one item does not get a hero of the same item six times.
    */
   const featured = products.filter(p => p.item_type === 'service' || p.stock_qty > 0);
-  const heroImages = featured
-    .map(p => (Array.isArray(p.images) ? p.images.find(Boolean) : p.images))
-    .filter((src): src is string => typeof src === 'string' && !!src.trim())
-    .slice(0, 5);
-  /** Seeds the drawn tiles for a shop that has photographed nothing. */
-  const heroNames = featured.map(p => p.name).filter(Boolean).slice(0, 3);
+  /**
+   * What stands on the hero's stage: one entry per product, carrying its best
+   * picture, its name and its price, so the frame can caption whatever it is
+   * currently showing. One photograph per product — a shop that uploaded six
+   * angles of one thing should not get six turns of the same thing.
+   */
+  const heroStageItems = featured
+    .map(p => ({
+      image: (Array.isArray(p.images) ? p.images.find(Boolean) : p.images) || undefined,
+      name: p.name,
+      price: Number(p.price) || 0,
+    }))
+    .slice(0, 6);
 
   // Load tenant + branches on mount
   useEffect(() => {
@@ -696,11 +703,11 @@ export default function TenantStorefrontPage() {
               businessName={tenant?.business_name || 'Our store'}
               tagline={storeSettings.tagline}
               bannerImage={storeSettings.banner_image}
-              productImages={heroImages}
-              productNames={heroNames}
+              stageItems={heroStageItems}
               logo={tenant?.logo}
               productCount={products.length}
               categoryCount={categories.length}
+              deliveryEstimate={storeSettings.delivery_estimate}
               seedHue={brandHue}
               onShop={() => productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
               onSecondary={categories.length > 1 ? () => categoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) : undefined}
@@ -738,8 +745,7 @@ export default function TenantStorefrontPage() {
               announcement={storeSettings.announcement}
               freeDeliveryOver={storeSettings.free_delivery_threshold}
               deliveryFee={storeSettings.delivery_fee}
-              productImages={heroImages}
-              productNames={heroNames}
+              stageItems={heroStageItems}
               seedHue={brandHue}
               onShop={() => productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             />

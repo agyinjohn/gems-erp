@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowRight, Megaphone, Truck } from 'lucide-react';
-import ProductStage from './ProductStage';
+import ProductStage, { type StageItem } from './ProductStage';
 import { formatGhs } from './theme';
 
 /**
@@ -25,15 +25,13 @@ interface Props {
   freeDeliveryOver: number;
   deliveryFee: number;
   /** For the small stage on the right. */
-  productImages?: string[];
-  productNames?: string[];
+  stageItems?: StageItem[];
   seedHue?: number;
   onShop: () => void;
 }
 
 export default function PromoBanner({
-  announcement, freeDeliveryOver, deliveryFee,
-  productImages, productNames, seedHue, onShop,
+  announcement, freeDeliveryOver, deliveryFee, stageItems, seedHue, onShop,
 }: Props) {
   const notice = (announcement || '').trim();
   const offersFreeDelivery = deliveryFee > 0 && freeDeliveryOver > 0;
@@ -83,7 +81,7 @@ export default function PromoBanner({
             explicit width the box shrink-to-fits to nothing and the stage
             disappears entirely. */}
         <div className="hidden sm:block w-full min-w-0 max-w-[210px] ml-auto">
-          <ProductStage images={productImages} names={productNames} seedHue={seedHue} />
+          <ProductStage items={stageItems} seedHue={seedHue} compact />
         </div>
       </div>
     </section>
