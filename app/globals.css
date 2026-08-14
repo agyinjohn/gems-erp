@@ -310,33 +310,85 @@
   --store-brand-soft: #dbe6f2;
   --store-brand-wash: #f4f7fb;
   --store-on-brand: #ffffff;
+  /* The dark stage the navigation, hero and promo banner stand on. Fixed for
+     every shop; only the accent on top of it changes. See brand.ts. */
+  --store-ink: #0a0e14;
+  --store-brand-on-ink: #2e85e6;
+  --store-brand-on-paper: #0d3b6e;
+  --store-ink-line: rgba(255, 255, 255, 0.09);
   background:
     radial-gradient(1200px 400px at 50% -120px, var(--store-brand-wash), transparent),
     linear-gradient(180deg, #f8fafc 0%, #f1f5f9 40%, #eef2f7 100%);
   min-height: 100vh;
 }
 
+/* ── The dark surfaces ──
+ *
+ * One recipe, used by the hero and the promo banner: near-black, with the
+ * shop's colour bloomed in behind wherever the goods are staged. The bloom is
+ * the only thing that varies between shops, which is enough — it tints the
+ * whole panel without ever being asked to carry text.
+ */
+.store-ink-panel {
+  background:
+    radial-gradient(760px 420px at 76% 46%, color-mix(in srgb, var(--store-brand-on-ink) 30%, transparent), transparent 66%),
+    radial-gradient(520px 300px at 6% 4%, color-mix(in srgb, var(--store-brand-on-ink) 13%, transparent), transparent 62%),
+    linear-gradient(158deg, #111925 0%, var(--store-ink) 58%, #06090e 100%);
+}
+
+/* The small bordered label above a headline — "New arrivals", "Limited time". */
+.store-chip-ink {
+  @apply inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.16em] text-white/85;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px var(--store-ink-line);
+}
+
+/* Accent text on the ink — the second line of a headline, a live figure. */
+.store-ink-accent { color: var(--store-brand-on-ink); }
+
 .store-nav-bar {
-  background: linear-gradient(135deg, var(--store-brand) 0%, var(--store-brand-lift) 55%, var(--store-brand-deep) 100%);
-  box-shadow: 0 4px 24px color-mix(in srgb, var(--store-brand) 28%, transparent);
+  background: linear-gradient(180deg, #131b26 0%, var(--store-ink) 100%);
+  box-shadow: 0 1px 0 var(--store-ink-line), 0 14px 34px -22px rgba(0, 0, 0, 0.9);
 }
 .store-nav-categories {
-  background: color-mix(in srgb, var(--store-brand) 97%, black);
+  background: var(--store-ink);
+  border-top: 1px solid var(--store-ink-line);
   backdrop-filter: blur(8px);
 }
 
+/* The utility line above the navigation: delivery promise on one side, the
+   two things a returning customer came back for on the other. */
+.store-topbar {
+  background: #06090e;
+  border-bottom: 1px solid var(--store-ink-line);
+}
+.store-topbar-link {
+  @apply inline-flex items-center gap-1.5 text-white/55 hover:text-white transition-colors;
+}
+
 .store-search {
-  @apply flex items-center gap-2 bg-white rounded-xl px-3 h-11 shadow-sm ring-2 ring-transparent focus-within:ring-amber-400/80 transition-all;
+  @apply flex items-center gap-2 bg-white rounded-xl px-3 h-11 shadow-sm ring-2 ring-transparent transition-all;
+}
+.store-search:focus-within {
+  --tw-ring-color: color-mix(in srgb, var(--store-brand-on-ink) 80%, transparent);
 }
 .store-search-input {
   @apply flex-1 min-w-0 h-full bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none;
 }
 
 .store-pill {
-  @apply px-3.5 py-1.5 rounded-full text-xs font-medium text-blue-100/90 hover:text-white hover:bg-white/10 transition-all;
+  @apply px-3.5 py-1.5 rounded-full text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-all;
 }
+/* The shop's colour, lifted — which by construction clears 4.5:1 against the
+   ink, so using the ink back as the label is legible for free. */
 .store-pill-active {
-  @apply bg-amber-400 text-gray-900 font-semibold shadow-sm hover:bg-amber-400 hover:text-gray-900;
+  @apply font-semibold shadow-sm;
+  background: var(--store-brand-on-ink);
+  color: var(--store-ink);
+}
+.store-pill-active:hover {
+  background: var(--store-brand-on-ink);
+  color: var(--store-ink);
 }
 
 /* A slow drift across the hero, so a still page is not quite still. Sits under
@@ -347,6 +399,13 @@
 }
 .store-drift { animation: store-drift 26s ease-in-out infinite; }
 
+/* Staged goods breathing, so a still photograph is not quite still. */
+@keyframes store-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(0, -2.5%, 0); }
+}
+.store-float { animation: store-float 7s ease-in-out infinite; }
+
 /* Cards arriving, rather than appearing. */
 @keyframes store-rise {
   from { opacity: 0; transform: translateY(10px); }
@@ -354,7 +413,7 @@
 }
 .store-rise { animation: store-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-.store-hero { @apply relative overflow-hidden rounded-3xl border border-white/10 shadow-xl; }
+.store-hero { @apply relative overflow-hidden rounded-3xl shadow-2xl; }
 .store-hero-bg {
   background: linear-gradient(135deg, var(--store-brand) 0%, var(--store-brand-lift) 50%, var(--store-brand-deep) 100%);
 }
@@ -364,24 +423,100 @@
     radial-gradient(700px 320px at 12% -10%, rgba(255,255,255,0.22), transparent 60%),
     radial-gradient(500px 260px at 92% 110%, rgba(255,255,255,0.12), transparent 55%);
 }
-.store-hero-stat {
-  @apply rounded-xl bg-white/10 backdrop-blur-sm p-3 sm:p-4 ring-1 ring-white/10;
+
+/* ── The product stage ──
+ *
+ * The goods lit on a plinth, rather than a photograph stretched behind text.
+ * The glow is the shop's colour and sits behind everything; the plinth is the
+ * ellipse the products stand on; the shadow is what stops them floating.
+ */
+.store-stage-glow {
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--store-brand-on-ink) 42%, transparent), transparent 62%);
+  filter: blur(28px);
+}
+.store-stage-ring {
+  border: 1px solid color-mix(in srgb, var(--store-brand-on-ink) 34%, transparent);
+  box-shadow: 0 0 70px -12px color-mix(in srgb, var(--store-brand-on-ink) 46%, transparent);
+}
+.store-stage-plinth {
+  background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.16), rgba(255,255,255,0.03) 58%, transparent 72%);
+}
+/* One item on the stage. The inset hairline is what separates a pale product
+   tile from the one behind it — without an edge, three overlapping tiles read
+   as one shape. The drop shadow is what puts them above the plinth rather than
+   printed on it. */
+.store-stage-item {
+  position: absolute;
+  overflow: hidden;
+  animation: store-float 7s ease-in-out infinite;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 26px 46px -18px rgba(0, 0, 0, 0.9);
+}
+
+/* ── The trust strip ──
+ *
+ * Lifted out of the hero and given its own band. Inside the hero these three
+ * or four promises were competing with the headline and eating a phone's whole
+ * first screen; on their own they read in one pass and cost one row. */
+.store-trust-strip {
+  @apply relative rounded-2xl bg-white grid grid-cols-2 lg:grid-cols-4;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 18px 40px -32px rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(15, 23, 42, 0.07);
+}
+.store-trust-item {
+  @apply flex items-center gap-3 px-4 py-4 sm:px-5;
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+  border-left: 1px solid rgba(15, 23, 42, 0.06);
+}
+/* The first cell of each row has nothing to its left, and the top row has
+   nothing above it — drawn per breakpoint, since the grid rewraps. */
+.store-trust-item:nth-child(-n + 2) { border-top: 0; }
+.store-trust-item:nth-child(odd) { border-left: 0; }
+@media (width >= 64rem) {
+  .store-trust-item { border-top: 0; }
+  .store-trust-item:nth-child(odd) { border-left: 1px solid rgba(15, 23, 42, 0.06); }
+  .store-trust-item:first-child { border-left: 0; }
+}
+.store-trust-icon {
+  @apply w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0;
+  background: color-mix(in srgb, var(--store-brand) 9%, white);
+  color: var(--store-brand-on-paper);
+}
+
+/* ── Section headings ──
+ *
+ * An eyebrow in the shop's colour, the heading under it, and the action out on
+ * the right. Repeated down the page so each band announces itself. */
+.store-eyebrow {
+  @apply block text-[11px] font-bold uppercase tracking-[0.16em] mb-1.5;
+  /* Darkened for light surfaces: a shop that picked amber was writing #fbbf24
+     on white here, which is about 1.6:1. */
+  color: var(--store-brand-on-paper);
+}
+.store-section-title { @apply text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight; }
+.store-section-rule { @apply flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent; }
+.store-section-action {
+  @apply inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl
+    border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 transition-colors flex-shrink-0;
 }
 
 /* A category, shown as a place to go rather than a word in a list. */
 .store-category-tile {
-  @apply relative overflow-hidden rounded-2xl p-4 text-left transition-all duration-300
-    ring-1 ring-black/5 hover:ring-black/10 hover:-translate-y-1 hover:shadow-lg;
-  background: linear-gradient(140deg, var(--store-brand-soft), #ffffff 70%);
+  @apply relative overflow-hidden rounded-2xl bg-white text-left transition-all duration-300
+    border border-gray-200/80 hover:-translate-y-1 hover:shadow-xl;
 }
+.store-category-tile:hover { border-color: color-mix(in srgb, var(--store-brand) 30%, transparent); }
 .store-category-tile-active {
-  @apply ring-2 shadow-md;
-  --tw-ring-color: var(--store-brand);
+  @apply shadow-md;
+  border-color: var(--store-brand);
+  box-shadow: 0 0 0 1px var(--store-brand);
 }
-
-/* Section headings, with room to breathe. */
-.store-section-title { @apply text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight; }
-.store-section-rule { @apply flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent; }
+.store-category-thumb {
+  @apply relative w-full overflow-hidden;
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(140deg, var(--store-brand-soft), #ffffff 72%);
+}
 
 .store-product-card {
   @apply bg-white rounded-2xl overflow-hidden border border-gray-100/80 transition-all duration-300 hover:-translate-y-1;
@@ -411,9 +546,23 @@
   @apply text-xs py-2 rounded-lg;
 }
 .store-btn-muted { @apply bg-gray-100 text-gray-400 font-medium; }
+/* The primary call to action on a dark panel. The fill is the shop's own
+   colour with its measured label colour on top; the hairline is what keeps a
+   very dark brand from disappearing into the ink as a shape. */
 .store-btn-hero {
-  @apply bg-amber-400 hover:bg-amber-300 text-gray-900 px-6 py-3 rounded-xl shadow-lg shadow-amber-900/20 font-bold;
+  @apply px-6 py-3 rounded-xl font-bold;
+  background: var(--store-brand);
+  color: var(--store-on-brand);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 14px 30px -14px rgba(0, 0, 0, 0.85);
 }
+.store-btn-hero:hover { background: var(--store-brand-lift); }
+/* The quieter one beside it. */
+.store-btn-ink {
+  @apply px-6 py-3 rounded-xl font-bold text-white transition-colors;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 0 0 1px var(--store-ink-line);
+}
+.store-btn-ink:hover { background: rgba(255, 255, 255, 0.14); }
 
 .store-qty-btn {
   @apply w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 shadow-sm transition-colors;
@@ -471,7 +620,7 @@
   .store-product-card { transition: none; }
   .store-product-card:hover { transform: none; }
   .store-category-tile:hover { transform: none; }
-  .store-drift, .store-rise { animation: none; }
+  .store-drift, .store-rise, .store-float, .store-stage-item { animation: none; }
 }
 
 @layer components {

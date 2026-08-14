@@ -13,6 +13,10 @@ import ProductImageGallery from '@/components/store/ProductImageGallery';
 import ProductCardSkeleton from '@/components/store/ProductCardSkeleton';
 import StoreHero from '@/components/store/StoreHero';
 import CategoryTiles from '@/components/store/CategoryTiles';
+import StoreTopBar from '@/components/store/StoreTopBar';
+import TrustStrip from '@/components/store/TrustStrip';
+import PromoBanner from '@/components/store/PromoBanner';
+import SectionHeading from '@/components/store/SectionHeading';
 import { brandVars, hueOf, GEMS_NAVY } from '@/components/store/brand';
 import OrderTrackingPanel from '@/components/store/OrderTrackingPanel';
 import LocationPickerModal from '@/components/store/LocationPickerModal';
@@ -162,6 +166,8 @@ export default function TenantStorefrontPage() {
   const brandHue = hueOf(storeSettings.brand_color || GEMS_NAVY);
   /** Where "Start shopping" goes. */
   const productGridRef = useRef<HTMLDivElement>(null);
+  /** Where "Browse categories" goes. */
+  const categoryRef = useRef<HTMLElement>(null);
   /**
    * The shop's own photographs for the hero, best first.
    *
@@ -169,11 +175,13 @@ export default function TenantStorefrontPage() {
    * something nobody can buy — and one per product, so a shop that uploaded six
    * angles of one item does not get a hero of the same item six times.
    */
-  const heroImages = products
-    .filter(p => p.item_type === 'service' || p.stock_qty > 0)
+  const featured = products.filter(p => p.item_type === 'service' || p.stock_qty > 0);
+  const heroImages = featured
     .map(p => (Array.isArray(p.images) ? p.images.find(Boolean) : p.images))
     .filter((src): src is string => typeof src === 'string' && !!src.trim())
     .slice(0, 5);
+  /** Seeds the drawn tiles for a shop that has photographed nothing. */
+  const heroNames = featured.map(p => p.name).filter(Boolean).slice(0, 3);
 
   // Load tenant + branches on mount
   useEffect(() => {
@@ -625,6 +633,15 @@ export default function TenantStorefrontPage() {
   return (
     <div className="store-shell min-h-screen pb-20 lg:pb-0" style={brandVars(storeSettings.brand_color)}>
 
+      <StoreTopBar
+        freeDeliveryOver={storeSettings.free_delivery_threshold}
+        deliveryFee={storeSettings.delivery_fee}
+        deliveryEstimate={storeSettings.delivery_estimate}
+        onTrack={() => { setTrackResult(null); setTrackError(''); setStep('track'); }}
+        onAccount={openAccount}
+        customerName={storeCustomer?.name}
+      />
+
       <StoreNavbar
         businessName={tenant?.business_name}
         cartCount={cartCount}
@@ -649,7 +666,10 @@ export default function TenantStorefrontPage() {
         customerName={storeCustomer?.name}
       />
 
-      {storeSettings.announcement && step === 'shop' && (
+      {/* Once somebody is searching or filtering, the hero and its promo banner
+          stand aside — so the announcement comes back as a strip rather than
+          disappearing with them. */}
+      {storeSettings.announcement && step === 'shop' && !isBrowsing && (
         <div className="bg-amber-50 border-b border-amber-100 px-4 py-2.5 text-center text-sm text-amber-900">
           {storeSettings.announcement}
         </div>
@@ -662,6 +682,69 @@ export default function TenantStorefrontPage() {
       )}
 
       {step === 'shop' && (
+        <>
+
+        {/* ── The shop introducing itself ──
+            Full width, above the filter sidebar rather than beside it: the hero
+            and the promo banner are the shop talking, and squeezing them into
+            the column left over after a 288px sidebar made them look like a
+            widget. Once somebody is searching or filtering they are past being
+            sold to, so the whole block steps aside. */}
+        {isBrowsing && (
+          <div className="px-4 sm:px-6 pt-5 sm:pt-6 space-y-6 sm:space-y-8">
+            <StoreHero
+              businessName={tenant?.business_name || 'Our store'}
+              tagline={storeSettings.tagline}
+              bannerImage={storeSettings.banner_image}
+              productImages={heroImages}
+              productNames={heroNames}
+              logo={tenant?.logo}
+              productCount={products.length}
+              categoryCount={categories.length}
+              seedHue={brandHue}
+              onShop={() => productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              onSecondary={categories.length > 1 ? () => categoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) : undefined}
+              secondaryLabel={categories.length > 1 ? 'Browse categories' : undefined}
+            />
+
+            <TrustStrip
+              freeDeliveryOver={storeSettings.free_delivery_threshold}
+              deliveryFee={storeSettings.delivery_fee}
+              onTrack={() => { setTrackResult(null); setTrackError(''); setStep('track'); }}
+            />
+
+            {categories.length > 1 && (
+              <section ref={categoryRef} className="scroll-mt-24">
+                <SectionHeading
+                  eyebrow="Shop by category"
+                  title="Browse what we sell"
+                  actionLabel={categories.length > 6 ? 'See everything' : undefined}
+                  onAction={categories.length > 6
+                    ? () => { setFilterCat(''); resetPage(); productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+                    : undefined}
+                />
+                <CategoryTiles
+                  categories={categories}
+                  products={products}
+                  active={filterCat}
+                  seedHue={brandHue}
+                  onSelect={c => { setFilterCat(c); resetPage(); productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+                />
+              </section>
+            )}
+
+            <PromoBanner
+              announcement={storeSettings.announcement}
+              freeDeliveryOver={storeSettings.free_delivery_threshold}
+              deliveryFee={storeSettings.delivery_fee}
+              productImages={heroImages}
+              productNames={heroNames}
+              seedHue={brandHue}
+              onShop={() => productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+          </div>
+        )}
+
         <div className="flex min-h-[calc(100vh-7rem)]">
 
           {/* ── Desktop filters sidebar ── */}
@@ -699,33 +782,6 @@ export default function TenantStorefrontPage() {
           {/* ── Main content ── */}
           <div className="flex-1 min-w-0 px-4 xl:px-6 py-6">
 
-          {/* Nothing chosen yet: the shop introduces itself, then offers
-              somewhere to start. Once somebody is searching or filtering they
-              are past being sold to, so both step aside. */}
-          {isBrowsing && (
-            <>
-              <StoreHero
-                businessName={tenant?.business_name || 'Our store'}
-                tagline={storeSettings.tagline}
-                bannerImage={storeSettings.banner_image}
-                productImages={heroImages}
-                logo={tenant?.logo}
-                productCount={products.length}
-                categoryCount={categories.length}
-                freeDeliveryOver={storeSettings.free_delivery_threshold}
-                onShop={() => productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-              />
-
-              <CategoryTiles
-                categories={categories}
-                products={products}
-                active={filterCat}
-                seedHue={brandHue}
-                onSelect={c => { setFilterCat(c); resetPage(); }}
-              />
-            </>
-          )}
-
           {/* Results count */}
           {(search || filterCat || inStockOnly || priceMax !== '') && (
             <div className="flex items-center justify-between mb-4">
@@ -753,10 +809,13 @@ export default function TenantStorefrontPage() {
           ) : (
             <>
               <div ref={productGridRef} className={`flex items-center justify-between gap-3 mb-4 scroll-mt-24 transition-opacity ${refreshing ? 'opacity-60' : ''}`}>
-                <h2 className="store-section-title flex items-baseline gap-2 min-w-0">
-                  <span className="truncate">{filterCat ? filterCat : 'Everything in the shop'}</span>
-                  <span className="text-sm font-normal text-gray-400 flex-shrink-0">{filtered.length} item{filtered.length === 1 ? '' : 's'}</span>
-                </h2>
+                <div className="min-w-0">
+                  <span className="store-eyebrow">{filterCat ? 'Category' : 'All products'}</span>
+                  <h2 className="store-section-title flex items-baseline gap-2 min-w-0">
+                    <span className="truncate">{filterCat ? filterCat : 'Everything in the shop'}</span>
+                    <span className="text-sm font-normal text-gray-400 flex-shrink-0">{filtered.length} item{filtered.length === 1 ? '' : 's'}</span>
+                  </h2>
+                </div>
                 <select
                   className="lg:hidden text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none"
                   value={sortBy}
@@ -816,6 +875,7 @@ export default function TenantStorefrontPage() {
 
           </div>
         </div>
+        </>
       )}
 
 

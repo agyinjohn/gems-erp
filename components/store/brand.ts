@@ -41,6 +41,54 @@ const shift = (hex: string, amount: number) => {
   });
 };
 
+/**
+ * Hue, saturation and lightness, all 0–1 except hue in degrees.
+ *
+ * Needed because some adjustments only make sense in this space: making a
+ * colour brighter without making it greyer is a change in lightness, and there
+ * is no way to express that by mixing in white.
+ */
+function toHsl(hex: string) {
+  const { r, g, b } = toRgb(hex);
+  const [rr, gg, bb] = [r / 255, g / 255, b / 255];
+  const max = Math.max(rr, gg, bb);
+  const min = Math.min(rr, gg, bb);
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (!d) return { h: 0, s: 0, l };
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === rr
+    ? ((gg - bb) / d + (gg < bb ? 6 : 0))
+    : max === gg
+      ? (bb - rr) / d + 2
+      : (rr - gg) / d + 4;
+  return { h: h * 60, s, l };
+}
+
+function fromHsl(h: number, s: number, l: number) {
+  if (s === 0) {
+    const v = Math.round(l * 255);
+    return toHex({ r: v, g: v, b: v });
+  }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const channel = (t: number) => {
+    let x = t;
+    if (x < 0) x += 1;
+    if (x > 1) x -= 1;
+    if (x < 1 / 6) return p + (q - p) * 6 * x;
+    if (x < 1 / 2) return q;
+    if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6;
+    return p;
+  };
+  const hn = (((h % 360) + 360) % 360) / 360;
+  return toHex({
+    r: channel(hn + 1 / 3) * 255,
+    g: channel(hn) * 255,
+    b: channel(hn - 1 / 3) * 255,
+  });
+}
+
 /** Relative luminance, the sRGB way — green carries far more apparent
  *  brightness than blue, so averaging the channels is not good enough. */
 function luminance(hex: string) {
@@ -78,20 +126,86 @@ export function inkOn(hex: string) {
   return contrast(hex, '#ffffff') >= contrast(hex, INK) ? '#ffffff' : INK;
 }
 
+/**
+ * The near-black the storefront's dark surfaces are painted in.
+ *
+ * Fixed rather than derived from the shop's colour. A shop that picks yellow
+ * should get yellow accents on near-black, not a yellow wall — the surface is
+ * the same everywhere, and the shop's colour is what lands on it.
+ */
+export const STORE_INK = '#0a0e14';
+
+/**
+ * The shop's colour, lifted until it can be read on the dark shell.
+ *
+ * Necessary because the two halves of this design pull in opposite directions.
+ * The shell is near-black; the default shop colour is a deep navy. Painted
+ * straight onto the ink, that navy sits at about 1.5:1 — an eyebrow set in it
+ * is a rumour, and the whole point of putting the shop's colour on the hero is
+ * that somebody can see it.
+ *
+ * So it is walked toward white until it clears 4.5:1, and no further. A shop
+ * whose colour is already bright — an amber, a lime — clears on the first
+ * check and is returned untouched, which matters: lifting a colour that did
+ * not need it would wash out exactly the shops that chose the boldest.
+ *
+ * This is for accent *text* on the ink — the eyebrow, the second line of the
+ * headline, a link. It is deliberately not what fills the primary button: a
+ * single colour cannot do both jobs, because clearing 4.5:1 against near-black
+ * needs a relative luminance of at least 0.195 and carrying white text needs
+ * at most 0.183, and there is no colour in that gap. So the button keeps the
+ * shop's actual colour with --store-on-brand on top, which is already measured
+ * both ways, and gets a hairline edge so it still reads as a button on a dark
+ * ground. Only the text accent is lifted.
+ *
+ * The walk is through lightness in HSL rather than a slide toward white, which
+ * matters more than it sounds: mixing white into a navy desaturates it to a
+ * slate — #6c87a8, the colour of a disabled control — while raising its
+ * lightness gives the vivid blue the shop actually chose, just bright enough
+ * to read. Hue and saturation are carried through untouched.
+ */
+const READABLE = 4.5;
+
+export function brandOnInk(hex: string) {
+  const brand = /^#[0-9a-fA-F]{6}$/.test(String(hex || '')) ? String(hex).toLowerCase() : GEMS_NAVY;
+  const { h, s, l } = toHsl(brand);
+
+  // Step zero is the colour itself, so anything already bright is returned
+  // untouched. Twenty steps of 5% reaches white from black, and white clears
+  // this ink at 19:1, so the walk always terminates on something legible.
+  let lifted = brand;
+  for (let step = 0; step < 20; step++) {
+    lifted = fromHsl(h, s, Math.min(1, l + step * 0.05));
+    if (contrast(lifted, STORE_INK) >= READABLE) break;
+  }
+  return lifted;
+}
+
+/**
+ * The same idea pointed the other way: the shop's colour darkened until it can
+ * be read on a white card.
+ *
+ * The storefront is not all dark. Section eyebrows, the trust icons and the
+ * active states in the filter menu all put the shop's colour on white, and a
+ * shop that picked amber got #fbbf24 on #ffffff — about 1.6:1, which is a
+ * label nobody can read. Deep colours pass on the first check and come back
+ * untouched, so this only ever fires for the bright ones.
+ */
+export function brandOnPaper(hex: string) {
+  const brand = /^#[0-9a-fA-F]{6}$/.test(String(hex || '')) ? String(hex).toLowerCase() : GEMS_NAVY;
+  const { h, s, l } = toHsl(brand);
+
+  let dimmed = brand;
+  for (let step = 0; step < 20; step++) {
+    dimmed = fromHsl(h, s, Math.max(0, l - step * 0.05));
+    if (contrast(dimmed, '#ffffff') >= READABLE) break;
+  }
+  return dimmed;
+}
+
 /** The hue on the colour wheel, for steering drawn product tiles. */
 export function hueOf(hex: string): number {
-  const { r, g, b } = toRgb(/^#[0-9a-fA-F]{6}$/.test(hex || '') ? hex : GEMS_NAVY);
-  const [rr, gg, bb] = [r / 255, g / 255, b / 255];
-  const max = Math.max(rr, gg, bb);
-  const min = Math.min(rr, gg, bb);
-  if (max === min) return 0;
-  const d = max - min;
-  const h = max === rr
-    ? ((gg - bb) / d + (gg < bb ? 6 : 0))
-    : max === gg
-      ? (bb - rr) / d + 2
-      : (rr - gg) / d + 4;
-  return Math.round(h * 60);
+  return Math.round(toHsl(/^#[0-9a-fA-F]{6}$/.test(hex || '') ? hex : GEMS_NAVY).h);
 }
 
 /**
@@ -116,5 +230,11 @@ export function brandVars(color?: string): BrandVars {
     '--store-brand-wash': shift(brand, 0.95),
     // Readable on the brand colour itself, whichever way that falls.
     '--store-on-brand': inkOn(brand),
+    // The dark shell the hero and promo banner sit on, and the shop's colour
+    // lifted far enough to be read as text against it.
+    '--store-ink': STORE_INK,
+    '--store-brand-on-ink': brandOnInk(brand),
+    // And the same colour darkened, for the places it lands on white.
+    '--store-brand-on-paper': brandOnPaper(brand),
   };
 }

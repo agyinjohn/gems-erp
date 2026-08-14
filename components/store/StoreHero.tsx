@@ -1,35 +1,54 @@
 'use client';
 
-import { ArrowRight, Truck, Lock, BadgeCheck } from 'lucide-react';
-import { formatGhs } from './theme';
-import HeroCarousel from './HeroCarousel';
+import { ArrowRight, Sparkles } from 'lucide-react';
+import ProductStage from './ProductStage';
 
 /**
  * The first thing a customer sees.
  *
- * There wasn't one. The classes for it have been sitting in globals.css since
- * the storefront was built and nothing ever rendered them, so every shop opened
- * straight into a wall of small product tiles — which reads as a spreadsheet
- * with pictures rather than as somewhere to buy something.
+ * Two halves. On the left, in order: whose shop this is, what they'd like you
+ * to know, and the one button that starts the shopping. On the right, the goods
+ * themselves, lit and standing on a plinth — see ProductStage.
  *
- * It says three things and stops: whose shop this is, what they'd like you to
- * know, and how to start looking. Behind it, the brand colour is always there
- * as a surface, with photographs layered over the top — see HeroCarousel for
- * which ones and why. That order matters: a slow connection, a blocked host or
- * a dead link leaves a composed hero rather than a hole.
+ * The panel is near-black for every shop, with the shop's own colour bloomed in
+ * behind the goods and carrying the accent line of the headline. That split is
+ * deliberate. Letting the colour be the whole surface meant a shop that picked
+ * yellow got a yellow wall, and one that picked the default navy got something
+ * indistinguishable from every other shop; keeping the surface fixed and
+ * spending the colour on the accents gives both of them a storefront that looks
+ * composed and still looks like theirs.
+ *
+ * The trust promises used to live down here. They have their own band now — see
+ * TrustStrip — because in the hero they competed with the headline and, stacked
+ * on a phone, pushed the first purchasable thing off the screen entirely.
  */
 
+interface Props {
+  businessName: string;
+  tagline?: string;
+  /** Set by the shop; used as a faint backdrop behind the whole panel. */
+  bannerImage?: string;
+  /** The shop's own product photographs, for the stage. */
+  productImages?: string[];
+  /** Product names, to seed the drawn tiles when there are no photographs. */
+  productNames?: string[];
+  logo?: string;
+  productCount: number;
+  categoryCount: number;
+  /** Steers the drawn tiles toward the shop's colour. */
+  seedHue?: number;
+  onShop: () => void;
+  /** The second, quieter action. Omitted when there is nowhere to send them. */
+  onSecondary?: () => void;
+  secondaryLabel?: string;
+}
+
 /**
- * The shop's mark, top-left.
+ * The shop's mark. A logo when they have uploaded one, otherwise their initial
+ * in the same badge — the hero should never open on a bare headline, which is
+ * what most shops got, since most have uploaded nothing.
  *
- * A logo when they have uploaded one. When they have not — which is most shops
- * on day one, and plenty of them a year later — their initial, set in the same
- * badge. The alternative is what was here before: nothing, so the hero opened
- * on a bare headline floating in colour, which reads as a page that failed to
- * finish loading rather than as a shopfront.
- *
- * Decorative either way. The business name is already the <h1> directly
- * beneath it, so a screen reader gains nothing from hearing the letter too.
+ * Decorative either way: the business name is written out right beside it.
  */
 function StoreMark({ logo, businessName }: { logo?: string; businessName: string }) {
   if (logo) {
@@ -37,7 +56,7 @@ function StoreMark({ logo, businessName }: { logo?: string; businessName: string
       <img
         src={logo}
         alt=""
-        className="w-14 h-14 rounded-2xl object-cover bg-white/10 ring-1 ring-white/25 shadow-lg"
+        className="w-11 h-11 rounded-xl object-cover bg-white/10 ring-1 ring-white/20 flex-shrink-0"
       />
     );
   }
@@ -45,91 +64,78 @@ function StoreMark({ logo, businessName }: { logo?: string; businessName: string
   return (
     <div
       aria-hidden
-      className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm ring-1 ring-white/25 shadow-lg
-        flex items-center justify-center text-2xl font-extrabold text-white tracking-tight"
+      className="w-11 h-11 rounded-xl bg-white/10 ring-1 ring-white/20 flex-shrink-0
+        flex items-center justify-center text-lg font-extrabold text-white"
     >
       {businessName.trim().charAt(0).toUpperCase() || '?'}
     </div>
   );
 }
 
-interface Props {
-  businessName: string;
-  tagline?: string;
-  bannerImage?: string;
-  /** The shop's own product photographs, for the rotating background. */
-  productImages?: string[];
-  logo?: string;
-  productCount: number;
-  categoryCount: number;
-  freeDeliveryOver: number;
-  onShop: () => void;
-}
-
 export default function StoreHero({
-  businessName, tagline, bannerImage, productImages, logo,
-  productCount, categoryCount, freeDeliveryOver, onShop,
+  businessName, tagline, bannerImage, productImages, productNames, logo,
+  productCount, categoryCount, seedHue, onShop, onSecondary, secondaryLabel,
 }: Props) {
   return (
-    <section className="store-hero mb-6 sm:mb-8">
-      {/* The colour, always — everything else is layered over it, so a slow or
-          missing photograph leaves a hero rather than a hole. */}
-      <div className="absolute inset-0 store-hero-bg" />
-      <div className="absolute inset-0 store-hero-sheen store-drift" />
+    <section className="store-hero">
+      <div className="absolute inset-0 store-ink-panel" />
 
-      <HeroCarousel banner={bannerImage} productImages={productImages} />
+      {/* A shop that went to the trouble of uploading a banner still gets it,
+          but underneath rather than over — enough to tint the panel, never
+          enough to fight the headline for the text's ground. */}
+      {bannerImage && (
+        <>
+          <img src={bannerImage} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover opacity-25" />
+          <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-[#0a0e14] via-[#0a0e14]/85 to-[#0a0e14]/55" />
+        </>
+      )}
 
-      <div className="relative px-6 sm:px-10 py-10 sm:py-14 lg:py-16">
-        <div className="max-w-2xl">
-          <div className="mb-5">
-            <StoreMark logo={logo} businessName={businessName} />
-          </div>
+      <div className="relative grid lg:grid-cols-[1.05fr_0.95fr] items-center gap-8 lg:gap-4
+        px-6 sm:px-10 lg:px-12 py-10 sm:py-14">
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.05]">
-            {businessName}
+        {/* The shop's name is said once here, as the accent line of the
+            headline. It was being said three times — in the lockup, in the
+            headline and again in the navigation — which is how a hero starts
+            to read like a form rather than a shopfront. The mark stays, since
+            it is the only place a shop's logo appears above the fold. */}
+        <div className="min-w-0">
+          <StoreMark logo={logo} businessName={businessName} />
+
+          <span className="store-chip-ink mt-6 mb-4">
+            <Sparkles className="w-3 h-3" /> Now open online
+          </span>
+
+          <h1 className="text-3xl sm:text-4xl lg:text-[2.7rem] font-extrabold text-white tracking-tight leading-[1.05] text-balance">
+            Everything from
+            <br />
+            <span className="store-ink-accent">{businessName}</span>
           </h1>
 
-          <p className="mt-3 text-base sm:text-lg text-white/85 leading-relaxed max-w-xl">
-            {tagline || `Order online and we'll take it from there.`}
+          <p className="mt-4 text-[15px] text-white/60 leading-relaxed max-w-lg">
+            {tagline || 'Order online and we’ll take it from there.'}
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <button type="button" onClick={onShop} className="store-btn store-btn-hero inline-flex items-center gap-2">
               Start shopping <ArrowRight className="w-4 h-4" />
             </button>
-            {productCount > 0 && (
-              <span className="text-sm text-white/70">
-                {productCount} item{productCount === 1 ? '' : 's'}
-                {categoryCount > 1 && ` across ${categoryCount} categories`}
-              </span>
+            {onSecondary && secondaryLabel && (
+              <button type="button" onClick={onSecondary} className="store-btn store-btn-ink">
+                {secondaryLabel}
+              </button>
             )}
           </div>
+
+          {productCount > 0 && (
+            <p className="mt-5 text-xs text-white/40">
+              {productCount} item{productCount === 1 ? '' : 's'} in stock
+              {categoryCount > 1 && ` across ${categoryCount} categories`}
+            </p>
+          )}
         </div>
 
-        {/* Why it is safe to buy here — the three things a first-time customer
-            of a shop they have not heard of actually wants to know.
-
-            Three across at every width, rather than stacking on a phone.
-            Stacked, these three cards ran to about 250px and pushed the first
-            product clean off the first screen, so the shop spent a customer's
-            whole opening view on reassurance and never showed them anything to
-            buy. Across, they cost about 60px and the explanatory line is
-            dropped — on a narrow column the heading is the whole message
-            anyway, and the detail is repeated at checkout where it matters. */}
-        <div className="mt-8 sm:mt-12 grid grid-cols-3 gap-2 sm:gap-3 max-w-3xl">
-          {[
-            { icon: Truck, title: 'Free delivery', note: `On orders over ${formatGhs(freeDeliveryOver)}` },
-            { icon: Lock, title: 'Secure checkout', note: 'Card and mobile money, via Paystack' },
-            { icon: BadgeCheck, title: 'Live stock', note: 'What you see is what is on the shelf' },
-          ].map(({ icon: Icon, title, note }) => (
-            <div key={title} className="store-hero-stat flex flex-col sm:flex-row items-start gap-1.5 sm:gap-3">
-              <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white/90 flex-shrink-0 sm:mt-0.5" />
-              <div className="min-w-0">
-                <p className="text-[11px] leading-tight sm:text-sm font-semibold text-white">{title}</p>
-                <p className="hidden sm:block text-xs text-white/65 leading-snug">{note}</p>
-              </div>
-            </div>
-          ))}
+        <div className="min-w-0">
+          <ProductStage images={productImages} names={productNames} seedHue={seedHue} />
         </div>
       </div>
     </section>
