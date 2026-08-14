@@ -162,6 +162,18 @@ export default function TenantStorefrontPage() {
   const brandHue = hueOf(storeSettings.brand_color || GEMS_NAVY);
   /** Where "Start shopping" goes. */
   const productGridRef = useRef<HTMLDivElement>(null);
+  /**
+   * The shop's own photographs for the hero, best first.
+   *
+   * In stock and worth featuring — there is no sense opening with a picture of
+   * something nobody can buy — and one per product, so a shop that uploaded six
+   * angles of one item does not get a hero of the same item six times.
+   */
+  const heroImages = products
+    .filter(p => p.item_type === 'service' || p.stock_qty > 0)
+    .map(p => (Array.isArray(p.images) ? p.images.find(Boolean) : p.images))
+    .filter((src): src is string => typeof src === 'string' && !!src.trim())
+    .slice(0, 5);
 
   // Load tenant + branches on mount
   useEffect(() => {
@@ -696,6 +708,7 @@ export default function TenantStorefrontPage() {
                 businessName={tenant?.business_name || 'Our store'}
                 tagline={storeSettings.tagline}
                 bannerImage={storeSettings.banner_image}
+                productImages={heroImages}
                 logo={tenant?.logo}
                 productCount={products.length}
                 categoryCount={categories.length}

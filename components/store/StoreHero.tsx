@@ -2,6 +2,7 @@
 
 import { ArrowRight, Truck, Lock, BadgeCheck } from 'lucide-react';
 import { formatGhs } from './theme';
+import HeroCarousel from './HeroCarousel';
 
 /**
  * The first thing a customer sees.
@@ -12,16 +13,18 @@ import { formatGhs } from './theme';
  * with pictures rather than as somewhere to buy something.
  *
  * It says three things and stops: whose shop this is, what they'd like you to
- * know, and how to start looking. The banner is the shop's own photograph when
- * they have given one; without it the brand colour is treated as a surface —
- * two soft lights across a gradient, drifting slowly — which looks deliberate
- * rather than empty.
+ * know, and how to start looking. Behind it, the brand colour is always there
+ * as a surface, with photographs layered over the top — see HeroCarousel for
+ * which ones and why. That order matters: a slow connection, a blocked host or
+ * a dead link leaves a composed hero rather than a hole.
  */
 
 interface Props {
   businessName: string;
   tagline?: string;
   bannerImage?: string;
+  /** The shop's own product photographs, for the rotating background. */
+  productImages?: string[];
   logo?: string;
   productCount: number;
   categoryCount: number;
@@ -30,26 +33,17 @@ interface Props {
 }
 
 export default function StoreHero({
-  businessName, tagline, bannerImage, logo,
+  businessName, tagline, bannerImage, productImages, logo,
   productCount, categoryCount, freeDeliveryOver, onShop,
 }: Props) {
   return (
     <section className="store-hero mb-6 sm:mb-8">
-      {/* The picture, or the colour treated like one. */}
+      {/* The colour, always — everything else is layered over it, so a slow or
+          missing photograph leaves a hero rather than a hole. */}
       <div className="absolute inset-0 store-hero-bg" />
-      {bannerImage ? (
-        <>
-          <img
-            src={bannerImage}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover store-drift"
-          />
-          {/* Enough darkness for white text to hold, whatever the photograph. */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/20" />
-        </>
-      ) : (
-        <div className="absolute inset-0 store-hero-sheen store-drift" />
-      )}
+      <div className="absolute inset-0 store-hero-sheen store-drift" />
+
+      <HeroCarousel banner={bannerImage} productImages={productImages} />
 
       <div className="relative px-6 sm:px-10 py-10 sm:py-14 lg:py-16">
         <div className="max-w-2xl">
