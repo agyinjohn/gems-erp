@@ -542,10 +542,23 @@
   border-color: var(--store-brand);
   box-shadow: 0 0 0 1px var(--store-brand);
 }
+/* A fixed height rather than an aspect ratio: at tile width 4/3 made the
+   picture the whole card, which is fine for a photograph and dreadful for the
+   drawn fallback — a pale panel with one enormous letter on it. A short band
+   keeps the tile a label with a picture on it, which is what it is. */
 .store-category-thumb {
   @apply relative w-full overflow-hidden;
-  aspect-ratio: 4 / 3;
+  height: 6.5rem;
   background: linear-gradient(140deg, var(--store-brand-soft), #ffffff 72%);
+}
+@media (width >= 40rem) {
+  .store-category-thumb { height: 7.5rem; }
+}
+/* How much is in there. Legible over a photograph or over the drawn tile,
+   which is why it carries its own dark ground rather than a tint. */
+.store-category-count {
+  @apply absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full
+    bg-black/45 text-white backdrop-blur-sm tabular-nums;
 }
 
 .store-product-card {
