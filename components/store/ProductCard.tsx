@@ -6,6 +6,10 @@ import { getProductImages } from './productImages';
 
 interface Props {
   product: any;
+  /** The shop's hue, for a product with no photograph of its own. */
+  seedHue?: number;
+  /** Where it sits in the grid, so a row of cards arrives in order. */
+  index?: number;
   inCartQty?: number;
   showBranch?: boolean;
   cartLoading?: boolean;
@@ -16,17 +20,22 @@ interface Props {
   onToggleWishlist?: () => void;
 }
 
-export default function ProductCard({ product: p, inCartQty, showBranch, cartLoading, wishlisted, onOpen, onAdd, onUpdateQty, onToggleWishlist }: Props) {
+export default function ProductCard({ product: p, seedHue, index = 0, inCartQty, showBranch, cartLoading, wishlisted, onOpen, onAdd, onUpdateQty, onToggleWishlist }: Props) {
   const isService = p.item_type === 'service';
   const outOfStock = !isService && p.stock_qty <= 0;
   const lowStock = !isService && p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5);
   const multiImage = getProductImages(p).length > 1;
 
   return (
-    <article className="store-product-card group flex flex-col">
+    <article
+      className="store-product-card store-rise group flex flex-col"
+      // Staggered a little down the first rows, then not at all — a customer
+      // scrolling fast should never wait for a card to finish arriving.
+      style={{ animationDelay: `${Math.min(index, 11) * 35}ms` }}
+    >
       <div className="relative">
         <button type="button" onClick={onOpen} className="relative block w-full text-left">
-          <ProductCardImage product={p} />
+          <ProductCardImage product={p} seedHue={seedHue} />
 
           {outOfStock && (
             <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px] flex items-center justify-center">
@@ -41,7 +50,8 @@ export default function ProductCard({ product: p, inCartQty, showBranch, cartLoa
             </span>
           )}
           {isService && (
-            <span className="absolute top-2 left-2 store-badge bg-purple-600 text-white text-[9px] px-2 py-0.5">
+            <span className="absolute top-2 left-2 store-badge text-[9px] px-2 py-0.5"
+              style={{ background: 'var(--store-brand)', color: 'var(--store-on-brand)' }}>
               Service
             </span>
           )}
@@ -70,11 +80,11 @@ export default function ProductCard({ product: p, inCartQty, showBranch, cartLoa
       </div>
 
       <div className="p-2.5 sm:p-3 flex flex-col flex-1 gap-1">
-        <div className="text-[9px] font-bold uppercase tracking-wider text-[#1A5294] truncate">
+        <div className="text-[9px] font-bold uppercase tracking-wider truncate" style={{ color: 'var(--store-brand-lift)' }}>
           {p.category_name || 'General'}
         </div>
         <button type="button" onClick={onOpen} className="text-left">
-          <h3 className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-2 leading-snug group-hover:text-[#0D3B6E] transition-colors">
+          <h3 className="text-[13px] sm:text-sm font-semibold text-gray-900 line-clamp-2 leading-snug transition-colors group-hover:[color:var(--store-brand)]">
             {p.name}
           </h3>
         </button>

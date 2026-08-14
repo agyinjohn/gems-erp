@@ -296,14 +296,34 @@
   animation-delay: -5s;
 }
 
-/* ── Storefront (eCommerce) ── */
-.store-shell { background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 40%, #eef2f7 100%); min-height: 100vh; }
+/* ── Storefront (eCommerce) ──
+ *
+ * Driven by custom properties rather than a fixed navy, so a shop looks like
+ * itself. brand.ts sets them on the shell from the tenant's chosen colour; the
+ * fallbacks below are the navy every storefront used to be, so a shop that has
+ * chosen nothing is unchanged.
+ */
+.store-shell {
+  --store-brand: #0d3b6e;
+  --store-brand-deep: #08264a;
+  --store-brand-lift: #1a5294;
+  --store-brand-soft: #dbe6f2;
+  --store-brand-wash: #f4f7fb;
+  --store-on-brand: #ffffff;
+  background:
+    radial-gradient(1200px 400px at 50% -120px, var(--store-brand-wash), transparent),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 40%, #eef2f7 100%);
+  min-height: 100vh;
+}
 
 .store-nav-bar {
-  background: linear-gradient(135deg, #0D3B6E 0%, #1A5294 55%, #0f4c8a 100%);
-  box-shadow: 0 4px 24px rgba(13, 59, 110, 0.25);
+  background: linear-gradient(135deg, var(--store-brand) 0%, var(--store-brand-lift) 55%, var(--store-brand-deep) 100%);
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--store-brand) 28%, transparent);
 }
-.store-nav-categories { background: rgba(13, 59, 110, 0.97); backdrop-filter: blur(8px); }
+.store-nav-categories {
+  background: color-mix(in srgb, var(--store-brand) 97%, black);
+  backdrop-filter: blur(8px);
+}
 
 .store-search {
   @apply flex items-center gap-2 bg-white rounded-xl px-3 h-11 shadow-sm ring-2 ring-transparent focus-within:ring-amber-400/80 transition-all;
@@ -319,16 +339,57 @@
   @apply bg-amber-400 text-gray-900 font-semibold shadow-sm hover:bg-amber-400 hover:text-gray-900;
 }
 
-.store-hero { @apply border border-white/10 shadow-xl; }
+/* A slow drift across the hero, so a still page is not quite still. Sits under
+   prefers-reduced-motion below. */
+@keyframes store-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-1.5%, -2%, 0) scale(1.06); }
+}
+.store-drift { animation: store-drift 26s ease-in-out infinite; }
+
+/* Cards arriving, rather than appearing. */
+@keyframes store-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.store-rise { animation: store-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.store-hero { @apply relative overflow-hidden rounded-3xl border border-white/10 shadow-xl; }
 .store-hero-bg {
-  background: linear-gradient(135deg, #0D3B6E 0%, #1A5294 50%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--store-brand) 0%, var(--store-brand-lift) 50%, var(--store-brand-deep) 100%);
+}
+/* A soft light across the top-left, so a flat colour reads as a surface. */
+.store-hero-sheen {
+  background:
+    radial-gradient(700px 320px at 12% -10%, rgba(255,255,255,0.22), transparent 60%),
+    radial-gradient(500px 260px at 92% 110%, rgba(255,255,255,0.12), transparent 55%);
 }
 .store-hero-stat {
   @apply rounded-xl bg-white/10 backdrop-blur-sm p-4 ring-1 ring-white/10;
 }
 
+/* A category, shown as a place to go rather than a word in a list. */
+.store-category-tile {
+  @apply relative overflow-hidden rounded-2xl p-4 text-left transition-all duration-300
+    ring-1 ring-black/5 hover:ring-black/10 hover:-translate-y-1 hover:shadow-lg;
+  background: linear-gradient(140deg, var(--store-brand-soft), #ffffff 70%);
+}
+.store-category-tile-active {
+  @apply ring-2 shadow-md;
+  --tw-ring-color: var(--store-brand);
+}
+
+/* Section headings, with room to breathe. */
+.store-section-title { @apply text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight; }
+.store-section-rule { @apply flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent; }
+
 .store-product-card {
-  @apply bg-white rounded-xl overflow-hidden border border-gray-100/80 shadow-sm hover:shadow-md hover:border-gray-200/80 transition-all duration-200 hover:-translate-y-0.5;
+  @apply bg-white rounded-2xl overflow-hidden border border-gray-100/80 transition-all duration-300 hover:-translate-y-1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.store-product-card:hover {
+  border-color: color-mix(in srgb, var(--store-brand) 22%, transparent);
+  box-shadow: 0 14px 34px -14px color-mix(in srgb, var(--store-brand) 45%, transparent);
 }
 
 .store-badge {
@@ -341,8 +402,11 @@
   @apply font-bold text-sm py-2.5 rounded-xl transition-all duration-200 active:scale-[0.98];
 }
 .store-btn-primary {
-  @apply bg-[#0D3B6E] hover:bg-[#1A5294] text-white shadow-md shadow-blue-900/10 hover:shadow-lg;
+  @apply shadow-md hover:shadow-lg;
+  background: var(--store-brand);
+  color: var(--store-on-brand);
 }
+.store-btn-primary:hover { background: var(--store-brand-lift); }
 .store-btn-sm {
   @apply text-xs py-2 rounded-lg;
 }
@@ -355,8 +419,11 @@
   @apply w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 shadow-sm transition-colors;
 }
 .store-qty-btn-primary {
-  @apply bg-[#0D3B6E] text-white border-[#0D3B6E] hover:bg-[#1A5294];
+  background: var(--store-brand);
+  color: var(--store-on-brand);
+  border-color: var(--store-brand);
 }
+.store-qty-btn-primary:hover { background: var(--store-brand-lift); }
 
 .store-filter-panel { @apply bg-white rounded-2xl border border-gray-100 shadow-sm; }
 .store-filter-section-title { @apply text-sm font-semibold text-gray-800; }
@@ -403,6 +470,8 @@
 @media (prefers-reduced-motion: reduce) {
   .store-product-card { transition: none; }
   .store-product-card:hover { transform: none; }
+  .store-category-tile:hover { transform: none; }
+  .store-drift, .store-rise { animation: none; }
 }
 
 @layer components {

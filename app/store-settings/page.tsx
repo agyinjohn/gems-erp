@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Spinner, toast } from '@/components/ui';
-import { ExternalLink, Save, Store, Truck, Megaphone, Tag, Plus, Trash2, Wallet, Star, QrCode, Download, Printer, Zap, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ExternalLink, Save, Store, Truck, Megaphone, Tag, Plus, Trash2, Wallet, Star, QrCode, Download, Printer, Zap, ToggleLeft, ToggleRight, Palette } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import api from '@/lib/api';
 import QRCode from 'qrcode';
@@ -13,6 +13,15 @@ import {
   type StorefrontSettings,
 } from '@/lib/storefrontSettings';
 import { formatGhs } from '@/components/store/theme';
+
+/**
+ * A few colours that are safe to land on.
+ *
+ * Not a palette to obey — the picker takes anything — but somewhere to start
+ * for a shop owner who knows they want green and does not want to choose
+ * between four thousand of them.
+ */
+const BRAND_SWATCHES = ['#0d3b6e', '#0f766e', '#b45309', '#9d174d', '#4c1d95', '#166534'];
 
 const MOMO_NETWORKS = [
   { label: 'MTN Mobile Money', code: 'MTN' },
@@ -365,6 +374,112 @@ export default function StoreSettingsPage() {
               <p className="text-xs text-gray-400 mt-2">
                 DNS: CNAME to your GEMS host. API resolve: <code className="bg-gray-100 px-1 rounded">/api/storefront/resolve-domain?host=…</code>
               </p>
+            </div>
+
+            {/* How the shop looks. One colour, one picture, one line — the
+                three things that stop every GEMS storefront looking like the
+                same storefront, and few enough that none of them can be got
+                badly wrong. */}
+            <div className="card">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: `${form.brand_color || '#0d3b6e'}1a` }}>
+                  <Palette className="w-5 h-5" style={{ color: form.brand_color || '#0d3b6e' }} />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">Look of your store</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Your colour, your banner, your words</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="form-label">Brand colour</label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="color"
+                      className="w-11 h-11 rounded-lg border border-gray-200 cursor-pointer bg-white p-1"
+                      value={form.brand_color || '#0d3b6e'}
+                      onChange={e => set('brand_color', e.target.value)}
+                      aria-label="Pick your brand colour"
+                    />
+                    <input
+                      className="form-input font-mono text-sm w-32"
+                      placeholder="#0d3b6e"
+                      value={form.brand_color || ''}
+                      onChange={e => set('brand_color', e.target.value.trim().toLowerCase())}
+                    />
+                    {BRAND_SWATCHES.map(c => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => set('brand_color', c)}
+                        aria-label={`Use ${c}`}
+                        className={`w-7 h-7 rounded-full ring-2 transition-transform hover:scale-110 ${
+                          (form.brand_color || '').toLowerCase() === c ? 'ring-gray-900' : 'ring-transparent'
+                        }`}
+                        style={{ background: c }}
+                      />
+                    ))}
+                    {form.brand_color && (
+                      <button type="button" onClick={() => set('brand_color', '')} className="text-xs text-gray-400 hover:text-gray-700">
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    Everything else is worked out from this one — buttons, the banner, the tint behind a
+                    badge, and whether writing on it should be white or black.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="form-label">Tagline <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <input
+                    className="form-input"
+                    maxLength={120}
+                    placeholder="e.g. Printing and design in Accra since 2016"
+                    value={form.tagline || ''}
+                    onChange={e => set('tagline', e.target.value)}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">One line under your name at the top of the shop.</p>
+                </div>
+
+                <div>
+                  <label className="form-label">Banner image <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <input
+                    className="form-input"
+                    placeholder="https://…"
+                    value={form.banner_image || ''}
+                    onChange={e => set('banner_image', e.target.value.trim())}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    A wide photograph of your shop or your work. Without one, your colour is used —
+                    which still looks deliberate, so only add one you are happy with.
+                  </p>
+                </div>
+
+                {/* What it will look like, without leaving the page. */}
+                <div className="rounded-2xl overflow-hidden ring-1 ring-gray-200">
+                  <div className="relative h-28" style={{
+                    background: form.banner_image
+                      ? `url(${form.banner_image}) center/cover`
+                      : `linear-gradient(135deg, ${form.brand_color || '#0d3b6e'}, ${form.brand_color || '#0d3b6e'}cc)`,
+                  }}>
+                    <div className="absolute inset-0 bg-black/35 flex flex-col justify-center px-4">
+                      <p className="text-white font-extrabold text-lg leading-tight">{tenant?.business_name || 'Your business'}</p>
+                      <p className="text-white/80 text-xs mt-0.5">{form.tagline || 'Order online and we’ll take it from there.'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-3 bg-white">
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-bold text-white"
+                      style={{ background: form.brand_color || '#0d3b6e' }}>
+                      Add to Cart
+                    </span>
+                    <span className="text-xs text-gray-400">is how your buttons will look</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Announcement */}

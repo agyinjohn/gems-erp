@@ -33,7 +33,7 @@ export default function MobileBottomBar({ cartCount, filterCount, active, onHome
             type="button"
             onClick={item.onClick}
             className={`relative flex flex-col items-center gap-0.5 min-w-[4rem] py-1 rounded-lg transition-colors ${
-              isActive ? 'text-[#0D3B6E]' : 'text-gray-500 hover:text-gray-800'
+              isActive ? '[color:var(--store-brand)]' : 'text-gray-500 hover:text-gray-800'
             }`}
           >
             <span className="relative">

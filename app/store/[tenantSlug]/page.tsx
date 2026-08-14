@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, SlidersHorizontal, Tag, Heart } from 'lucide-react';
 import StoreAuthModal from '@/components/store/StoreAuthModal';
@@ -11,6 +11,9 @@ import StoreFooter from '@/components/store/StoreFooter';
 import MobileBottomBar from '@/components/store/MobileBottomBar';
 import ProductImageGallery from '@/components/store/ProductImageGallery';
 import ProductCardSkeleton from '@/components/store/ProductCardSkeleton';
+import StoreHero from '@/components/store/StoreHero';
+import CategoryTiles from '@/components/store/CategoryTiles';
+import { brandVars, hueOf, GEMS_NAVY } from '@/components/store/brand';
 import OrderTrackingPanel from '@/components/store/OrderTrackingPanel';
 import LocationPickerModal from '@/components/store/LocationPickerModal';
 import InstallPrompt from '@/components/store/InstallPrompt';
@@ -152,6 +155,13 @@ export default function TenantStorefrontPage() {
 
   const maxProductPrice = Math.ceil(Math.max(0, ...products.map(p => p.price || 0)) / 100) * 100 || 5000;
   const activeFilterCount = [filterCat, inStockOnly, priceMax !== '' || priceMin > 0].filter(Boolean).length;
+
+  /** Somebody who has not asked for anything yet, and can still be introduced. */
+  const isBrowsing = !search && !filterCat && !inStockOnly && priceMax === '' && priceMin === 0;
+  /** The shop's hue, so a drawn product tile belongs to this shop. */
+  const brandHue = hueOf(storeSettings.brand_color || GEMS_NAVY);
+  /** Where "Start shopping" goes. */
+  const productGridRef = useRef<HTMLDivElement>(null);
 
   // Load tenant + branches on mount
   useEffect(() => {
@@ -601,7 +611,7 @@ export default function TenantStorefrontPage() {
   );
 
   return (
-    <div className="store-shell min-h-screen pb-20 lg:pb-0">
+    <div className="store-shell min-h-screen pb-20 lg:pb-0" style={brandVars(storeSettings.brand_color)}>
 
       <StoreNavbar
         businessName={tenant?.business_name}
@@ -677,12 +687,30 @@ export default function TenantStorefrontPage() {
           {/* ── Main content ── */}
           <div className="flex-1 min-w-0 px-4 xl:px-6 py-6">
 
-          {!search && !filterCat && !inStockOnly && priceMax === '' && priceMin === 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 bg-white/70 backdrop-blur-sm rounded-2xl px-5 py-3 mb-6 ring-1 ring-gray-200/60 text-xs sm:text-sm">
-              <span className="flex items-center gap-2 text-gray-700 font-medium"><Truck className="w-4 h-4 text-[#0D3B6E]" /> Free delivery over {formatGhs(storeSettings.free_delivery_threshold)}</span>
-              <span className="hidden sm:flex items-center gap-2 text-gray-600"><Lock className="w-4 h-4 text-emerald-600" /> Secure Paystack checkout</span>
-              <span className="hidden md:flex items-center gap-2 text-gray-600"><BadgeCheck className="w-4 h-4 text-amber-500" /> Verified inventory</span>
-            </div>
+          {/* Nothing chosen yet: the shop introduces itself, then offers
+              somewhere to start. Once somebody is searching or filtering they
+              are past being sold to, so both step aside. */}
+          {isBrowsing && (
+            <>
+              <StoreHero
+                businessName={tenant?.business_name || 'Our store'}
+                tagline={storeSettings.tagline}
+                bannerImage={storeSettings.banner_image}
+                logo={tenant?.logo}
+                productCount={products.length}
+                categoryCount={categories.length}
+                freeDeliveryOver={storeSettings.free_delivery_threshold}
+                onShop={() => productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              />
+
+              <CategoryTiles
+                categories={categories}
+                products={products}
+                active={filterCat}
+                seedHue={brandHue}
+                onSelect={c => { setFilterCat(c); resetPage(); }}
+              />
+            </>
           )}
 
           {/* Results count */}
@@ -711,10 +739,10 @@ export default function TenantStorefrontPage() {
             </div>
           ) : (
             <>
-              <div className={`flex items-center justify-between mb-4 transition-opacity ${refreshing ? 'opacity-60' : ''}`}>
-                <h2 className="text-base font-bold text-gray-800">
-                  {filterCat ? filterCat : 'All Products'}
-                  <span className="ml-2 text-sm font-normal text-gray-400">({filtered.length} items)</span>
+              <div ref={productGridRef} className={`flex items-center justify-between gap-3 mb-4 scroll-mt-24 transition-opacity ${refreshing ? 'opacity-60' : ''}`}>
+                <h2 className="store-section-title flex items-baseline gap-2 min-w-0">
+                  <span className="truncate">{filterCat ? filterCat : 'Everything in the shop'}</span>
+                  <span className="text-sm font-normal text-gray-400 flex-shrink-0">{filtered.length} item{filtered.length === 1 ? '' : 's'}</span>
                 </h2>
                 <select
                   className="lg:hidden text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none"
@@ -737,12 +765,14 @@ export default function TenantStorefrontPage() {
                 </div>
               ) : (
                 <div className={`grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 transition-opacity ${refreshing ? 'opacity-60 pointer-events-none' : ''}`}>
-                  {filtered.map(p => {
-                    const inCart = cart.find(i => i.product.id === p.id);
+                  {filtered.map((p, i) => {
+                    const inCart = cart.find(x => x.product.id === p.id);
                     return (
                       <ProductCard
                         key={p.id}
                         product={p}
+                        seedHue={brandHue}
+                        index={i}
                         inCartQty={inCart?.quantity}
                         showBranch={!activeBranch}
                         onOpen={() => { setSelectedProduct(p); setStep('detail'); }}

@@ -1,20 +1,20 @@
 'use client';
-import { Package, Images } from 'lucide-react';
-import { categoryGradient, categoryIconColor } from './theme';
+import { Images } from 'lucide-react';
 import { getProductImages } from './productImages';
+import GeneratedArt from './GeneratedArt';
 
 interface Props {
   product: { name: string; images?: string[] | string | null; category_name?: string };
+  /** The shop's hue, so drawn tiles stay in the shop's family. */
+  seedHue?: number;
   className?: string;
 }
 
-export default function ProductCardImage({ product, className = '' }: Props) {
-  const bg = categoryGradient(product.category_name);
-  const iconColor = categoryIconColor(product.category_name);
+export default function ProductCardImage({ product, seedHue, className = '' }: Props) {
   const images = getProductImages(product);
 
   return (
-    <div className={`relative aspect-[4/3] sm:aspect-[3/2] bg-gradient-to-br ${bg} overflow-hidden ${className}`}>
+    <div className={`relative aspect-[4/3] sm:aspect-[3/2] overflow-hidden bg-slate-50 ${className}`}>
       {images.length > 0 ? (
         <img
           src={images[0]}
@@ -24,8 +24,9 @@ export default function ProductCardImage({ product, className = '' }: Props) {
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <Package className={`w-10 h-10 sm:w-12 sm:h-12 ${iconColor}`} />
+        // No photograph is not the same as nothing to show.
+        <div className="w-full h-full transition-transform duration-500 group-hover:scale-105">
+          <GeneratedArt name={product.name} seedHue={seedHue} />
         </div>
       )}
 

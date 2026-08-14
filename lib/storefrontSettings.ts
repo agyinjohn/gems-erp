@@ -12,6 +12,11 @@ export interface StorefrontSettings {
   delivery_estimate?: string;       // e.g. "3 – 5 business days"
   location_suggestions?: string[];  // e.g. ["Accra", "Kumasi"]
   phone_placeholder?: string;       // e.g. "+233 XX XXX XXXX"
+  // How the shop looks. Empty means the GEMS navy, which is what every
+  // storefront was before a shop could choose.
+  brand_color?: string;
+  banner_image?: string;
+  tagline?: string;
 }
 
 // ── Shared TypeScript interfaces ────────────────────────────────────────────
@@ -97,6 +102,12 @@ export function normalizeStorefrontSettings(raw: Partial<StorefrontSettings> | n
     delivery_estimate: raw?.delivery_estimate ?? DEFAULT_STOREFRONT_SETTINGS.delivery_estimate,
     location_suggestions: Array.isArray(raw?.location_suggestions) ? raw.location_suggestions : [],
     phone_placeholder: raw?.phone_placeholder ?? '',
+    // This function rebuilds the object field by field, so anything not named
+    // here is dropped on the way in — which is silent, and looks exactly like a
+    // shop's colour never having saved.
+    brand_color: String(raw?.brand_color ?? '').trim().toLowerCase(),
+    banner_image: String(raw?.banner_image ?? '').trim(),
+    tagline: String(raw?.tagline ?? '').trim(),
   };
 }
 

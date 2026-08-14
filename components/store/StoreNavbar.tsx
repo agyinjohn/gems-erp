@@ -83,7 +83,7 @@ export default function StoreNavbar({
                   <button
                     type="button"
                     onClick={() => onSelectBranch(null)}
-                    className={`w-full flex items-center gap-2 px-4 py-3 text-sm ${!activeBranch ? 'bg-blue-50 text-[#0D3B6E] font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}
+                    className={`w-full flex items-center gap-2 px-4 py-3 text-sm ${!activeBranch ? 'bg-[color-mix(in_srgb,var(--store-brand)_10%,white)] [color:var(--store-brand)] font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}
                   >
                     <MapPin className="w-4 h-4" /> All branches
                   </button>
@@ -92,7 +92,7 @@ export default function StoreNavbar({
                       key={b.id}
                       type="button"
                       onClick={() => onSelectBranch(b)}
-                      className={`w-full flex items-center gap-2 px-4 py-3 text-sm border-t border-gray-50 ${activeBranch?.id === b.id ? 'bg-blue-50 text-[#0D3B6E] font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}
+                      className={`w-full flex items-center gap-2 px-4 py-3 text-sm border-t border-gray-50 ${activeBranch?.id === b.id ? 'bg-[color-mix(in_srgb,var(--store-brand)_10%,white)] [color:var(--store-brand)] font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
                       <MapPin className="w-4 h-4 shrink-0" />
                       <span className="truncate">{b.name}</span>
@@ -113,7 +113,7 @@ export default function StoreNavbar({
                 onChange={e => { onSearchChange(e.target.value); onResetPage(); }}
               />
               {onOpenMobileFilters && (
-                <button type="button" onClick={onOpenMobileFilters} className="lg:hidden p-2 text-gray-500 hover:text-[#0D3B6E]" aria-label="Filters">
+                <button type="button" onClick={onOpenMobileFilters} className="lg:hidden p-2 text-gray-500 hover:[color:var(--store-brand)]" aria-label="Filters">
                   <SlidersHorizontal className="w-4 h-4" />
                 </button>
               )}
