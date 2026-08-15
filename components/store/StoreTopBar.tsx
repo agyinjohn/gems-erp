@@ -14,6 +14,11 @@ import { formatGhs } from './theme';
  *
  * It sits above the sticky header rather than inside it, so it scrolls away
  * once and does not spend a phone's vertical space for the rest of the visit.
+ *
+ * White, against the dark navigation directly beneath it. That is the only
+ * light band above the fold, so it also draws the line between the browser
+ * chrome and the shop — without it the page begins with three dark bands
+ * stacked and no edge between them.
  */
 
 interface Props {
@@ -37,11 +42,11 @@ export default function StoreTopBar({
   return (
     <div className="store-topbar">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-9 flex items-center justify-between gap-4 text-[11px]">
-        <p className="flex items-center gap-1.5 text-white/55 min-w-0">
+        <p className="flex items-center gap-1.5 text-gray-600 min-w-0">
           <Truck className="w-3.5 h-3.5 flex-shrink-0" />
           <span className="truncate">{promise}</span>
           {deliveryEstimate && (
-            <span className="hidden md:inline text-white/35">· {deliveryEstimate}</span>
+            <span className="hidden md:inline text-gray-500">· {deliveryEstimate}</span>
           )}
         </p>
 
