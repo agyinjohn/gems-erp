@@ -112,6 +112,26 @@ export interface StoreOrder {
 export const DEFAULT_HERO_MESSAGE =
   'Browse everything we have, order in a few taps, and pay securely by card or mobile money.';
 
+/**
+ * Whether a stock figure means anything for this item.
+ *
+ * The storefront has always asked `stock_qty > 0` of anything that was not a
+ * service, and a bundle is neither. A bundle holds no stock of its own — it is
+ * available while the things inside it are, and the catalogue says so: stock
+ * on the model is documented as ignored for services and bundles alike. So the
+ * shop front read every bundle as sold out, refused to put one in a cart, and
+ * hid it behind the "in stock only" filter. Nothing had ever been a bundle
+ * before now, which is why nobody had seen it.
+ */
+export function tracksStock(item: { item_type?: string }): boolean {
+  return item.item_type !== 'service' && item.item_type !== 'bundle';
+}
+
+/** Whether a customer can buy this right now. */
+export function isAvailable(item: { item_type?: string; stock_qty?: number }): boolean {
+  return !tracksStock(item) || (item.stock_qty ?? 0) > 0;
+}
+
 export const DEFAULT_STOREFRONT_SETTINGS: StorefrontSettings = {
   delivery_fee: 30,
   free_delivery_threshold: 500,

@@ -1,5 +1,6 @@
 'use client';
 import { ChevronRight } from 'lucide-react';
+import { isAvailable } from '@/lib/storefrontSettings';
 
 export type SortOption = 'default' | 'price_asc' | 'price_desc' | 'name';
 
@@ -154,7 +155,7 @@ export default function StoreFilters({
           <div className={`${px} pb-4 space-y-2`}>
             {[
               { label: 'All Items', value: false, count: products.length },
-              { label: 'In Stock Only', value: true, count: products.filter(p => p.item_type === 'service' || p.stock_qty > 0).length },
+              { label: 'In Stock Only', value: true, count: products.filter(isAvailable).length },
             ].map(opt => (
               <button key={String(opt.value)} type="button" onClick={() => { onInStockOnly(opt.value); onResetPage(); }}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm transition-all ${

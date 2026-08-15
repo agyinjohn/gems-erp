@@ -29,6 +29,8 @@ import {
   amountUntilFreeDelivery,
   fetchPublicStoreSettings,
   trackStoreOrder,
+  isAvailable,
+  tracksStock,
   type StorefrontSettings,
   type StoreProduct,
   type StoreTenant,
@@ -266,7 +268,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
    * something nobody can buy — and one per product, so a shop that uploaded six
    * angles of one item does not get a hero of the same item six times.
    */
-  const featured = products.filter(p => p.item_type === 'service' || p.stock_qty > 0);
+  const featured = products.filter(isAvailable);
   /**
    * What stands on the hero's stage: one entry per product, carrying its best
    * picture, its name and its price, so the frame can caption whatever it is
@@ -434,7 +436,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
 
   const filtered = products.filter(p =>
     (!filterCat || p.category_name === filterCat) &&
-    (!inStockOnly || p.item_type === 'service' || p.stock_qty > 0) &&
+    (!inStockOnly || isAvailable(p)) &&
     (priceMin === 0 || p.price >= priceMin) &&
     (priceMax === '' || p.price <= priceMax)
   ).sort((a, b) => {
@@ -994,6 +996,10 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full ring-1 ring-purple-100">
                           <BadgeCheck className="w-3.5 h-3.5" /> Service available
                         </span>
+                      ) : !tracksStock(selectedProduct) ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full ring-1 ring-emerald-100">
+                          <BadgeCheck className="w-3.5 h-3.5" /> Available
+                        </span>
                       ) : selectedProduct.stock_qty > 0 ? (
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full ring-1 ring-emerald-100">
                           <BadgeCheck className="w-3.5 h-3.5" /> In stock · {selectedProduct.stock_qty} available
@@ -1112,7 +1118,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
                         Book Now
                       </button>
                     </>
-                  ) : selectedProduct.stock_qty > 0 ? (
+                  ) : isAvailable(selectedProduct) ? (
                     <>
                       <div className="bg-slate-50 rounded-xl p-3 space-y-2 ring-1 ring-slate-100">
                         <div className="flex items-center gap-2 text-sm text-gray-700">
@@ -1132,7 +1138,10 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
                               <Minus className="w-3 h-3" />
                             </button>
                             <span className="font-bold text-gray-900 w-6 text-center">{detailQty}</span>
-                            <button type="button" onClick={() => setDetailQty(q => Math.min(selectedProduct.stock_qty, q + 1))} className="store-qty-btn store-qty-btn-primary">
+                            {/* A bundle has no stock figure to stop at, so the
+                                ceiling only applies to something that has one —
+                                otherwise the button clamps the quantity to zero. */}
+                            <button type="button" onClick={() => setDetailQty(q => (tracksStock(selectedProduct) ? Math.min(selectedProduct.stock_qty, q + 1) : q + 1))} className="store-qty-btn store-qty-btn-primary">
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>

@@ -3,6 +3,7 @@ import { Plus, Minus, MapPin, Heart } from 'lucide-react';
 import { formatGhs } from './theme';
 import ProductCardImage from './ProductCardImage';
 import { getProductImages } from './productImages';
+import { tracksStock } from '@/lib/storefrontSettings';
 
 interface Props {
   product: any;
@@ -24,8 +25,10 @@ interface Props {
 
 export default function ProductCard({ product: p, tenantSlug, seedHue, index = 0, inCartQty, showBranch, cartLoading, wishlisted, onOpen, onAdd, onUpdateQty, onToggleWishlist }: Props) {
   const isService = p.item_type === 'service';
-  const outOfStock = !isService && p.stock_qty <= 0;
-  const lowStock = !isService && p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5);
+  // A bundle keeps no stock of its own, so it is never sold out and never low
+  // — the stock that matters belongs to the things inside it.
+  const outOfStock = tracksStock(p) && p.stock_qty <= 0;
+  const lowStock = tracksStock(p) && p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5);
   const multiImage = getProductImages(p).length > 1;
 
   /**
