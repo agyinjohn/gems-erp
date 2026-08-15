@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
   X, Monitor, TrendingUp, CreditCard, ChevronDown,
-  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet, MessageSquare, Briefcase, HardHat, ClipboardList, FileSignature, Hammer, Tag, RotateCcw,
+  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet, MessageSquare, Briefcase, HardHat, ClipboardList, FileSignature, Hammer, Tag, RotateCcw, Star,
 } from 'lucide-react';
 import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 import { ACCOUNTING_SECTIONS } from '@/lib/accountingNav';
@@ -108,6 +108,7 @@ const navGroups = [
     label: 'Operations',
     items: [
       { href: '/service-requests', label: 'Service requests', icon: ClipboardList, roles: ['business_owner', 'branch_manager', 'sales_staff'], permission: null },
+      { href: '/reviews', label: 'Reviews', icon: Star, roles: ['business_owner', 'branch_manager', 'sales_staff'], permission: null },
       { href: '/jobs', label: 'Jobs', icon: Hammer, roles: ['business_owner', 'branch_manager', 'sales_staff', 'accountant'], permission: null },
       { href: '/contracts', label: 'Contracts', icon: FileSignature, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
       { href: '/projects', label: 'Projects', icon: Briefcase, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },

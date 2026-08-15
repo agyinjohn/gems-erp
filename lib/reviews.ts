@@ -16,6 +16,9 @@ export interface ProductReview {
   body: string;
   hidden: boolean;
   variant_label: string;
+  /** The shop's answer, when it gave one. */
+  reply: string;
+  replied_at: string | null;
   verified: boolean;
   created_at: string;
 }

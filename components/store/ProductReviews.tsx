@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, BadgeCheck, Star } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Star, Store } from 'lucide-react';
 import Stars from './Stars';
 import {
   fetchEligibility, fetchReviews, submitReview, whenAgo,
@@ -303,6 +303,18 @@ export default function ProductReviews({
               ) : r.body ? (
                 <p className="text-[15px] text-gray-700 leading-relaxed mt-2 max-w-prose whitespace-pre-line">{r.body}</p>
               ) : null}
+
+              {/* The shop's answer, indented under the review it answers.
+                  Shown even when the review itself has been taken down —
+                  hiding the text does not withdraw the apology. */}
+              {r.reply && (
+                <div className="mt-3 ml-0 sm:ml-6 rounded-xl bg-gray-50 border border-gray-100 p-3.5 max-w-prose">
+                  <p className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                    <Store className="w-3.5 h-3.5" /> Reply from the shop
+                  </p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{r.reply}</p>
+                </div>
+              )}
             </li>
           ))}
         </ul>
