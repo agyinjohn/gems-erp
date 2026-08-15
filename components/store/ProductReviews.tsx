@@ -123,6 +123,7 @@ export default function ProductReviews({
       <div className="lg:col-span-4">
       <h2 className="store-detail-heading">
         {count > 0 ? 'What customers said' : 'Be the first to review this'}
+        <span className="store-detail-heading-rule" />
       </h2>
 
       {count > 0 ? (
@@ -177,11 +178,14 @@ export default function ProductReviews({
       ) : eligible?.reviewed ? (
         <p className="mt-4 text-sm text-gray-500">You&apos;ve already reviewed this one.</p>
       ) : !open ? (
-        <button type="button" onClick={() => setOpen(true)} className="store-btn-quiet mt-4">
-          Write a review
+        // The only thing on this panel a customer can act on, so it is the
+        // primary button. As a quiet outline on a tinted ground it read as a
+        // caption, and people looked past it.
+        <button type="button" onClick={() => setOpen(true)} className="store-btn store-btn-primary mt-4 w-full sm:w-auto">
+          <Star className="w-4 h-4" /> Write a review
         </button>
       ) : (
-        <div className="mt-4 rounded-2xl ring-1 ring-gray-200 p-5 max-w-xl">
+        <div className="mt-4 rounded-2xl bg-white ring-1 ring-gray-200 p-5 max-w-xl">
           {/* A guest proves the purchase with the address their receipt went to.
               Checked before the form opens, so nobody writes three paragraphs
               and is then told they cannot post them. */}

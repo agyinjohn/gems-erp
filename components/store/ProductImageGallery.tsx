@@ -33,8 +33,8 @@ export default function ProductImageGallery({ product, gradientClass = 'from-sla
           navy shirt reads as a rendering fault rather than as decoration. So a
           product with a picture gets a neutral ground and the picture does the
           talking. */}
-      <div className={`store-image-gallery-main store-filter-panel relative overflow-hidden ${
-        images.length ? 'bg-gray-50' : `bg-gradient-to-br ${gradientClass}`
+      <div className={`store-image-gallery-main store-gallery-frame relative overflow-hidden ${
+        images.length ? '' : `bg-gradient-to-br ${gradientClass}`
       }`}>
         {images.length > 0 ? (
           <>

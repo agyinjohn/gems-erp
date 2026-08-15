@@ -167,9 +167,10 @@ export default function ProductDetail({
               </p>
             )}
 
-            {/* Price, on its own, with air around it. It was previously the
-                fourth thing in a stack of eight and read like one more row. */}
-            <div className="mt-6 pt-6 border-t border-gray-200/80">
+            {/* Price, choice and buttons on one tinted ground, so the decision
+                is a thing on the page rather than eight loose elements down
+                the right-hand side. */}
+            <div className="store-buy-block mt-6">
               <div className="flex items-baseline gap-3 flex-wrap">
                 {price > 0 ? (
                   <span className="store-detail-price">{formatGhs(price)}</span>
@@ -185,8 +186,7 @@ export default function ProductDetail({
                   </>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-1">Inclusive of all taxes</p>
-            </div>
+              <p className="text-xs text-gray-500 mt-1">Inclusive of all taxes</p>
 
             <div className="flex flex-wrap items-center gap-2 mt-4">
               {isService ? (
@@ -224,7 +224,7 @@ export default function ProductDetail({
             </div>
 
             {hasOptions && (
-              <div className="mt-6 pt-6 border-t border-gray-200/80">
+              <div className="mt-5 pt-5 border-t border-gray-200/70">
                 <VariantPicker
                   product={product}
                   chosen={chosen}
@@ -295,40 +295,49 @@ export default function ProductDetail({
                 </div>
               )}
             </div>
+            </div>
 
-            {/* The promises, as a plain list rather than a tinted box. */}
-            <ul className="mt-6 pt-5 border-t border-gray-200/80 space-y-2.5">
-              <li className="flex items-center gap-2.5 text-sm text-gray-600">
-                <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span>Free delivery on orders over <strong className="font-semibold text-gray-900">{formatGhs(freeDeliveryOver)}</strong></span>
-              </li>
+            {/* What the shop promises, as tiles. Four rows of grey text with
+                grey icons read as small print nobody has to mean. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-5">
+              <div className="store-promise">
+                <span className="store-promise-icon"><Truck className="w-4 h-4" /></span>
+                <span className="text-sm text-gray-600 leading-snug">
+                  Free delivery over <strong className="font-semibold text-gray-900">{formatGhs(freeDeliveryOver)}</strong>
+                </span>
+              </div>
               {deliveryEstimate && (
-                <li className="flex items-center gap-2.5 text-sm text-gray-600">
-                  <Package className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span>Usually arrives in <strong className="font-semibold text-gray-900">{deliveryEstimate}</strong></span>
-                </li>
+                <div className="store-promise">
+                  <span className="store-promise-icon"><Package className="w-4 h-4" /></span>
+                  <span className="text-sm text-gray-600 leading-snug">
+                    Arrives in <strong className="font-semibold text-gray-900">{deliveryEstimate}</strong>
+                  </span>
+                </div>
               )}
-              <li className="flex items-center gap-2.5 text-sm text-gray-600">
-                <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span>Secure checkout by card or mobile money</span>
-              </li>
-              <li className="flex items-center gap-2.5 text-sm text-gray-600">
-                <RotateCcw className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span>Track your order from the moment you pay</span>
-              </li>
-            </ul>
+              <div className="store-promise">
+                <span className="store-promise-icon"><Lock className="w-4 h-4" /></span>
+                <span className="text-sm text-gray-600 leading-snug">Secure card or mobile money</span>
+              </div>
+              <div className="store-promise">
+                <span className="store-promise-icon"><RotateCcw className="w-4 h-4" /></span>
+                <span className="text-sm text-gray-600 leading-snug">Tracked from the moment you pay</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── Everything you read after you have decided to care ───────────── */}
-      <div className="border-t border-gray-200/80 mt-12 lg:mt-16">
+      <div className="store-detail-band mt-12 lg:mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 lg:py-14">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
 
             {hasStory && (
               <div className="lg:col-span-7">
-                <h2 className="store-detail-heading">About this {product.item_type === 'bundle' ? 'package' : isService ? 'service' : 'product'}</h2>
+                <h2 className="store-detail-heading">
+                  About this {product.item_type === 'bundle' ? 'package' : isService ? 'service' : 'product'}
+                  <span className="store-detail-heading-rule" />
+                </h2>
 
                 {highlights.length > 0 && (
                   <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5">
@@ -367,7 +376,7 @@ export default function ProductDetail({
         </div>
       </div>
 
-      <div id="reviews" className="border-t border-gray-200/80 scroll-mt-24">
+      <div id="reviews" className="store-detail-band-tinted scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 lg:py-14">
           <ProductReviews
             tenantSlug={tenantSlug}
@@ -381,9 +390,12 @@ export default function ProductDetail({
       </div>
 
       {related.length > 0 && (
-        <div className="border-t border-gray-200/80">
+        <div className="store-detail-band">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-            <h2 className="store-detail-heading mb-5">More from {product.category_name || 'this shop'}</h2>
+            <h2 className="store-detail-heading mb-5">
+              More from {product.category_name || 'this shop'}
+              <span className="store-detail-heading-rule" />
+            </h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {related.map(p => (
                 <button key={p.id} type="button" onClick={() => onOpenRelated(p)} className="store-product-card text-left flex flex-col">

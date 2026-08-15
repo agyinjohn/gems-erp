@@ -701,20 +701,60 @@
   border-color: color-mix(in srgb, var(--store-brand) 30%, transparent);
   background: color-mix(in srgb, var(--store-brand) 7%, #fff);
 }
-/* A product page, rather than a card that grew.
-   The name is set at display size because it is the first thing read and the
-   thing the whole page is about; the price is the second. Everything else on
-   the page steps down from those two. */
+/* A product page, in the shop's own voice.
+   It was drawn in the same neutral sans as the dashboard behind it, on flat
+   white, with hairline rules between identical-looking bands — correct, and
+   indistinguishable from an admin screen. The shop has a display serif it
+   already uses on its hero and a colour it uses everywhere else; a product page
+   that borrows neither reads as a different website. */
 .store-detail-title {
-  @apply text-[1.75rem] sm:text-[2.125rem] font-extrabold text-gray-900 leading-[1.12] tracking-[-0.02em];
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  @apply text-[2.125rem] sm:text-[2.75rem] font-normal text-gray-900;
+  line-height: 1.04;
+  letter-spacing: -0.015em;
   text-wrap: balance;
 }
+/* The price answers the name, so it is the opposite: heavy, tight, sans. */
 .store-detail-price {
-  @apply text-[2.25rem] font-extrabold text-gray-900 tracking-[-0.03em] tabular-nums leading-none;
+  @apply text-[2.5rem] font-extrabold text-gray-900 tracking-[-0.035em] tabular-nums leading-none;
 }
+
+/* The ground the decision sits on.
+   Not a card — no shadow, no floating — a quiet tint in the shop's own colour
+   that gathers the price, the choice and the buttons into one thing instead of
+   leaving eight elements loose on a white page. */
+.store-buy-block {
+  @apply rounded-2xl p-5 sm:p-6;
+  background: var(--store-brand-wash);
+  border: 1px solid color-mix(in srgb, var(--store-brand) 12%, transparent);
+}
+
+/* What the shop promises, as tiles rather than four rows of grey text. */
+.store-promise {
+  @apply flex items-start gap-2.5 rounded-xl p-3 bg-white border border-gray-200/70;
+}
+.store-promise-icon {
+  @apply w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0;
+  background: color-mix(in srgb, var(--store-brand) 10%, #fff);
+  color: var(--store-brand-on-paper);
+}
+
+/* A band of the page, told apart by its ground rather than by a hairline. */
+.store-detail-band { @apply border-t border-gray-200/70; }
+.store-detail-band-tinted {
+  @apply border-t border-gray-200/70;
+  background: var(--store-brand-wash);
+}
+
+/* A heading with the shop's rule under it, matching the shop front's bands. */
 .store-detail-heading {
-  @apply text-lg font-bold text-gray-900 tracking-[-0.01em];
+  @apply text-xl font-extrabold text-gray-900 tracking-tight;
 }
+.store-detail-heading-rule {
+  @apply block w-10 h-[3px] rounded-full mt-2.5;
+  background: var(--store-brand-on-paper);
+}
+
 /* A square in the shop's colour instead of a tick. A row of ticks reads as a
    checklist somebody has completed; these are claims about the product. */
 .store-detail-bullet {
@@ -722,8 +762,6 @@
   background: var(--store-brand-on-paper);
 }
 
-/* Status, as a word on the page rather than a filled pill. The old badges put
-   four saturated colours in a row above the price. */
 .store-status {
   @apply inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border;
 }
@@ -766,8 +804,12 @@
 .store-badge-sale { @apply bg-emerald-600 text-white; }
 .store-badge-dark { @apply bg-black/55 text-white backdrop-blur-sm; }
 
+/* Every existing use passes w-full, which hid two omissions: no horizontal
+   padding and no layout. The moment one was asked to size to its own content
+   and carry an icon, the icon landed on top of the label. */
 .store-btn {
-  @apply font-bold text-sm py-2.5 rounded-xl transition-all duration-200 active:scale-[0.98];
+  @apply inline-flex items-center justify-center gap-2 font-bold text-sm px-5 py-2.5
+    rounded-xl transition-all duration-200 active:scale-[0.98] whitespace-nowrap;
 }
 .store-btn-primary {
   @apply shadow-md hover:shadow-lg;
@@ -776,7 +818,7 @@
 }
 .store-btn-primary:hover { background: var(--store-brand-lift); }
 .store-btn-sm {
-  @apply text-xs py-2 rounded-lg;
+  @apply text-xs px-3.5 py-2 rounded-lg gap-1.5;
 }
 .store-btn-muted { @apply bg-gray-100 text-gray-400 font-medium; }
 /* The primary call to action on a dark panel. The fill is the shop's own
@@ -808,6 +850,18 @@
 .store-qty-btn-primary:hover { background: var(--store-brand-lift); }
 
 .store-filter-panel { @apply bg-white rounded-2xl border border-gray-100 shadow-sm; }
+
+/* The ground a product photograph stands on.
+   A flat grey box made the product look like it had been dropped on the page.
+   A soft wash in the shop's colour, with a ring rather than a shadow, gives it
+   a surface without pretending to be a card. */
+.store-gallery-frame {
+  @apply rounded-2xl;
+  background:
+    radial-gradient(ellipse at 50% 30%, #ffffff 0%, transparent 62%),
+    var(--store-brand-wash);
+  border: 1px solid color-mix(in srgb, var(--store-brand) 10%, transparent);
+}
 .store-filter-section-title { @apply text-sm font-semibold text-gray-800; }
 
 .store-mobile-bar {
