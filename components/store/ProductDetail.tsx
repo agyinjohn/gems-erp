@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import ProductImageGallery from './ProductImageGallery';
 import ProductFacts from './ProductFacts';
+import ProductReviews from './ProductReviews';
+import Stars from './Stars';
 import VariantPicker from './VariantPicker';
 import { categoryGradient, categoryIconColor, formatGhs } from './theme';
 import { tracksStock, type ProductVariant, type StoreProduct } from '@/lib/storefrontSettings';
@@ -46,12 +48,17 @@ interface Props {
   onToggleWishlist: () => void;
   freeDeliveryOver: number;
   deliveryEstimate?: string;
+  /** The shop, so the reviews panel knows where to fetch and post. */
+  tenantSlug: string;
+  /** A signed-in customer is already known and is never asked who they are. */
+  customerToken?: string;
+  customerName?: string;
 }
 
 export default function ProductDetail({
   product, inCartQty, qty, onQty, onAdd, onUpdateCartQty, onBuyNow, onOpenCart,
   onClose, onCategory, related, onOpenRelated, wishlisted, onToggleWishlist,
-  freeDeliveryOver, deliveryEstimate,
+  freeDeliveryOver, deliveryEstimate, tenantSlug, customerToken, customerName,
 }: Props) {
   const isService = product.item_type === 'service';
   const stocked = tracksStock(product);
@@ -134,6 +141,15 @@ export default function ProductDetail({
             </div>
 
             <h1 className="store-detail-title mt-1.5">{product.name}</h1>
+
+            {/* The verdict, right under the name. A customer deciding in ten
+                seconds reads the name, the stars and the price — in that
+                order — and nothing else. */}
+            {(product.rating_count || 0) > 0 && (
+              <a href="#reviews" className="inline-flex mt-2.5 hover:underline">
+                <Stars value={product.rating_avg || 0} count={product.rating_count} size="md" showValue />
+              </a>
+            )}
 
             {(product.brand || product.sku) && (
               <p className="text-sm text-gray-500 mt-2">
@@ -346,6 +362,19 @@ export default function ProductDetail({
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      <div id="reviews" className="border-t border-gray-200/80 scroll-mt-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 lg:py-14">
+          <ProductReviews
+            tenantSlug={tenantSlug}
+            productSlug={product.slug}
+            ratingAvg={product.rating_avg}
+            ratingCount={product.rating_count}
+            customerToken={customerToken}
+            customerName={customerName}
+          />
         </div>
       </div>
 

@@ -64,6 +64,14 @@ export interface StoreProduct {
   options?: ProductOption[];
   /** Every combination that can be bought, with its own price and count. */
   variants?: ProductVariant[];
+  /**
+   * What customers scored it, averaged, and how many said so.
+   *
+   * A count of zero means nobody has reviewed it — which is not the same as a
+   * bad score, and nothing should draw stars for it.
+   */
+  rating_avg?: number;
+  rating_count?: number;
   description?: string;
   sku?: string;
   images: string[];

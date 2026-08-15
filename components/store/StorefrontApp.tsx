@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, SlidersHorizontal, Tag, Heart, Check } from 'lucide-react';
+import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, SlidersHorizontal, Tag, Heart, Check, Wrench } from 'lucide-react';
 import StoreAuthModal from '@/components/store/StoreAuthModal';
 import { publicApi } from '@/lib/api';
 import ProductCard from '@/components/store/ProductCard';
@@ -229,11 +229,28 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const closeProduct = () => {
+  /**
+   * Back to the shop front, address and all.
+   *
+   * Every way out of a product has to come through here. Thirteen places called
+   * setStep('shop') and exactly one of them put the address back, so a customer
+   * who arrived on a shared product link and tapped the logo was left looking at
+   * the shop front while the browser still said /store/x/laptop-pro-15 — and the
+   * next refresh took them somewhere they had already left.
+   *
+   * Replaced rather than pushed: returning to where you were is not a new place
+   * to go, and pushing made Back walk through every visit to the shop front.
+   */
+  const goToShop = useCallback(() => {
     setStep('shop');
     setDetailQty(1);
-    if (selectedProduct?.slug) window.history.pushState({}, '', `/store/${tenantSlug}`);
-  };
+    const home = `/store/${tenantSlug}`;
+    if (typeof window !== 'undefined' && window.location.pathname !== home) {
+      window.history.replaceState({}, '', home);
+    }
+  }, [tenantSlug]);
+
+  const closeProduct = goToShop;
 
   /**
    * Show whatever lives at a product address.
@@ -250,11 +267,12 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
       setSelectedProduct(r.data.data);
       setStep('detail');
     } catch {
-      // A dead link lands on the shop front rather than an error. The address
-      // may be stale, or the product withdrawn from sale.
-      setStep('shop');
+      // A dead link lands on the shop front rather than an error — the address
+      // may be stale, or the product withdrawn from sale — and the address is
+      // corrected too, so a refresh does not fetch the missing thing again.
+      goToShop();
     }
-  }, [tenantSlug]);
+  }, [tenantSlug, goToShop]);
 
   // Read by the popstate listener, which must not be rebuilt every time the
   // selection changes or it would detach and reattach on every click.
@@ -760,7 +778,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
 
             <button
               className="store-btn store-btn-primary w-full py-3"
-              onClick={() => { setStep('shop'); setForm({ customer_name:'', customer_email:'', customer_phone:'', delivery_address:'' }); }}
+              onClick={() => { goToShop(); setForm({ customer_name:'', customer_email:'', customer_phone:'', delivery_address:'' }); }}
             >
               Continue Shopping
             </button>
@@ -787,28 +805,19 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
         cartCount={cartCount}
         cartTotal={cartTotal}
         search={search}
-        filterCat={filterCat}
-        categories={categories}
         deliveryLocation={deliveryLocation}
         branches={branches}
         activeBranch={activeBranch}
         showBranchMenu={showBranchMenu}
         onSearchChange={setSearch}
-        onCategoryChange={setFilterCat}
         onResetPage={resetPage}
-        onGoHome={() => setStep('shop')}
+        onGoHome={goToShop}
         onOpenCart={() => setShowCart(true)}
         onOpenLocation={() => setShowLocationModal(true)}
         onToggleBranchMenu={() => setShowBranchMenu(b => !b)}
         onSelectBranch={b => { setActiveBranch(b); setShowBranchMenu(false); }}
         onOpenFilters={() => setShowFilters(true)}
         onOpenAccount={openAccount}
-        onOpenServices={serviceOffers.length > 0 ? () => {
-          // Back to the shop first: the band lives on the shop front, so from a
-          // product page or the tracking form there is nothing to scroll to yet.
-          setStep('shop');
-          requestAnimationFrame(() => servicesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-        } : undefined}
         customerName={storeCustomer?.name}
       />
 
@@ -926,6 +935,37 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
             </div>
           ) : (
             <>
+              {/* Categories, next to the things they filter.
+                  These used to be a strip under the search bar — a third place
+                  to pick a category, after the tiles above and the filter
+                  drawer, and the only one where the result of tapping was off
+                  the bottom of the screen. Here the grid changes directly
+                  underneath, and the heading beside them already says which
+                  category is showing. */}
+              {categories.length > 1 && (
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-3 mb-1 -mx-1 px-1">
+                  {[{ id: '', name: 'All' }, ...categories.map(c => ({ id: c.name, name: c.name }))].map(c => (
+                    <button
+                      key={c.id || 'all'}
+                      type="button"
+                      onClick={() => { setFilterCat(c.id); resetPage(); }}
+                      className={`store-pill shrink-0 ${filterCat === c.id ? 'store-pill-active' : ''}`}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                  {serviceOffers.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => servicesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      className="store-pill shrink-0 inline-flex items-center gap-1.5 ml-1"
+                    >
+                      <Wrench className="w-3.5 h-3.5" /> Services
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div ref={productGridRef} className={`flex items-center justify-between gap-3 mb-4 scroll-mt-24 transition-opacity ${refreshing ? 'opacity-60' : ''}`}>
                 <div className="min-w-0">
                   <span className="store-eyebrow">{filterCat ? 'Category' : 'All products'}</span>
@@ -1044,18 +1084,23 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
           onClose={closeProduct}
           onCategory={name => { setFilterCat(name); closeProduct(); }}
           related={products.filter(p => p.category_name === selectedProduct.category_name && p.id !== selectedProduct.id).slice(0, 4)}
-          onOpenRelated={p => { setSelectedProduct(p); setDetailQty(1); window.scrollTo({ top: 0, behavior: 'instant' }); }}
+          // Through openProduct, so the address follows. Setting the product
+          // directly left the browser pointing at the one you came from.
+          onOpenRelated={openProduct}
           wishlisted={wishlist.has(selectedProduct.id)}
           onToggleWishlist={() => toggleWishlist(selectedProduct.id)}
           freeDeliveryOver={storeSettings.free_delivery_threshold}
           deliveryEstimate={storeSettings.delivery_estimate}
+          tenantSlug={tenantSlug}
+          customerToken={customerToken}
+          customerName={storeCustomer?.name}
         />
       )}
 
       {step === 'checkout' && (
         <div className="max-w-6xl mx-auto px-4 py-8 pb-12">
           <div className="flex items-center gap-2 text-xs text-gray-500 mb-6 flex-wrap">
-            <button type="button" onClick={() => setStep('shop')} className="hover:text-[#0D3B6E] hover:underline">Store</button>
+            <button type="button" onClick={goToShop} className="hover:text-[#0D3B6E] hover:underline">Store</button>
             <ChevronRight className="w-3 h-3" />
             <button type="button" onClick={() => setShowCart(true)} className="hover:text-[#0D3B6E] hover:underline">Cart</button>
             <ChevronRight className="w-3 h-3" />
@@ -1231,7 +1276,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
               <button type="button" onClick={handleTrackOrder} disabled={trackLoading} className="store-btn store-btn-primary w-full py-3">
                 {trackLoading ? 'Looking up…' : 'Track Order'}
               </button>
-              <button type="button" onClick={() => setStep('shop')} className="w-full text-sm text-gray-500 hover:text-[#0D3B6E]">
+              <button type="button" onClick={goToShop} className="w-full text-sm text-gray-500 hover:text-[#0D3B6E]">
                 ← Back to shop
               </button>
             </div>
@@ -1247,7 +1292,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
           businessName={tenant?.business_name}
           categories={categories}
           freeDeliveryThreshold={storeSettings.free_delivery_threshold}
-          onCategorySelect={name => { setFilterCat(name); setStep('shop'); resetPage(); }}
+          onCategorySelect={name => { setFilterCat(name); goToShop(); resetPage(); }}
           onTrackOrder={() => { setTrackInput(''); setTrackResult(null); setTrackError(''); setStep('track'); }}
           onShipping={() => { setTrackInput(''); setTrackResult(null); setTrackError(''); setStep('track'); }}
           onReturns={() => { setTrackInput(''); setTrackResult(null); setTrackError(''); setStep('track'); }}
@@ -1450,7 +1495,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
       {/* ── Account Panel (slide-in drawer) ── */}
       {step === 'orders' && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setStep('shop')} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={goToShop} />
           <div className="relative bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
             {/* Header */}
             <div className="store-panel-head flex items-center justify-between px-5 py-4 flex-shrink-0">
@@ -1463,7 +1508,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
                   <p className="text-white/60 text-xs">{storeCustomer?.email}</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setStep('shop')} className="text-white/70 hover:text-white p-1">
+              <button type="button" onClick={goToShop} className="text-white/70 hover:text-white p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1521,14 +1566,14 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
             <div className="p-4 border-t border-gray-100 flex-shrink-0 space-y-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button
                 type="button"
-                onClick={() => { setStep('shop'); setShowCart(false); }}
+                onClick={() => { goToShop(); setShowCart(false); }}
                 className="store-btn store-btn-primary w-full py-3"
               >
                 Continue Shopping
               </button>
               <button
                 type="button"
-                onClick={() => { logoutCustomer(); setStep('shop'); }}
+                onClick={() => { logoutCustomer(); goToShop(); }}
                 className="w-full text-sm text-red-500 hover:text-red-700 font-medium py-2 transition-colors"
               >
                 Sign out
@@ -1562,7 +1607,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
           cartCount={cartCount}
           filterCount={activeFilterCount}
           active={showFilters ? 'filters' : step === 'track' ? 'track' : step === 'orders' ? 'account' : showCart ? 'cart' : 'shop'}
-          onHome={() => { setStep('shop'); setShowFilters(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          onHome={() => { goToShop(); setShowFilters(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           onFilters={() => setShowFilters(true)}
           onCart={() => setShowCart(true)}
           onTrack={() => { setTrackInput(''); setTrackResult(null); setTrackError(''); setStep('track'); setShowFilters(false); }}

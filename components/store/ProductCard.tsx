@@ -3,6 +3,7 @@ import { Plus, Minus, MapPin, Heart } from 'lucide-react';
 import { formatGhs } from './theme';
 import ProductCardImage from './ProductCardImage';
 import { getProductImages } from './productImages';
+import Stars from './Stars';
 import { tracksStock } from '@/lib/storefrontSettings';
 
 interface Props {
@@ -122,6 +123,12 @@ export default function ProductCard({ product: p, tenantSlug, seedHue, index = 0
             {p.name}
           </h3>
         </Open>
+
+        {/* Only when somebody has actually said something. Five empty stars
+            read as a bad score rather than as no score. */}
+        {p.rating_count > 0 && (
+          <Stars value={p.rating_avg} count={p.rating_count} size="sm" className="mt-0.5" />
+        )}
 
         <div className="mt-auto pt-0.5">
           <div className="flex items-baseline gap-1.5 flex-wrap">

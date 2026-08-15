@@ -1,20 +1,17 @@
 'use client';
-import { Package, Search, ShoppingCart, MapPin, ChevronDown, ChevronRight, Menu, SlidersHorizontal, User, Wrench } from 'lucide-react';
+import { Package, Search, ShoppingCart, MapPin, ChevronDown, SlidersHorizontal, User } from 'lucide-react';
 
 interface Props {
   businessName?: string;
   cartCount: number;
   cartTotal: number;
   search: string;
-  filterCat: string;
-  categories: { id: string; name: string }[];
   deliveryLocation: string;
   branches: any[];
   activeBranch: any;
   showBranchMenu: boolean;
   customerName?: string;
   onSearchChange: (v: string) => void;
-  onCategoryChange: (v: string) => void;
   onResetPage: () => void;
   onGoHome: () => void;
   onOpenCart: () => void;
@@ -23,15 +20,6 @@ interface Props {
   onSelectBranch: (branch: any | null) => void;
   onOpenFilters?: () => void;
   onOpenAccount?: () => void;
-  /**
-   * Jump to the work this shop takes on, when it takes on any.
-   *
-   * A pill rather than a nav link, sitting after the categories, because that
-   * is where a customer is already looking for "what else is here" — and
-   * because a shop that only sells goods should not be given an empty section
-   * in its navigation.
-   */
-  onOpenServices?: () => void;
 }
 
 export default function StoreNavbar({
@@ -39,14 +27,11 @@ export default function StoreNavbar({
   cartCount,
   cartTotal,
   search,
-  filterCat,
-  categories,
   deliveryLocation,
   branches,
   activeBranch,
   showBranchMenu,
   onSearchChange,
-  onCategoryChange,
   onResetPage,
   onGoHome,
   onOpenCart,
@@ -55,11 +40,8 @@ export default function StoreNavbar({
   onSelectBranch,
   onOpenFilters,
   onOpenAccount,
-  onOpenServices,
   customerName,
 }: Props) {
-  const categoryPills = [{ id: '', name: 'All' }, ...categories.map(c => ({ id: c.name, name: c.name }))];
-
   return (
     <header className="store-nav sticky top-0 z-40">
       {/* Main bar */}
@@ -164,31 +146,6 @@ export default function StoreNavbar({
         </div>
       </div>
 
-      {/* Category pills */}
-      <div className="store-nav-categories border-b border-gray-200/70">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-2 overflow-x-auto py-2.5 scrollbar-hide">
-          {categoryPills.map(c => (
-            <button
-              key={c.id || 'all'}
-              type="button"
-              onClick={() => { onCategoryChange(c.id); onResetPage(); }}
-              className={`store-pill shrink-0 ${filterCat === c.id ? 'store-pill-active' : ''}`}
-            >
-              {c.name}
-            </button>
-          ))}
-
-          {onOpenServices && (
-            <button
-              type="button"
-              onClick={onOpenServices}
-              className="store-pill shrink-0 inline-flex items-center gap-1.5 ml-1"
-            >
-              <Wrench className="w-3.5 h-3.5" /> Services
-            </button>
-          )}
-        </div>
-      </div>
     </header>
   );
 }
