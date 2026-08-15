@@ -13,7 +13,6 @@ import ProductImageGallery from '@/components/store/ProductImageGallery';
 import ProductCardSkeleton from '@/components/store/ProductCardSkeleton';
 import StoreHero from '@/components/store/StoreHero';
 import CategoryTiles from '@/components/store/CategoryTiles';
-import StoreTopBar from '@/components/store/StoreTopBar';
 import TrustStrip from '@/components/store/TrustStrip';
 import PromoBanner from '@/components/store/PromoBanner';
 import SectionHeading from '@/components/store/SectionHeading';
@@ -643,15 +642,6 @@ export default function TenantStorefrontPage() {
 
   return (
     <div className="store-shell min-h-screen pb-20 lg:pb-0" style={brandVars(storeSettings.brand_color)}>
-
-      <StoreTopBar
-        freeDeliveryOver={storeSettings.free_delivery_threshold}
-        deliveryFee={storeSettings.delivery_fee}
-        deliveryEstimate={storeSettings.delivery_estimate}
-        onTrack={() => { setTrackResult(null); setTrackError(''); setStep('track'); }}
-        onAccount={openAccount}
-        customerName={storeCustomer?.name}
-      />
 
       <StoreNavbar
         businessName={tenant?.business_name}

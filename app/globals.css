@@ -367,16 +367,6 @@
   background: linear-gradient(180deg, #131b26 0%, var(--store-ink) 100%);
 }
 
-/* The utility line above the navigation: delivery promise on one side, the
-   two things a returning customer came back for on the other. */
-.store-topbar {
-  background: #ffffff;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.09);
-}
-.store-topbar-link {
-  @apply inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-900 transition-colors;
-}
-
 /* On a dark bar a plain white field stood out on its own. On a white bar it
    needs a ground and an edge, or it is invisible. */
 .store-search {
