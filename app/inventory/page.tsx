@@ -9,6 +9,15 @@ import ProductImageUpload from '@/components/inventory/ProductImageUpload';
 
 // ── Category field templates ──────────────────────────────────────────────────
 type FieldDef = { label: string; key: string; type: 'text'|'number'|'select'|'boolean'; options?: string[]; required?: boolean };
+/**
+ * A choice a customer must make: "Size", with the values on offer.
+ *
+ * Not the same thing as a custom field, and the difference is what the answer
+ * is for. A custom field describes — "Material: cotton" tells you about the
+ * shirt. An option decides which shirt, and the shop has a different number of
+ * each one on the shelf.
+ */
+type OptionDef = { name: string; values: string[] };
 type Template = { label: string; icon: string; fields: FieldDef[] };
 
 const CATEGORY_TEMPLATES: Record<string, Template> = {
@@ -391,6 +400,48 @@ const CATEGORY_TEMPLATES: Record<string, Template> = {
   },
 };
 
+/**
+ * Which values a saved product actually stocks, read back off its rows.
+ *
+ * The rows are the cross product — six sizes in four colours is twenty-four —
+ * and the form edits the ticks that produced them. Going the other way is just
+ * collecting the distinct values each option was given.
+ */
+function optionValuesOf(product: any): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const v of product?.variants || []) {
+    for (const s of v.selections || []) {
+      if (!s?.name || !s?.value) continue;
+      if (!out[s.name]) out[s.name] = [];
+      if (!out[s.name].includes(s.value)) out[s.name].push(s.value);
+    }
+  }
+  return out;
+}
+
+/**
+ * The combinations the ticked values produce, and their canonical keys.
+ *
+ * The key has to match what the server generates or the counts typed here land
+ * on nothing: option names and values, lower-cased and sorted, joined. Kept in
+ * step with services/variantService on the backend — the sorting is what makes
+ * the two agree regardless of the order anything was entered in.
+ */
+function combinationsOf(values: Record<string, string[]>) {
+  const names = Object.keys(values).filter(n => (values[n] || []).length);
+  if (!names.length) return [];
+
+  let combos: { name: string; value: string }[][] = [[]];
+  for (const name of names) {
+    combos = combos.flatMap(combo => values[name].map(value => [...combo, { name, value }]));
+  }
+  return combos.map(selections => ({
+    key: selections.map(s => `${s.name.trim().toLowerCase()}:${s.value.trim().toLowerCase()}`).sort().join('|'),
+    label: selections.map(s => s.value).join(' · '),
+    selections,
+  }));
+}
+
 const BLANK_FIELD: FieldDef = { label: '', key: '', type: 'text', options: [], required: false };
 
 /**
@@ -419,8 +470,9 @@ export default function InventoryPage() {
   const [catConfirm, setCatConfirm] = useState<any>(null);
   const [locConfirm, setLocConfirm] = useState<any>(null);
   const [locForm, setLocForm] = useState({ name:'', code:'', type:'shelf', description:'' });
-  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', sell_online:true, images: [] as string[], attributes: {} as Record<string,any>, short_description:'', brand:'', highlights: [] as string[] });
-  const [catForm, setCatForm] = useState({ name:'', description:'', scope:'product' as 'product'|'service', custom_fields: [] as FieldDef[] });
+  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', sell_online:true, images: [] as string[], attributes: {} as Record<string,any>, short_description:'', brand:'', highlights: [] as string[],
+    option_values: {} as Record<string, string[]>, variant_stock: {} as Record<string, { stock_qty: number }> });
+  const [catForm, setCatForm] = useState({ name:'', description:'', scope:'product' as 'product'|'service', custom_fields: [] as FieldDef[], options: [] as OptionDef[] });
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [adjustQty, setAdjustQty] = useState('');
   const [adjustType, setAdjustType] = useState<'add'|'remove'>('add');
@@ -477,8 +529,13 @@ export default function InventoryPage() {
     (!filterCat || (p.category_id?._id || p.category_id) == filterCat)
   );
 
-  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',sell_online:true,images:[],attributes:{},short_description:'',brand:'',highlights:[] }); setError(''); setModal('add'); };
-  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,sell_online:p.sell_online!==false,images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{},short_description:p.short_description||'',brand:p.brand||'',highlights:Array.isArray(p.highlights)?p.highlights.filter(Boolean):[] }); setError(''); setModal('edit'); };
+  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',sell_online:true,images:[],attributes:{},short_description:'',brand:'',highlights:[],option_values:{},variant_stock:{} }); setError(''); setModal('add'); };
+  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,sell_online:p.sell_online!==false,images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{},short_description:p.short_description||'',brand:p.brand||'',highlights:Array.isArray(p.highlights)?p.highlights.filter(Boolean):[],
+    // Rebuilt from the rows already saved, so opening a shirt shows the sizes
+    // it comes in and the count behind each rather than an empty grid.
+    option_values: optionValuesOf(p),
+    variant_stock: Object.fromEntries((p.variants||[]).map((v:any) => [v.key, { stock_qty: v.stock_qty || 0 }])) });
+    setError(''); setModal('edit'); };
   const openAdjust = (p: any) => { setSelected(p); setAdjustQty(''); setAdjustType('add'); setAdjustNote(''); setModal('adjust'); };
 
   const save = async () => {
@@ -554,6 +611,15 @@ export default function InventoryPage() {
 
   const removeField = (i: number) =>
     setCatForm(f => ({ ...f, custom_fields: f.custom_fields.filter((_, idx) => idx !== i) }));
+
+  // Options: what a customer has to choose. Distinct from the custom fields
+  // above and easy to confuse with them, which is why the modal labels the
+  // difference rather than leaving it to be inferred from two similar boxes.
+  const addOption = () => setCatForm(f => ({ ...f, options: [...f.options, { name: '', values: [] }] }));
+  const updateOption = (i: number, patch: Partial<OptionDef>) =>
+    setCatForm(f => ({ ...f, options: f.options.map((o, idx) => idx === i ? { ...o, ...patch } : o) }));
+  const removeOption = (i: number) =>
+    setCatForm(f => ({ ...f, options: f.options.filter((_, idx) => idx !== i) }));
 
   // derive key from label automatically if key is empty
   const handleFieldLabel = (i: number, label: string) => {
@@ -760,7 +826,28 @@ export default function InventoryPage() {
             <input type="number" {...inputProps('price')} placeholder="0.00" />
           </div>
           <div><label className="form-label">Cost Price (GH₵)</label><input type="number" {...inputProps('cost_price')} placeholder="0.00" /></div>
-          <div><label className="form-label">{modal === 'add' ? 'Initial Stock' : 'Stock Quantity'}</label><input type="number" {...inputProps('stock_qty')} placeholder="0" /></div>
+          {/* For a product sold in options, the count is the sum of the rows
+              below rather than a figure of its own, so it is shown rather than
+              typed — typing one here and a different set below is how a
+              catalogue comes to disagree with the shelf. */}
+          {(() => {
+            const ticked = Object.values(form.option_values).some(v => (v || []).length);
+            const total = combinationsOf(form.option_values)
+              .reduce((sum, c) => sum + (Number(form.variant_stock[c.key]?.stock_qty) || 0), 0);
+            return (
+              <div>
+                <label className="form-label">{modal === 'add' ? 'Initial Stock' : 'Stock Quantity'}</label>
+                {ticked ? (
+                  <>
+                    <input type="number" className="form-input bg-gray-50 text-gray-500" value={total} readOnly tabIndex={-1} />
+                    <p className="text-xs text-gray-400 mt-1">Added up from the options below.</p>
+                  </>
+                ) : (
+                  <input type="number" {...inputProps('stock_qty')} placeholder="0" />
+                )}
+              </div>
+            );
+          })()}
           <div><label className="form-label">Low Stock Alert</label><input type="number" {...inputProps('low_stock_threshold')} /></div>
           <div><label className="form-label">Unit</label><input {...inputProps('unit')} placeholder="piece, kg, box…" /></div>
 
@@ -898,6 +985,92 @@ export default function InventoryPage() {
               </div>
             );
           })()}
+
+          {/* Options a customer chooses, and the stock behind each combination.
+              The category owns the vocabulary; this is where a product says
+              which of it it actually stocks. Ticking is the whole interaction —
+              the combinations and their keys are worked out from the ticks, so
+              a shirt cannot end up with a navy medium and no navy small. */}
+          {(() => {
+            const cat = categories.find(c => c.id === form.category_id);
+            const options: OptionDef[] = cat?.options || [];
+            if (!options.length) return null;
+
+            const toggle = (name: string, value: string) => setForm(f => {
+              const current = f.option_values[name] || [];
+              const next = current.includes(value) ? current.filter(v => v !== value) : [...current, value];
+              return { ...f, option_values: { ...f.option_values, [name]: next } };
+            });
+
+            const combos = combinationsOf(form.option_values);
+            const total = combos.reduce((sum, c) => sum + (Number(form.variant_stock[c.key]?.stock_qty) || 0), 0);
+
+            return (
+              <div className="col-span-2">
+                <div className="border-t border-gray-100 pt-4 mt-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Options customers choose</p>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Tick only what you stock. Leave every box empty if this one comes just the one way.
+                  </p>
+
+                  <div className="space-y-3">
+                    {options.map(option => (
+                      <div key={option.name}>
+                        <label className="form-label">{option.name}</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {option.values.map(value => {
+                            const on = (form.option_values[option.name] || []).includes(value);
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => toggle(option.name, value)}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                                  on ? 'bg-[#0D3B6E] border-[#0D3B6E] text-white' : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
+                                }`}
+                              >
+                                {value}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {combos.length > 0 && (
+                    <div className="mt-4">
+                      <div className="flex items-baseline justify-between mb-2">
+                        <label className="form-label mb-0">
+                          How many of each <span className="text-gray-400 font-normal">({combos.length})</span>
+                        </label>
+                        {/* The product's own count is the sum of these, so it is
+                            shown rather than typed — the two must never be able
+                            to disagree. */}
+                        <span className="text-xs text-gray-500">Total stock: <strong className="text-gray-900">{total}</strong></span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
+                        {combos.map(combo => (
+                          <div key={combo.key} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                            <span className="text-xs text-gray-600 flex-1 min-w-0 truncate" title={combo.label}>{combo.label}</span>
+                            <input
+                              type="number" min="0"
+                              className="w-16 text-sm text-right border border-gray-200 rounded-md px-1.5 py-1 tabular-nums"
+                              value={form.variant_stock[combo.key]?.stock_qty ?? 0}
+                              onChange={e => setForm(f => ({
+                                ...f,
+                                variant_stock: { ...f.variant_stock, [combo.key]: { stock_qty: Math.max(0, Number(e.target.value) || 0) } },
+                              }))}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
@@ -979,7 +1152,7 @@ export default function InventoryPage() {
                     </div>
                     <button
                       className="btn-primary text-xs px-3 py-1.5"
-                      onClick={() => { setSelectedCat(null); setCatForm({ name:'', description:'', scope, custom_fields:[] }); setSelectedTemplate(''); setModal('cat-add'); }}
+                      onClick={() => { setSelectedCat(null); setCatForm({ name:'', description:'', scope, custom_fields:[], options:[] }); setSelectedTemplate(''); setModal('cat-add'); }}
                     >
                       <Plus className="w-3.5 h-3.5" /> Add {isService ? 'Service' : 'Product'} Category
                     </button>
@@ -992,7 +1165,7 @@ export default function InventoryPage() {
                       <p className="text-sm font-medium text-gray-400">No {isService ? 'service' : 'product'} categories yet</p>
                       <button
                         className="text-xs text-[#0D3B6E] font-semibold hover:underline mt-1"
-                        onClick={() => { setSelectedCat(null); setCatForm({ name:'', description:'', scope, custom_fields:[] }); setSelectedTemplate(''); setModal('cat-add'); }}
+                        onClick={() => { setSelectedCat(null); setCatForm({ name:'', description:'', scope, custom_fields:[], options:[] }); setSelectedTemplate(''); setModal('cat-add'); }}
                       >+ Add one now</button>
                     </div>
                   ) : (
@@ -1037,7 +1210,7 @@ export default function InventoryPage() {
                             {/* Actions */}
                             <div className="flex items-center justify-end gap-1 pt-1 border-t border-gray-100">
                               <button
-                                onClick={() => { setSelectedCat(c); setCatForm({ name:c.name, description:c.description||'', scope:c.scope||'product', custom_fields:c.custom_fields||[] }); setSelectedTemplate(''); setModal('cat-edit'); }}
+                                onClick={() => { setSelectedCat(c); setCatForm({ name:c.name, description:c.description||'', scope:c.scope||'product', custom_fields:c.custom_fields||[], options:c.options||[] }); setSelectedTemplate(''); setModal('cat-edit'); }}
                                 className="flex items-center gap-1.5 text-xs text-[#0D3B6E] font-medium px-2.5 py-1.5 rounded-lg hover:bg-[#0D3B6E]/8 transition-colors"
                               ><Edit2 className="w-3.5 h-3.5" /> Edit</button>
                               <button
@@ -1318,6 +1491,58 @@ export default function InventoryPage() {
               ))}
             </div>
           </div>
+
+          {/* Options a customer chooses between.
+              Deliberately below the custom fields and labelled against them:
+              two boxes that both take a name and a list of values are easy to
+              confuse, and the cost of confusing them is a shop that thinks it
+              has asked for a size and has only described one. */}
+          {catForm.scope === 'product' && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="form-label mb-0">
+                  Options customers choose <span className="text-gray-400 font-normal">({catForm.options.length})</span>
+                </label>
+                <button type="button" onClick={addOption} className="text-xs text-[#0D3B6E] font-semibold hover:underline flex items-center gap-1">
+                  <Plus className="w-3 h-3" /> Add option
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mb-2">
+                Size, colour, and anything else a customer must pick before ordering.
+                Each product then says which of these values it stocks, and how many of each.
+              </p>
+
+              {catForm.options.length === 0 ? (
+                <p className="text-xs text-gray-400 italic bg-gray-50 border border-dashed border-gray-200 rounded-xl px-3 py-3">
+                  None — everything in this category is sold one way.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {catForm.options.map((option, i) => (
+                    <div key={i} className="flex gap-2 items-start bg-gray-50 border border-gray-200 rounded-xl p-2.5">
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <input
+                          className="form-input text-sm"
+                          placeholder="Size"
+                          value={option.name}
+                          onChange={e => updateOption(i, { name: e.target.value })}
+                        />
+                        <input
+                          className="form-input text-sm sm:col-span-2"
+                          placeholder="S, M, L, XL — separated by commas"
+                          value={option.values.join(', ')}
+                          onChange={e => updateOption(i, { values: e.target.value.split(',').map(v => v.trim()).filter(Boolean) })}
+                        />
+                      </div>
+                      <button type="button" onClick={() => removeOption(i)} className="text-gray-400 hover:text-red-500 mt-1 flex-shrink-0">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3 justify-end mt-5">

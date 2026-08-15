@@ -30,6 +30,10 @@ export default function ProductCard({ product: p, tenantSlug, seedHue, index = 0
   const outOfStock = tracksStock(p) && p.stock_qty <= 0;
   const lowStock = tracksStock(p) && p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5);
   const multiImage = getProductImages(p).length > 1;
+  // A card has no room to ask which size, and adding without asking would be
+  // refused by the server anyway. So it sends the customer to the page that
+  // can ask, which is what the button now says it does.
+  const needsChoice = Array.isArray(p.options) && p.options.length > 0;
 
   /**
    * The product's real address, when it has one.
@@ -135,6 +139,14 @@ export default function ProductCard({ product: p, tenantSlug, seedHue, index = 0
             {outOfStock ? (
               <button disabled className="store-btn store-btn-muted store-btn-sm w-full cursor-not-allowed">
                 Unavailable
+              </button>
+            ) : needsChoice ? (
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); onOpen(); }}
+                className="store-btn store-btn-primary store-btn-sm w-full"
+              >
+                Choose options
               </button>
             ) : inCartQty && inCartQty > 0 ? (
               <div className="flex items-center justify-between bg-slate-50 rounded-lg px-2 py-1.5 border border-slate-100">

@@ -665,6 +665,33 @@
    customer skimming the page should be able to tell before reading that this
    band behaves differently — these are things to ask for, not things to put in
    a basket. */
+/* One value of one option: a size, a colour.
+   A bordered chip rather than a filled pill, because a row of eight filled
+   pills is eight competing colours and the one that is chosen has to win
+   against all of them. Chosen is the solid one; everything else is quiet. */
+.store-swatch {
+  @apply px-3.5 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 bg-white
+         transition-colors min-w-[2.75rem];
+}
+.store-swatch:hover { @apply border-gray-500; }
+.store-swatch-on {
+  background: var(--store-brand-on-paper);
+  border-color: var(--store-brand-on-paper);
+  @apply text-white;
+}
+.store-swatch-on:hover { border-color: var(--store-brand-on-paper); }
+/* Sold out, and still readable. Struck through rather than hidden: a customer
+   who came for a 2XL should learn it has gone, not wonder whether this shop
+   stocks their size at all. */
+.store-swatch-gone {
+  @apply text-gray-400 border-gray-200 line-through decoration-gray-300;
+}
+.store-swatch-gone.store-swatch-on {
+  @apply text-white/80 no-underline line-through;
+  background: #9ca3af;
+  border-color: #9ca3af;
+}
+
 .store-service-card {
   @apply rounded-2xl p-5 transition-colors duration-300;
   background: color-mix(in srgb, var(--store-brand) 4%, #fff);
@@ -674,6 +701,42 @@
   border-color: color-mix(in srgb, var(--store-brand) 30%, transparent);
   background: color-mix(in srgb, var(--store-brand) 7%, #fff);
 }
+/* A product page, rather than a card that grew.
+   The name is set at display size because it is the first thing read and the
+   thing the whole page is about; the price is the second. Everything else on
+   the page steps down from those two. */
+.store-detail-title {
+  @apply text-[1.75rem] sm:text-[2.125rem] font-extrabold text-gray-900 leading-[1.12] tracking-[-0.02em];
+  text-wrap: balance;
+}
+.store-detail-price {
+  @apply text-[2.25rem] font-extrabold text-gray-900 tracking-[-0.03em] tabular-nums leading-none;
+}
+.store-detail-heading {
+  @apply text-lg font-bold text-gray-900 tracking-[-0.01em];
+}
+/* A square in the shop's colour instead of a tick. A row of ticks reads as a
+   checklist somebody has completed; these are claims about the product. */
+.store-detail-bullet {
+  @apply w-1.5 h-1.5 rounded-sm flex-shrink-0 mt-[0.5rem];
+  background: var(--store-brand-on-paper);
+}
+
+/* Status, as a word on the page rather than a filled pill. The old badges put
+   four saturated colours in a row above the price. */
+.store-status {
+  @apply inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border;
+}
+.store-status-good { @apply text-emerald-700 bg-emerald-50/70 border-emerald-100; }
+.store-status-bad { @apply text-red-700 bg-red-50 border-red-100; }
+.store-status-quiet { @apply text-gray-500 bg-white border-gray-200 hover:border-gray-300 transition-colors; }
+
+/* Buy now: present, and quieter than Add to cart, because the cart is the
+   path most people should take and the amber button was shouting louder. */
+.store-btn-buy {
+  @apply bg-gray-900 text-white hover:bg-gray-800;
+}
+
 .store-service-icon {
   @apply w-10 h-10 rounded-xl flex items-center justify-center;
   background: color-mix(in srgb, var(--store-brand) 12%, #fff);

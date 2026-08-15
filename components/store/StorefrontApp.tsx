@@ -9,7 +9,7 @@ import StoreNavbar from '@/components/store/StoreNavbar';
 import StoreFilters from '@/components/store/StoreFilters';
 import StoreFooter from '@/components/store/StoreFooter';
 import MobileBottomBar from '@/components/store/MobileBottomBar';
-import ProductImageGallery from '@/components/store/ProductImageGallery';
+import ProductDetail from '@/components/store/ProductDetail';
 import ProductCardSkeleton from '@/components/store/ProductCardSkeleton';
 import ProductFacts from '@/components/store/ProductFacts';
 import StoreHero from '@/components/store/StoreHero';
@@ -36,6 +36,7 @@ import {
   tracksStock,
   type StorefrontSettings,
   type StoreProduct,
+  type ProductVariant,
   type StoreTenant,
   type StoreBranch,
   type StoreCustomer,
@@ -44,7 +45,15 @@ import {
 import { useStoreProductFeed } from '@/hooks/useStoreProductFeed';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
-interface CartItem { product: StoreProduct; quantity: number; branch_id: string; branch_name: string; }
+interface CartItem {
+  product: StoreProduct;
+  quantity: number;
+  branch_id: string;
+  branch_name: string;
+  /** Which one of it, when the product is sold in options. */
+  variant_key?: string;
+  variant_label?: string;
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -90,6 +99,8 @@ const toCartItem = (item: any): CartItem => ({
   quantity: item.quantity,
   branch_id: item.branch_id || '',
   branch_name: item.branch_name || 'Main Branch',
+  variant_key: item.variant_key || '',
+  variant_label: item.variant_label || '',
 });
 
 interface Props {
@@ -399,21 +410,37 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
   const setProductLoading = (id: string, loading: boolean) =>
     setCartLoadingIds(prev => { const s = new Set(prev); loading ? s.add(id) : s.delete(id); return s; });
 
-  const addToCart = async (product: StoreProduct, quantity = 1) => {
+  /**
+   * A cart line is a product *and* a choice.
+   *
+   * Two navy mediums is one line of two; a navy medium and a white large are
+   * two lines. Keyed on the product alone, changing the quantity of one would
+   * find whichever polo shirt line came first and change that instead.
+   */
+  const lineKey = (productId: string, variantKey?: string) => `${productId}::${variantKey || ''}`;
+
+  const addToCart = async (product: StoreProduct, quantity = 1, variant?: ProductVariant | null) => {
     setProductLoading(product.id, true);
     try {
       const r = await publicApi.post('/storefront/cart/add', {
         cart_id: cartId || localStorage.getItem(cartIdKey(tenantSlug)) || '',
         product_id: product.id,
         quantity,
+        // Which one of it. The key the catalogue handed out, never one built
+        // here — the server owns what a combination is called.
+        variant_key: variant?.key || '',
         tenant_id: tenant?.id,
       });
       syncCart(r.data.data);
+    } catch (e: unknown) {
+      const res = (e as { response?: { data?: { message?: string } } }).response;
+      setError(res?.data?.message || 'We could not add that to your cart.');
     } finally { setProductLoading(product.id, false); }
   };
 
-  const updateQty = async (productId: string, delta: number) => {
-    const item = cart.find(i => String(i.product.id) === String(productId));
+  const updateQty = async (productId: string, delta: number, variantKey = '') => {
+    const item = cart.find(i =>
+      String(i.product.id) === String(productId) && (i.variant_key || '') === variantKey);
     if (!item) return;
     const newQty = item.quantity + delta;
     setProductLoading(productId, true);
@@ -421,18 +448,20 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
       const r = await publicApi.patch('/storefront/cart/update', {
         cart_id: cartId,
         product_id: productId,
+        variant_key: variantKey,
         quantity: newQty,
       });
       syncCart(r.data.data);
     } finally { setProductLoading(productId, false); }
   };
 
-  const removeFromCart = async (productId: string) => {
+  const removeFromCart = async (productId: string, variantKey = '') => {
     setProductLoading(productId, true);
     try {
       const r = await publicApi.patch('/storefront/cart/update', {
         cart_id: cartId,
         product_id: productId,
+        variant_key: variantKey,
         quantity: 0,
       });
       syncCart(r.data.data);
@@ -608,6 +637,9 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
         items: cart.map(i => ({
           product_id: i.product.id,
           quantity: i.quantity,
+          // Which one of it. Re-checked server-side, because what comes off the
+          // shelf and what the shop is owed both depend on this answer.
+          variant_key: i.variant_key || '',
           branch_id: i.branch_id,
           branch_name: i.branch_name,
         })),
@@ -995,254 +1027,30 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
       )}
 
 
-      {step === 'detail' && selectedProduct && (() => {
-        const detailBg = categoryGradient(selectedProduct.category_name);
-        const inCart = cart.find(i => i.product.id === selectedProduct.id);
-        return (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 lg:pb-6">
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-5 flex-wrap">
-              <button type="button" onClick={closeProduct} className="hover:text-[#0D3B6E] hover:underline">Home</button>
-              <ChevronRight className="w-3 h-3" />
-              <button type="button" onClick={() => { setFilterCat(selectedProduct.category_name || ''); closeProduct(); }} className="hover:text-[#0D3B6E] hover:underline">{selectedProduct.category_name || 'General'}</button>
-              <ChevronRight className="w-3 h-3" />
-              <span className="text-gray-800 font-medium truncate max-w-[200px] sm:max-w-xs">{selectedProduct.name}</span>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <div className="lg:col-span-3">
-                <ProductImageGallery
-                  key={selectedProduct.id}
-                  product={selectedProduct}
-                  gradientClass={detailBg}
-                />
-              </div>
-
-              <div className="lg:col-span-2">
-                <div className="store-filter-panel p-6 sticky top-24 space-y-5">
-                  <div>
-                    <div className="text-[10px] text-[#1A5294] font-bold uppercase tracking-widest mb-1.5">{selectedProduct.category_name || 'General'}</div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug mb-3">{selectedProduct.name}</h1>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {selectedProduct.item_type === 'service' ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full ring-1 ring-purple-100">
-                          <BadgeCheck className="w-3.5 h-3.5" /> Service available
-                        </span>
-                      ) : !tracksStock(selectedProduct) ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full ring-1 ring-emerald-100">
-                          <BadgeCheck className="w-3.5 h-3.5" /> Available
-                        </span>
-                      ) : selectedProduct.stock_qty > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full ring-1 ring-emerald-100">
-                          <BadgeCheck className="w-3.5 h-3.5" /> In stock · {selectedProduct.stock_qty} available
-                        </span>
-                      ) : (
-                        <span className="inline-flex text-xs font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded-full ring-1 ring-red-100">Out of stock</span>
-                      )}
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#0D3B6E]" /> Secure checkout
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleWishlist(selectedProduct.id)}
-                        className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors"
-                        style={wishlist.has(selectedProduct.id) ? { borderColor: '#ef4444', color: '#ef4444', background: '#fff1f2' } : { borderColor: '#e5e7eb', color: '#6b7280' }}
-                      >
-                        <Heart className={`w-3.5 h-3.5 ${wishlist.has(selectedProduct.id) ? 'fill-red-500' : ''}`} />
-                        {wishlist.has(selectedProduct.id) ? 'Wishlisted' : 'Wishlist'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-gray-100 pt-4">
-                    <div className="flex items-baseline gap-3 flex-wrap">
-                      {selectedProduct.price > 0 ? (
-                        <div className="text-3xl font-extrabold text-gray-900 tracking-tight">{formatGhs(selectedProduct.price)}</div>
-                      ) : (
-                        <div className="text-xl font-semibold text-gray-400 italic">Price on request</div>
-                      )}
-                      {selectedProduct.price > 0 && selectedProduct.compare_price && selectedProduct.compare_price > selectedProduct.price + 0.01 && (
-                        <>
-                          <div className="text-lg text-gray-400 line-through">{formatGhs(selectedProduct.compare_price)}</div>
-                          <span className="text-xs font-bold bg-red-500 text-white px-2 py-0.5 rounded-full">
-                            -{Math.round((1 - selectedProduct.price / selectedProduct.compare_price) * 100)}% OFF
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-0.5">Inclusive of all taxes</div>
-                  </div>
-
-                  {/* The reasons to buy, before the paragraph explaining them.
-                      Scannable is the whole point: a customer deciding in ten
-                      seconds reads these and nothing else. */}
-                  {!!selectedProduct.highlights?.filter(Boolean).length && (
-                    <ul className="space-y-1.5">
-                      {selectedProduct.highlights.filter(Boolean).slice(0, 6).map((h, i) => (
-                        <li key={`${h}-${i}`} className="flex items-start gap-2 text-sm text-gray-700">
-                          <Check className="w-4 h-4 flex-shrink-0 mt-0.5 [color:var(--store-brand-on-paper)]" />
-                          <span>{h}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {/* Only what the shop wrote. This used to print "Quality product
-                      from our verified catalog. All items are sourced from trusted
-                      suppliers" whenever a description was blank — a claim GEMS is in
-                      no position to make on a shop's behalf, indistinguishable to a
-                      customer from something the shop wrote itself. Silence is honest;
-                      the facts below say more than the invented sentence did. */}
-                  {selectedProduct.short_description?.trim() && (
-                    <p className="text-sm text-gray-800 font-medium leading-relaxed">
-                      {selectedProduct.short_description.trim()}
-                    </p>
-                  )}
-
-                  {selectedProduct.description?.trim() && (
-                    <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                      {selectedProduct.description.trim()}
-                    </div>
-                  )}
-
-                  <ProductFacts
-                    specs={selectedProduct.specs}
-                    attributes={selectedProduct.attributes}
-                    brand={selectedProduct.brand}
-                    bundleItems={selectedProduct.bundle_items}
-                    itemType={selectedProduct.item_type}
-                    requiresFile={selectedProduct.requires_file}
-                    unit={selectedProduct.unit}
-                  />
-
-                  {selectedProduct.sku && (
-                    <div className="text-xs text-gray-400 pb-1 border-b border-gray-100">SKU: <span className="font-mono text-gray-600">{selectedProduct.sku}</span></div>
-                  )}
-
-                  {selectedProduct.item_type === 'service' ? (
-                    <>
-                      {selectedProduct.unit_type && selectedProduct.unit_type !== 'fixed' && (
-                        <div className="bg-purple-50 rounded-xl p-3 ring-1 ring-purple-100 text-sm text-purple-800">
-                          <span className="font-semibold capitalize">{selectedProduct.unit_type === 'hour' ? 'Hourly rate' : selectedProduct.unit_type === 'day' ? 'Daily rate' : 'Per unit'}</span>
-                          {selectedProduct.duration ? <span className="text-purple-600 ml-1">· {selectedProduct.duration} {selectedProduct.unit_type === 'hour' ? 'hr' : 'day'}{selectedProduct.duration > 1 ? 's' : ''} estimated</span> : null}
-                        </div>
-                      )}
-                      <div className="bg-slate-50 rounded-xl p-3 space-y-2 ring-1 ring-slate-100">
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <Lock className="w-4 h-4 text-[#0D3B6E] flex-shrink-0" />
-                          <span>Secure Paystack checkout</span>
-                        </div>
-                      </div>
-                      {!inCart ? (
-                        <button type="button" onClick={() => { addToCart(selectedProduct, detailQty); setDetailQty(1); }} className="store-btn store-btn-primary w-full">
-                          Add to Order
-                        </button>
-                      ) : (
-                        <button type="button" onClick={() => setShowCart(true)} className="store-btn store-btn-primary w-full">
-                          View Cart ({inCart.quantity} item{inCart.quantity !== 1 ? 's' : ''})
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => { if (!inCart) { addToCart(selectedProduct, detailQty); } setStep('checkout'); if (deliveryLocation) setForm(f => ({ ...f, delivery_address: f.delivery_address || deliveryLocation })); }}
-                        className="store-btn w-full bg-amber-400 hover:bg-amber-300 text-gray-900 shadow-md shadow-amber-900/10"
-                      >
-                        Book Now
-                      </button>
-                    </>
-                  ) : isAvailable(selectedProduct) ? (
-                    <>
-                      <div className="bg-slate-50 rounded-xl p-3 space-y-2 ring-1 ring-slate-100">
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                          <span><strong>Free delivery</strong> on orders over {formatGhs(storeSettings.free_delivery_threshold)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <Lock className="w-4 h-4 text-[#0D3B6E] flex-shrink-0" />
-                          <span>Secure Paystack checkout</span>
-                        </div>
-                      </div>
-                      {!inCart ? (
-                        <div>
-                          <label className="text-xs font-semibold text-gray-600 mb-2 block">Quantity</label>
-                          <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2 w-fit ring-1 ring-slate-100">
-                            <button type="button" onClick={() => setDetailQty(q => Math.max(1, q - 1))} className="store-qty-btn">
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="font-bold text-gray-900 w-6 text-center">{detailQty}</span>
-                            {/* A bundle has no stock figure to stop at, so the
-                                ceiling only applies to something that has one —
-                                otherwise the button clamps the quantity to zero. */}
-                            <button type="button" onClick={() => setDetailQty(q => (tracksStock(selectedProduct) ? Math.min(selectedProduct.stock_qty, q + 1) : q + 1))} className="store-qty-btn store-qty-btn-primary">
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <label className="text-xs font-semibold text-gray-600 mb-2 block">In Cart</label>
-                          <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2 w-fit ring-1 ring-slate-100">
-                            <button type="button" onClick={() => updateQty(selectedProduct.id, -1)} className="store-qty-btn">
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="font-bold text-gray-900 w-6 text-center">{inCart.quantity}</span>
-                            <button type="button" onClick={() => updateQty(selectedProduct.id, 1)} className="store-qty-btn store-qty-btn-primary">
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      {!inCart ? (
-                        <button type="button" onClick={() => { addToCart(selectedProduct, detailQty); setDetailQty(1); }} className="store-btn store-btn-primary w-full">
-                          Add to Cart
-                        </button>
-                      ) : (
-                        <button type="button" onClick={() => setShowCart(true)} className="store-btn store-btn-primary w-full">
-                          View Cart ({inCart.quantity} item{inCart.quantity !== 1 ? 's' : ''})
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => { if (!inCart) { addToCart(selectedProduct, detailQty); } setStep('checkout'); if (deliveryLocation) setForm(f => ({ ...f, delivery_address: f.delivery_address || deliveryLocation })); }}
-                        className="store-btn w-full bg-amber-400 hover:bg-amber-300 text-gray-900 shadow-md shadow-amber-900/10"
-                      >
-                        Buy Now
-                      </button>
-                    </>
-                  ) : (
-                    <div className="text-center py-4">
-                      <div className="text-red-500 font-semibold mb-3">Currently Out of Stock</div>
-                      <button type="button" onClick={closeProduct} className="store-btn w-full bg-gray-100 text-gray-600 hover:bg-gray-200">Browse Similar Products</button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {(() => {
-              const related = products.filter(p => p.category_name === selectedProduct.category_name && p.id !== selectedProduct.id).slice(0, 4);
-              if (!related.length) return null;
-              return (
-                <div className="mt-10">
-                  <h2 className="text-lg font-bold text-gray-800 mb-4">Related Products</h2>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {related.map(p => (
-                      <button key={p.id} type="button" onClick={() => { setSelectedProduct(p); setDetailQty(1); window.scrollTo({ top: 0, behavior: 'instant' }); }} className="store-product-card text-left">
-                        <div className={`aspect-[4/3] bg-gradient-to-br ${categoryGradient(p.category_name)} flex items-center justify-center overflow-hidden`}>
-                          {p.images?.[0] ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" /> : <Package className={`w-12 h-12 ${categoryIconColor(p.category_name)}`} />}
-                        </div>
-                        <div className="p-3">
-                          <p className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1">{p.name}</p>
-                          <p className="text-sm font-extrabold text-gray-900">{formatGhs(p.price)}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        );
-      })()}
+      {step === 'detail' && selectedProduct && (
+        <ProductDetail
+          product={selectedProduct}
+          inCartQty={cart.find(i => i.product.id === selectedProduct.id)?.quantity || 0}
+          qty={detailQty}
+          onQty={setDetailQty}
+          onAdd={variant => { addToCart(selectedProduct, detailQty, variant); setDetailQty(1); }}
+          onUpdateCartQty={delta => updateQty(selectedProduct.id, delta)}
+          onBuyNow={variant => {
+            if (!cart.find(i => i.product.id === selectedProduct.id)) addToCart(selectedProduct, detailQty, variant);
+            setStep('checkout');
+            if (deliveryLocation) setForm(f => ({ ...f, delivery_address: f.delivery_address || deliveryLocation }));
+          }}
+          onOpenCart={() => setShowCart(true)}
+          onClose={closeProduct}
+          onCategory={name => { setFilterCat(name); closeProduct(); }}
+          related={products.filter(p => p.category_name === selectedProduct.category_name && p.id !== selectedProduct.id).slice(0, 4)}
+          onOpenRelated={p => { setSelectedProduct(p); setDetailQty(1); window.scrollTo({ top: 0, behavior: 'instant' }); }}
+          wishlisted={wishlist.has(selectedProduct.id)}
+          onToggleWishlist={() => toggleWishlist(selectedProduct.id)}
+          freeDeliveryOver={storeSettings.free_delivery_threshold}
+          deliveryEstimate={storeSettings.delivery_estimate}
+        />
+      )}
 
       {step === 'checkout' && (
         <div className="max-w-6xl mx-auto px-4 py-8 pb-12">
@@ -1340,7 +1148,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
                 <h2 className="font-bold text-gray-900 text-base mb-4">Order Summary</h2>
                 <div className="space-y-3 mb-4">
                   {cart.map(i => (
-                    <div key={i.product.id} className="flex items-center gap-3">
+                    <div key={lineKey(i.product.id, i.variant_key)} className="flex items-center gap-3">
                       <div className="relative flex-shrink-0">
                         <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-50 ring-1 ring-gray-100">
                           {i.product.images?.[0] ? (
@@ -1352,6 +1160,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-medium text-gray-800 truncate">{i.product.name}</div>
+                        {i.variant_label && <div className="text-xs text-gray-600 truncate">{i.variant_label}</div>}
                         <div className="text-xs text-gray-400">{formatGhs(i.product.price)} each</div>
                       </div>
                       <div className="text-sm font-semibold text-gray-900 flex-shrink-0">{formatGhs(i.product.price * i.quantity)}</div>
@@ -1560,7 +1369,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
                       </div>
                     )}
                     {group.items.map(i => (
-                      <div key={i.product.id} className="flex items-start gap-3 bg-white rounded-2xl p-3 border border-gray-100 mb-2 shadow-sm">
+                      <div key={lineKey(i.product.id, i.variant_key)} className="flex items-start gap-3 bg-white rounded-2xl p-3 border border-gray-100 mb-2 shadow-sm">
                         <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-slate-50 ring-1 ring-gray-100">
                           {i.product.images?.[0] ? (
                             <img src={i.product.images[0]} alt={i.product.name} className="w-full h-full object-cover"
@@ -1571,15 +1380,20 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-semibold text-gray-800 line-clamp-2">{i.product.name}</div>
+                          {/* Which one of it. Without this a cart holding a navy
+                              medium and a white large shows the same line twice. */}
+                          {i.variant_label && (
+                            <div className="text-xs text-gray-600 mt-0.5 font-medium">{i.variant_label}</div>
+                          )}
                           <div className="text-xs text-gray-400 mt-0.5">{formatGhs(i.product.price)} each</div>
                           <div className="text-sm font-bold text-gray-900 mt-1">{formatGhs(i.product.price * i.quantity)}</div>
                           <div className="flex items-center gap-2 mt-2">
                             <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-2 py-1 ring-1 ring-slate-100">
-                              <button type="button" onClick={() => updateQty(i.product.id, -1)} className="store-qty-btn w-7 h-7"><Minus className="w-3 h-3"/></button>
+                              <button type="button" onClick={() => updateQty(i.product.id, -1, i.variant_key)} className="store-qty-btn w-7 h-7"><Minus className="w-3 h-3"/></button>
                               <span className="text-sm font-bold text-gray-900 w-5 text-center">{i.quantity}</span>
-                              <button type="button" onClick={() => updateQty(i.product.id, 1)} className="store-qty-btn store-qty-btn-primary w-7 h-7"><Plus className="w-3 h-3"/></button>
+                              <button type="button" onClick={() => updateQty(i.product.id, 1, i.variant_key)} className="store-qty-btn store-qty-btn-primary w-7 h-7"><Plus className="w-3 h-3"/></button>
                             </div>
-                            <button type="button" onClick={() => removeFromCart(i.product.id)} className="text-xs text-red-500 hover:text-red-700 font-medium">Remove</button>
+                            <button type="button" onClick={() => removeFromCart(i.product.id, i.variant_key)} className="text-xs text-red-500 hover:text-red-700 font-medium">Remove</button>
                           </div>
                         </div>
                       </div>
