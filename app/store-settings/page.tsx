@@ -14,6 +14,7 @@ import {
   type StorefrontSettings,
 } from '@/lib/storefrontSettings';
 import { formatGhs } from '@/components/store/theme';
+import StoreImageField from '@/components/store/StoreImageField';
 
 /**
  * A few colours that are safe to land on.
@@ -464,21 +465,15 @@ export default function StoreSettingsPage() {
                   </p>
                 </div>
 
-                <div>
-                  <label className="form-label">Hero image <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <input
-                    className="form-input"
-                    placeholder="https://…"
-                    value={form.banner_image || ''}
-                    onChange={e => set('banner_image', e.target.value.trim())}
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    The photograph behind your headline. It is held well back and darkened so the
+                <StoreImageField
+                  label="Hero image"
+                  value={form.banner_image}
+                  onChange={url => set('banner_image', url)}
+                  hint="The photograph behind your headline. It is held well back and darkened so the
                     writing stays readable, so pick one for its mood rather than its detail — a wide
                     shot of your shop, your work or your materials. Without one, your colour is used,
-                    which still looks deliberate.
-                  </p>
-                </div>
+                    which still looks deliberate."
+                />
 
                 {/* What it will look like, without leaving the page. */}
                 <div className="rounded-2xl overflow-hidden ring-1 ring-gray-200">
