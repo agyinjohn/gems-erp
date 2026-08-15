@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { StageItem } from './ProductStage';
+import { DEFAULT_HERO_MESSAGE } from '@/lib/storefrontSettings';
 
 /**
  * The first thing a customer sees.
@@ -27,6 +28,8 @@ import type { StageItem } from './ProductStage';
 
 interface Props {
   businessName: string;
+  /** The shop's own big line. Falls back to the business name. */
+  heroHeadline?: string;
   tagline?: string;
   /** The shop's own banner. The deliberate choice, so it wins. */
   bannerImage?: string;
@@ -43,7 +46,7 @@ interface Props {
 }
 
 export default function StoreHero({
-  businessName, tagline, bannerImage, stageItems = [], logo,
+  businessName, heroHeadline, tagline, bannerImage, stageItems = [], logo,
   productCount, categoryCount, deliveryEstimate,
   onShop, onSecondary, secondaryLabel,
 }: Props) {
@@ -132,10 +135,14 @@ export default function StoreHero({
 
         {eyebrow && <p className="store-hero-eyebrow">{eyebrow}</p>}
 
-        <h1 className="store-hero-display mt-5">{businessName}</h1>
+        {/* The shop's own words if it wrote any, its name if not. The name is
+            the right default — it is always true and always specific — but a
+            shop selling a season or an offer should be able to say that
+            instead of repeating what the navigation already says. */}
+        <h1 className="store-hero-display mt-5">{heroHeadline?.trim() || businessName}</h1>
 
-        <p className="mt-6 max-w-md text-sm sm:text-base text-white/75 leading-relaxed store-hero-sub">
-          {tagline || 'Order online and we’ll take it from there.'}
+        <p className="mt-6 max-w-lg text-sm sm:text-base text-white/75 leading-relaxed store-hero-sub">
+          {tagline?.trim() || DEFAULT_HERO_MESSAGE}
         </p>
 
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">

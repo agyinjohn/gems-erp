@@ -695,6 +695,7 @@ export default function TenantStorefrontPage() {
           <>
             <StoreHero
               businessName={tenant?.business_name || 'Our store'}
+              heroHeadline={storeSettings.hero_headline}
               tagline={storeSettings.tagline}
               bannerImage={storeSettings.banner_image}
               stageItems={heroStageItems}

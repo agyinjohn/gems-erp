@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import api from '@/lib/api';
 import QRCode from 'qrcode';
 import {
+  DEFAULT_HERO_MESSAGE,
   DEFAULT_STOREFRONT_SETTINGS,
   fetchMerchantStoreSettings,
   saveMerchantStoreSettings,
@@ -434,19 +435,37 @@ export default function StoreSettingsPage() {
                 </div>
 
                 <div>
-                  <label className="form-label">Tagline <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label className="form-label">Headline <span className="text-gray-400 font-normal">(optional)</span></label>
                   <input
                     className="form-input"
-                    maxLength={120}
-                    placeholder="e.g. Printing and design in Accra since 2016"
-                    value={form.tagline || ''}
-                    onChange={e => set('tagline', e.target.value)}
+                    maxLength={70}
+                    placeholder={tenant?.business_name || 'Your business name'}
+                    value={form.hero_headline || ''}
+                    onChange={e => set('hero_headline', e.target.value)}
                   />
-                  <p className="text-xs text-gray-400 mt-1">One line under your name at the top of the shop.</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    The big line at the top of your shop. Leave it empty and your business name is
+                    used, which is what most shops want. Keep it short — it is set very large.
+                  </p>
                 </div>
 
                 <div>
-                  <label className="form-label">Banner image <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label className="form-label">Message <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <textarea
+                    className="form-input min-h-[76px] resize-y"
+                    maxLength={160}
+                    placeholder={DEFAULT_HERO_MESSAGE}
+                    value={form.tagline || ''}
+                    onChange={e => set('tagline', e.target.value)}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    The line under the headline — a sentence or two on what you sell and why to buy
+                    from you. Left empty, customers see the general line above.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="form-label">Hero image <span className="text-gray-400 font-normal">(optional)</span></label>
                   <input
                     className="form-input"
                     placeholder="https://…"
@@ -454,21 +473,32 @@ export default function StoreSettingsPage() {
                     onChange={e => set('banner_image', e.target.value.trim())}
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    A wide photograph of your shop or your work. Without one, your colour is used —
-                    which still looks deliberate, so only add one you are happy with.
+                    The photograph behind your headline. It is held well back and darkened so the
+                    writing stays readable, so pick one for its mood rather than its detail — a wide
+                    shot of your shop, your work or your materials. Without one, your colour is used,
+                    which still looks deliberate.
                   </p>
                 </div>
 
                 {/* What it will look like, without leaving the page. */}
                 <div className="rounded-2xl overflow-hidden ring-1 ring-gray-200">
-                  <div className="relative h-28" style={{
+                  {/* Centred, serif and dark, because that is what the shop front
+                      is. A preview that does not match is worse than none. */}
+                  <div className="relative h-40" style={{
                     background: form.banner_image
                       ? `url(${form.banner_image}) center/cover`
-                      : `linear-gradient(135deg, ${form.brand_color || '#0d3b6e'}, ${form.brand_color || '#0d3b6e'}cc)`,
+                      : `linear-gradient(135deg, ${form.brand_color || '#0d3b6e'}, #0a0e14 75%)`,
                   }}>
-                    <div className="absolute inset-0 bg-black/35 flex flex-col justify-center px-4">
-                      <p className="text-white font-extrabold text-lg leading-tight">{tenant?.business_name || 'Your business'}</p>
-                      <p className="text-white/80 text-xs mt-0.5">{form.tagline || 'Order online and we’ll take it from there.'}</p>
+                    <div className="absolute inset-0 bg-[#0a0e14]/55 flex flex-col items-center justify-center text-center px-6">
+                      <p
+                        className="text-white leading-tight"
+                        style={{ fontFamily: 'var(--font-display), Georgia, serif', fontSize: '1.6rem' }}
+                      >
+                        {form.hero_headline?.trim() || tenant?.business_name || 'Your business'}
+                      </p>
+                      <p className="text-white/70 text-[11px] mt-2 max-w-xs leading-snug line-clamp-2">
+                        {form.tagline?.trim() || DEFAULT_HERO_MESSAGE}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 p-3 bg-white">

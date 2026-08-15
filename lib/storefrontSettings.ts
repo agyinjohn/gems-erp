@@ -17,6 +17,7 @@ export interface StorefrontSettings {
   brand_color?: string;
   banner_image?: string;
   tagline?: string;
+  hero_headline?: string;
 }
 
 // ── Shared TypeScript interfaces ────────────────────────────────────────────
@@ -78,6 +79,23 @@ export interface StoreOrder {
   delivery_address?: string;
 }
 
+/**
+ * What the shop front says when the owner has written nothing.
+ *
+ * It advertises rather than merely stating a fact, because most shops will
+ * never open the settings page and this line is what their customers read. It
+ * promises only things GEMS actually does: the whole range is browsable, the
+ * order takes a moment, and payment goes through Paystack by card or mobile
+ * money. Nothing here mentions delivery, which is not true of a shop selling
+ * services.
+ *
+ * Defined once. It was written out separately in the storefront and in the
+ * settings preview, which is a drift waiting to happen — the preview is
+ * supposed to be the promise that the shop front will look like this.
+ */
+export const DEFAULT_HERO_MESSAGE =
+  'Browse everything we have, order in a few taps, and pay securely by card or mobile money.';
+
 export const DEFAULT_STOREFRONT_SETTINGS: StorefrontSettings = {
   delivery_fee: 30,
   free_delivery_threshold: 500,
@@ -108,6 +126,7 @@ export function normalizeStorefrontSettings(raw: Partial<StorefrontSettings> | n
     brand_color: String(raw?.brand_color ?? '').trim().toLowerCase(),
     banner_image: String(raw?.banner_image ?? '').trim(),
     tagline: String(raw?.tagline ?? '').trim(),
+    hero_headline: String(raw?.hero_headline ?? '').trim(),
   };
 }
 
