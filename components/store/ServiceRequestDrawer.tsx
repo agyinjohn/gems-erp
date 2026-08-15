@@ -132,7 +132,7 @@ export default function ServiceRequestDrawer({ tenantSlug, offers, initialId, on
             <button
               type="button"
               onClick={() => { navigator.clipboard?.writeText(trackLink); setCopied(true); }}
-              className="store-btn-outline w-full mt-2 inline-flex items-center justify-center gap-2"
+              className="store-btn-quiet w-full mt-2 inline-flex items-center justify-center gap-2"
             >
               <Copy className="w-4 h-4" /> {copied ? 'Link copied' : 'Copy the tracking link'}
             </button>

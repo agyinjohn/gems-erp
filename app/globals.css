@@ -731,6 +731,20 @@
 .store-status-bad { @apply text-red-700 bg-red-50 border-red-100; }
 .store-status-quiet { @apply text-gray-500 bg-white border-gray-200 hover:border-gray-300 transition-colors; }
 
+/* The quiet button, for a white ground.
+   store-btn-outline is white-on-transparent because it was written for the
+   hero, where it sits on a photograph. Reused on a white panel it is white
+   text on white — invisible, and invisible in the worst way: the layout still
+   reserves the space, so the page looks like it has an unexplained gap rather
+   than a broken button. This is the same shape for the same job, in ink. */
+.store-btn-quiet {
+  @apply inline-flex items-center justify-center gap-2 text-sm font-semibold
+    px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 bg-white
+    transition-colors duration-200;
+}
+.store-btn-quiet:hover { @apply border-gray-400 bg-gray-50; }
+.store-btn-quiet:disabled { @apply opacity-50 cursor-not-allowed; }
+
 /* Buy now: present, and quieter than Add to cart, because the cart is the
    path most people should take and the amber button was shouting louder. */
 .store-btn-buy {

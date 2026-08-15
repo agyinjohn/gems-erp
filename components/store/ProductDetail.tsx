@@ -71,9 +71,11 @@ export default function ProductDetail({
 
   const options = useMemo(() => product.options || [], [product.options]);
   const hasOptions = options.length > 0;
-  // Every question answered, which is not the same as the answers naming
-  // something buyable — "2XL, White" is complete and sold out.
-  const answeredAll = hasOptions && options.every(o => chosen[o.name]);
+  // Every question answered — vacuously true for a stapler, which asks none.
+  // Written as `hasOptions && …` this was false for every product without
+  // options, and the button on the great majority of the catalogue read
+  // "Choose an option" with nothing to choose.
+  const answeredAll = options.every(o => chosen[o.name]);
   const soldOutChoice = Boolean(variant && variant.available < 1);
 
   // A shirt with a size to pick is not buyable until one is picked, and not
@@ -83,7 +85,7 @@ export default function ProductDetail({
   const buyLabel = !answeredAll
     ? 'Choose an option'
     : soldOutChoice ? 'Sold out'
-    : !variant ? 'Not available'
+    : hasOptions && !variant ? 'Not available'
     : isService ? 'Add to order' : 'Add to cart';
 
   const available = (!stocked || product.stock_qty > 0) && !(hasOptions && product.stock_qty <= 0);
@@ -289,7 +291,7 @@ export default function ProductDetail({
                 <div className="rounded-xl bg-gray-50 ring-1 ring-gray-200 px-4 py-5 text-center">
                   <p className="font-semibold text-gray-900">This one has sold out</p>
                   <p className="text-sm text-gray-500 mt-1">We&apos;ll have more soon — have a look at the rest.</p>
-                  <button type="button" onClick={onClose} className="store-btn-outline mt-3.5">Back to the shop</button>
+                  <button type="button" onClick={onClose} className="store-btn-quiet mt-3.5">Back to the shop</button>
                 </div>
               )}
             </div>
@@ -384,15 +386,27 @@ export default function ProductDetail({
             <h2 className="store-detail-heading mb-5">More from {product.category_name || 'this shop'}</h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {related.map(p => (
-                <button key={p.id} type="button" onClick={() => onOpenRelated(p)} className="store-product-card text-left">
-                  <div className={`aspect-[4/3] bg-gradient-to-br ${categoryGradient(p.category_name)} flex items-center justify-center overflow-hidden`}>
+                <button key={p.id} type="button" onClick={() => onOpenRelated(p)} className="store-product-card text-left flex flex-col">
+                  <div className={`aspect-[4/3] flex items-center justify-center overflow-hidden ${
+                    p.images?.[0] ? 'bg-gray-50' : `bg-gradient-to-br ${categoryGradient(p.category_name)}`
+                  }`}>
                     {p.images?.[0]
                       ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
                       : <Package className={`w-12 h-12 ${categoryIconColor(p.category_name)}`} />}
                   </div>
-                  <div className="p-3">
-                    <p className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1">{p.name}</p>
-                    <p className="text-sm font-extrabold text-gray-900 tabular-nums">{formatGhs(p.price)}</p>
+                  {/* A column with the price pushed to the bottom, so a row of
+                      four lines up whether or not each has been reviewed. Left
+                      to flow, the one nobody has rated sat its price a line
+                      higher than its neighbours. */}
+                  <div className="p-3 flex flex-col flex-1 gap-1">
+                    <p className="text-xs font-semibold text-gray-800 line-clamp-2">{p.name}</p>
+                    {/* The same verdict the grid shows. Leaving it off here
+                        made the shop look like it rated some products and not
+                        others, when it was only this markup omitting it. */}
+                    {(p.rating_count || 0) > 0 && (
+                      <Stars value={p.rating_avg || 0} count={p.rating_count} size="sm" />
+                    )}
+                    <p className="text-sm font-extrabold text-gray-900 tabular-nums mt-auto pt-1">{formatGhs(p.price)}</p>
                   </div>
                 </button>
               ))}

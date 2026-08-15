@@ -27,7 +27,15 @@ export default function ProductImageGallery({ product, gradientClass = 'from-sla
 
   return (
     <div className={`store-image-gallery ${className}`}>
-      <div className={`store-image-gallery-main store-filter-panel relative bg-gradient-to-br ${gradientClass} overflow-hidden`}>
+      {/* The category tint stands in for a photograph that is not there. Behind
+          one that is, it becomes two coloured bars either side of the product —
+          object-contain leaves the box showing — and a rose gradient beside a
+          navy shirt reads as a rendering fault rather than as decoration. So a
+          product with a picture gets a neutral ground and the picture does the
+          talking. */}
+      <div className={`store-image-gallery-main store-filter-panel relative overflow-hidden ${
+        images.length ? 'bg-gray-50' : `bg-gradient-to-br ${gradientClass}`
+      }`}>
         {images.length > 0 ? (
           <>
             <img

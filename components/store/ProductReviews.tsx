@@ -115,13 +115,18 @@ export default function ProductReviews({
   if (!productSlug) return null;
 
   return (
-    <div>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
+      {/* The score on the left, what people wrote on the right.
+          Stacked, the summary sat alone across the full width with a thousand
+          pixels of nothing beside it, and every review line ran name-to-date
+          across the whole page — a measure nobody can read comfortably. */}
+      <div className="lg:col-span-4">
       <h2 className="store-detail-heading">
         {count > 0 ? 'What customers said' : 'Be the first to review this'}
       </h2>
 
       {count > 0 ? (
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-6">
+        <div className="mt-4 flex flex-col gap-4">
           <div className="flex-shrink-0">
             <div className="text-4xl font-extrabold text-gray-900 tabular-nums leading-none">{avg.toFixed(1)}</div>
             <Stars value={avg} size="md" className="mt-2" />
@@ -137,7 +142,7 @@ export default function ProductReviews({
               the breakdown does not, and five empty bars beside "27 reviews"
               is the page contradicting itself while it loads. */}
           {summary && (
-          <div className="flex-1 min-w-0 max-w-sm space-y-1">
+          <div className="min-w-0 max-w-xs space-y-1">
             {[5, 4, 3, 2, 1].map(star => {
               const n = breakdown[String(star)] || 0;
               const pct = count ? (n / count) * 100 : 0;
@@ -172,7 +177,7 @@ export default function ProductReviews({
       ) : eligible?.reviewed ? (
         <p className="mt-4 text-sm text-gray-500">You&apos;ve already reviewed this one.</p>
       ) : !open ? (
-        <button type="button" onClick={() => setOpen(true)} className="store-btn-outline mt-4">
+        <button type="button" onClick={() => setOpen(true)} className="store-btn-quiet mt-4">
           Write a review
         </button>
       ) : (
@@ -266,7 +271,7 @@ export default function ProductReviews({
                 <button type="button" onClick={send} disabled={sending} className="store-btn store-btn-primary">
                   {sending ? 'Posting…' : 'Post review'}
                 </button>
-                <button type="button" onClick={() => { setOpen(false); setError(''); }} className="store-btn-outline">
+                <button type="button" onClick={() => { setOpen(false); setError(''); }} className="store-btn-quiet">
                   Cancel
                 </button>
               </div>
@@ -275,16 +280,21 @@ export default function ProductReviews({
         </div>
       )}
 
+      </div>
+
       {/* ── Reading them ── */}
+      <div className="lg:col-span-8">
       {!!summary?.reviews.length && (
-        <ul className="mt-8 divide-y divide-gray-100 border-t border-gray-100">
+        <ul className="divide-y divide-gray-100 border-t border-gray-100">
           {summary.reviews.map(r => (
             <li key={r.id} className="py-5">
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-baseline gap-2.5 flex-wrap">
                 <Stars value={r.rating} size="sm" />
                 <span className="text-sm font-semibold text-gray-900">{r.name}</span>
-                {r.variant_label && <span className="text-xs text-gray-500">{r.variant_label}</span>}
-                <span className="text-xs text-gray-400 ml-auto">{whenAgo(r.created_at)}</span>
+                <span className="text-xs text-gray-400">{whenAgo(r.created_at)}</span>
+                {r.variant_label && (
+                  <span className="text-xs text-gray-500 rounded-md bg-gray-100 px-1.5 py-0.5">{r.variant_label}</span>
+                )}
               </div>
               {r.hidden ? (
                 <p className="text-sm text-gray-400 italic mt-2">
@@ -302,11 +312,12 @@ export default function ProductReviews({
         <button
           type="button"
           onClick={() => { const next = page + 1; setPage(next); load(next); }}
-          className="store-btn-outline mt-5"
+          className="store-btn-quiet mt-5"
         >
           Read more reviews
         </button>
       )}
+      </div>
     </div>
   );
 }
