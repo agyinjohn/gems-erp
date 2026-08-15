@@ -466,6 +466,17 @@ export default function StoreSettingsPage() {
                 </div>
 
                 <StoreImageField
+                  label="Logo"
+                  value={form.logo}
+                  onChange={url => set('logo', url)}
+                  endpoint="/uploads/logo"
+                  aspect="aspect-[3/1]"
+                  fit="contain"
+                  hint="Your mark, shown above your name at the top of the shop — and on the
+                    marketplace, on order tracking and on receipts. A square image works best."
+                />
+
+                <StoreImageField
                   label="Hero image"
                   value={form.banner_image}
                   onChange={url => set('banner_image', url)}

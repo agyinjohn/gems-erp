@@ -18,6 +18,8 @@ export interface StorefrontSettings {
   banner_image?: string;
   tagline?: string;
   hero_headline?: string;
+  /** Lives on the tenant, not in storefront_settings — see the controller. */
+  logo?: string;
 }
 
 // ── Shared TypeScript interfaces ────────────────────────────────────────────
@@ -127,6 +129,7 @@ export function normalizeStorefrontSettings(raw: Partial<StorefrontSettings> | n
     banner_image: String(raw?.banner_image ?? '').trim(),
     tagline: String(raw?.tagline ?? '').trim(),
     hero_headline: String(raw?.hero_headline ?? '').trim(),
+    logo: String(raw?.logo ?? '').trim(),
   };
 }
 

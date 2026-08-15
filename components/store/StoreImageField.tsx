@@ -29,9 +29,26 @@ interface Props {
   onChange: (url: string) => void;
   label: string;
   hint?: string;
+  /** Where the file goes. Each kind of image gets its own Cloudinary folder. */
+  endpoint?: string;
+  /** A logo is square and small; a hero is wide. */
+  aspect?: string;
+  /**
+   * Whether the preview may crop. A hero is a photograph and cropping it is
+   * what will happen on the shop front anyway, so showing it cropped is
+   * honest. A logo is a mark whose whole shape is the point — cropped, it is
+   * not that logo, and the owner is being shown something that will never
+   * appear anywhere.
+   */
+  fit?: 'cover' | 'contain';
 }
 
-export default function StoreImageField({ value, onChange, label, hint }: Props) {
+export default function StoreImageField({
+  value, onChange, label, hint,
+  endpoint = '/uploads/storefront-image',
+  aspect = 'aspect-[16/7]',
+  fit = 'cover',
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [showLink, setShowLink] = useState(false);
@@ -53,7 +70,7 @@ export default function StoreImageField({ value, onChange, label, hint }: Props)
 
     setUploading(true);
     try {
-      const res = await api.post('/uploads/storefront-image', body);
+      const res = await api.post(endpoint, body);
       const url = res.data?.data?.url;
       if (!url) throw new Error('No image came back');
       setBroken(false);
@@ -84,7 +101,7 @@ export default function StoreImageField({ value, onChange, label, hint }: Props)
 
       {value ? (
         <div className="rounded-xl border border-gray-200 overflow-hidden">
-          <div className="relative aspect-[16/7] bg-gray-50">
+          <div className={`relative ${aspect} bg-gray-50`}>
             {broken ? (
               // A link that does not resolve is worth saying out loud: saved as
               // it is, the shop front would silently fall back to its colour
@@ -99,7 +116,7 @@ export default function StoreImageField({ value, onChange, label, hint }: Props)
               <img
                 src={value}
                 alt=""
-                className="w-full h-full object-cover"
+                className={`w-full h-full ${fit === 'contain' ? 'object-contain p-3' : 'object-cover'}`}
                 onError={() => setBroken(true)}
                 onLoad={() => setBroken(false)}
                 // The mirror of the cached-image problem in ProductStage, and
