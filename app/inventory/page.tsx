@@ -419,7 +419,7 @@ export default function InventoryPage() {
   const [catConfirm, setCatConfirm] = useState<any>(null);
   const [locConfirm, setLocConfirm] = useState<any>(null);
   const [locForm, setLocForm] = useState({ name:'', code:'', type:'shelf', description:'' });
-  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', sell_online:true, images: [] as string[], attributes: {} as Record<string,any> });
+  const [form, setForm] = useState({ name:'', sku:'', barcode:'', description:'', category_id:'', price:'', cost_price:'', stock_qty:'', low_stock_threshold:'10', unit:'piece', sell_online:true, images: [] as string[], attributes: {} as Record<string,any>, short_description:'', brand:'', highlights: [] as string[] });
   const [catForm, setCatForm] = useState({ name:'', description:'', scope:'product' as 'product'|'service', custom_fields: [] as FieldDef[] });
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [adjustQty, setAdjustQty] = useState('');
@@ -477,8 +477,8 @@ export default function InventoryPage() {
     (!filterCat || (p.category_id?._id || p.category_id) == filterCat)
   );
 
-  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',sell_online:true,images:[],attributes:{} }); setError(''); setModal('add'); };
-  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,sell_online:p.sell_online!==false,images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{} }); setError(''); setModal('edit'); };
+  const openAdd = () => { setForm({ name:'',sku:'',barcode:'',description:'',category_id:'',price:'',cost_price:'',stock_qty:'',low_stock_threshold:'10',unit:'piece',sell_online:true,images:[],attributes:{},short_description:'',brand:'',highlights:[] }); setError(''); setModal('add'); };
+  const openEdit = (p: any) => { setSelected(p); setForm({ name:p.name,sku:p.sku||'',barcode:p.barcode||'',description:p.description||'',category_id:p.category_id?._id||p.category_id||'',price:p.price,cost_price:p.cost_price,stock_qty:p.stock_qty,low_stock_threshold:p.low_stock_threshold,unit:p.unit,sell_online:p.sell_online!==false,images:Array.isArray(p.images)?p.images.filter(Boolean):[],attributes:p.attributes||{},short_description:p.short_description||'',brand:p.brand||'',highlights:Array.isArray(p.highlights)?p.highlights.filter(Boolean):[] }); setError(''); setModal('edit'); };
   const openAdjust = (p: any) => { setSelected(p); setAdjustQty(''); setAdjustType('add'); setAdjustNote(''); setModal('adjust'); };
 
   const save = async () => {
@@ -789,6 +789,60 @@ export default function InventoryPage() {
           </div>
 
           {/* Dynamic category attributes */}
+          {/* What the storefront shows before anything else. Kept together and
+              labelled for where it appears, since none of it affects stock,
+              pricing or accounting — it is the shop talking to a customer. */}
+          <div className="col-span-2 border-t border-gray-100 pt-4 mt-1">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">On your online shop</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="form-label">Brand <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input {...inputProps('brand')} maxLength={60} placeholder="e.g. Vlisco" />
+              </div>
+              <div>
+                <label className="form-label">Short description <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input {...inputProps('short_description')} maxLength={200} placeholder="One line, for cards and search" />
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <label className="form-label">Highlights <span className="text-gray-400 font-normal">(up to 6)</span></label>
+              <div className="space-y-2">
+                {form.highlights.map((h, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      className="form-input"
+                      maxLength={120}
+                      value={h}
+                      placeholder="e.g. 100% cotton, colourfast"
+                      onChange={e => setForm(f => ({ ...f, highlights: f.highlights.map((x, idx) => idx === i ? e.target.value : x) }))}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, highlights: f.highlights.filter((_, idx) => idx !== i) }))}
+                      className="p-2 text-gray-400 hover:text-red-500 shrink-0"
+                      aria-label={`Remove highlight ${i + 1}`}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {form.highlights.length < 6 && (
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, highlights: [...f.highlights, ''] }))}
+                  className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-800"
+                >
+                  + Add a highlight
+                </button>
+              )}
+              <p className="text-xs text-gray-400 mt-1.5">
+                The three or four reasons to buy, shown above the description.
+              </p>
+            </div>
+          </div>
+
           {(() => {
             const cat = categories.find(c => c.id === form.category_id);
             const fields: FieldDef[] = cat?.custom_fields || [];

@@ -1,6 +1,6 @@
 'use client';
 
-import { Layers, Paperclip, Ruler } from 'lucide-react';
+import { Layers, Paperclip, Ruler, Tag } from 'lucide-react';
 
 /**
  * What the shop already knows about a product, finally said out loud.
@@ -23,8 +23,16 @@ interface BundleLine {
 }
 
 interface Props {
-  /** The free-form bag on the product. Anything at all could be in here. */
+  /**
+   * Specifications the server resolved against the product's category, so the
+   * labels and the order are the ones the shop chose rather than ones derived
+   * from a storage key. Preferred over `attributes` whenever it is present.
+   */
+  specs?: { label?: string; value?: string }[];
+  /** The raw bag. Still the fallback, for a catalogue served by an older API. */
   attributes?: Record<string, unknown> | null;
+  /** Maker or label, when the shop has recorded one. */
+  brand?: string;
   /** What is inside a bundle, already priced and stock-checked without ever being listed. */
   bundleItems?: BundleLine[];
   itemType?: string;
@@ -77,9 +85,17 @@ export function specRows(attributes?: Record<string, unknown> | null) {
 }
 
 export default function ProductFacts({
-  attributes, bundleItems = [], itemType, requiresFile, unit,
+  specs, attributes, brand, bundleItems = [], itemType, requiresFile, unit,
 }: Props) {
-  const rows = specRows(attributes);
+  // The server's rows when it sent any; otherwise derive them here. Keeping
+  // the fallback means a storefront pointed at a backend that has not been
+  // deployed yet still shows a specification table rather than nothing.
+  const resolved = (specs || [])
+    .filter(r => r?.label?.trim() && r?.value?.trim())
+    .map(r => ({ label: r.label!.trim(), value: r.value!.trim() }));
+  const rows = resolved.length ? resolved : specRows(attributes);
+
+  const brandName = brand?.trim();
   const contents = bundleItems.filter(b => b.name);
   const showUnit = Boolean(unit && unit.trim() && unit.trim().toLowerCase() !== 'piece');
 
@@ -87,7 +103,7 @@ export default function ProductFacts({
   // *before* buying, so it is not folded in with the rest.
   const notice = itemType === 'service' && requiresFile;
 
-  if (!rows.length && !contents.length && !notice && !showUnit) return null;
+  if (!rows.length && !contents.length && !notice && !showUnit && !brandName) return null;
 
   return (
     <div className="space-y-4">
@@ -98,6 +114,13 @@ export default function ProductFacts({
             <strong className="font-semibold">We&apos;ll need a file from you.</strong>{' '}
             Artwork or documents can be sent after you order — we&apos;ll start once it arrives.
           </p>
+        </div>
+      )}
+
+      {brandName && (
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <Tag className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <span>By <strong className="font-semibold text-gray-900">{brandName}</strong></span>
         </div>
       )}
 

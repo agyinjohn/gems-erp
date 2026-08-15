@@ -46,6 +46,11 @@ export interface StoreProduct {
   /** All stored since the catalogue was built, and shown for the first time. */
   unit?: string;
   attributes?: Record<string, unknown>;
+  /** Resolved against the category server-side: real labels, chosen order. */
+  specs?: { label?: string; value?: string }[];
+  short_description?: string;
+  brand?: string;
+  highlights?: string[];
   bundle_items?: { name?: string; quantity?: number }[];
   requires_file?: boolean;
   service_type?: string;

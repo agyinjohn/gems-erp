@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, SlidersHorizontal, Tag, Heart } from 'lucide-react';
+import { ShoppingCart, Search, X, Plus, Minus, Package, Truck, Lock, BadgeCheck, ChevronRight, ShieldCheck, MapPin, SlidersHorizontal, Tag, Heart, Check } from 'lucide-react';
 import StoreAuthModal from '@/components/store/StoreAuthModal';
 import { publicApi } from '@/lib/api';
 import ProductCard from '@/components/store/ProductCard';
@@ -943,12 +943,32 @@ export default function TenantStorefrontPage() {
                     <div className="text-xs text-gray-400 mt-0.5">Inclusive of all taxes</div>
                   </div>
 
+                  {/* The reasons to buy, before the paragraph explaining them.
+                      Scannable is the whole point: a customer deciding in ten
+                      seconds reads these and nothing else. */}
+                  {!!selectedProduct.highlights?.filter(Boolean).length && (
+                    <ul className="space-y-1.5">
+                      {selectedProduct.highlights.filter(Boolean).slice(0, 6).map((h, i) => (
+                        <li key={`${h}-${i}`} className="flex items-start gap-2 text-sm text-gray-700">
+                          <Check className="w-4 h-4 flex-shrink-0 mt-0.5 [color:var(--store-brand-on-paper)]" />
+                          <span>{h}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
                   {/* Only what the shop wrote. This used to print "Quality product
                       from our verified catalog. All items are sourced from trusted
                       suppliers" whenever a description was blank — a claim GEMS is in
                       no position to make on a shop's behalf, indistinguishable to a
                       customer from something the shop wrote itself. Silence is honest;
                       the facts below say more than the invented sentence did. */}
+                  {selectedProduct.short_description?.trim() && (
+                    <p className="text-sm text-gray-800 font-medium leading-relaxed">
+                      {selectedProduct.short_description.trim()}
+                    </p>
+                  )}
+
                   {selectedProduct.description?.trim() && (
                     <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
                       {selectedProduct.description.trim()}
@@ -956,7 +976,9 @@ export default function TenantStorefrontPage() {
                   )}
 
                   <ProductFacts
+                    specs={selectedProduct.specs}
                     attributes={selectedProduct.attributes}
+                    brand={selectedProduct.brand}
                     bundleItems={selectedProduct.bundle_items}
                     itemType={selectedProduct.item_type}
                     requiresFile={selectedProduct.requires_file}
