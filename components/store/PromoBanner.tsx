@@ -56,8 +56,8 @@ export default function PromoBanner({
     <section className="store-hero">
       <div className="absolute inset-0 store-ink-panel" />
 
-      <div className="relative grid sm:grid-cols-[1.2fr_0.8fr] items-center gap-6 px-6 sm:px-10 py-8 sm:py-10">
-        <div className="min-w-0">
+      <div className="relative grid sm:grid-cols-[1.15fr_0.85fr] items-center gap-4 px-6 sm:pl-10 sm:pr-8 py-8 sm:py-5">
+        <div className="min-w-0 sm:py-6">
           <span className="store-chip-ink mb-4">
             <Icon className="w-3 h-3" /> {chip}
           </span>
@@ -76,11 +76,19 @@ export default function PromoBanner({
           </button>
         </div>
 
-        {/* w-full is load-bearing: ml-auto opts a grid item out of stretching,
-            and every child of the stage is absolutely positioned, so without an
-            explicit width the box shrink-to-fits to nothing and the stage
-            disappears entirely. */}
-        <div className="hidden sm:block w-full min-w-0 max-w-[210px] ml-auto">
+        {/* The picture fills its column and runs to the panel's edge rather
+            than sitting in a 210px box out on the right. It can, now that it
+            has no edge of its own: the mask fades it to nothing well before
+            the panel's rounded corner. Not quite to the edge, though: the
+            glow and the arcs reach past the picture, and with the column flush
+            to the panel the overflow rule cut both of them off.
+
+            Width is capped rather than height: the stage takes its height from
+            its width, so letting it fill a wide column drove the whole banner
+            past 400px — taller than the band deserves, and taller than the
+            copy beside it could fill. Capping the width instead keeps the
+            picture large without the panel growing to match. */}
+        <div className="hidden sm:block w-full min-w-0 max-w-[400px] ml-auto">
           <ProductStage items={stageItems} seedHue={seedHue} compact />
         </div>
       </div>
