@@ -27,7 +27,8 @@ export interface StoreProduct {
   id: string;
   name: string;
   price: number;
-  cost_price?: number;
+  // cost_price is deliberately absent: the public catalogue endpoint used to
+  // send it — what the shop paid, for every item — and nothing ever showed it.
   compare_price?: number;
   description?: string;
   sku?: string;
@@ -42,6 +43,12 @@ export interface StoreProduct {
   item_type?: 'product' | 'service' | 'bundle';
   unit_type?: string;
   duration?: number;
+  /** All stored since the catalogue was built, and shown for the first time. */
+  unit?: string;
+  attributes?: Record<string, unknown>;
+  bundle_items?: { name?: string; quantity?: number }[];
+  requires_file?: boolean;
+  service_type?: string;
 }
 
 export interface StoreTenant {

@@ -11,6 +11,7 @@ import StoreFooter from '@/components/store/StoreFooter';
 import MobileBottomBar from '@/components/store/MobileBottomBar';
 import ProductImageGallery from '@/components/store/ProductImageGallery';
 import ProductCardSkeleton from '@/components/store/ProductCardSkeleton';
+import ProductFacts from '@/components/store/ProductFacts';
 import StoreHero from '@/components/store/StoreHero';
 import CategoryTiles from '@/components/store/CategoryTiles';
 import TrustStrip from '@/components/store/TrustStrip';
@@ -942,11 +943,29 @@ export default function TenantStorefrontPage() {
                     <div className="text-xs text-gray-400 mt-0.5">Inclusive of all taxes</div>
                   </div>
 
-                  <div className="text-sm text-gray-600 leading-relaxed">
-                    {selectedProduct.description || 'Quality product from our verified catalog. All items are sourced from trusted suppliers.'}
-                  </div>
+                  {/* Only what the shop wrote. This used to print "Quality product
+                      from our verified catalog. All items are sourced from trusted
+                      suppliers" whenever a description was blank — a claim GEMS is in
+                      no position to make on a shop's behalf, indistinguishable to a
+                      customer from something the shop wrote itself. Silence is honest;
+                      the facts below say more than the invented sentence did. */}
+                  {selectedProduct.description?.trim() && (
+                    <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                      {selectedProduct.description.trim()}
+                    </div>
+                  )}
 
-                  <div className="text-xs text-gray-400 pb-1 border-b border-gray-100">SKU: <span className="font-mono text-gray-600">{selectedProduct.sku || '—'}</span></div>
+                  <ProductFacts
+                    attributes={selectedProduct.attributes}
+                    bundleItems={selectedProduct.bundle_items}
+                    itemType={selectedProduct.item_type}
+                    requiresFile={selectedProduct.requires_file}
+                    unit={selectedProduct.unit}
+                  />
+
+                  {selectedProduct.sku && (
+                    <div className="text-xs text-gray-400 pb-1 border-b border-gray-100">SKU: <span className="font-mono text-gray-600">{selectedProduct.sku}</span></div>
+                  )}
 
                   {selectedProduct.item_type === 'service' ? (
                     <>
