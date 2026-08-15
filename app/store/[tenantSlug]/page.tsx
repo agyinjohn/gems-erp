@@ -551,10 +551,14 @@ export default function TenantStorefrontPage() {
     <div className="store-shell min-h-screen">
       <nav className="store-nav-bar h-14 flex items-center px-6">
         <div className="max-w-7xl mx-auto w-full flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-amber-400 rounded-lg flex items-center justify-center">
-            <Package className="w-4 h-4 text-gray-900" />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: 'color-mix(in srgb, var(--store-brand) 12%, white)' }}>
+            <Package className="w-4 h-4 [color:var(--store-brand-on-paper)]" />
           </div>
-          <span className="font-extrabold text-white">{tenant?.business_name || 'GEMS'}<span className="text-amber-300"> Store</span></span>
+          <span className="font-extrabold text-gray-900">
+            {tenant?.business_name || 'GEMS'}
+            <span className="[color:var(--store-brand-on-paper)]"> Store</span>
+          </span>
         </div>
       </nav>
 
@@ -1345,7 +1349,7 @@ export default function TenantStorefrontPage() {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCart(false)} />
           <div className="relative bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
 
-            <div className="store-nav-bar flex items-center justify-between px-5 py-4 flex-shrink-0">
+            <div className="store-panel-head flex items-center justify-between px-5 py-4 flex-shrink-0">
               <div className="flex items-center gap-2 text-white">
                 <ShoppingCart className="w-5 h-5" />
                 <h2 className="font-bold text-base">Your Cart <span className="text-amber-300">({cartCount})</span></h2>
@@ -1471,7 +1475,7 @@ export default function TenantStorefrontPage() {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setStep('shop')} />
           <div className="relative bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
             {/* Header */}
-            <div className="store-nav-bar flex items-center justify-between px-5 py-4 flex-shrink-0">
+            <div className="store-panel-head flex items-center justify-between px-5 py-4 flex-shrink-0">
               <div className="flex items-center gap-3 text-white">
                 <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm">
                   {storeCustomer?.name?.[0]?.toUpperCase() || '?'}

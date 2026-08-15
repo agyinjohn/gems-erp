@@ -347,13 +347,24 @@
 .store-ink-accent { color: var(--store-brand-on-ink); }
 
 .store-nav-bar {
-  background: linear-gradient(180deg, #131b26 0%, var(--store-ink) 100%);
-  box-shadow: 0 1px 0 var(--store-ink-line), 0 14px 34px -22px rgba(0, 0, 0, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.08), 0 10px 30px -26px rgba(15, 23, 42, 0.5);
 }
 .store-nav-categories {
-  background: var(--store-ink);
-  border-top: 1px solid var(--store-ink-line);
-  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.92);
+  border-top: 1px solid rgba(15, 23, 42, 0.07);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* The dark header on a white drawer — the cart and the account panel. It used
+   to share the navigation's class, which is why it existed at all; once the
+   navigation went white it needed its own, or two drawers would have opened
+   on white text against white. */
+.store-panel-head {
+  background: linear-gradient(180deg, #131b26 0%, var(--store-ink) 100%);
 }
 
 /* The utility line above the navigation: delivery promise on one side, the
@@ -366,29 +377,35 @@
   @apply inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-900 transition-colors;
 }
 
+/* On a dark bar a plain white field stood out on its own. On a white bar it
+   needs a ground and an edge, or it is invisible. */
 .store-search {
-  @apply flex items-center gap-2 bg-white rounded-xl px-3 h-11 shadow-sm ring-2 ring-transparent transition-all;
+  @apply flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-11
+    ring-2 ring-transparent transition-all;
 }
 .store-search:focus-within {
-  --tw-ring-color: color-mix(in srgb, var(--store-brand-on-ink) 80%, transparent);
+  @apply bg-white;
+  --tw-ring-color: color-mix(in srgb, var(--store-brand) 35%, transparent);
+  border-color: color-mix(in srgb, var(--store-brand) 45%, transparent);
 }
 .store-search-input {
   @apply flex-1 min-w-0 h-full bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none;
 }
 
 .store-pill {
-  @apply px-3.5 py-1.5 rounded-full text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-all;
+  @apply px-3.5 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all;
 }
-/* The shop's colour, lifted — which by construction clears 4.5:1 against the
-   ink, so using the ink back as the label is legible for free. */
+/* The shop's own colour, with the label colour already measured against it
+   both ways. Not the lifted accent: that one is built to sit on near-black,
+   and on a white pill it is the wrong end of the scale. */
 .store-pill-active {
   @apply font-semibold shadow-sm;
-  background: var(--store-brand-on-ink);
-  color: var(--store-ink);
+  background: var(--store-brand);
+  color: var(--store-on-brand);
 }
 .store-pill-active:hover {
-  background: var(--store-brand-on-ink);
-  color: var(--store-ink);
+  background: var(--store-brand);
+  color: var(--store-on-brand);
 }
 
 /* A slow drift across the hero, so a still page is not quite still. Sits under
