@@ -17,6 +17,9 @@ import CategoryTiles from '@/components/store/CategoryTiles';
 import TrustStrip from '@/components/store/TrustStrip';
 import PromoBanner from '@/components/store/PromoBanner';
 import SectionHeading from '@/components/store/SectionHeading';
+import ServicesSection from '@/components/store/ServicesSection';
+import ServiceRequestDrawer from '@/components/store/ServiceRequestDrawer';
+import { fetchServiceOffers, type ServiceOffer } from '@/lib/serviceOffers';
 import { brandVars, hueOf, GEMS_NAVY } from '@/components/store/brand';
 import OrderTrackingPanel from '@/components/store/OrderTrackingPanel';
 import LocationPickerModal from '@/components/store/LocationPickerModal';
@@ -117,6 +120,12 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [showCart, setShowCart] = useState(false);
+  // The other half of the catalogue: work the shop will take on, which is asked
+  // for rather than bought. Fetched separately because it comes from a
+  // different endpoint with a different shape and a different flow behind it.
+  const [serviceOffers, setServiceOffers] = useState<ServiceOffer[]>([]);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestPick, setRequestPick] = useState<string | undefined>();
   // Opened on the product when the customer came to its address, so the first
   // paint is already the right page.
   const [step, setStep] = useState<'shop'|'detail'|'checkout'|'success'|'track'|'orders'>(
@@ -187,6 +196,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
   const brandHue = hueOf(storeSettings.brand_color || GEMS_NAVY);
   /** Where "Start shopping" goes. */
   const productGridRef = useRef<HTMLDivElement>(null);
+  const servicesRef = useRef<HTMLDivElement>(null);
 
   /**
    * Opening a product changes the address as well as the view.
@@ -290,6 +300,9 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
       setBranches(r.data.data.branches);
     }).catch(() => {});
     fetchPublicStoreSettings(tenantSlug).then(setStoreSettings);
+    // Silently, because a shop that sells only goods has none of these and
+    // that is not an error — the band simply does not render.
+    fetchServiceOffers(tenantSlug).then(r => setServiceOffers(r.offers)).catch(() => {});
   }, [tenantSlug]);
 
   // Handle manifest shortcut: ?track=1
@@ -758,6 +771,12 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
         onSelectBranch={b => { setActiveBranch(b); setShowBranchMenu(false); }}
         onOpenFilters={() => setShowFilters(true)}
         onOpenAccount={openAccount}
+        onOpenServices={serviceOffers.length > 0 ? () => {
+          // Back to the shop first: the band lives on the shop front, so from a
+          // product page or the tracking form there is nothing to scroll to yet.
+          setStep('shop');
+          requestAnimationFrame(() => servicesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        } : undefined}
         customerName={storeCustomer?.name}
       />
 
@@ -957,6 +976,18 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
           <div ref={sentinelRef} className="h-px w-full shrink-0" aria-hidden />
           {loadingMore && products.length > 0 && (
             <p className="text-center text-xs text-gray-400 py-3">Loading more products…</p>
+          )}
+
+          {/* The work half of the catalogue, after the goods rather than mixed
+              into them. A customer scrolls the shop, reaches the end of what
+              can be bought, and finds what can be asked for. */}
+          {serviceOffers.length > 0 && (
+            <div ref={servicesRef} className="pt-10 mt-8 border-t border-gray-200/70">
+              <ServicesSection
+                offers={serviceOffers}
+                onRequest={offer => { setRequestPick(offer?.id); setRequestOpen(true); }}
+              />
+            </div>
           )}
 
         </div>
@@ -1698,6 +1729,15 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
           tenantSlug={tenantSlug}
           onSuccess={handleAuthSuccess}
           onClose={() => setShowAccountModal(false)}
+        />
+      )}
+
+      {requestOpen && (
+        <ServiceRequestDrawer
+          tenantSlug={tenantSlug}
+          offers={serviceOffers}
+          initialId={requestPick}
+          onClose={() => { setRequestOpen(false); setRequestPick(undefined); }}
         />
       )}
 

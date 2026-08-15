@@ -659,6 +659,27 @@
   box-shadow: 0 14px 34px -14px color-mix(in srgb, var(--store-brand) 45%, transparent);
 }
 
+/* Work, rather than goods.
+   Related to a product card and deliberately not the same as one: no photo
+   frame, a flat tint instead of a white ground, and no lift on hover. A
+   customer skimming the page should be able to tell before reading that this
+   band behaves differently — these are things to ask for, not things to put in
+   a basket. */
+.store-service-card {
+  @apply rounded-2xl p-5 transition-colors duration-300;
+  background: color-mix(in srgb, var(--store-brand) 4%, #fff);
+  border: 1px solid color-mix(in srgb, var(--store-brand) 14%, transparent);
+}
+.store-service-card:hover {
+  border-color: color-mix(in srgb, var(--store-brand) 30%, transparent);
+  background: color-mix(in srgb, var(--store-brand) 7%, #fff);
+}
+.store-service-icon {
+  @apply w-10 h-10 rounded-xl flex items-center justify-center;
+  background: color-mix(in srgb, var(--store-brand) 12%, #fff);
+  color: var(--store-brand-on-paper);
+}
+
 .store-badge {
   @apply inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm;
 }

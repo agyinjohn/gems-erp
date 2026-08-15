@@ -1,11 +1,14 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { publicApi } from '@/lib/api';
 import {
   Upload, FileText, X, Plus, Minus, Building2, CheckCircle2,
   AlertTriangle, RefreshCw, Copy,
 } from 'lucide-react';
+import {
+  UNIT_WORD, estimateFor, fetchServiceOffers, requestProblem, submitServiceRequest,
+  type PickedLine, type RequestReceipt, type ServiceOffer, type ServiceShop,
+} from '@/lib/serviceOffers';
 
 /**
  * Asking a business to do something.
@@ -25,18 +28,12 @@ import {
  * because the quote is what binds and it comes after somebody has looked.
  */
 
-interface Service {
-  id: string; name: string; description: string;
-  unit_type: string; priced: boolean; price: number | null;
-  service_type: string; requires_file: boolean;
-  // A package of work sold as one thing, rather than a single job.
-  is_solution?: boolean;
-}
-interface Store { name: string; slug: string; phone?: string; email?: string; logo?: string }
-
-const UNIT_WORD: Record<string, string> = {
-  unit: 'each', hour: 'per hour', day: 'per day', fixed: 'fixed price',
-};
+// The shape of an offering, the running total, what makes a request invalid
+// and how one is sent all live in lib/serviceOffers, because the shop front's
+// request drawer does exactly the same things and two copies of "what is wrong
+// with this request" is one copy too many.
+type Service = ServiceOffer;
+type Store = ServiceShop;
 
 export default function ServiceRequestPage() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
@@ -46,20 +43,20 @@ export default function ServiceRequestPage() {
   const [error, setError] = useState('');
 
   const [files, setFiles] = useState<File[]>([]);
-  const [picked, setPicked] = useState<Record<string, { quantity: number; spec: string }>>({});
+  const [picked, setPicked] = useState<Record<string, PickedLine>>({});
   const [contact, setContact] = useState({ customer_name: '', customer_phone: '', customer_email: '' });
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState<{ reference: string; track_token: string; estimated_total: number; needs_quote: boolean } | null>(null);
+  const [done, setDone] = useState<RequestReceipt | null>(null);
 
   const money = (n: number) => `GHS ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await publicApi.get(`/service-requests/${tenantSlug}/services`);
-      setStore(r.data.data.store);
-      setServices(r.data.data.services || []);
+      const r = await fetchServiceOffers(tenantSlug);
+      setStore(r.shop);
+      setServices(r.offers);
     } catch (e: any) {
       setError(e.response?.data?.message || 'We could not load this shop.');
     } finally {
@@ -86,35 +83,24 @@ export default function ServiceRequestPage() {
   };
 
   const chosen = services.filter(s => picked[s.id]);
-  const estimate = chosen.reduce((sum, s) => sum + (s.priced ? (s.price || 0) * picked[s.id].quantity : 0), 0);
-  const anyToQuote = chosen.some(s => !s.priced);
+  const { total: estimate, anyToQuote } = estimateFor(chosen, picked);
   // Printing cannot start without artwork; a call-out has nothing to attach.
   // The services themselves say which, so the form asks only when it matters.
   const needFiles = chosen.filter(s => s.requires_file);
 
   const submit = async () => {
-    if (!contact.customer_name.trim()) return setError('Please give your name.');
-    if (!contact.customer_phone.trim()) return setError('Please give a phone number so we can reach you.');
-    if (!chosen.length) return setError('Choose at least one service.');
-    if (needFiles.length && !files.length) {
-      return setError(`Attach the file for ${needFiles.map(s => s.name).join(', ')}.`);
-    }
+    const problem = requestProblem({
+      chosen,
+      name: contact.customer_name,
+      phone: contact.customer_phone,
+      fileCount: files.length,
+    });
+    if (problem) return setError(problem);
 
     setError('');
     setSubmitting(true);
     try {
-      const fd = new FormData();
-      files.forEach(f => fd.append('files', f));
-      fd.append('lines', JSON.stringify(chosen.map(s => ({
-        service_id: s.id, quantity: picked[s.id].quantity, spec: picked[s.id].spec,
-      }))));
-      Object.entries(contact).forEach(([k, v]) => fd.append(k, v));
-      if (notes.trim()) fd.append('notes', notes.trim());
-
-      const r = await publicApi.post(`/service-requests/${tenantSlug}`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setDone(r.data.data);
+      setDone(await submitServiceRequest({ tenantSlug, chosen, picked, files, contact, notes }));
     } catch (e: any) {
       setError(e.response?.data?.message || 'We could not send your request.');
     } finally {

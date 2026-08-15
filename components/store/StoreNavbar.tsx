@@ -1,5 +1,5 @@
 'use client';
-import { Package, Search, ShoppingCart, MapPin, ChevronDown, ChevronRight, Menu, SlidersHorizontal, User } from 'lucide-react';
+import { Package, Search, ShoppingCart, MapPin, ChevronDown, ChevronRight, Menu, SlidersHorizontal, User, Wrench } from 'lucide-react';
 
 interface Props {
   businessName?: string;
@@ -23,6 +23,15 @@ interface Props {
   onSelectBranch: (branch: any | null) => void;
   onOpenFilters?: () => void;
   onOpenAccount?: () => void;
+  /**
+   * Jump to the work this shop takes on, when it takes on any.
+   *
+   * A pill rather than a nav link, sitting after the categories, because that
+   * is where a customer is already looking for "what else is here" — and
+   * because a shop that only sells goods should not be given an empty section
+   * in its navigation.
+   */
+  onOpenServices?: () => void;
 }
 
 export default function StoreNavbar({
@@ -46,6 +55,7 @@ export default function StoreNavbar({
   onSelectBranch,
   onOpenFilters,
   onOpenAccount,
+  onOpenServices,
   customerName,
 }: Props) {
   const categoryPills = [{ id: '', name: 'All' }, ...categories.map(c => ({ id: c.name, name: c.name }))];
@@ -167,6 +177,16 @@ export default function StoreNavbar({
               {c.name}
             </button>
           ))}
+
+          {onOpenServices && (
+            <button
+              type="button"
+              onClick={onOpenServices}
+              className="store-pill shrink-0 inline-flex items-center gap-1.5 ml-1"
+            >
+              <Wrench className="w-3.5 h-3.5" /> Services
+            </button>
+          )}
         </div>
       </div>
     </header>
