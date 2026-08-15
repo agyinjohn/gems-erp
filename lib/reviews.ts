@@ -75,6 +75,47 @@ export async function submitReview(
   return r.data.data;
 }
 
+/** One of this customer's own reviews, as they see it in their account. */
+export interface MyReview {
+  id: string;
+  product_name: string;
+  product_slug: string;
+  product_image: string;
+  variant_label: string;
+  rating: number;
+  body: string;
+  reply: string;
+  replied_at: string | null;
+  /** Told plainly rather than concealed: their words are off the shop front. */
+  is_hidden: boolean;
+  created_at: string;
+}
+
+/** Something they bought and have not said anything about yet. */
+export interface AwaitingReview {
+  product_id: string;
+  product_name: string;
+  product_slug: string;
+  product_image: string;
+  variant_label: string;
+  order_number: string;
+  bought_at: string;
+}
+
+export async function fetchMyReviews(token: string): Promise<{ written: MyReview[]; awaiting: AwaitingReview[] }> {
+  const r = await publicApi.get('/storefront/customer/reviews', { headers: { Authorization: `Bearer ${token}` } });
+  return r.data.data;
+}
+
+export async function updateMyReview(
+  id: string, review: { rating?: number; body?: string }, token: string,
+) {
+  const r = await publicApi.patch(`/storefront/customer/reviews/${id}`, review, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return r.data.data;
+}
+
 /** "2 weeks ago" — close enough, and shorter than a date nobody reads. */
 export function whenAgo(iso: string): string {
   const then = new Date(iso).getTime();

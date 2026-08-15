@@ -135,7 +135,7 @@ export default function EditProjectDialog({ project, types, onClose, onSaved }: 
                 <div className="flex items-start gap-2 mt-2 bg-amber-50 text-amber-800 rounded-lg px-3 py-2 text-xs">
                   <AlertTriangle className="w-3.5 h-3.5 mt-px flex-shrink-0" />
                   <span>
-                    Changing to {profile?.label.toLowerCase()} takes away any tab it doesn&apos;t use.
+                    Changing to {profile?.label.toLowerCase()}{' '}takes away any tab it doesn&apos;t use.
                     Nothing already recorded is deleted — it just stops being shown.
                   </span>
                 </div>

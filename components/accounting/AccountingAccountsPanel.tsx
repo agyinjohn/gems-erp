@@ -380,7 +380,7 @@ export default function AccountingAccountsPanel({ onDataChange }: Props) {
             />
             {selected && balanceDiff > 0.001 && (
               <p className="text-xs text-[#0D3B6E] mt-1">
-                A balancing journal entry of {fmt(balanceDiff)} will be posted to Owner&apos;s Equity (3001).
+                A balancing journal entry of {fmt(balanceDiff)}{' '}will be posted to Owner&apos;s Equity (3001).
               </p>
             )}
             {!selected && parseFloat(form.opening_balance || '0') !== 0 && (

@@ -19,6 +19,7 @@ import PromoBanner from '@/components/store/PromoBanner';
 import SectionHeading from '@/components/store/SectionHeading';
 import ServicesSection from '@/components/store/ServicesSection';
 import ServiceRequestDrawer from '@/components/store/ServiceRequestDrawer';
+import MyReviews from '@/components/store/MyReviews';
 import { fetchServiceOffers, type ServiceOffer } from '@/lib/serviceOffers';
 import { brandVars, hueOf, GEMS_NAVY } from '@/components/store/brand';
 import OrderTrackingPanel from '@/components/store/OrderTrackingPanel';
@@ -137,6 +138,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
   const [serviceOffers, setServiceOffers] = useState<ServiceOffer[]>([]);
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestPick, setRequestPick] = useState<string | undefined>();
+  const [accountTab, setAccountTab] = useState<'orders' | 'reviews'>('orders');
   // Opened on the product when the customer came to its address, so the first
   // paint is already the right page.
   const [step, setStep] = useState<'shop'|'detail'|'checkout'|'success'|'track'|'orders'>(
@@ -1513,9 +1515,35 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
               </button>
             </div>
 
-            {/* Orders list */}
+            {/* Two things a customer comes here for: what they bought, and
+                what they said about it. Tabs rather than one long scroll,
+                because the reviews half is a prompt to act and would never be
+                seen underneath fifty orders. */}
+            <div className="flex border-b border-gray-200 flex-shrink-0">
+              {(['orders', 'reviews'] as const).map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setAccountTab(t)}
+                  className={`flex-1 text-sm font-semibold py-3 border-b-2 transition-colors ${
+                    accountTab === t ? 'text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'
+                  }`}
+                  style={accountTab === t ? { borderColor: 'var(--store-brand-on-paper)' } : undefined}
+                >
+                  {t === 'orders' ? 'My orders' : 'My reviews'}
+                </button>
+              ))}
+            </div>
+
             <div className="flex-1 overflow-y-auto p-4">
-              <h2 className="font-bold text-gray-900 mb-4">My Orders</h2>
+              {accountTab === 'reviews' ? (
+                <MyReviews
+                  token={customerToken}
+                  tenantSlug={tenantSlug}
+                  onOpenProduct={slug => { goToShop(); showProductBySlug(slug); }}
+                />
+              ) : (
+              <>
               {ordersLoading ? (
                 <div className="flex items-center justify-center gap-2 text-sm text-gray-500 py-12">
                   <svg className="animate-spin w-4 h-4 text-[#0D3B6E]" fill="none" viewBox="0 0 24 24">
@@ -1559,6 +1587,8 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
                     </div>
                   ))}
                 </div>
+              )}
+              </>
               )}
             </div>
 
