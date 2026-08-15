@@ -6,6 +6,8 @@ import { getProductImages } from './productImages';
 
 interface Props {
   product: any;
+  /** The shop, so the card can name the product's address. */
+  tenantSlug?: string;
   /** The shop's hue, for a product with no photograph of its own. */
   seedHue?: number;
   /** Where it sits in the grid, so a row of cards arrives in order. */
@@ -20,11 +22,32 @@ interface Props {
   onToggleWishlist?: () => void;
 }
 
-export default function ProductCard({ product: p, seedHue, index = 0, inCartQty, showBranch, cartLoading, wishlisted, onOpen, onAdd, onUpdateQty, onToggleWishlist }: Props) {
+export default function ProductCard({ product: p, tenantSlug, seedHue, index = 0, inCartQty, showBranch, cartLoading, wishlisted, onOpen, onAdd, onUpdateQty, onToggleWishlist }: Props) {
   const isService = p.item_type === 'service';
   const outOfStock = !isService && p.stock_qty <= 0;
   const lowStock = !isService && p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5);
   const multiImage = getProductImages(p).length > 1;
+
+  /**
+   * The product's real address, when it has one.
+   *
+   * Given as an href so the card behaves like a link: copyable, openable in a
+   * new tab, and followable by a crawler — none of which a button can do. The
+   * click is still handled in the page, which is faster than a navigation, so
+   * the address is there for everything except the ordinary click.
+   */
+  const href = tenantSlug && p.slug ? `/store/${tenantSlug}/${p.slug}` : undefined;
+  const openProps = href
+    ? { href, onClick: (e: React.MouseEvent) => {
+        // Leave the modified clicks alone — they are how somebody opens a
+        // product in a new tab, and hijacking them is the rudest thing a
+        // storefront can do.
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || (e as React.MouseEvent).button !== 0) return;
+        e.preventDefault();
+        onOpen();
+      } }
+    : { onClick: onOpen };
+  const Open = (href ? 'a' : 'button') as 'a';
 
   return (
     <article
@@ -34,7 +57,7 @@ export default function ProductCard({ product: p, seedHue, index = 0, inCartQty,
       style={{ animationDelay: `${Math.min(index, 11) * 35}ms` }}
     >
       <div className="relative">
-        <button type="button" onClick={onOpen} className="relative block w-full text-left">
+        <Open {...openProps} className="relative block w-full text-left">
           <ProductCardImage product={p} seedHue={seedHue} />
 
           {outOfStock && (
@@ -68,7 +91,7 @@ export default function ProductCard({ product: p, seedHue, index = 0, inCartQty,
               {p.branch_name}
             </span>
           )}
-        </button>
+        </Open>
         {onToggleWishlist && (
           <button
             type="button"
@@ -87,11 +110,11 @@ export default function ProductCard({ product: p, seedHue, index = 0, inCartQty,
         <div className="text-[10px] font-bold uppercase tracking-[0.1em] truncate" style={{ color: 'var(--store-brand-on-paper)' }}>
           {p.category_name || 'General'}
         </div>
-        <button type="button" onClick={onOpen} className="text-left">
+        <Open {...openProps} className="text-left">
           <h3 className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug transition-colors group-hover:[color:var(--store-brand-on-paper)]">
             {p.name}
           </h3>
-        </button>
+        </Open>
 
         <div className="mt-auto pt-0.5">
           <div className="flex items-baseline gap-1.5 flex-wrap">

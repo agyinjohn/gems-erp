@@ -26,6 +26,8 @@ export interface StorefrontSettings {
 export interface StoreProduct {
   id: string;
   name: string;
+  /** The product's public address. Absent until the backfill has run. */
+  slug?: string;
   price: number;
   // cost_price is deliberately absent: the public catalogue endpoint used to
   // send it — what the shop paid, for every item — and nothing ever showed it.
