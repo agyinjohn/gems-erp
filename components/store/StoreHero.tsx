@@ -1,164 +1,152 @@
 'use client';
 
-import { ArrowRight } from 'lucide-react';
-import ProductStage, { type StageItem } from './ProductStage';
+import { useMemo, useState } from 'react';
+import type { StageItem } from './ProductStage';
 
 /**
  * The first thing a customer sees.
  *
- * Two halves. On the left, in order: whose shop this is, what they'd like you
- * to know, and the one button that starts the shopping. On the right, the goods
- * themselves, lit and standing on a plinth — see ProductStage.
+ * Editorial rather than retail: one photograph filling the whole band, the
+ * shop's name set large in a display serif over it, and everything centred.
+ * The serif is the load-bearing part — the thin strokes and the swell into the
+ * thick ones are why this reads as a shopfront somebody cared about, and no
+ * weight of a grotesque gets close.
  *
- * The panel is near-black for every shop, with the shop's own colour bloomed in
- * behind the goods and carrying the accent line of the headline. That split is
- * deliberate. Letting the colour be the whole surface meant a shop that picked
- * yellow got a yellow wall, and one that picked the default navy got something
- * indistinguishable from every other shop; keeping the surface fixed and
- * spending the colour on the accents gives both of them a storefront that looks
- * composed and still looks like theirs.
+ * This does put type over a photograph, which an earlier version of this file
+ * argued against. The objection was sound and the answer is the scrim below:
+ * that version darkened the picture just enough for text and ended up with
+ * muddy words on a muddy field. Here the picture is deliberately pushed well
+ * back — dimmed, tinted toward the shop's own colour and vignetted — so it is
+ * atmosphere rather than subject. A photograph asked to be atmosphere can be
+ * any photograph, which matters, because a shop uploads what it has.
  *
- * The trust promises used to live down here. They have their own band now — see
- * TrustStrip — because in the hero they competed with the headline and, stacked
- * on a phone, pushed the first purchasable thing off the screen entirely.
+ * With nothing uploaded the band is the shop's colour on near-black, lit from
+ * the middle. That is the same composition minus the photograph, not a
+ * fallback that looks like one.
  */
 
 interface Props {
   businessName: string;
   tagline?: string;
-  /** Set by the shop; used as a faint backdrop behind the whole panel. */
+  /** The shop's own banner. The deliberate choice, so it wins. */
   bannerImage?: string;
-  /** The goods on the stage — picture, name and price. */
+  /** Their goods, for a shop that set no banner but has photographed stock. */
   stageItems?: StageItem[];
   logo?: string;
   productCount: number;
   categoryCount: number;
   /** The shop's own words, e.g. "3 – 5 business days". */
   deliveryEstimate?: string;
-  /** Steers the drawn tiles toward the shop's colour. */
-  seedHue?: number;
   onShop: () => void;
-  /** The second, quieter action. Omitted when there is nowhere to send them. */
   onSecondary?: () => void;
   secondaryLabel?: string;
 }
 
-/**
- * The shop's mark. A logo when they have uploaded one, otherwise their initial
- * in the same badge — the hero should never open on a bare headline, which is
- * what most shops got, since most have uploaded nothing.
- *
- * Decorative either way: the business name is written out right beside it.
- */
-function StoreMark({ logo, businessName }: { logo?: string; businessName: string }) {
-  if (logo) {
-    return (
-      <img
-        src={logo}
-        alt=""
-        className="w-6 h-6 rounded-full object-cover bg-white/10 ring-1 ring-white/20 flex-shrink-0"
-      />
-    );
-  }
-
-  return (
-    <span
-      aria-hidden
-      className="w-6 h-6 rounded-full bg-white/12 ring-1 ring-white/20 flex-shrink-0
-        flex items-center justify-center text-[11px] font-extrabold text-white"
-    >
-      {businessName.trim().charAt(0).toUpperCase() || '?'}
-    </span>
-  );
-}
-
 export default function StoreHero({
   businessName, tagline, bannerImage, stageItems = [], logo,
-  productCount, categoryCount, deliveryEstimate, seedHue,
+  productCount, categoryCount, deliveryEstimate,
   onShop, onSecondary, secondaryLabel,
 }: Props) {
-  // Only figures the shop actually has. A shop with one category should not be
-  // told it has one category, and a zero is worse than a gap.
-  const stats = [
-    productCount > 0 && { value: String(productCount), label: productCount === 1 ? 'Item in stock' : 'Items in stock' },
-    categoryCount > 1 && { value: String(categoryCount), label: 'Categories' },
-    deliveryEstimate?.trim() && { value: deliveryEstimate.trim(), label: 'Delivery' },
-  ].filter(Boolean) as { value: string; label: string }[];
+  /**
+   * What might end up behind the type, best first. A banner is a deliberate
+   * choice about how the shop should feel and beats a photograph of one
+   * product, which was only ever chosen because it was first in the list.
+   */
+  const candidates = useMemo(
+    () => [bannerImage, ...stageItems.map(i => i.image)]
+      .filter((s): s is string => typeof s === 'string' && !!s.trim())
+      .slice(0, 4),
+    [bannerImage, stageItems],
+  );
+
+  const [index, setIndex] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+
+  // A different shop: start again rather than holding an index into a list
+  // that no longer exists. Compared during render — an effect would show the
+  // previous shop's photograph for a frame first.
+  const signature = candidates.join('|');
+  const [seen, setSeen] = useState(signature);
+  if (seen !== signature) {
+    setSeen(signature);
+    setIndex(0);
+    setLoaded(false);
+  }
+
+  const src = candidates[index];
+  // Nothing is displayed until the browser confirms it: a dead address costs
+  // the photograph, never the hero.
+  const backdrop = loaded ? src : undefined;
+
+  /** A qualifying line, built only from things the shop actually has. */
+  const eyebrow = [
+    productCount > 0 && `${productCount} item${productCount === 1 ? '' : 's'} in stock`,
+    categoryCount > 1 && `${categoryCount} categories`,
+    deliveryEstimate?.trim(),
+  ].filter(Boolean).join(' · ');
 
   return (
-    <section className="store-hero-band">
-      <div className="absolute inset-0 store-ink-panel" />
+    <section className="store-hero-band store-hero-editorial">
+      {/* The shop's colour on near-black, always. Everything else sits over it,
+          so a slow, blocked or missing photograph leaves a composed band. */}
+      <div aria-hidden className="absolute inset-0 store-ink-panel" />
+      <div aria-hidden className="absolute inset-0 store-hero-bloom" />
 
-      {/* A shop that went to the trouble of uploading a banner still gets it,
-          but underneath rather than over — enough to tint the panel, never
-          enough to fight the headline for the text's ground. */}
-      {bannerImage && (
-        <>
-          <img src={bannerImage} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover opacity-25" />
-          <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-[#0a0e14] via-[#0a0e14]/85 to-[#0a0e14]/55" />
-        </>
+      {/* The loader. Invisible, and the only way a picture gets in. */}
+      {src && !loaded && (
+        <img
+          aria-hidden
+          src={src}
+          alt=""
+          className="hidden"
+          onLoad={() => setLoaded(true)}
+          onError={() => setIndex(i => i + 1)}
+          // A cached picture can already be complete before React attaches
+          // onLoad, and then it never fires — on a return visit, when
+          // everything is cached. The ref asks the element at commit.
+          ref={el => { if (el?.complete && el.naturalWidth > 0) setLoaded(true); }}
+        />
       )}
 
-      <div className="relative max-w-7xl mx-auto grid lg:grid-cols-[1.02fr_0.98fr] items-center
-        gap-10 lg:gap-6 px-4 sm:px-6 py-12 sm:py-16 lg:py-20">
+      {backdrop && (
+        <img
+          aria-hidden
+          src={backdrop}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover store-hero-photo"
+        />
+      )}
 
-        {/* The shop's name is said once, as the accent line of the headline.
-            It was being said three times — mark, headline and navigation —
-            which is how a hero starts to read like a form. The mark now sits
-            inside the chip rather than floating above it on its own line,
-            where it read as an orphan. */}
-        <div className="min-w-0">
-          <span className="store-chip-ink mb-6 !pl-1.5">
-            <StoreMark logo={logo} businessName={businessName} />
-            Now open online
-          </span>
+      {/* Pushed back far enough that any photograph works underneath any
+          headline. See store-hero-scrim for what each layer is doing. */}
+      <div aria-hidden className="absolute inset-0 store-hero-scrim" />
 
-          <h1 className="font-extrabold text-white tracking-[-0.035em] leading-[0.98] text-balance
-            text-[2.5rem] sm:text-[3.25rem] lg:text-[3.75rem]">
-            Everything from
-            <br />
-            <span className="store-ink-accent">{businessName}</span>
-          </h1>
+      <div className="relative max-w-3xl mx-auto px-6 py-20 sm:py-28 text-center flex flex-col items-center">
+        {logo && (
+          <img
+            src={logo}
+            alt=""
+            className="w-14 h-14 rounded-full object-cover ring-1 ring-white/25 mb-7"
+          />
+        )}
 
-          <p className="mt-5 text-base text-white/55 leading-relaxed max-w-md">
-            {tagline || 'Order online and we’ll take it from there.'}
-          </p>
+        {eyebrow && <p className="store-hero-eyebrow">{eyebrow}</p>}
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <button type="button" onClick={onShop} className="store-btn store-btn-hero inline-flex items-center gap-2">
-              Start shopping <ArrowRight className="w-4 h-4" />
+        <h1 className="store-hero-display mt-5">{businessName}</h1>
+
+        <p className="mt-6 max-w-md text-sm sm:text-base text-white/75 leading-relaxed store-hero-sub">
+          {tagline || 'Order online and we’ll take it from there.'}
+        </p>
+
+        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+          <button type="button" onClick={onShop} className="store-btn-outline">
+            Start shopping
+          </button>
+          {onSecondary && secondaryLabel && (
+            <button type="button" onClick={onSecondary} className="store-btn-outline">
+              {secondaryLabel}
             </button>
-            {onSecondary && secondaryLabel && (
-              <button type="button" onClick={onSecondary} className="store-btn store-btn-ink">
-                {secondaryLabel}
-              </button>
-            )}
-          </div>
-
-          {/* The same three facts that used to be one grey sentence nobody
-              read. Set as figures, they are the part of the hero a customer
-              actually scans — and every one is a live count, not a claim.
-              Deliberately none of them repeats the trust strip below. */}
-          {stats.length > 0 && (
-            <dl className="mt-9 flex flex-wrap items-start gap-x-7 gap-y-4">
-              {/* The dividing rule only from sm up: at 390px the third figure
-                  wraps to its own line, and a leading divider there is a stray
-                  mark against nothing. */}
-              {stats.map(({ value, label }, i) => (
-                <div key={label} className={i > 0 ? 'sm:pl-7 sm:border-l sm:border-white/10' : ''}>
-                  <dt className="sr-only">{label}</dt>
-                  <dd className="text-xl font-extrabold text-white tabular-nums leading-none">{value}</dd>
-                  <p aria-hidden className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/35">
-                    {label}
-                  </p>
-                </div>
-              ))}
-            </dl>
           )}
-        </div>
-
-        <div className="min-w-0">
-          <ProductStage items={stageItems} seedHue={seedHue} />
         </div>
       </div>
     </section>

@@ -708,7 +708,6 @@ export default function TenantStorefrontPage() {
               productCount={products.length}
               categoryCount={categories.length}
               deliveryEstimate={storeSettings.delivery_estimate}
-              seedHue={brandHue}
               onShop={() => productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
               onSecondary={categories.length > 1 ? () => categoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) : undefined}
               secondaryLabel={categories.length > 1 ? 'Browse categories' : undefined}
