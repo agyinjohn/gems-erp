@@ -472,7 +472,7 @@ export default function StoreSettingsPage() {
                   endpoint="/uploads/logo"
                   aspect="aspect-[3/1]"
                   fit="contain"
-                  hint="Your mark, shown above your name at the top of the shop — and on the
+                  hint="Your mark, shown beside your name in your shop's header — and on the
                     marketplace, on order tracking and on receipts. A square image works best."
                 />
 

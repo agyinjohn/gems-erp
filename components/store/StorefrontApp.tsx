@@ -856,7 +856,6 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
               tagline={storeSettings.tagline}
               bannerImage={storeSettings.banner_image}
               stageItems={heroStageItems}
-              logo={tenant?.logo}
               productCount={products.length}
               categoryCount={categories.length}
               deliveryEstimate={storeSettings.delivery_estimate}

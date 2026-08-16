@@ -35,7 +35,6 @@ interface Props {
   bannerImage?: string;
   /** Their goods, for a shop that set no banner but has photographed stock. */
   stageItems?: StageItem[];
-  logo?: string;
   productCount: number;
   categoryCount: number;
   /** The shop's own words, e.g. "3 – 5 business days". */
@@ -46,7 +45,7 @@ interface Props {
 }
 
 export default function StoreHero({
-  businessName, heroHeadline, tagline, bannerImage, stageItems = [], logo,
+  businessName, heroHeadline, tagline, bannerImage, stageItems = [],
   productCount, categoryCount, deliveryEstimate,
   onShop, onSecondary, secondaryLabel,
 }: Props) {
@@ -124,15 +123,11 @@ export default function StoreHero({
           headline. See store-hero-scrim for what each layer is doing. */}
       <div aria-hidden className="absolute inset-0 store-hero-scrim" />
 
+      {/* No logo here. It sits in the header directly above, and a mark
+          repeated twice within a hundred pixels of itself is not branding —
+          it reads as the page having started over. The hero's job is the
+          shop's words, not its name a second time. */}
       <div className="relative max-w-3xl mx-auto px-6 py-20 sm:py-28 text-center flex flex-col items-center">
-        {logo && (
-          <img
-            src={logo}
-            alt=""
-            className="w-14 h-14 rounded-full object-cover ring-1 ring-white/25 mb-7"
-          />
-        )}
-
         {eyebrow && <p className="store-hero-eyebrow">{eyebrow}</p>}
 
         {/* The shop's own words if it wrote any, its name if not. The name is
