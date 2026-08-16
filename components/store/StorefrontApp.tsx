@@ -804,6 +804,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
 
       <StoreNavbar
         businessName={tenant?.business_name}
+        logo={storeSettings.logo || tenant?.logo}
         cartCount={cartCount}
         cartTotal={cartTotal}
         search={search}

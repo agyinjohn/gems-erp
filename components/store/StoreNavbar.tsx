@@ -1,8 +1,17 @@
 'use client';
+import { useState } from 'react';
 import { Package, Search, ShoppingCart, MapPin, ChevronDown, SlidersHorizontal, User } from 'lucide-react';
 
 interface Props {
   businessName?: string;
+  /**
+   * The shop's own mark, uploaded in store settings.
+   *
+   * The header has been drawing a generic parcel icon since it was written,
+   * which is the one place on the page where a shop most wants to be itself.
+   * The footer has shown the logo the whole time.
+   */
+  logo?: string;
   cartCount: number;
   cartTotal: number;
   search: string;
@@ -24,6 +33,7 @@ interface Props {
 
 export default function StoreNavbar({
   businessName,
+  logo,
   cartCount,
   cartTotal,
   search,
@@ -42,6 +52,9 @@ export default function StoreNavbar({
   onOpenAccount,
   customerName,
 }: Props) {
+  const [broken, setBroken] = useState(false);
+  const showLogo = Boolean(logo?.trim()) && !broken;
+
   return (
     <header className="store-nav sticky top-0 z-40">
       {/* Main bar */}
@@ -49,10 +62,25 @@ export default function StoreNavbar({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3 sm:gap-4">
           <button type="button" onClick={onGoHome} className="flex items-center gap-2.5 shrink-0 group">
             <div
-              className="w-10 h-10 rounded-xl ring-1 ring-black/5 flex items-center justify-center transition-colors"
-              style={{ background: 'color-mix(in srgb, var(--store-brand) 12%, white)' }}
+              className="w-10 h-10 rounded-xl ring-1 ring-black/5 flex items-center justify-center overflow-hidden transition-colors"
+              style={{ background: showLogo ? '#fff' : 'color-mix(in srgb, var(--store-brand) 12%, white)' }}
             >
-              <Package className="w-5 h-5 [color:var(--store-brand-on-paper)]" />
+              {showLogo ? (
+                <img
+                  src={logo}
+                  alt={businessName || 'Shop'}
+                  className="w-full h-full object-contain"
+                  /* A logo that 404s must fall back to the icon rather than
+                     leave a hole where the shop's name should be. Checked on
+                     the ref as well as onError: a cached or instantly-failing
+                     image is already complete before React attaches the
+                     handler, and onError never fires. */
+                  ref={el => { if (el?.complete && el.naturalWidth === 0) setBroken(true); }}
+                  onError={() => setBroken(true)}
+                />
+              ) : (
+                <Package className="w-5 h-5 [color:var(--store-brand-on-paper)]" />
+              )}
             </div>
             <div className="hidden sm:block text-left leading-tight min-w-0">
               <div className="text-gray-900 font-bold text-sm truncate max-w-[140px] md:max-w-[200px]">
