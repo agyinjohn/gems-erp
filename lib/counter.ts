@@ -22,24 +22,24 @@ export interface CounterName {
 
 const NAMES: Record<CatalogMix, CounterName> = {
   products: {
-    nav: 'POS',
+    nav: 'Sales Counter / POS Terminal',
     title: 'Point of Sale',
     subtitle: 'Walk-in sales terminal',
   },
   services: {
-    nav: 'Service Counter',
+    nav: 'Sales Counter / POS Terminal',
     title: 'Service Counter',
     subtitle: 'Bill a client for work, on the spot',
   },
   both: {
-    nav: 'Sales Counter',
+    nav: 'Sales Counter / POS Terminal',
     title: 'Sales Counter',
     subtitle: 'Ring up work and goods for whoever is at the counter',
   },
   // Nothing on the list yet, so nothing to go on. The name that covers both is
   // the one that cannot be wrong later.
   empty: {
-    nav: 'Sales Counter',
+    nav: 'Sales Counter / POS Terminal',
     title: 'Sales Counter',
     subtitle: 'Ring up work and goods for whoever is at the counter',
   },

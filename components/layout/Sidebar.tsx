@@ -81,7 +81,7 @@ const navGroups = [
   {
     label: 'Sales',
     items: [
-      { href: '/pos', label: 'POS Terminal', icon: Monitor, roles: ['sales_staff'], permission: 'pos.view' },
+      { href: '/pos', label: 'Sales Counter / POS Terminal', icon: Monitor, roles: ['sales_staff'], permission: 'pos.view' },
       { href: '/pos/shifts', label: 'Shift History', icon: History, roles: ['sales_staff'], permission: 'pos.view' },
       { href: '/orders', label: 'Orders', icon: ShoppingCart, roles: ['sales_staff'], permission: 'orders.view' },
       { href: '/crm', label: 'Customers', icon: UserCheck, roles: ['sales_staff'], permission: 'crm.view' },
