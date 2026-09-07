@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Spinner, toast } from '@/components/ui';
-import { ExternalLink, Save, Store, Truck, Megaphone, Tag, Plus, Trash2, Wallet, Star, QrCode, Download, Printer, Zap, ToggleLeft, ToggleRight, Palette } from 'lucide-react';
+import { ExternalLink, Save, Store, Truck, Megaphone, Tag, Plus, Trash2, Wallet, Star, QrCode, Download, Printer, Zap, ToggleLeft, ToggleRight, Palette, Image } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import api from '@/lib/api';
 import QRCode from 'qrcode';
@@ -57,6 +57,10 @@ export default function StoreSettingsPage() {
   const [payoutMethods, setPayoutMethods] = useState<PayoutMethod[]>([]);
   const [payoutForm, setPayoutForm] = useState({ type: 'mobile_money', account_number: '', account_name: '', bank_code: 'MTN' });
   const [payoutSaving, setPayoutSaving] = useState(false);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerForm, setBannerForm] = useState({ title: '', link_url: '', position: '8' });
+  const bannerFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchMerchantStoreSettings()
@@ -67,6 +71,7 @@ export default function StoreSettingsPage() {
     api.get('/products').then(r => setPromoProducts(r.data.data || [])).catch(() => {});
     api.get('/categories').then(r => setPromoCategories(r.data.data || [])).catch(() => {});
     api.get('/payout-methods').then(r => setPayoutMethods(r.data.data || [])).catch(() => {});
+    api.get('/banners').then(r => setBanners(r.data.data || [])).catch(() => {});
   }, []);
 
   const set = <K extends keyof StorefrontSettings>(key: K, value: StorefrontSettings[K]) => {
@@ -181,6 +186,40 @@ export default function StoreSettingsPage() {
     } catch {
       toast.error('Could not remove payout method');
     }
+  };
+
+  const uploadBanner = async (file: File) => {
+    setBannerUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      fd.append('title', bannerForm.title);
+      fd.append('link_url', bannerForm.link_url);
+      fd.append('position', bannerForm.position);
+      const r = await api.post('/banners', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setBanners(prev => [r.data.data, ...prev]);
+      setBannerForm({ title: '', link_url: '', position: '8' });
+      toast.success('Banner added');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not upload banner');
+    } finally {
+      setBannerUploading(false);
+    }
+  };
+
+  const toggleBanner = async (id: string, is_active: boolean) => {
+    try {
+      await api.patch(`/banners/${id}`, { is_active });
+      setBanners(prev => prev.map(b => (b.id || b._id) === id ? { ...b, is_active } : b));
+    } catch { toast.error('Could not update banner'); }
+  };
+
+  const deleteBanner = async (id: string) => {
+    try {
+      await api.delete(`/banners/${id}`);
+      setBanners(prev => prev.filter(b => (b.id || b._id) !== id));
+      toast.success('Banner deleted');
+    } catch { toast.error('Could not delete banner'); }
   };
 
   const storeUrl = tenant?.slug ? `/store/${tenant.slug}` : null;
@@ -781,6 +820,72 @@ export default function StoreSettingsPage() {
                 the <a href="/payouts" className="text-[#0D3B6E] font-semibold hover:underline">Payouts</a> page — turn on
                 automatic payouts there to have each order transferred as it is paid.
               </p>
+            </div>
+
+            {/* Ad Banners */}
+            <div className="card">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <Image className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">Ad banners</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Promotional images injected between products as customers scroll</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                <div>
+                  <label className="form-label">Title (optional)</label>
+                  <input className="form-input" placeholder="e.g. Weekend Sale" value={bannerForm.title} onChange={e => setBannerForm(f => ({ ...f, title: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="form-label">Link URL (optional)</label>
+                  <input className="form-input" placeholder="https://..." value={bannerForm.link_url} onChange={e => setBannerForm(f => ({ ...f, link_url: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="form-label">Show after every N products</label>
+                  <input type="number" min={1} className="form-input" value={bannerForm.position} onChange={e => setBannerForm(f => ({ ...f, position: e.target.value }))} />
+                </div>
+              </div>
+
+              <input
+                ref={bannerFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) uploadBanner(f); e.target.value = ''; }}
+              />
+              <button type="button" className="btn-secondary mb-5" disabled={bannerUploading} onClick={() => bannerFileRef.current?.click()}>
+                <Plus className="w-4 h-4" /> {bannerUploading ? 'Uploading…' : 'Upload banner image'}
+              </button>
+
+              {banners.length > 0 && (
+                <div className="space-y-3">
+                  {banners.map(b => {
+                    const id = b.id || b._id;
+                    return (
+                      <div key={id} className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 ring-1 ring-gray-100">
+                        <img src={b.image_url} alt={b.title || 'Banner'} className="w-20 h-12 object-cover rounded-lg flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">{b.title || 'Untitled banner'}</p>
+                          <p className="text-xs text-gray-400">Every {b.position} products{b.link_url ? ` · ${b.link_url}` : ''}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button type="button" onClick={() => toggleBanner(id, !b.is_active)} title={b.is_active ? 'Pause' : 'Activate'}>
+                            {b.is_active
+                              ? <ToggleRight className="w-6 h-6 text-blue-500" />
+                              : <ToggleLeft className="w-6 h-6 text-gray-400" />}
+                          </button>
+                          <button type="button" onClick={() => deleteBanner(id)} className="text-gray-400 hover:text-red-500">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <button type="button" onClick={save} disabled={saving} className="btn-primary">

@@ -355,13 +355,13 @@ const DEMO_ACCOUNTS = [
 ];
 
 const MODULES = [
-  { icon: Package,    label: 'Stocks & Inventory',      desc: 'Real-time stock tracking & alerts' },
+  { icon: Package, label: 'Stocks & Inventory', desc: 'Real-time stock tracking & alerts' },
   { icon: ShoppingCart, label: 'Sales, POS & eCommerce', desc: 'Orders, invoices & online storefront' },
-  { icon: Calculator, label: 'Accounting & Finance',     desc: 'GL, AP/AR & financial reports' },
-  { icon: Shield,     label: 'Payment System',           desc: 'Paystack & mobile money integration' },
-  { icon: Truck,      label: 'Procurement',              desc: 'Suppliers, POs & approvals' },
-  { icon: Users,      label: 'HR & Payroll',             desc: 'Staff, leave & payslips' },
-  { icon: UserCheck,  label: 'CRM',                      desc: 'Customers & relationships' },
+  { icon: Calculator, label: 'Accounting & Finance', desc: 'GL, AP/AR & financial reports' },
+  { icon: Shield, label: 'Payment System', desc: 'Paystack & mobile money integration' },
+  { icon: Truck, label: 'Procurement', desc: 'Suppliers, POs & approvals' },
+  { icon: Users, label: 'HR & Payroll', desc: 'Staff, leave & payslips' },
+  { icon: UserCheck, label: 'CRM', desc: 'Customers & relationships' },
 ];
 
 /* ─── main page ─────────────────────────────────────────────────────────── */
@@ -468,47 +468,32 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col bg-white">
 
         {/* Mobile top bar */}
-        <header className="lg:hidden flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <header className="lg:hidden flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-white shadow-sm">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#0D3B6E] flex items-center justify-center">
-              <Package className="w-4.5 h-4.5 text-white" />
+            <div className="w-9 h-9 rounded-xl bg-[#0D3B6E] flex items-center justify-center shadow-sm">
+              <Package className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="font-bold text-[#0D3B6E] text-base leading-none">GEMS</div>
-              <div className="text-[9px] text-gray-400 font-medium tracking-wide mt-0.5">GTHINK Enterprise Management System</div>
+              <div className="font-bold text-[#0D3B6E] text-base leading-none tracking-tight">GEMS</div>
+              <div className="text-[9px] text-gray-400 font-medium tracking-widest uppercase mt-0.5">Enterprise Management</div>
             </div>
           </Link>
           <Link href="/register"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D3B6E] bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-colors">
+            className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D3B6E] bg-[#0D3B6E]/8 hover:bg-[#0D3B6E]/14 px-4 py-2.5 rounded-xl transition-colors">
             Sign up <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </header>
 
         {/* Form area */}
-        <div className="flex-1 flex items-center justify-center px-5 sm:px-10 lg:px-12 xl:px-16 py-10">
+        <div className="flex-1 flex items-center justify-center px-5 sm:px-10 lg:px-12 xl:px-16 py-6 sm:py-10 lg:py-10">
           <div
             className={`w-full max-w-[420px] transition-all duration-700 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
             style={{ transitionDelay: '100ms' }}
           >
-            {/* Desktop header — hidden on mobile (shown in top bar) */}
-            {/* <div className="hidden lg:block mb-8">
-              <Link href="/" className="inline-flex items-center gap-2.5 group mb-8">
-                <div className="w-10 h-10 rounded-xl bg-[#0D3B6E] flex items-center justify-center group-hover:bg-[#134a82] transition-colors">
-                  <Package className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <div className="font-bold text-[#0D3B6E] text-lg leading-none">GEMS</div>
-                  <div className="text-[10px] text-gray-400 font-medium tracking-wide mt-0.5">GTHINK Enterprise Management System</div>
-                </div>
-              </Link>
-            </div> */}
-
             {/* Heading */}
-            <div className="mb-7 lg:mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Welcome</h2>
-              <p className="text-gray-500 text-sm mt-1.5 leading-relaxed">
-                Sign in to access your business workspace.
-              </p>
+            <div className="mb-6 sm:mb-7">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Welcome back</h2>
+              <p className="text-gray-500 text-sm mt-1.5 leading-relaxed">Sign in to access your business workspace.</p>
             </div>
 
             {/* Form */}
@@ -524,7 +509,7 @@ export default function LoginPage() {
 
               {/* Email */}
               <div className="space-y-1.5">
-                <label htmlFor="email" className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <label htmlFor="email" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Email
                 </label>
                 <div className="relative group">
@@ -538,7 +523,7 @@ export default function LoginPage() {
                     placeholder="name@company.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 bg-gray-50/60 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-[#0D3B6E]/50 focus:ring-4 focus:ring-[#0D3B6E]/8 transition-all"
+                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-[#0D3B6E]/50 focus:ring-4 focus:ring-[#0D3B6E]/8 transition-all"
                   />
                 </div>
               </div>
@@ -546,7 +531,7 @@ export default function LoginPage() {
               {/* Password */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <label htmlFor="password" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Password
                   </label>
                   <Link href="/forgot-password"
@@ -564,12 +549,12 @@ export default function LoginPage() {
                     placeholder="••••••••••"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full h-12 pl-10 pr-12 rounded-xl border border-gray-200 bg-gray-50/60 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-[#0D3B6E]/50 focus:ring-4 focus:ring-[#0D3B6E]/8 transition-all"
+                    className="w-full h-12 pl-10 pr-12 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-[#0D3B6E]/50 focus:ring-4 focus:ring-[#0D3B6E]/8 transition-all"
                   />
                   <button type="button"
                     onClick={() => setShowPw(v => !v)}
                     aria-label={showPw ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
                     {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
@@ -579,7 +564,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn-shine w-full h-12 rounded-xl bg-[#0D3B6E] hover:bg-[#134a82] active:scale-[0.99] disabled:opacity-55 disabled:pointer-events-none text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#0D3B6E]/30 transition-all mt-2"
+                className="btn-shine w-full h-12 rounded-xl bg-[#0D3B6E] hover:bg-[#134a82] active:scale-[0.99] disabled:opacity-55 disabled:pointer-events-none text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#0D3B6E]/25 transition-all mt-1"
               >
                 {loading
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Authenticating…</>
@@ -593,7 +578,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowDemo(v => !v)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-gray-200 hover:border-[#0D3B6E]/30 hover:bg-blue-50/40 transition-all text-left group"
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border border-dashed border-gray-200 hover:border-[#0D3B6E]/30 hover:bg-blue-50/40 transition-all text-left group"
               >
                 <span className="w-8 h-8 rounded-lg bg-[#0D3B6E]/8 text-[#0D3B6E] flex items-center justify-center shrink-0 group-hover:bg-[#0D3B6E]/12 transition-colors">
                   <Sparkles className="w-4 h-4" />
@@ -606,13 +591,13 @@ export default function LoginPage() {
               </button>
 
               {showDemo && (
-                <div className="mt-2 rounded-xl border border-gray-100 bg-gray-50/60 divide-y divide-gray-100 overflow-hidden animate-panel-in">
+                <div className="mt-2 rounded-xl border border-gray-100 bg-gray-50 divide-y divide-gray-100 overflow-hidden animate-panel-in">
                   {DEMO_ACCOUNTS.map(acc => (
                     <button
                       key={acc.email}
                       type="button"
                       onClick={() => { setEmail(acc.email); setPassword(acc.password); setShowDemo(false); setError(''); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white transition-colors text-left group"
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white transition-colors text-left group"
                     >
                       <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${acc.color}`}>
                         {acc.label}
@@ -626,16 +611,16 @@ export default function LoginPage() {
             </div>
 
             {/* Footer */}
-            <div className="mt-7 pt-6 border-t border-gray-100 flex flex-col gap-3">
-              <div className="flex items-center justify-center gap-5 text-xs text-gray-400">
+            <div className="mt-6 pt-5 border-t border-gray-100 flex flex-col gap-3">
+              <div className="flex items-center justify-center gap-6 text-xs text-gray-400">
                 <span className="inline-flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-[#0D3B6E]/50" /> SSL secured
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500/70" /> 14-day free trial
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500/60" /> 14-day free trial
                 </span>
               </div>
-              <p className="text-center text-xs text-gray-400">
+              <p className="text-center text-sm text-gray-400">
                 Don&apos;t have an account?{' '}
                 <Link href="/register" className="font-semibold text-[#0D3B6E] hover:underline">
                   Create one free

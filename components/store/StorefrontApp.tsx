@@ -25,6 +25,7 @@ import { brandVars, hueOf, GEMS_NAVY } from '@/components/store/brand';
 import OrderTrackingPanel from '@/components/store/OrderTrackingPanel';
 import LocationPickerModal from '@/components/store/LocationPickerModal';
 import InstallPrompt from '@/components/store/InstallPrompt';
+import InlineBanner from '@/components/store/InlineBanner';
 import { categoryGradient, categoryIconColor, formatGhs } from '@/components/store/theme';
 import {
   DEFAULT_STOREFRONT_SETTINGS,
@@ -183,6 +184,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
   const [verifyError, setVerifyError] = useState('');
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [viaMarketplace, setViaMarketplace] = useState(false);
+  const [banners, setBanners] = useState<{ id: string; image_url: string; title?: string; link_url?: string; position: number }[]>([]);
   const toggleSection = (key: string) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   const {
@@ -334,6 +336,7 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
     // Silently, because a shop that sells only goods has none of these and
     // that is not an error — the band simply does not render.
     fetchServiceOffers(tenantSlug).then(r => setServiceOffers(r.offers)).catch(() => {});
+    publicApi.get(`/storefront/${tenantSlug}/banners`).then(r => setBanners(r.data.data || [])).catch(() => {});
   }, [tenantSlug]);
 
   // Handle manifest shortcut: ?track=1
@@ -1017,22 +1020,29 @@ export default function StorefrontApp({ initialProduct = null }: Props) {
                 <div className={`grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 transition-opacity ${refreshing ? 'opacity-60 pointer-events-none' : ''}`}>
                   {filtered.map((p, i) => {
                     const inCart = cart.find(x => x.product.id === p.id);
+                    // Inject banners after every `position` products (1-based)
+                    const bannerAfter = banners.filter(b => (i + 1) % b.position === 0);
                     return (
-                      <ProductCard
-                        key={p.id}
-                        product={p}
-                        tenantSlug={tenantSlug}
-                        seedHue={brandHue}
-                        index={i}
-                        inCartQty={inCart?.quantity}
-                        showBranch={!activeBranch}
-                        onOpen={() => openProduct(p)}
-                        cartLoading={cartLoadingIds.has(p.id)}
-                        onAdd={() => addToCart(p)}
-                        onUpdateQty={delta => updateQty(p.id, delta)}
-                        wishlisted={wishlist.has(p.id)}
-                        onToggleWishlist={() => toggleWishlist(p.id)}
-                      />
+                      <>
+                        <ProductCard
+                          key={p.id}
+                          product={p}
+                          tenantSlug={tenantSlug}
+                          seedHue={brandHue}
+                          index={i}
+                          inCartQty={inCart?.quantity}
+                          showBranch={!activeBranch}
+                          onOpen={() => openProduct(p)}
+                          cartLoading={cartLoadingIds.has(p.id)}
+                          onAdd={() => addToCart(p)}
+                          onUpdateQty={delta => updateQty(p.id, delta)}
+                          wishlisted={wishlist.has(p.id)}
+                          onToggleWishlist={() => toggleWishlist(p.id)}
+                        />
+                        {bannerAfter.map(b => (
+                          <InlineBanner key={`banner-${b.id}-${i}`} image_url={b.image_url} title={b.title} link_url={b.link_url} />
+                        ))}
+                      </>
                     );
                   })}
                   {loadingMore && [...Array(Math.min(8, itemsPerPage))].map((_, i) => (
