@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { toast, ConfirmDialog } from '@/components/ui';
 import {
   MessageSquare, ShoppingCart, RefreshCw, CheckCircle, XCircle, AlertCircle,
-  RotateCcw, Save, Ban, Zap,
+  RotateCcw, Save, Ban, Zap, Send, Users, Clock,
 } from 'lucide-react';
 
 interface Bundle { label: string; credits: number; price: number; unit_price: number }
@@ -17,14 +17,15 @@ interface Template {
 }
 interface Balance {
   credits: number; is_low: boolean; low_balance_at: number;
-  enabled: boolean; sender_id: string;
+  enabled: boolean; sender_id: string; sender_id_status: string;
   messages_sent: number; messages_blocked: number;
   bundles: Bundle[];
 }
 interface Message {
   id: string; to: string; body: string; status: string;
   segments: number; credits_used: number; error?: string;
-  template_key?: string; createdAt: string;
+  template_key?: string; delivery_status?: string; campaign_id?: string;
+  createdAt: string;
 }
 
 const STATUS_STYLES: Record<string, { badge: string; icon: any; label: string }> = {
@@ -80,6 +81,18 @@ export default function SmsPanel() {
   const [edited, setEdited] = useState<Record<string, string>>({});
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; message: string; danger?: boolean; run: () => void } | null>(null);
+
+  // Compose — single recipient
+  const [composeTo, setComposeTo] = useState('');
+  const [composeBody, setComposeBody] = useState('');
+  const [composeSending, setComposeSending] = useState(false);
+
+  // Campaign — multiple recipients
+  const [campaignRecipients, setCampaignRecipients] = useState('');
+  const [campaignBody, setCampaignBody] = useState('');
+  const [campaignName, setCampaignName] = useState('');
+  const [campaignSending, setCampaignSending] = useState(false);
+  const [campaignResult, setCampaignResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -189,6 +202,55 @@ export default function SmsPanel() {
   const bestValueIdx = (balance?.bundles || []).reduce((best, b, i, arr) =>
     b.unit_price < arr[best].unit_price ? i : best, 0);
 
+  const sendOne = async () => {
+    if (!composeTo.trim() || !composeBody.trim()) return;
+    setComposeSending(true);
+    try {
+      await api.post('/sms/send', { to: composeTo.trim(), body: composeBody.trim() });
+      toast.success('Message sent');
+      setComposeTo('');
+      setComposeBody('');
+      await load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not send');
+    } finally { setComposeSending(false); }
+  };
+
+  const sendBulk = async () => {
+    const numbers = campaignRecipients.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    if (!numbers.length || !campaignBody.trim()) return;
+    setCampaignSending(true);
+    setCampaignResult(null);
+    try {
+      const r = await api.post('/sms/campaign', {
+        recipients: numbers,
+        body: campaignBody.trim(),
+        name: campaignName.trim() || undefined,
+      });
+      setCampaignResult(r.data.data);
+      toast.success(`Campaign sent: ${r.data.data.sent} delivered, ${r.data.data.failed} failed`);
+      setCampaignRecipients('');
+      setCampaignBody('');
+      setCampaignName('');
+      await load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not send campaign');
+    } finally { setCampaignSending(false); }
+  };
+
+  const SENDER_STATUS_STYLE: Record<string, string> = {
+    none:     'bg-gray-100 text-gray-500',
+    pending:  'bg-amber-50 text-amber-700',
+    approved: 'bg-green-50 text-green-700',
+    rejected: 'bg-red-50 text-red-600',
+  };
+  const SENDER_STATUS_LABEL: Record<string, string> = {
+    none:     'Not set',
+    pending:  'Pending approval',
+    approved: 'Approved',
+    rejected: 'Rejected',
+  };
+
   return (
     <>
       <div className="space-y-5">
@@ -229,7 +291,18 @@ export default function SmsPanel() {
               {balance?.sender_id && (
                 <div>
                   <p className="text-xs text-gray-400">Sender ID</p>
-                  <p className="font-semibold text-gray-700">{balance.sender_id}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-semibold text-gray-700">{balance.sender_id}</p>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${SENDER_STATUS_STYLE[balance.sender_id_status || 'none']}`}>
+                      {SENDER_STATUS_LABEL[balance.sender_id_status || 'none']}
+                    </span>
+                  </div>
+                  {balance.sender_id_status === 'pending' && (
+                    <p className="text-xs text-amber-600 mt-0.5">Messages use the platform sender ID until approved.</p>
+                  )}
+                  {balance.sender_id_status === 'rejected' && (
+                    <p className="text-xs text-red-600 mt-0.5">Update your sender ID — this one was rejected.</p>
+                  )}
                 </div>
               )}
             </div>
@@ -275,6 +348,120 @@ export default function SmsPanel() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* ── Compose — single recipient ── */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <Send className="w-4 h-4 text-[#0D3B6E]" />
+            <h2 className="font-bold text-gray-900">Send a message</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="form-label">Recipient phone</label>
+              <input
+                className="form-input font-mono"
+                placeholder="024XXXXXXX"
+                value={composeTo}
+                onChange={e => setComposeTo(e.target.value)}
+                disabled={!isOwner}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="form-label">Message</label>
+              <div className="flex gap-2">
+                <textarea
+                  rows={1}
+                  className="form-input flex-1 resize-none"
+                  placeholder="Type your message…"
+                  value={composeBody}
+                  onChange={e => setComposeBody(e.target.value)}
+                  disabled={!isOwner}
+                />
+                <button
+                  type="button"
+                  className="btn-primary flex-shrink-0 self-end"
+                  disabled={!isOwner || composeSending || !composeTo.trim() || !composeBody.trim()}
+                  onClick={sendOne}
+                >
+                  <Send className="w-4 h-4" />
+                  {composeSending ? 'Sending…' : 'Send'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                {composeBody.length} chars · {segmentsOf(composeBody)} credit{segmentsOf(composeBody) === 1 ? '' : 's'}
+              </p>
+            </div>
+          </div>
+          {!isOwner && <p className="text-xs text-gray-400 mt-2">Only a business owner can send messages.</p>}
+        </div>
+
+        {/* ── Campaign — bulk send ── */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-1">
+            <Users className="w-4 h-4 text-[#0D3B6E]" />
+            <h2 className="font-bold text-gray-900">Broadcast</h2>
+          </div>
+          <p className="text-sm text-gray-500 mb-4">Send one message to many customers at once. Max 500 per broadcast.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Campaign name (optional)</label>
+              <input
+                className="form-input"
+                placeholder="e.g. Weekend promo"
+                value={campaignName}
+                onChange={e => setCampaignName(e.target.value)}
+                disabled={!isOwner}
+              />
+            </div>
+            <div className="sm:row-span-2">
+              <label className="form-label">Message</label>
+              <textarea
+                rows={5}
+                className="form-input resize-none h-full"
+                placeholder="Type your broadcast message…"
+                value={campaignBody}
+                onChange={e => setCampaignBody(e.target.value)}
+                disabled={!isOwner}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                {campaignBody.length} chars · {segmentsOf(campaignBody)} credit{segmentsOf(campaignBody) === 1 ? '' : 's'} per recipient
+              </p>
+            </div>
+            <div>
+              <label className="form-label">Recipients (one per line or comma-separated)</label>
+              <textarea
+                rows={4}
+                className="form-input font-mono text-xs resize-none"
+                placeholder={`024XXXXXXX\n055XXXXXXX\n…`}
+                value={campaignRecipients}
+                onChange={e => setCampaignRecipients(e.target.value)}
+                disabled={!isOwner}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                {campaignRecipients.split(/[\n,]+/).filter(s => s.trim()).length} recipients ·{' '}
+                {campaignRecipients.split(/[\n,]+/).filter(s => s.trim()).length * segmentsOf(campaignBody)} credits total
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 mt-4">
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={!isOwner || campaignSending || !campaignRecipients.trim() || !campaignBody.trim()}
+              onClick={sendBulk}
+            >
+              <Users className="w-4 h-4" />
+              {campaignSending ? 'Sending…' : 'Send broadcast'}
+            </button>
+            {campaignResult && (
+              <span className="text-sm text-gray-600">
+                <span className="text-green-600 font-semibold">{campaignResult.sent} sent</span>
+                {campaignResult.failed > 0 && <span className="text-red-500 font-semibold ml-2">{campaignResult.failed} failed</span>}
+                <span className="text-gray-400 ml-2">of {campaignResult.total}</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -373,6 +560,7 @@ export default function SmsPanel() {
                     <th className="px-4 py-2.5">Message</th>
                     <th className="px-4 py-2.5 text-right">Credits</th>
                     <th className="px-4 py-2.5">Status</th>
+                    <th className="px-4 py-2.5">Delivery</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -396,6 +584,24 @@ export default function SmsPanel() {
                             <Icon className="w-3 h-3" /> {s.label}
                           </span>
                           {m.error && <p className="text-xs text-gray-400 mt-1">{m.error}</p>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {m.delivery_status === 'delivered' && (
+                            <span className="badge bg-green-50 text-green-700 inline-flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" /> Delivered
+                            </span>
+                          )}
+                          {m.delivery_status === 'failed' && (
+                            <span className="badge bg-red-50 text-red-600 inline-flex items-center gap-1">
+                              <XCircle className="w-3 h-3" /> Undelivered
+                            </span>
+                          )}
+                          {m.delivery_status === 'pending' && (
+                            <span className="badge bg-gray-100 text-gray-500 inline-flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> Pending
+                            </span>
+                          )}
+                          {!m.delivery_status && <span className="text-xs text-gray-300">—</span>}
                         </td>
                       </tr>
                     );

@@ -205,11 +205,20 @@ export default function Header({ title, subtitle, onMenuClick, sidebarCollapsed,
         {/* Notifications */}
         <div ref={notifRef} className="relative">
           <button onClick={() => setNotifOpen(o => !o)} className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <Bell className="w-5 h-5 text-gray-500" />
-            {visible.length > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center">
-                {visible.length > 9 ? '9+' : visible.length}
+            {/* Glowing blinking dot when there are unread notifications */}
+            {visible.length > 0 ? (
+              <span className="relative flex items-center justify-center w-5 h-5">
+                {/* Outer glow ring */}
+                <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping" />
+                {/* Inner solid dot */}
+                <span className="relative inline-flex rounded-full w-3 h-3 bg-red-500" />
+                {/* Count badge */}
+                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-red-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center px-0.5">
+                  {visible.length > 9 ? '9+' : visible.length}
+                </span>
               </span>
+            ) : (
+              <Bell className="w-5 h-5 text-gray-500" />
             )}
           </button>
 
