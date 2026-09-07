@@ -67,6 +67,19 @@ export default function ContractsPage() {
   const [showAdd, setShowAdd]   = useState(false);
   const [saving, setSaving]     = useState(false);
   const [form, setForm]         = useState(EMPTY_FORM);
+  const [changingStatus, setChangingStatus] = useState<string | null>(null);
+
+  const updateStatus = async (contractId: string, newStatus: string) => {
+    setChangingStatus(contractId);
+    try {
+      await api.put(`/contracts/${contractId}`, { status: newStatus });
+      setRows(rs => rs.map(r => r.id === contractId ? { ...r, status: newStatus } : r));
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not update status');
+    } finally {
+      setChangingStatus(null);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -341,7 +354,18 @@ export default function ContractsPage() {
                         <span className="ml-2 text-xs text-gray-400">{c.project_count} project{c.project_count === 1 ? '' : 's'}</span>
                       )}
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#0D3B6E] transition-colors" />
+                    <div className="flex items-center gap-2">
+                      <select
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#0D3B6E]"
+                        value={c.status}
+                        disabled={changingStatus === c.id}
+                        onClick={e => e.preventDefault()}
+                        onChange={e => { e.preventDefault(); updateStatus(c.id, e.target.value); }}
+                      >
+                        {STATUSES.map(s => <option key={s} value={s}>{label(s)}</option>)}
+                      </select>
+                      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#0D3B6E] transition-colors" />
+                    </div>
                   </div>
                 </Link>
               );

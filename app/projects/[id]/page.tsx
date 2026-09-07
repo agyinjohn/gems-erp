@@ -28,8 +28,9 @@ import MoneyTab from '@/components/projects/tabs/MoneyTab';
 import CashflowTab from '@/components/projects/tabs/CashflowTab';
 import BillingTab from '@/components/projects/tabs/BillingTab';
 import SiteTab from '@/components/projects/tabs/SiteTab';
+import ProjectNotesTab from '@/components/projects/tabs/ProjectNotesTab';
 
-type TabKey = 'progress' | 'programme' | 'claims' | 'money' | 'cashflow' | 'billing' | 'site';
+type TabKey = 'progress' | 'programme' | 'claims' | 'money' | 'cashflow' | 'billing' | 'site' | 'notes';
 
 /**
  * The project detail page.
@@ -400,6 +401,7 @@ export default function ProjectDetailPage() {
             { key: 'cashflow',  label: 'Cash flow',  show: true },
             { key: 'billing',   label: 'Billing',    show: true },
             { key: 'site',      label: term.site_tab, show: true },
+            { key: 'notes',     label: 'Notes',        show: true },
           ] as const).filter(t => t.show).map(t => (
             <button
               key={t.key}
@@ -421,6 +423,7 @@ export default function ProjectDetailPage() {
         {openTab === 'cashflow'  && <CashflowTab  {...tabProps} cash={cash} />}
         {openTab === 'billing'   && <BillingTab   {...tabProps} billing={billing} />}
         {openTab === 'site'      && <SiteTab      {...tabProps} diary={diary} docs={docs} />}
+        {openTab === 'notes'     && <ProjectNotesTab projectId={id} canManage={canManage} />}
 
         {clientLink && (
           <div className="flex items-start gap-2.5 bg-blue-50 text-blue-900 rounded-xl px-4 py-3 text-sm flex-wrap">

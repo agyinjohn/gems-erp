@@ -211,6 +211,20 @@ export default function PaymentScheduleTab({ contract, canManage, reload }: Prop
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="font-bold text-gray-900 text-sm">{money(amt, currency)}</span>
+                      {canManage && ms.status !== 'paid' && (
+                        <button
+                          type="button"
+                          title="Mark as paid"
+                          className="text-xs px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 font-semibold transition-colors"
+                          onClick={async () => {
+                            try {
+                              await api.put(`/contracts/${contract.id}/payment-schedule/${ms.id || ms._id}`, { status: 'paid' });
+                              toast.success('Marked as paid');
+                              await reload();
+                            } catch (e: any) { toast.error(e.response?.data?.message || 'Could not update'); }
+                          }}
+                        >Mark paid</button>
+                      )}
                       {canManage && (
                         <>
                           <button type="button" className="btn-icon" onClick={() => openEdit(ms)}>

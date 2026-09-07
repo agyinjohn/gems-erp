@@ -74,9 +74,31 @@ export default function SignatoriesTab({ contract, canManage, reload }: Props) {
     } finally { setSaving(false); }
   };
 
+  const [signingId, setSigningId] = useState<string | null>(null);
+  const [signedDate, setSignedDate] = useState('');
+
   const markSigned = async (sig: any, signed: boolean) => {
+    if (signed) {
+      // Ask for the date before committing
+      setSigningId(sig.id || String(sig._id));
+      setSignedDate(new Date().toISOString().slice(0, 10));
+      return;
+    }
     try {
-      await api.put(`/contracts/${contract.id}/signatories/${sig.id || sig._id}`, { signed });
+      await api.put(`/contracts/${contract.id}/signatories/${sig.id || sig._id}`, { signed: false });
+      await reload();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not update');
+    }
+  };
+
+  const confirmSigned = async () => {
+    try {
+      await api.put(`/contracts/${contract.id}/signatories/${signingId}`, {
+        signed: true,
+        signed_at: signedDate || new Date().toISOString(),
+      });
+      setSigningId(null);
       await reload();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Could not update');
@@ -229,6 +251,24 @@ export default function SignatoriesTab({ contract, canManage, reload }: Props) {
         message={confirm?.message || ''}
         danger
       />
+
+      {/* Signed date picker modal */}
+      {signingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSigningId(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="font-bold text-gray-900">Record signing date</p>
+            <div>
+              <label className="form-label">Date signed</label>
+              <input type="date" className="form-input" value={signedDate} onChange={e => setSignedDate(e.target.value)} />
+            </div>
+            <div className="flex gap-2 pt-2 border-t border-gray-100">
+              <button type="button" className="btn-primary" onClick={confirmSigned}>Confirm signed</button>
+              <button type="button" className="btn-secondary" onClick={() => setSigningId(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -134,7 +134,7 @@ export default function ContractDetailPage() {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             {canManage && (
-              <button type="button" onClick={() => setTab('overview')} className="btn-secondary">
+              <button type="button" onClick={() => { setTab('overview'); }} className="btn-secondary">
                 <Pencil className="w-4 h-4" />
                 <span className="hidden sm:inline">Edit</span>
               </button>
@@ -186,6 +186,23 @@ export default function ContractDetailPage() {
             <div className="text-right flex-shrink-0">
               <p className="text-2xl font-extrabold text-gray-900">{money(contract.value, contract.currency)}</p>
               <p className="text-xs text-gray-400 mt-0.5">Contract value</p>
+              {(() => {
+                const schedule: any[] = contract.payment_schedule || [];
+                const paid = schedule
+                  .filter((m: any) => m.status === 'paid')
+                  .reduce((s: number, m: any) => s + (m.amount > 0 ? m.amount : (m.pct / 100) * contract.value), 0);
+                const invoiced = schedule
+                  .filter((m: any) => m.status === 'invoiced' || m.status === 'paid')
+                  .reduce((s: number, m: any) => s + (m.amount > 0 ? m.amount : (m.pct / 100) * contract.value), 0);
+                if (!schedule.length) return null;
+                return (
+                  <div className="mt-2 space-y-0.5">
+                    <p className="text-xs text-gray-500">Invoiced: <span className="font-semibold text-gray-700">{money(invoiced, contract.currency)}</span></p>
+                    <p className="text-xs text-gray-500">Paid: <span className="font-semibold text-green-700">{money(paid, contract.currency)}</span></p>
+                    <p className="text-xs text-gray-500">Outstanding: <span className="font-semibold text-amber-700">{money(contract.value - paid, contract.currency)}</span></p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

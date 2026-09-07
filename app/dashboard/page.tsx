@@ -32,8 +32,20 @@ export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showHrReport, setShowHrReport] = useState(false);
-  const [range, setRange] = useState<DateRange>(ALL_TIME);
+  const [range, setRange] = useState<DateRange>(() => {
+    if (typeof window === 'undefined') return ALL_TIME;
+    try {
+      const saved = localStorage.getItem('dashboard_range');
+      return saved ? JSON.parse(saved) : ALL_TIME;
+    } catch { return ALL_TIME; }
+  });
+  const [notifications, setNotifications] = useState<any[]>([]);
   const role = user?.role || '';
+
+  const handleRangeChange = (r: DateRange) => {
+    setRange(r);
+    try { localStorage.setItem('dashboard_range', JSON.stringify(r)); } catch {}
+  };
 
   const can = (...roles: string[]) => roles.includes(role);
   const isAdmin = can('super_admin', 'business_owner', 'branch_manager');
@@ -57,6 +69,10 @@ export default function DashboardPage() {
       fetch().catch(console.error).finally(() => setLoading(false));
     }
   }, [key, range.from, range.to]);
+
+  useEffect(() => {
+    api.get('/notifications').then(r => setNotifications(r.data.data || [])).catch(() => {});
+  }, []);
 
   // Only the first load blanks the page. Changing the window keeps what is on
   // screen and swaps it when the new figures land, so the picker stays put
@@ -341,6 +357,30 @@ export default function DashboardPage() {
     <AppLayout title="Dashboard" subtitle={subtitle[role] || "Welcome back!"} allowedRoles={ALL_ROLES}>
       <div className="min-w-0 max-w-full space-y-0">
 
+      {/* ── TODAY'S ACTIONS ─────────────────────────────────────────────── */}
+      {notifications.length > 0 && (
+        <div className="mb-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Needs attention</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {notifications.slice(0, 8).map((n: any) => (
+              <a
+                key={n.id}
+                href={n.link || '#'}
+                className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors hover:opacity-90 ${
+                  n.type === 'warning' ? 'bg-amber-50 text-amber-800' : 'bg-blue-50 text-blue-800'
+                }`}
+              >
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-xs">{n.title}</p>
+                  <p className="text-xs opacity-80 truncate">{n.message}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {datedRoles && (
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <p className="text-xs text-gray-400">
@@ -349,7 +389,7 @@ export default function DashboardPage() {
           </p>
           <div className="flex items-center gap-2">
             {loading && <RefreshCw className="w-3.5 h-3.5 text-gray-300 animate-spin" />}
-            <DateRangePicker value={range} onChange={setRange} />
+            <DateRangePicker value={range} onChange={handleRangeChange} />
           </div>
         </div>
       )}

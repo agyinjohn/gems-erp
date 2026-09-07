@@ -75,6 +75,19 @@ export default function ProjectsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [changingStatus, setChangingStatus] = useState<string | null>(null);
+
+  const updateStatus = async (projectId: string, newStatus: string) => {
+    setChangingStatus(projectId);
+    try {
+      await api.patch(`/projects/${projectId}`, { status: newStatus });
+      setProjects(ps => ps.map(p => (p.id === projectId || p._id === projectId) ? { ...p, status: newStatus } : p));
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not update status');
+    } finally {
+      setChangingStatus(null);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -397,6 +410,15 @@ export default function ProjectsPage() {
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                     <span className="text-sm font-bold text-gray-900">{money(p.contract_value, p.currency)}</span>
                     <div className="flex items-center gap-2">
+                      <select
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#0D3B6E]"
+                        value={p.status}
+                        disabled={changingStatus === (p.id || p._id)}
+                        onClick={e => e.preventDefault()}
+                        onChange={e => { e.preventDefault(); updateStatus(p.id || p._id!, e.target.value); }}
+                      >
+                        {STATUSES.map(s => <option key={s} value={s}>{label(s)}</option>)}
+                      </select>
                       {p.is_overdue ? (
                         <span className="text-xs font-semibold text-red-600 inline-flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" /> Overdue
