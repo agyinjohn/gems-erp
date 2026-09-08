@@ -47,13 +47,13 @@ const REMOVABLE_FEATURES: Record<string, { label: string; deduction: Partial<Rec
 };
 
 export default function RegisterPage() {
-  const [step, setStep] = useState(1); // 1=business, 2=account, 3=plan, 4=card, 5=success
+  const [step, setStep] = useState(1); // 1=business, 2=otp, 3=account, 4=plan, 5=card, 6=success
   const [tIdx, setTIdx] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setTIdx(i => (i + 1) % TESTIMONIALS.length), 4500);
-    return () => clearInterval(id);
-  }, []);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [loading, setLoading] = useState(false);
   const [cardLoading, setCardLoading] = useState(false);
   const [error, setError] = useState('');
@@ -62,7 +62,6 @@ export default function RegisterPage() {
   const [createdBusiness, setCreatedBusiness] = useState('');
   const [authToken, setAuthToken] = useState('');
   const [paystackKey, setPaystackKey] = useState('');
-  // Plan selection
   const [selectedPlan, setSelectedPlan] = useState('pro');
   const [removedFeatures, setRemovedFeatures] = useState<string[]>([]);
 
@@ -76,6 +75,17 @@ export default function RegisterPage() {
     const deduction = removedFeatures.reduce((s, f) => s + (REMOVABLE_FEATURES[f]?.deduction[plan as 'starter'|'pro'|'enterprise'] || 0), 0);
     return base - deduction;
   };
+
+  useEffect(() => {
+    const id = setInterval(() => setTIdx(i => (i + 1) % TESTIMONIALS.length), 4500);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
   // Preload Paystack script so it's ready on step 3
   useEffect(() => {
@@ -123,7 +133,33 @@ export default function RegisterPage() {
     setError(''); return true;
   };
 
-const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
+  const handleSendOtp = async () => {
+    if (!validateStep1()) return;
+    setOtpLoading(true); setError('');
+    try {
+      await api.post('/tenants/send-otp', { phone: `+233${phoneDigits}` });
+      setOtpSent(true);
+      setOtpValue('');
+      setResendCooldown(60);
+      setStep(2);
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to send OTP. Please try again.');
+    } finally { setOtpLoading(false); }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpValue.trim()) { setError('Please enter the OTP.'); return; }
+    setOtpLoading(true); setError('');
+    try {
+      await api.post('/tenants/verify-otp', { phone: `+233${phoneDigits}`, otp: otpValue.trim() });
+      setPhoneVerified(true);
+      setStep(3);
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Invalid OTP. Please try again.');
+    } finally { setOtpLoading(false); }
+  };
+
+const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); };
 
   const handleSubmit = async () => {
     if (!validateStep2()) return;
@@ -145,7 +181,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
       const keyRes = await api.get('/plan-prices').catch(() => ({ data: { data: null } }));
       setPaystackKey(loginRes.data.data.paystack_public_key || keyRes.data.data?.paystack_public_key || '');
       setCreatedBusiness(form.business_name.trim());
-      setStep(3); // go to plan selection
+      setStep(5); // go to plan selection
     } catch (e: any) {
       setError(e.response?.data?.message || 'Registration failed. Please try again.');
     } finally { setLoading(false); }
@@ -175,7 +211,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
           api.post('/billing/save-card', { reference: transaction.reference }, {
             headers: { Authorization: `Bearer ${authToken}` },
           })
-            .then(() => setStep(5))
+            .then(() => setStep(6))
             .catch((e: any) => setError(e.response?.data?.message || 'Card saved but could not confirm. Please check billing settings.'))
             .finally(() => setCardLoading(false));
         },
@@ -305,9 +341,9 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
           <div className="w-full max-w-md">
 
             {/* Step indicator */}
-            {step < 5 && (
+            {step < 6 && (
               <div className="flex items-center mb-6 sm:mb-8 px-4 sm:px-0">
-                {[1, 2, 3, 4].map((n, i) => (
+                {[1, 2, 3, 4, 5].map((n, i) => (
                   <div key={n} className="flex items-center flex-1">
                     <div className="flex flex-col items-center gap-1 flex-1">
                       <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
@@ -428,6 +464,65 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
             {/* ── STEP 2 ── */}
             {step === 2 && (
               <div>
+                <div className="mb-6 sm:mb-7 text-center">
+                  <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Phone className="w-7 h-7 text-[#0D3B6E]" />
+                  </div>
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Verify your number</h1>
+                  <p className="text-gray-500 text-xs sm:text-sm">
+                    We sent a 6-digit code to <span className="font-semibold text-gray-700">+233 {phoneDigits}</span>
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-5 flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center flex-shrink-0">!</span>
+                    {error}
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="form-label">Enter OTP *</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      className="form-input h-14 text-center text-2xl font-bold tracking-[0.5em] letter-spacing-wide"
+                      placeholder="------"
+                      value={otpValue}
+                      onChange={e => { setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+                      autoFocus
+                    />
+                    <p className="text-xs text-gray-400 mt-1.5 text-center">Code expires in 10 minutes</p>
+                  </div>
+
+                  <button
+                    onClick={handleVerifyOtp}
+                    disabled={otpLoading || otpValue.length < 6}
+                    className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-12 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+                  >
+                    {otpLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying…</> : <>Verify & Continue <ArrowRight className="w-4 h-4" /></>}
+                  </button>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button onClick={() => { setStep(1); setOtpValue(''); setError(''); }} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                      <ArrowLeft className="w-3.5 h-3.5" /> Change number
+                    </button>
+                    <button
+                      onClick={handleSendOtp}
+                      disabled={otpLoading || resendCooldown > 0}
+                      className="text-xs font-medium text-[#0D3B6E] hover:underline disabled:opacity-40 disabled:no-underline"
+                    >
+                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div>
                 <div className="mb-6 sm:mb-7">
                   <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Create your account</h1>
                   <p className="text-gray-500 text-xs sm:text-sm">
@@ -504,7 +599,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
                 </div>
 
                 <div className="flex flex-col-reverse sm:flex-row gap-3 mt-5 sm:mt-6">
-                  <button onClick={() => { setStep(1); setError(''); }} className="h-11 sm:h-12 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 font-medium text-sm">
+                  <button onClick={() => { setStep(2); setError(''); }} className="h-11 sm:h-12 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 font-medium text-sm">
                     <ArrowLeft className="w-4 h-4" /> Back
                   </button>
                   <button onClick={handleSubmit} disabled={loading} className="flex-1 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-11 sm:h-12 rounded-xl text-sm sm:text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
@@ -523,7 +618,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
             )}
 
             {/* ── STEP 3 — Plan Selection ── */}
-            {step === 3 && (
+            {step === 4 && (
               <div>
                 <div className="mb-5">
                   <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Choose your subscription</h1>
@@ -613,11 +708,11 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
                 })()}
 
                 <div className="flex flex-col-reverse sm:flex-row gap-3">
-                  <button onClick={() => { setStep(2); setError(''); }} className="h-11 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 font-medium text-sm">
+                  <button onClick={() => { setStep(3); setError(''); }} className="h-11 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 font-medium text-sm">
                     <ArrowLeft className="w-4 h-4" /> Back
                   </button>
                   <button
-                    onClick={() => { setError(''); setStep(4); }}
+                    onClick={() => { setError(''); setStep(5); }}
                     className="flex-1 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-11 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
                   >
                     Continue to Card <ArrowRight className="w-4 h-4" />
@@ -636,7 +731,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
             )}
 
             {/* ── STEP 4 — Card ── */}
-            {step === 4 && (
+            {step === 5 && (
               <div>
                 <div className="mb-5 sm:mb-6">
                   <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full mb-3 sm:mb-4">
@@ -734,13 +829,13 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
                 <p className="text-center text-xs text-gray-400 mt-2">Powered by Paystack · Your card details are never stored on our servers</p>
 
                 <button
-                  onClick={() => { setStep(3); setError(''); }}
+                  onClick={() => { setStep(4); setError(''); }}
                   className="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 transition-colors py-1.5 flex items-center justify-center gap-1"
                 >
                   <ArrowLeft className="w-3 h-3" /> Back to plan selection
                 </button>
                 <button
-                  onClick={() => setStep(5)}
+                  onClick={() => setStep(6)}
                   className="w-full mt-1 text-sm text-gray-400 hover:text-gray-600 transition-colors py-2 underline underline-offset-2"
                 >
                   Skip for now — remind me later
@@ -749,7 +844,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
             )}
 
             {/* ── STEP 5 — Success ── */}
-            {step === 5 && (
+            {step === 6 && (
               <div className="text-center">
                 {/* Animated success icon */}
                 <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6">
