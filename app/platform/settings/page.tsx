@@ -15,6 +15,7 @@ const TABS = [
   { key: 'plans',     label: 'Subscription Plans' },
   { key: 'billing',   label: 'Billing Policy' },
   { key: 'gateway',   label: 'Payment Gateway' },
+  { key: 'sms',       label: 'SMS & Messaging' },
   { key: 'identity',  label: 'Platform Identity' },
   { key: 'alerts',    label: 'Alerts' },
   { key: 'features',  label: 'Feature Flags' },
@@ -261,87 +262,7 @@ export default function PlatformSettingsPage() {
               </div>
             </div>
 
-            {/* SMS resale */}
-            <div className="pt-5 border-t border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-1">SMS bundles</h3>
-              <p className="text-xs text-gray-400 mb-4">
-                What tenants pay for prepaid SMS credits. Your margin is this price less what the SMS gateway charges you.
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                <div>
-                  <label className="form-label">mNotify API key</label>
-                  <input className="form-input" value={mnotifyKey} onChange={e => setMnotifyKey(e.target.value)}
-                    placeholder="Paste your mNotify API key" />
-                  <p className="text-xs text-gray-400 mt-1.5">
-                    The account tenants&apos; messages are sent through. Leave the masked value alone to keep the current key.
-                  </p>
-                </div>
-                <div>
-                  <label className="form-label">Gateway balance</label>
-                  <div className="flex items-center gap-2">
-                    <div className="form-input flex items-center bg-gray-50">
-                      {providerBalance == null
-                        ? <span className="text-gray-400">Not checked</span>
-                        : providerBalance.configured === false
-                          ? <span className="text-amber-600">No API key set</span>
-                          : <span className="font-semibold text-gray-900">{providerBalance.balance ?? 'Unknown'}</span>}
-                    </div>
-                    <button type="button" className="btn-secondary whitespace-nowrap"
-                      onClick={() => api.get('/platform/sms/balance')
-                        .then(r => setProviderBalance(r.data.data))
-                        .catch(e => toast.error(e.response?.data?.message || 'Could not reach mNotify'))}>
-                      Check
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1.5">
-                    Your own credit at mNotify — the stock tenants buy from. Sending stops for everyone when this runs out.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mb-4 max-w-xs">
-                <label className="form-label">Default sender ID</label>
-                <input className="form-input" maxLength={11} value={smsSenderId}
-                  onChange={e => setSmsSenderId(e.target.value)} />
-                <p className="text-xs text-gray-400 mt-1.5">Up to 11 characters. Tenants may override it.</p>
-              </div>
-
-              <div className="space-y-2">
-                {smsBundles.map((b, i) => (
-                  <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end bg-gray-50 rounded-xl p-3 ring-1 ring-gray-100">
-                    <div>
-                      <label className="form-label text-xs">Label</label>
-                      <input className="form-input" value={b.label}
-                        onChange={e => setSmsBundles(p => p.map((x, xi) => xi === i ? { ...x, label: e.target.value } : x))} />
-                    </div>
-                    <div>
-                      <label className="form-label text-xs">Credits</label>
-                      <input type="number" min={1} className="form-input" value={b.credits}
-                        onChange={e => setSmsBundles(p => p.map((x, xi) => xi === i ? { ...x, credits: parseInt(e.target.value) || 0 } : x))} />
-                    </div>
-                    <div>
-                      <label className="form-label text-xs">Price (GHS)</label>
-                      <input type="number" min={0} step={0.5} className="form-input" value={b.price}
-                        onChange={e => setSmsBundles(p => p.map((x, xi) => xi === i ? { ...x, price: parseFloat(e.target.value) || 0 } : x))} />
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-gray-500">
-                        {b.credits > 0 ? `GHS ${(b.price / b.credits).toFixed(3)} each` : '—'}
-                      </span>
-                      <button type="button" className="btn-ghost text-xs text-red-500"
-                        onClick={() => setSmsBundles(p => p.filter((_, xi) => xi !== i))}>
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button type="button" className="btn-secondary mt-3"
-                onClick={() => setSmsBundles(p => [...p, { label: '', credits: 0, price: 0 }])}>
-                Add bundle
-              </button>
-            </div>
+            {/* SMS resale — moved to SMS & Messaging tab */}
           </div>
         )}
 
@@ -401,7 +322,118 @@ export default function PlatformSettingsPage() {
           </div>
         )}
 
-        {/* ── Platform Identity ── */}
+        {/* ── SMS & Messaging ── */}
+        {tab === 'sms' && (
+          <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-8">
+            <div>
+              <h2 className="font-bold text-gray-900 mb-0.5">SMS & Messaging</h2>
+              <p className="text-sm text-gray-400">Configure the mNotify gateway, default sender ID and credit bundles tenants can purchase.</p>
+            </div>
+
+            {/* Gateway credentials */}
+            <div className="space-y-5">
+              <h3 className="font-semibold text-gray-800 border-b border-gray-100 pb-2">Gateway credentials</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl">
+                <div>
+                  <label className="form-label">mNotify API key</label>
+                  <input
+                    className="form-input font-mono text-sm"
+                    value={mnotifyKey}
+                    onChange={e => setMnotifyKey(e.target.value)}
+                    placeholder="Paste your mNotify API key"
+                  />
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    Get this from <a href="https://mnotify.com" target="_blank" rel="noopener noreferrer" className="underline text-blue-600">mnotify.com</a> → Dashboard → API. All tenant SMS goes through this account. Leave the masked value to keep the current key.
+                  </p>
+                </div>
+                <div>
+                  <label className="form-label">Default sender ID</label>
+                  <input
+                    className="form-input"
+                    maxLength={11}
+                    value={smsSenderId}
+                    onChange={e => setSmsSenderId(e.target.value)}
+                    placeholder="e.g. GEMS"
+                  />
+                  <p className="text-xs text-gray-400 mt-1.5">Up to 11 characters — what recipients see as the sender name. Must be registered with mNotify. Tenants may set their own.</p>
+                </div>
+              </div>
+
+              {/* Live balance check */}
+              <div className="max-w-xs">
+                <label className="form-label">Gateway credit balance</label>
+                <div className="flex items-center gap-2">
+                  <div className="form-input flex-1 flex items-center bg-gray-50">
+                    {providerBalance == null
+                      ? <span className="text-gray-400 text-sm">Not checked yet</span>
+                      : providerBalance.configured === false
+                        ? <span className="text-amber-600 text-sm font-medium">No API key set</span>
+                        : <span className="font-semibold text-gray-900">{providerBalance.balance ?? 'Unknown'} credits</span>}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-secondary whitespace-nowrap"
+                    onClick={() => api.get('/platform/sms/balance')
+                      .then(r => setProviderBalance(r.data.data))
+                      .catch(e => toast.error(e.response?.data?.message || 'Could not reach mNotify'))}
+                  >
+                    Check balance
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">Your mNotify account balance — the stock all tenants draw from. Top up directly at mnotify.com when this runs low.</p>
+              </div>
+            </div>
+
+            {/* Credit bundles */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-gray-800 border-b border-gray-100 pb-2">Credit bundles</h3>
+                <p className="text-xs text-gray-400 mt-2">What tenants pay for prepaid SMS credits. Your margin is this price minus what mNotify charges you per message.</p>
+              </div>
+              <div className="space-y-2">
+                {smsBundles.map((b, i) => (
+                  <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end bg-gray-50 rounded-xl p-3 ring-1 ring-gray-100">
+                    <div>
+                      <label className="form-label text-xs">Bundle name</label>
+                      <input className="form-input" value={b.label} placeholder="e.g. Starter"
+                        onChange={e => setSmsBundles(p => p.map((x, xi) => xi === i ? { ...x, label: e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <label className="form-label text-xs">Credits</label>
+                      <input type="number" min={1} className="form-input" value={b.credits}
+                        onChange={e => setSmsBundles(p => p.map((x, xi) => xi === i ? { ...x, credits: parseInt(e.target.value) || 0 } : x))} />
+                    </div>
+                    <div>
+                      <label className="form-label text-xs">Price (GH₵)</label>
+                      <input type="number" min={0} step={0.5} className="form-input" value={b.price}
+                        onChange={e => setSmsBundles(p => p.map((x, xi) => xi === i ? { ...x, price: parseFloat(e.target.value) || 0 } : x))} />
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-gray-500 tabular-nums">
+                        {b.credits > 0 ? `GH₵ ${(b.price / b.credits).toFixed(3)}/credit` : '—'}
+                      </span>
+                      <button type="button" className="text-xs text-red-500 hover:text-red-700"
+                        onClick={() => setSmsBundles(p => p.filter((_, xi) => xi !== i))}>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="btn-secondary"
+                onClick={() => setSmsBundles(p => [...p, { label: '', credits: 0, price: 0 }])}>
+                + Add bundle
+              </button>
+            </div>
+
+            <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-700 max-w-2xl">
+              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>SMS is sent through your mNotify account. Tenants buy credits from you and spend them per message segment. Without an API key, SMS is stubbed — OTP codes print to the server console only.</span>
+            </div>
+          </div>
+        )}
+
+        {/* ── Platform Identity ── */}}
         {tab === 'identity' && (
           <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-5">
             <div>
