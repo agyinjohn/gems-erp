@@ -95,6 +95,10 @@ export default function RegisterPage() {
 
   const slug = form.business_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
+  const phoneDigits = form.phone.replace(/\D/g, '');
+  const phoneValid  = phoneDigits.length === 9;
+  const phoneError  = !!form.phone && !phoneValid;
+
   const pwChecks = [
     { label: '8+ characters', ok: form.password.length >= 8 },
     { label: 'Uppercase', ok: /[A-Z]/.test(form.password) },
@@ -106,6 +110,7 @@ export default function RegisterPage() {
   const validateStep1 = () => {
     if (!form.business_name.trim()) { setError('Business name is required.'); return false; }
     if (!form.phone.trim()) { setError('Phone number is required.'); return false; }
+    if (!phoneValid) { setError('Enter a valid 9-digit Ghanaian number (without the leading zero).'); return false; }
     if (!form.address.trim()) { setError('Business address is required.'); return false; }
     setError(''); return true;
   };
@@ -128,7 +133,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
         business_name: form.business_name.trim(),
         email: form.email.toLowerCase().trim(),
         password: form.password,
-        phone: form.phone.trim(),
+        phone: `+233${phoneDigits}`,
         address: form.address.trim(),
       });
       // Auto-login to get token for card authorization
@@ -369,10 +374,35 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="form-label">Phone *</label>
-                      <div className="relative">
-                        <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input className="form-input pl-10 h-11 sm:h-12 text-sm sm:text-base" placeholder="+233 XX XXX XXXX" value={form.phone} onChange={e => set('phone', e.target.value)} />
+                      <div className="relative flex">
+                        <span className="inline-flex items-center px-3 h-11 sm:h-12 bg-gray-100 border border-r-0 border-gray-300 rounded-l-xl text-sm font-semibold text-gray-600 select-none whitespace-nowrap">
+                          🇬🇭 +233
+                        </span>
+                        <input
+                          className={`form-input rounded-l-none flex-1 h-11 sm:h-12 text-sm sm:text-base font-mono ${
+                            phoneError ? 'border-red-300 focus:ring-red-200' : ''
+                          }`}
+                          placeholder="XX XXX XXXX"
+                          maxLength={11}
+                          value={form.phone}
+                          onChange={e => {
+                            // Only allow digits and spaces
+                            const val = e.target.value.replace(/[^\d\s]/g, '');
+                            set('phone', val);
+                          }}
+                        />
                       </div>
+                      {phoneError && (
+                        <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                          <span className="w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center flex-shrink-0">!</span>
+                          Must be 9 digits — no leading zero, no +233
+                        </p>
+                      )}
+                      {phoneValid && (
+                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                          <CheckCircle className="w-3.5 h-3.5" /> +233{phoneDigits}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="form-label">Address *</label>
