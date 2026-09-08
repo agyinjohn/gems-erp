@@ -433,7 +433,7 @@ export default function PlatformSettingsPage() {
           </div>
         )}
 
-        {/* ── Platform Identity ── */}}
+        {/* ── Platform Identity ── */}
         {tab === 'identity' && (
           <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-5">
             <div>
