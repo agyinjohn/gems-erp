@@ -162,26 +162,25 @@ const handleNext = () => { if (step === 1 && validateStep1()) setStep(2); };
       const key = paystackKey || r.data.data.paystack_public_key || '';
       const PaystackPop = (window as any).PaystackPop;
       if (!PaystackPop) throw new Error('Paystack failed to load. Please refresh and try again.');
-      PaystackPop.setup({
+      const handler = PaystackPop.setup({
         key,
         email: form.email.toLowerCase().trim(),
-        amount: 50,
+        amount: 5000, // 50 GHS in pesewas
         currency: 'GHS',
         ref: reference,
         channels: ['card'],
         label: `${form.business_name} — Card Authorization`,
         onClose: () => setCardLoading(false),
-        callback: async (transaction: any) => {
-          try {
-            await api.post('/billing/save-card', { reference: transaction.reference }, {
-              headers: { Authorization: `Bearer ${authToken}` },
-            });
-            setStep(5);
-          } catch (e: any) {
-            setError(e.response?.data?.message || 'Card saved but could not confirm. Please check billing settings.');
-          } finally { setCardLoading(false); }
+        callback: (transaction: any) => {
+          api.post('/billing/save-card', { reference: transaction.reference }, {
+            headers: { Authorization: `Bearer ${authToken}` },
+          })
+            .then(() => setStep(5))
+            .catch((e: any) => setError(e.response?.data?.message || 'Card saved but could not confirm. Please check billing settings.'))
+            .finally(() => setCardLoading(false));
         },
-      }).openIframe();
+      });
+      handler.openIframe();
     } catch (e: any) {
       setError(e.message || e.response?.data?.message || 'Failed to initialize card. Please try again.');
       setCardLoading(false);
