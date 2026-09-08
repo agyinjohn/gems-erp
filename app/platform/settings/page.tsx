@@ -542,10 +542,12 @@ export default function PlatformSettingsPage() {
         )}
 
         {/* Save */}
-        <button onClick={save} disabled={saving} className="btn-primary">
-          <Save className="w-4 h-4" />
-          {saving ? 'Saving…' : 'Save Settings'}
-        </button>
+        <div className="flex justify-end">
+          <button onClick={save} disabled={saving} className="btn-primary">
+            <Save className="w-4 h-4" />
+            {saving ? 'Saving…' : 'Save Settings'}
+          </button>
+        </div>
 
       </div>
     </AppLayout>

@@ -142,7 +142,7 @@ export default function TenantDetailPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-5">
+            <div className="flex gap-3 mt-5 justify-end">
               <button onClick={save} disabled={saving} className="btn-primary">
                 <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save Changes'}
               </button>

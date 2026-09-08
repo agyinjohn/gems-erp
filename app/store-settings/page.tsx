@@ -888,10 +888,12 @@ export default function StoreSettingsPage() {
               )}
             </div>
 
-            <button type="button" onClick={save} disabled={saving} className="btn-primary">
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving…' : 'Save settings'}
-            </button>
+            <div className="flex justify-end pt-2">
+              <button type="button" onClick={save} disabled={saving} className="btn-primary">
+                <Save className="w-4 h-4" />
+                {saving ? 'Saving…' : 'Save settings'}
+              </button>
+            </div>
           </div>
 
           {/* Preview */}
