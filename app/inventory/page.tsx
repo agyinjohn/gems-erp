@@ -1404,15 +1404,17 @@ export default function InventoryPage() {
                     value={transferForm.quantity}
                     onChange={e => setTransferForm(f => ({ ...f, quantity: e.target.value }))}
                   />
-                  {/* Live stock check */}
-                  {transferForm.product_id && transferForm.quantity && (() => {
+                  {/* Live stock check — uses branch-specific qty when available */}
+                  {transferForm.product_id && transferForm.quantity && transferForm.from_branch_id && (() => {
                     const p = stocked.find((x: any) => x.id === transferForm.product_id);
                     const qty = parseInt(transferForm.quantity, 10);
                     if (!p || !qty) return null;
-                    const ok = p.stock_qty >= qty;
+                    const branchEntry = (p.branch_stock || []).find((e: any) => String(e.branch_id) === transferForm.from_branch_id);
+                    const available = branchEntry !== undefined ? branchEntry.qty : p.stock_qty;
+                    const ok = available >= qty;
                     return (
                       <p className={`text-xs mt-1 ${ok ? 'text-gray-400' : 'text-red-500 font-semibold'}`}>
-                        {ok ? `${p.stock_qty - qty} ${p.unit} will remain` : `Only ${p.stock_qty} ${p.unit} available`}
+                        {ok ? `${available - qty} ${p.unit} will remain at source` : `Only ${available} ${p.unit} available at source`}
                       </p>
                     );
                   })()}
