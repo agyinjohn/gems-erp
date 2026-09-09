@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast, ResponsiveTable } from '@/components/ui';
-import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen, X, MapPin, Wrench, Layers } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, TrendingDown, AlertTriangle, Package, Tag, FolderOpen, X, MapPin, Wrench, Layers, ArrowDownUp } from 'lucide-react';
 import api, { apiCache } from '@/lib/api';
 import ProductImageUpload from '@/components/inventory/ProductImageUpload';
 
@@ -455,9 +455,17 @@ const BLANK_FIELD: FieldDef = { label: '', key: '', type: 'text', options: [], r
  */
 
 export default function InventoryPage() {
-  const [tab, setTab] = useState<'products'|'categories'|'locations'>('products');
+  const [tab, setTab] = useState<'products'|'categories'|'locations'|'movements'|'valuation'|'expiry'|'reconciliation'|'transfers'>('products');
   const [products, setProducts] = useState<any[]>(() => apiCache.get('/products') || []);
   const [categories, setCategories] = useState<any[]>(() => apiCache.get('/categories') || []);
+  const [movements, setMovements] = useState<any[]>([]);
+  const [movementsLoading, setMovementsLoading] = useState(false);
+  const [movFilter, setMovFilter] = useState({ type:'', source:'', from:'', to:'', search:'' });
+  const [valuation, setValuation] = useState<any>(null);
+  const [valuationLoading, setValuationLoading] = useState(false);
+  const [expiryItems, setExpiryItems] = useState<any[]>([]);
+  const [expiryLoading, setExpiryLoading] = useState(false);
+  const [expiryDays, setExpiryDays] = useState(30);
   const [locations, setLocations] = useState<any[]>(() => apiCache.get('/locations') || []);
   const [loading, setLoading] = useState(() => !apiCache.get('/products'));
   const [search, setSearch] = useState('');
@@ -477,10 +485,36 @@ export default function InventoryPage() {
   const [adjustQty, setAdjustQty] = useState('');
   const [adjustType, setAdjustType] = useState<'add'|'remove'>('add');
   const [adjustNote, setAdjustNote] = useState('');
+  const [adjustBatch, setAdjustBatch] = useState('');
+  const [adjustSupplier, setAdjustSupplier] = useState('');
+  const [adjustCost, setAdjustCost] = useState('');
+  const [adjustExpiry, setAdjustExpiry] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [labelProduct, setLabelProduct] = useState<any>(null);
   const [labelQty, setLabelQty] = useState(1);
+  const [historyProduct, setHistoryProduct] = useState<any>(null);
+  const [productMovements, setProductMovements] = useState<any[]>([]);
+  const [productMovementsLoading, setProductMovementsLoading] = useState(false);
+  const [reconCounts, setReconCounts] = useState<Record<string, string>>({});
+  const [reconNotes, setReconNotes] = useState('');
+  const [reconSaving, setReconSaving] = useState(false);
+  const [reconResults, setReconResults] = useState<any[]|null>(null);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [transfers, setTransfers] = useState<any[]>([]);
+  const [transfersLoading, setTransfersLoading] = useState(false);
+  const [transferForm, setTransferForm] = useState({ product_id:'', from_branch_id:'', to_branch_id:'', quantity:'', notes:'' });
+  const [transferSaving, setTransferSaving] = useState(false);
+
+  const openHistory = async (p: any) => {
+    setHistoryProduct(p);
+    setProductMovements([]);
+    setProductMovementsLoading(true);
+    try {
+      const r = await api.get(`/products/${p.id}/movements`);
+      setProductMovements(r.data.data);
+    } finally { setProductMovementsLoading(false); }
+  };
   const barcodeRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -501,10 +535,11 @@ export default function InventoryPage() {
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
-    const [p, c, l] = await Promise.all([
+    const [p, c, l, b] = await Promise.all([
       api.get('/products'),
       api.get('/categories'),
       api.get('/locations').catch(() => ({ data: { data: [] } })),
+      api.get('/branches').catch(() => ({ data: { data: [] } })),
     ]);
     apiCache.set('/products', p.data.data);
     apiCache.set('/categories', c.data.data);
@@ -512,13 +547,59 @@ export default function InventoryPage() {
     setProducts(p.data.data);
     setCategories(c.data.data);
     setLocations(l.data.data);
+    setBranches(b.data.data);
     setLoading(false);
   };
+
+  const loadTransfers = async () => {
+    setTransfersLoading(true);
+    try {
+      const r = await api.get('/inventory/transfers');
+      setTransfers(r.data.data);
+    } finally { setTransfersLoading(false); }
+  };
+
+  const loadMovements = async () => {
+    setMovementsLoading(true);
+    try {
+      const params: any = { limit: 200 };
+      if (movFilter.type)   params.type   = movFilter.type;
+      if (movFilter.source) params.source = movFilter.source;
+      if (movFilter.from)   params.from   = movFilter.from;
+      if (movFilter.to)     params.to     = movFilter.to;
+      if (movFilter.search) params.search = movFilter.search;
+      const r = await api.get('/stock-movements', { params });
+      setMovements(r.data.data);
+    } finally { setMovementsLoading(false); }
+  };
+
   useEffect(() => {
     const hasCache = !!apiCache.get('/products');
     load(!hasCache ? false : true);
     if (hasCache && apiCache.isStale('/products')) load(true);
   }, []);
+
+  useEffect(() => {
+    if (tab === 'movements') loadMovements();
+  }, [tab, movFilter]);
+
+  useEffect(() => {
+    if (tab === 'transfers') loadTransfers();
+  }, [tab]);
+
+  useEffect(() => {
+    if (tab === 'valuation' && !valuation) {
+      setValuationLoading(true);
+      api.get('/inventory/valuation').then(r => setValuation(r.data.data)).finally(() => setValuationLoading(false));
+    }
+  }, [tab]);
+
+  useEffect(() => {
+    if (tab === 'expiry') {
+      setExpiryLoading(true);
+      api.get('/inventory/expiry', { params: { days: expiryDays } }).then(r => setExpiryItems(r.data.data)).finally(() => setExpiryLoading(false));
+    }
+  }, [tab, expiryDays]);
 
   // Everything with stock. Services and solutions come back on the same
   // endpoint and are somebody else's page.
@@ -536,7 +617,7 @@ export default function InventoryPage() {
     option_values: optionValuesOf(p),
     variant_stock: Object.fromEntries((p.variants||[]).map((v:any) => [v.key, { stock_qty: v.stock_qty || 0 }])) });
     setError(''); setModal('edit'); };
-  const openAdjust = (p: any) => { setSelected(p); setAdjustQty(''); setAdjustType('add'); setAdjustNote(''); setModal('adjust'); };
+  const openAdjust = (p: any) => { setSelected(p); setAdjustQty(''); setAdjustType('add'); setAdjustNote(''); setAdjustBatch(''); setAdjustSupplier(''); setAdjustCost(''); setAdjustExpiry(''); setModal('adjust'); };
 
   const save = async () => {
     setSaving(true); setError('');
@@ -554,7 +635,22 @@ export default function InventoryPage() {
     if (!adjustQty || parseInt(adjustQty) <= 0) return;
     const delta = adjustType === 'remove' ? -Math.abs(parseInt(adjustQty)) : Math.abs(parseInt(adjustQty));
     setSaving(true);
-    try { await api.post(`/products/${selected.id}/adjust-stock`, { quantity: delta, notes: adjustNote }); apiCache.invalidate('/products'); toast.success('Stock adjusted'); setModal(null); load(); }
+    try {
+      await api.post(`/products/${selected.id}/adjust-stock`, {
+        quantity: delta,
+        notes: adjustNote,
+        ...(adjustType === 'add' && {
+          batch_number:  adjustBatch,
+          supplier_name: adjustSupplier,
+          cost_price:    adjustCost ? parseFloat(adjustCost) : undefined,
+          expiry_date:   adjustExpiry || undefined,
+        }),
+      });
+      apiCache.invalidate('/products');
+      toast.success('Stock adjusted');
+      setModal(null);
+      load();
+    }
     catch (e: any) { toast.error(e.response?.data?.message || 'Error'); }
     finally { setSaving(false); }
   };
@@ -673,6 +769,26 @@ export default function InventoryPage() {
         <button onClick={() => setTab('locations')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='locations' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
           <MapPin className="w-4 h-4" /> Locations
           <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${ tab==='locations' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }`}>{locations.length}</span>
+        </button>
+        <button onClick={() => setTab('movements')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='movements' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
+          <ArrowDownUp className="w-4 h-4" /> Stock Movements
+        </button>
+        <button onClick={() => setTab('valuation')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='valuation' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
+          <TrendingDown className="w-4 h-4" /> Valuation
+        </button>
+        <button onClick={() => setTab('expiry')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='expiry' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
+          <AlertTriangle className="w-4 h-4" /> Expiry
+          {expiryItems.filter(i => i.status === 'expired' || i.status === 'critical').length > 0 && (
+            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              {expiryItems.filter(i => i.status === 'expired' || i.status === 'critical').length}
+            </span>
+          )}
+        </button>
+        <button onClick={() => { setTab('reconciliation'); setReconResults(null); setReconCounts({}); }} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='reconciliation' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
+          <ArrowDownUp className="w-4 h-4" /> Reconcile
+        </button>
+        <button onClick={() => setTab('transfers')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ tab==='transfers' ? 'bg-[#0D3B6E] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }`}>
+          <ArrowDownUp className="w-4 h-4" /> Transfers
         </button>
       </div>
 
@@ -793,6 +909,7 @@ export default function InventoryPage() {
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={() => { setLabelProduct(p); setLabelQty(1); }} title="Print Label" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Tag className="w-4 h-4" /></button>
                     <button onClick={() => openAdjust(p)} title="Adjust Stock" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><TrendingDown className="w-4 h-4" /></button>
+                    <button onClick={() => openHistory(p)} title="Movement History" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><ArrowDownUp className="w-4 h-4" /></button>
                     <button onClick={() => openEdit(p)} title="Edit" className="p-1.5 hover:bg-[#0D3B6E]/8 rounded-lg text-[#0D3B6E] transition-colors"><Edit2 className="w-4 h-4" /></button>
                     <button onClick={() => setConfirm({ id: p.id, name: p.name })} title="Delete" className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </div>
@@ -1114,6 +1231,18 @@ export default function InventoryPage() {
           </div>
           <div><label className="form-label">Reason / Notes</label><input className="form-input" placeholder="e.g. Received from supplier" value={adjustNote} onChange={e => setAdjustNote(e.target.value)} /></div>
         </div>
+        {/* Batch details — only relevant when adding stock */}
+        {adjustType === 'add' && (
+          <div className="mt-4 border-t border-gray-100 pt-4 space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Batch details <span className="font-normal text-gray-400">(optional)</span></p>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="form-label">Batch number</label><input className="form-input" placeholder="e.g. BATCH-001" value={adjustBatch} onChange={e => setAdjustBatch(e.target.value)} /></div>
+              <div><label className="form-label">Supplier</label><input className="form-input" placeholder="Supplier name" value={adjustSupplier} onChange={e => setAdjustSupplier(e.target.value)} /></div>
+              <div><label className="form-label">Unit cost (GH₵)</label><input type="number" className="form-input" placeholder="0.00" value={adjustCost} onChange={e => setAdjustCost(e.target.value)} /></div>
+              <div><label className="form-label">Expiry date</label><input type="date" className="form-input" value={adjustExpiry} onChange={e => setAdjustExpiry(e.target.value)} /></div>
+            </div>
+          </div>
+        )}
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
           <button
@@ -1231,6 +1360,455 @@ export default function InventoryPage() {
         </div>
       )}
 
+      {tab === 'transfers' && (
+        <div className="space-y-5">
+          {/* Transfer form */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5">
+            <h3 className="font-semibold text-gray-800 mb-4">New Stock Transfer</h3>
+            {branches.length < 2 ? (
+              <div className="text-sm text-gray-400 py-4 text-center">
+                You need at least two active branches to transfer stock.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="form-label">Product *</label>
+                  <select className="form-input" value={transferForm.product_id} onChange={e => setTransferForm(f => ({ ...f, product_id: e.target.value }))}>
+                    <option value="">Select product…</option>
+                    {stocked.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.stock_qty} {p.unit})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">From Branch *</label>
+                  <select className="form-input" value={transferForm.from_branch_id} onChange={e => setTransferForm(f => ({ ...f, from_branch_id: e.target.value }))}>
+                    <option value="">Select source…</option>
+                    {branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">To Branch *</label>
+                  <select className="form-input" value={transferForm.to_branch_id} onChange={e => setTransferForm(f => ({ ...f, to_branch_id: e.target.value }))}>
+                    <option value="">Select destination…</option>
+                    {branches.filter((b: any) => b.id !== transferForm.from_branch_id).map((b: any) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Quantity *</label>
+                  <input
+                    type="number" min="1" className="form-input"
+                    placeholder="0"
+                    value={transferForm.quantity}
+                    onChange={e => setTransferForm(f => ({ ...f, quantity: e.target.value }))}
+                  />
+                  {/* Live stock check */}
+                  {transferForm.product_id && transferForm.quantity && (() => {
+                    const p = stocked.find((x: any) => x.id === transferForm.product_id);
+                    const qty = parseInt(transferForm.quantity, 10);
+                    if (!p || !qty) return null;
+                    const ok = p.stock_qty >= qty;
+                    return (
+                      <p className={`text-xs mt-1 ${ok ? 'text-gray-400' : 'text-red-500 font-semibold'}`}>
+                        {ok ? `${p.stock_qty - qty} ${p.unit} will remain` : `Only ${p.stock_qty} ${p.unit} available`}
+                      </p>
+                    );
+                  })()}
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="form-label">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <input className="form-input" placeholder="e.g. Restock for weekend sale" value={transferForm.notes} onChange={e => setTransferForm(f => ({ ...f, notes: e.target.value }))} />
+                </div>
+                <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
+                  <button
+                    className="btn-primary"
+                    disabled={transferSaving || !transferForm.product_id || !transferForm.from_branch_id || !transferForm.to_branch_id || !transferForm.quantity}
+                    onClick={async () => {
+                      setTransferSaving(true);
+                      try {
+                        await api.post('/inventory/transfer', {
+                          product_id:     transferForm.product_id,
+                          from_branch_id: transferForm.from_branch_id,
+                          to_branch_id:   transferForm.to_branch_id,
+                          quantity:       parseInt(transferForm.quantity, 10),
+                          notes:          transferForm.notes,
+                        });
+                        toast.success('Stock transferred successfully');
+                        setTransferForm({ product_id:'', from_branch_id:'', to_branch_id:'', quantity:'', notes:'' });
+                        apiCache.invalidate('/products');
+                        load(true);
+                        loadTransfers();
+                      } catch (e: any) { toast.error(e.response?.data?.message || 'Transfer failed'); }
+                      finally { setTransferSaving(false); }
+                    }}
+                  >
+                    {transferSaving ? 'Transferring…' : 'Transfer Stock'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Transfer history */}
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-800">Transfer History <span className="text-gray-400 font-normal text-sm">({transfers.length})</span></h3>
+              <button onClick={loadTransfers} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                <ArrowDownUp className="w-3.5 h-3.5" /> Refresh
+              </button>
+            </div>
+            {transfersLoading ? <div className="p-8 text-center text-gray-400 text-sm">Loading…</div> :
+            transfers.length === 0 ? (
+              <div className="p-12 text-center">
+                <ArrowDownUp className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-400 text-sm">No transfers yet</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                    <tr>
+                      <th className="px-5 py-3 text-left">Date</th>
+                      <th className="px-5 py-3 text-left">Reference</th>
+                      <th className="px-5 py-3 text-left">Product</th>
+                      <th className="px-5 py-3 text-left">Branch</th>
+                      <th className="px-5 py-3 text-left">Notes</th>
+                      <th className="px-5 py-3 text-left">By</th>
+                      <th className="px-5 py-3 text-right">Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {transfers.map((m: any) => {
+                      const isIn = m.quantity > 0;
+                      return (
+                        <tr key={m._id || m.id} className="hover:bg-gray-50">
+                          <td className="px-5 py-3 text-gray-500 whitespace-nowrap">
+                            <div>{new Date(m.createdAt).toLocaleDateString()}</div>
+                            <div className="text-xs text-gray-400">{new Date(m.createdAt).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</div>
+                          </td>
+                          <td className="px-5 py-3 font-mono text-xs text-gray-500">{m.reference}</td>
+                          <td className="px-5 py-3">
+                            <div className="font-medium text-gray-800">{m.product_id?.name || '—'}</div>
+                            {m.product_id?.sku && <div className="text-xs text-gray-400 font-mono">{m.product_id.sku}</div>}
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${ isIn ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }`}>
+                              {isIn ? '↓ In' : '↑ Out'}
+                            </span>
+                            <span className="ml-2 text-xs text-gray-500">{m.branch_id?.name || '—'}</span>
+                          </td>
+                          <td className="px-5 py-3 text-xs text-gray-400 max-w-[200px] truncate">{m.notes || '—'}</td>
+                          <td className="px-5 py-3 text-xs text-gray-500">{m.created_by?.name || '—'}</td>
+                          <td className="px-5 py-3 text-right">
+                            <span className={`font-bold ${ isIn ? 'text-green-600' : 'text-red-500' }`}>
+                              {isIn ? '+' : ''}{m.quantity}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'transfers' && (
+        <div className="space-y-5">
+          {/* Transfer form */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5">
+            <h3 className="font-semibold text-gray-800 mb-4">New Stock Transfer</h3>
+            {branches.length < 2 ? (
+              <div className="text-sm text-gray-400 py-4 text-center">
+                You need at least two active branches to transfer stock.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="form-label">Product *</label>
+                  <select className="form-input" value={transferForm.product_id} onChange={e => setTransferForm(f => ({ ...f, product_id: e.target.value }))}>
+                    <option value="">Select product…</option>
+                    {stocked.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.stock_qty} {p.unit})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">From Branch *</label>
+                  <select className="form-input" value={transferForm.from_branch_id} onChange={e => setTransferForm(f => ({ ...f, from_branch_id: e.target.value, to_branch_id: '' }))}>
+                    <option value="">Select source…</option>
+                    {branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">To Branch *</label>
+                  <select className="form-input" value={transferForm.to_branch_id} onChange={e => setTransferForm(f => ({ ...f, to_branch_id: e.target.value }))}>
+                    <option value="">Select destination…</option>
+                    {branches.filter((b: any) => b.id !== transferForm.from_branch_id).map((b: any) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Quantity *</label>
+                  <input
+                    type="number" min="1" className="form-input"
+                    placeholder="0"
+                    value={transferForm.quantity}
+                    onChange={e => setTransferForm(f => ({ ...f, quantity: e.target.value }))}
+                  />
+                  {transferForm.product_id && transferForm.quantity && (() => {
+                    const p = stocked.find((x: any) => x.id === transferForm.product_id);
+                    const qty = parseInt(transferForm.quantity, 10);
+                    if (!p || !qty) return null;
+                    const ok = p.stock_qty >= qty;
+                    return (
+                      <p className={`text-xs mt-1 ${ok ? 'text-gray-400' : 'text-red-500 font-semibold'}`}>
+                        {ok ? `${p.stock_qty - qty} ${p.unit} will remain` : `Only ${p.stock_qty} ${p.unit} available`}
+                      </p>
+                    );
+                  })()}
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="form-label">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <input className="form-input" placeholder="e.g. Restock for weekend sale" value={transferForm.notes} onChange={e => setTransferForm(f => ({ ...f, notes: e.target.value }))} />
+                </div>
+                <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
+                  <button
+                    className="btn-primary"
+                    disabled={transferSaving || !transferForm.product_id || !transferForm.from_branch_id || !transferForm.to_branch_id || !transferForm.quantity}
+                    onClick={async () => {
+                      setTransferSaving(true);
+                      try {
+                        await api.post('/inventory/transfer', {
+                          product_id:     transferForm.product_id,
+                          from_branch_id: transferForm.from_branch_id,
+                          to_branch_id:   transferForm.to_branch_id,
+                          quantity:       parseInt(transferForm.quantity, 10),
+                          notes:          transferForm.notes,
+                        });
+                        toast.success('Stock transferred successfully');
+                        setTransferForm({ product_id:'', from_branch_id:'', to_branch_id:'', quantity:'', notes:'' });
+                        apiCache.invalidate('/products');
+                        load(true);
+                        loadTransfers();
+                      } catch (e: any) { toast.error(e.response?.data?.message || 'Transfer failed'); }
+                      finally { setTransferSaving(false); }
+                    }}
+                  >
+                    {transferSaving ? 'Transferring…' : 'Transfer Stock'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Transfer history */}
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-800">Transfer History <span className="text-gray-400 font-normal text-sm">({transfers.length})</span></h3>
+              <button onClick={loadTransfers} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                <ArrowDownUp className="w-3.5 h-3.5" /> Refresh
+              </button>
+            </div>
+            {transfersLoading ? <div className="p-8 text-center text-gray-400 text-sm">Loading…</div> :
+            transfers.length === 0 ? (
+              <div className="p-12 text-center">
+                <ArrowDownUp className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-400 text-sm">No transfers yet</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                    <tr>
+                      <th className="px-5 py-3 text-left">Date</th>
+                      <th className="px-5 py-3 text-left">Reference</th>
+                      <th className="px-5 py-3 text-left">Product</th>
+                      <th className="px-5 py-3 text-left">Branch</th>
+                      <th className="px-5 py-3 text-left">Notes</th>
+                      <th className="px-5 py-3 text-left">By</th>
+                      <th className="px-5 py-3 text-right">Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {transfers.map((m: any) => {
+                      const isIn = m.quantity > 0;
+                      return (
+                        <tr key={m._id || m.id} className="hover:bg-gray-50">
+                          <td className="px-5 py-3 text-gray-500 whitespace-nowrap">
+                            <div>{new Date(m.createdAt).toLocaleDateString()}</div>
+                            <div className="text-xs text-gray-400">{new Date(m.createdAt).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</div>
+                          </td>
+                          <td className="px-5 py-3 font-mono text-xs text-gray-500">{m.reference}</td>
+                          <td className="px-5 py-3">
+                            <div className="font-medium text-gray-800">{m.product_id?.name || '—'}</div>
+                            {m.product_id?.sku && <div className="text-xs text-gray-400 font-mono">{m.product_id.sku}</div>}
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${ isIn ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700' }`}>
+                              {isIn ? '↓ In' : '↑ Out'}
+                            </span>
+                            <span className="ml-2 text-xs text-gray-500">{m.branch_id?.name || '—'}</span>
+                          </td>
+                          <td className="px-5 py-3 text-xs text-gray-400 max-w-[200px] truncate">{m.notes || '—'}</td>
+                          <td className="px-5 py-3 text-xs text-gray-500">{m.created_by?.name || '—'}</td>
+                          <td className="px-5 py-3 text-right">
+                            <span className={`font-bold ${ isIn ? 'text-green-600' : 'text-orange-500' }`}>
+                              {isIn ? '+' : ''}{m.quantity}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'reconciliation' && (
+        <div className="space-y-4">
+          {reconResults ? (
+            // ── Results view ──
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-gray-800">Reconciliation Complete</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {reconResults.filter(r => r.adjusted).length} adjustment{reconResults.filter(r => r.adjusted).length !== 1 ? 's' : ''} made &middot; {reconResults.filter(r => r.variance === 0).length} matched
+                  </p>
+                </div>
+                <button onClick={() => { setReconResults(null); setReconCounts({}); setReconNotes(''); }} className="btn-secondary text-xs">New Count</button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                    <tr>{['Product','System Qty','Physical Count','Variance','Status'].map(h => <th key={h} className="px-5 py-3 text-left">{h}</th>)}</tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {reconResults.map((r: any) => (
+                      <tr key={r.product_id} className={r.variance !== 0 ? 'bg-amber-50/40' : ''}>
+                        <td className="px-5 py-3 font-medium text-gray-800">{r.name}</td>
+                        <td className="px-5 py-3 font-mono text-gray-500">{r.system_qty}</td>
+                        <td className="px-5 py-3 font-mono">{r.physical_qty}</td>
+                        <td className="px-5 py-3">
+                          {r.variance === 0
+                            ? <span className="text-gray-400">—</span>
+                            : <span className={`font-bold ${r.variance > 0 ? 'text-green-600' : 'text-red-500'}`}>{r.variance > 0 ? '+' : ''}{r.variance}</span>
+                          }
+                        </td>
+                        <td className="px-5 py-3">
+                          {r.adjusted
+                            ? <span className="text-xs font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-700">Adjusted</span>
+                            : <span className="text-xs font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">Matched</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            // ── Count sheet ──
+            <>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>Enter the physical count for each product. Leave blank to skip. Submitting will adjust stock and create movement records for any variances.</span>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <h3 className="font-semibold text-gray-800 flex-1">Count Sheet <span className="text-gray-400 font-normal text-sm">({stocked.length} products)</span></h3>
+                  <input
+                    className="form-input sm:w-72"
+                    placeholder="Notes (optional, e.g. 'End of month count')"
+                    value={reconNotes}
+                    onChange={e => setReconNotes(e.target.value)}
+                  />
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                      <tr>
+                        <th className="px-5 py-3 text-left">Product</th>
+                        <th className="px-5 py-3 text-left">SKU</th>
+                        <th className="px-5 py-3 text-left">Category</th>
+                        <th className="px-5 py-3 text-right">System Qty</th>
+                        <th className="px-5 py-3 text-right">Physical Count</th>
+                        <th className="px-5 py-3 text-right">Variance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {stocked.map((p: any) => {
+                        const raw = reconCounts[p.id];
+                        const physical = raw !== undefined && raw !== '' ? Number(raw) : null;
+                        const variance = physical !== null ? physical - p.stock_qty : null;
+                        return (
+                          <tr key={p.id} className={variance !== null && variance !== 0 ? 'bg-amber-50/30' : ''}>
+                            <td className="px-5 py-3 font-medium text-gray-800">{p.name}</td>
+                            <td className="px-5 py-3 font-mono text-xs text-gray-400">{p.sku || '—'}</td>
+                            <td className="px-5 py-3 text-gray-500 text-xs">{p.category_name || '—'}</td>
+                            <td className="px-5 py-3 text-right font-mono text-gray-600">{p.stock_qty} <span className="text-gray-400 text-xs">{p.unit}</span></td>
+                            <td className="px-5 py-3 text-right">
+                              <input
+                                type="number" min="0"
+                                className="w-24 text-sm text-right border border-gray-200 rounded-lg px-2 py-1.5 tabular-nums focus:border-[#0D3B6E] focus:outline-none"
+                                placeholder={String(p.stock_qty)}
+                                value={reconCounts[p.id] ?? ''}
+                                onChange={e => setReconCounts(c => ({ ...c, [p.id]: e.target.value }))}
+                              />
+                            </td>
+                            <td className="px-5 py-3 text-right">
+                              {variance === null ? <span className="text-gray-300">—</span>
+                                : variance === 0 ? <span className="text-green-500 font-semibold">✓</span>
+                                : <span className={`font-bold ${variance > 0 ? 'text-green-600' : 'text-red-500'}`}>{variance > 0 ? '+' : ''}{variance}</span>
+                              }
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
+                  <div className="text-xs text-gray-400">
+                    {Object.values(reconCounts).filter(v => v !== '').length} of {stocked.length} products counted
+                  </div>
+                  <button
+                    className="btn-primary"
+                    disabled={reconSaving || Object.values(reconCounts).filter(v => v !== '').length === 0}
+                    onClick={async () => {
+                      setReconSaving(true);
+                      try {
+                        const counts = stocked
+                          .filter((p: any) => reconCounts[p.id] !== undefined && reconCounts[p.id] !== '')
+                          .map((p: any) => ({ product_id: p.id, physical_qty: Number(reconCounts[p.id]) }));
+                        const r = await api.post('/inventory/reconcile', { counts, notes: reconNotes });
+                        setReconResults(r.data.data);
+                        apiCache.invalidate('/products');
+                        load(true);
+                        toast.success('Reconciliation complete');
+                      } catch (e: any) { toast.error(e.response?.data?.message || 'Error'); }
+                      finally { setReconSaving(false); }
+                    }}
+                  >
+                    {reconSaving ? 'Saving…' : 'Submit Count'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} onConfirm={() => doDelete(confirm?.id)} title="Delete Product" message={`Are you sure you want to deactivate "${confirm?.name}"? It will be hidden from the storefront.`} danger />
 
       {/* ── LOCATIONS TAB ── */}
@@ -1278,8 +1856,359 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
+
+
+
+      {tab === 'expiry' && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-700">Show items expiring within</span>
+            {[7, 30, 60, 90].map(d => (
+              <button key={d} onClick={() => setExpiryDays(d)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${ expiryDays === d ? 'bg-[#0D3B6E] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }`}>
+                {d} days
+              </button>
+            ))}
+          </div>
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-800">Expiring Batches <span className="text-gray-400 font-normal text-sm">({expiryItems.length})</span></h3>
+            </div>
+            {expiryLoading ? <div className="p-8 text-center text-gray-400 text-sm">Loading…</div> :
+            expiryItems.length === 0 ? (
+              <div className="p-12 text-center">
+                <AlertTriangle className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">No expiring stock within {expiryDays} days</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                    <tr>{['Product','Batch','Qty','Expiry Date','Days Left','Status'].map(h => <th key={h} className="px-5 py-3 text-left">{h}</th>)}</tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {expiryItems.map((item: any) => (
+                      <tr key={item.id} className={`hover:bg-gray-50 ${ item.status === 'expired' ? 'bg-red-50/40' : item.status === 'critical' ? 'bg-orange-50/40' : '' }`}>
+                        <td className="px-5 py-3">
+                          <div className="font-medium text-gray-800">{item.product_name}</div>
+                          {item.sku && <div className="text-xs text-gray-400 font-mono">{item.sku}</div>}
+                        </td>
+                        <td className="px-5 py-3 font-mono text-xs text-gray-500">{item.batch_number || '—'}</td>
+                        <td className="px-5 py-3 font-semibold">{item.quantity} <span className="text-gray-400 text-xs">{item.unit}</span></td>
+                        <td className="px-5 py-3 text-gray-600">{new Date(item.expiry_date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</td>
+                        <td className="px-5 py-3">
+                          <span className={`font-bold ${ item.days_left <= 0 ? 'text-red-600' : item.days_left <= 7 ? 'text-orange-600' : 'text-yellow-600' }`}>
+                            {item.days_left <= 0 ? 'Expired' : `${item.days_left}d`}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                            item.status === 'expired'  ? 'bg-red-100 text-red-700' :
+                            item.status === 'critical' ? 'bg-orange-100 text-orange-700' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>{item.status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'valuation' && (
+        <div className="space-y-5">
+          {valuationLoading ? <div className="p-12 text-center text-gray-400">Loading valuation…</div> : !valuation ? null : (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                {[
+                  { label: 'Retail Value',     value: `GHS ${valuation.summary.total_retail_value.toLocaleString('en-GH', { minimumFractionDigits:2 })}`, color: 'text-blue-700',  bg: 'bg-blue-50' },
+                  { label: 'Cost Value',       value: `GHS ${valuation.summary.total_cost_value.toLocaleString('en-GH', { minimumFractionDigits:2 })}`,   color: 'text-gray-700', bg: 'bg-gray-50' },
+                  { label: 'Potential Profit', value: `GHS ${valuation.summary.potential_profit.toLocaleString('en-GH', { minimumFractionDigits:2 })}`,   color: 'text-green-700',bg: 'bg-green-50' },
+                  { label: 'Low Stock Value',  value: `GHS ${valuation.summary.low_stock_value.toLocaleString('en-GH', { minimumFractionDigits:2 })}`,    color: 'text-amber-700',bg: 'bg-amber-50' },
+                  { label: 'Out of Stock',     value: valuation.summary.out_of_stock_count,                                                                color: 'text-red-700',  bg: 'bg-red-50' },
+                ].map(c => (
+                  <div key={c.label} className={`${c.bg} rounded-xl p-4`}>
+                    <div className="text-xs text-gray-500 mb-1">{c.label}</div>
+                    <div className={`text-xl font-extrabold ${c.color}`}>{c.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100"><h3 className="font-semibold text-gray-800">Value by Category</h3></div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                      <tr>{['Category','Products','Total Qty','Cost Value','Retail Value','Margin'].map(h => <th key={h} className="px-5 py-3 text-left last:text-right">{h}</th>)}</tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {valuation.by_category.map((c: any) => {
+                        const margin = c.retail_value > 0 ? Math.round(((c.retail_value - c.cost_value) / c.retail_value) * 100) : 0;
+                        const pct = valuation.summary.total_cost_value > 0 ? (c.cost_value / valuation.summary.total_cost_value) * 100 : 0;
+                        return (
+                          <tr key={c.category} className="hover:bg-gray-50">
+                            <td className="px-5 py-3">
+                              <div className="font-medium text-gray-800">{c.category}</div>
+                              <div className="w-32 h-1.5 bg-gray-100 rounded-full mt-1.5 overflow-hidden">
+                                <div className="h-full bg-[#0D3B6E] rounded-full" style={{ width: `${pct}%` }} />
+                              </div>
+                            </td>
+                            <td className="px-5 py-3 text-gray-500">{c.product_count}</td>
+                            <td className="px-5 py-3 text-gray-500">{c.qty}</td>
+                            <td className="px-5 py-3 font-medium">GHS {c.cost_value.toLocaleString('en-GH', { minimumFractionDigits:2 })}</td>
+                            <td className="px-5 py-3 font-medium text-blue-700">GHS {c.retail_value.toLocaleString('en-GH', { minimumFractionDigits:2 })}</td>
+                            <td className="px-5 py-3 text-right"><span className={`font-bold ${ margin >= 30 ? 'text-green-600' : margin >= 15 ? 'text-amber-500' : 'text-red-500' }`}>{margin}%</span></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100"><h3 className="font-semibold text-gray-800">All Products</h3></div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                      <tr>{['Product','Category','Qty','Cost Price','Sell Price','Cost Value','Retail Value','Margin','Status'].map(h => <th key={h} className="px-4 py-3 text-left">{h}</th>)}</tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {valuation.items.map((p: any) => (
+                        <tr key={p.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3"><div className="font-medium text-gray-800">{p.name}</div>{p.sku && <div className="text-xs text-gray-400 font-mono">{p.sku}</div>}</td>
+                          <td className="px-4 py-3 text-gray-500 text-xs">{p.category}</td>
+                          <td className="px-4 py-3 font-mono">{p.stock_qty} <span className="text-gray-400 text-xs">{p.unit}</span></td>
+                          <td className="px-4 py-3 text-gray-500">GHS {parseFloat(p.cost_price).toFixed(2)}</td>
+                          <td className="px-4 py-3 text-gray-500">GHS {parseFloat(p.price).toFixed(2)}</td>
+                          <td className="px-4 py-3 font-medium">GHS {p.cost_value.toLocaleString('en-GH', { minimumFractionDigits:2 })}</td>
+                          <td className="px-4 py-3 font-medium text-blue-700">GHS {p.retail_value.toLocaleString('en-GH', { minimumFractionDigits:2 })}</td>
+                          <td className="px-4 py-3"><span className={`font-bold text-xs ${ p.margin >= 30 ? 'text-green-600' : p.margin >= 15 ? 'text-amber-500' : 'text-red-500' }`}>{p.margin}%</span></td>
+                          <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ p.status === 'out' ? 'bg-red-100 text-red-700' : p.status === 'low' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700' }`}>{p.status === 'out' ? 'Out' : p.status === 'low' ? 'Low' : 'OK'}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === 'movements' && (
+        <div className="space-y-4">
+          {/* Filters */}
+          <div className="bg-white rounded-xl border border-gray-100 p-4 flex flex-wrap gap-3 items-end">
+            <div>
+              <label className="form-label">Type</label>
+              <select className="form-input" value={movFilter.type} onChange={e => setMovFilter(f => ({...f, type: e.target.value}))}>
+                <option value="">All Types</option>
+                <option value="sale">Sale</option>
+                <option value="purchase">Purchase</option>
+                <option value="adjustment">Adjustment</option>
+                <option value="return">Return</option>
+              </select>
+            </div>
+            <div>
+              <label className="form-label">Source</label>
+              <select className="form-input" value={movFilter.source} onChange={e => setMovFilter(f => ({...f, source: e.target.value}))}>
+                <option value="">All Sources</option>
+                <option value="pos">POS</option>
+                <option value="storefront">Storefront</option>
+                <option value="internal">Internal Order</option>
+                <option value="purchase">Purchase Order</option>
+                <option value="manual">Manual</option>
+              </select>
+            </div>
+            <div>
+              <label className="form-label">From</label>
+              <input type="date" className="form-input" value={movFilter.from} onChange={e => setMovFilter(f => ({...f, from: e.target.value}))} />
+            </div>
+            <div>
+              <label className="form-label">To</label>
+              <input type="date" className="form-input" value={movFilter.to} onChange={e => setMovFilter(f => ({...f, to: e.target.value}))} />
+            </div>
+            <div className="flex-1 min-w-[180px]">
+              <label className="form-label">Search</label>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input className="form-input pl-9" placeholder="Product, batch, supplier…" value={movFilter.search} onChange={e => setMovFilter(f => ({...f, search: e.target.value}))} />
+              </div>
+            </div>
+            <button onClick={() => setMovFilter({ type:'', source:'', from:'', to:'', search:'' })} className="text-xs text-red-500 hover:underline">Clear</button>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-800">Movement History <span className="text-gray-400 font-normal text-sm">({movements.length})</span></h2>
+              <button onClick={loadMovements} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                <ArrowDownUp className="w-3.5 h-3.5" /> Refresh
+              </button>
+            </div>
+            {movementsLoading ? <div className="p-8 text-center text-gray-400 text-sm">Loading…</div> :
+            movements.length === 0 ? (
+              <div className="p-12 text-center">
+                <ArrowDownUp className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-400 text-sm">No stock movements found</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Date</th>
+                      <th className="px-4 py-3 text-left">Product</th>
+                      <th className="px-4 py-3 text-left">Type</th>
+                      <th className="px-4 py-3 text-left">Source</th>
+                      <th className="px-4 py-3 text-left">Reference</th>
+                      <th className="px-4 py-3 text-left">Batch</th>
+                      <th className="px-4 py-3 text-left">Supplier</th>
+                      <th className="px-4 py-3 text-left">By</th>
+                      <th className="px-4 py-3 text-right">Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {movements.map((m: any) => {
+                      const isIn = m.quantity > 0;
+                      return (
+                        <tr key={m._id || m.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                            <div>{new Date(m.createdAt).toLocaleDateString()}</div>
+                            <div className="text-xs text-gray-400">{new Date(m.createdAt).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-800">{m.product_id?.name || '—'}</div>
+                            {m.product_id?.sku && <div className="text-xs text-gray-400 font-mono">{m.product_id.sku}</div>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`text-xs font-semibold px-2 py-1 rounded-full capitalize ${
+                              m.type === 'sale'       ? 'bg-red-100 text-red-700' :
+                              m.type === 'purchase'   ? 'bg-green-100 text-green-700' :
+                              m.type === 'adjustment' ? 'bg-blue-100 text-blue-700' :
+                              m.type === 'return'     ? 'bg-purple-100 text-purple-700' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>{m.type}</span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-500 text-xs capitalize">{m.source || '—'}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-gray-500">{m.reference || m.order_id?.order_number || '—'}</td>
+                          <td className="px-4 py-3 text-xs text-gray-500">{m.batch_number || '—'}</td>
+                          <td className="px-4 py-3 text-xs text-gray-500">{m.supplier_name || '—'}</td>
+                          <td className="px-4 py-3 text-xs text-gray-500">{m.created_by?.name || '—'}</td>
+                          <td className="px-4 py-3 text-right">
+                            <span className={`font-bold text-sm ${ isIn ? 'text-green-600' : 'text-red-500' }`}>
+                              {isIn ? '+' : ''}{m.quantity}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <ConfirmDialog open={!!catConfirm} onClose={() => setCatConfirm(null)} onConfirm={() => { deleteCat(catConfirm?.id); setCatConfirm(null); }} title="Delete Category" message={`Delete "${catConfirm?.name}"? Products in this category will become uncategorised.`} danger />
       <ConfirmDialog open={!!locConfirm} onClose={() => setLocConfirm(null)} onConfirm={() => { deleteLoc(locConfirm?.id); setLocConfirm(null); }} title="Delete Location" message={`Delete "${locConfirm?.name}"? Products assigned here will lose their location.`} danger />
+
+      {/* Product Movement History Drawer */}
+      {historyProduct && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setHistoryProduct(null)} />
+          <div className="relative bg-white w-full max-w-lg h-full flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 bg-[#0D3B6E]">
+              <div>
+                <h2 className="font-bold text-white">{historyProduct.name}</h2>
+                <p className="text-blue-200 text-xs mt-0.5">Stock movement history</p>
+              </div>
+              <button onClick={() => setHistoryProduct(null)} className="text-white/70 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Summary bar */}
+            <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100">
+              <div className="px-4 py-3 text-center">
+                <div className="text-lg font-extrabold text-gray-900">{historyProduct.stock_qty}</div>
+                <div className="text-xs text-gray-400">{historyProduct.unit} on hand</div>
+              </div>
+              <div className="px-4 py-3 text-center">
+                <div className="text-lg font-extrabold text-green-600">
+                  +{productMovements.filter(m => m.quantity > 0).reduce((s, m) => s + m.quantity, 0)}
+                </div>
+                <div className="text-xs text-gray-400">Total in</div>
+              </div>
+              <div className="px-4 py-3 text-center">
+                <div className="text-lg font-extrabold text-red-500">
+                  {productMovements.filter(m => m.quantity < 0).reduce((s, m) => s + m.quantity, 0)}
+                </div>
+                <div className="text-xs text-gray-400">Total out</div>
+              </div>
+            </div>
+
+            {/* Movements list */}
+            <div className="flex-1 overflow-y-auto">
+              {productMovementsLoading ? (
+                <div className="p-8 text-center text-gray-400 text-sm">Loading…</div>
+              ) : productMovements.length === 0 ? (
+                <div className="p-12 text-center">
+                  <ArrowDownUp className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                  <p className="text-gray-400 text-sm">No movements recorded yet</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-50">
+                  {productMovements.map((m: any) => {
+                    const isIn = m.quantity > 0;
+                    return (
+                      <div key={m._id || m.id} className="px-5 py-3.5 hover:bg-gray-50">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${ isIn ? 'bg-green-100' : 'bg-red-100' }`}>
+                              <ArrowDownUp className={`w-4 h-4 ${ isIn ? 'text-green-600' : 'text-red-500' }`} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                                  m.type === 'sale'       ? 'bg-red-100 text-red-700' :
+                                  m.type === 'purchase'   ? 'bg-green-100 text-green-700' :
+                                  m.type === 'adjustment' ? 'bg-blue-100 text-blue-700' :
+                                  m.type === 'return'     ? 'bg-purple-100 text-purple-700' :
+                                  'bg-gray-100 text-gray-600'
+                                }`}>{m.type}</span>
+                                {m.source && <span className="text-xs text-gray-400 capitalize">{m.source}</span>}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {m.reference || m.order_id?.order_number || ''}
+                                {m.batch_number ? ` · Batch: ${m.batch_number}` : ''}
+                                {m.supplier_name ? ` · ${m.supplier_name}` : ''}
+                              </div>
+                              {m.notes && <div className="text-xs text-gray-400 mt-0.5 italic">{m.notes}</div>}
+                              <div className="text-xs text-gray-400 mt-0.5">
+                                {new Date(m.createdAt).toLocaleDateString()} {new Date(m.createdAt).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}
+                                {m.created_by?.name ? ` · ${m.created_by.name}` : ''}
+                              </div>
+                            </div>
+                          </div>
+                          <span className={`font-extrabold text-base flex-shrink-0 ${ isIn ? 'text-green-600' : 'text-red-500' }`}>
+                            {isIn ? '+' : ''}{m.quantity}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Print Label Modal */}
       {labelProduct && (

@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Truck, Calculator,
   Users, UserCheck, BarChart2, Store, Settings, Building2, UserCircle,
   X, Monitor, TrendingUp, CreditCard, ChevronDown,
-  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet, MessageSquare, Briefcase, HardHat, ClipboardList, FileSignature, Hammer, Tag, RotateCcw, Star,
+  MessageCircle, CheckSquare, Wrench, ShoppingBag, BookOpen, History, Wallet, MessageSquare, Briefcase, HardHat, ClipboardList, FileSignature, Hammer, Tag, RotateCcw, Star, CalendarDays, ClipboardCheck,
 } from 'lucide-react';
 import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 import { ACCOUNTING_SECTIONS } from '@/lib/accountingNav';
@@ -84,6 +84,7 @@ const navGroups = [
       { href: '/pos', label: 'Sales Counter / POS Terminal', icon: Monitor, roles: ['sales_staff'], permission: 'pos.view' },
       { href: '/pos/shifts', label: 'Shift History', icon: History, roles: ['sales_staff'], permission: 'pos.view' },
       { href: '/orders', label: 'Orders', icon: ShoppingCart, roles: ['sales_staff'], permission: 'orders.view' },
+      { href: '/daily-sales', label: 'Daily Sales', icon: CalendarDays, roles: ['sales_staff'], permission: 'reports.view' },
       { href: '/crm', label: 'Customers', icon: UserCheck, roles: ['sales_staff'], permission: 'crm.view' },
     ],
   },
@@ -99,6 +100,7 @@ const navGroups = [
       { href: '/pos', label: 'POS', icon: Monitor, roles: ['business_owner', 'branch_manager'], permission: 'pos.view' },
       { href: '/pos/shifts', label: 'Shift History', icon: History, roles: ['business_owner', 'branch_manager'], permission: 'pos.view' },
       { href: '/orders', label: 'Sales', icon: ShoppingCart, roles: ['business_owner', 'branch_manager'], permission: 'orders.view' },
+      { href: '/daily-sales', label: 'Daily Sales', icon: CalendarDays, roles: ['business_owner', 'branch_manager'], permission: 'reports.view' },
       { href: '/inventory', label: 'Inventory', icon: Package, roles: ['business_owner', 'branch_manager', 'warehouse_staff'], permission: 'inventory.view' },
       { href: '/assets', label: 'Assets', icon: Wrench, roles: ['business_owner', 'branch_manager', 'warehouse_staff'], permission: 'inventory.view' },
       { href: '/procurement', label: 'Procurement', icon: Truck, roles: ['business_owner', 'procurement_officer', 'warehouse_staff'], permission: 'procurement.view' },
@@ -201,6 +203,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
     '/hr': 'hr',
     '/crm': 'crm',
     '/orders': 'sales',
+    '/daily-sales': 'sales',
     '/inventory': 'inventory',
     '/pos': 'pos',
     '/reports': 'reports',

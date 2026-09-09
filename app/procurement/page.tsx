@@ -206,6 +206,8 @@ export default function ProcurementPage() {
       ...i,
       id: i._id || i.id,
       receive_qty: Math.max(0, (i.quantity_ordered || 0) - (i.quantity_received || 0)),
+      batch_number: '',
+      expiry_date: '',
     })));
     setModal('receive');
   };
@@ -231,6 +233,8 @@ export default function ProcurementPage() {
         product_id: i.product_id,
         product_name: i.product_name,
         receive_qty: i.receive_qty,
+        batch_number: i.batch_number || '',
+        expiry_date: i.expiry_date || null,
       }));
     await api.post(`/purchase-orders/${poId(selected)}/receive`, { items });
     toast.success('Goods received');
@@ -615,13 +619,29 @@ export default function ProcurementPage() {
       {/* Receive Goods Modal */}
       <Modal open={modal==='receive'} onClose={() => setModal(null)} title="Receive Goods" size="md">
         <p className="text-sm text-gray-500 mb-4">PO: <strong>{selected?.po_number}</strong></p>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {receiveItems.map((item, i) => (
-            <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
-              <div className="flex-1 text-sm font-medium">{item.product_name}</div>
-              <div className="text-xs text-gray-500">Ordered: {item.quantity_ordered} | Received: {item.quantity_received}</div>
-              <input type="number" className="form-input w-20" min={0} max={item.quantity_ordered - item.quantity_received}
-                value={item.receive_qty} onChange={e => { const r=[...receiveItems]; r[i]={...r[i],receive_qty:parseInt(e.target.value)}; setReceiveItems(r); }} />
+            <div key={i} className="bg-gray-50 rounded-xl p-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 text-sm font-medium">{item.product_name}</div>
+                <div className="text-xs text-gray-500">Ordered: {item.quantity_ordered} | Received: {item.quantity_received}</div>
+                <input type="number" className="form-input w-20" min={0} max={item.quantity_ordered - item.quantity_received}
+                  value={item.receive_qty} onChange={e => { const r=[...receiveItems]; r[i]={...r[i],receive_qty:parseInt(e.target.value)||0}; setReceiveItems(r); }} />
+              </div>
+              {(item.receive_qty || 0) > 0 && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Batch Number</label>
+                    <input className="form-input text-xs py-1.5" placeholder="e.g. BATCH-001"
+                      value={item.batch_number} onChange={e => { const r=[...receiveItems]; r[i]={...r[i],batch_number:e.target.value}; setReceiveItems(r); }} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Expiry Date</label>
+                    <input type="date" className="form-input text-xs py-1.5"
+                      value={item.expiry_date} onChange={e => { const r=[...receiveItems]; r[i]={...r[i],expiry_date:e.target.value}; setReceiveItems(r); }} />
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

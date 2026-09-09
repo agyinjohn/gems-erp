@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Modal, EmptyState, Spinner, toast, ConfirmDialog } from '@/components/ui';
-import { Plus, Search, Eye, Edit2, X, FileText, ShoppingCart } from 'lucide-react';
+import { Plus, Search, Eye, Edit2, X, FileText, ShoppingCart, BarChart2 } from 'lucide-react';
 import api, { apiCache } from '@/lib/api';
+import Link from 'next/link';
 import InvoiceModal from '@/components/InvoiceModal';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
 
@@ -42,30 +43,36 @@ export default function OrdersPage() {
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
-    const [o, p] = await Promise.all([api.get('/orders'), api.get('/products?is_active=true')]);
-    const ordersData = o.data.data;
-    const productsData = p.data.data;
-    apiCache.set('/orders', ordersData);
-    apiCache.set('/products?is_active=true', productsData);
-    setOrders(ordersData);
-    setProducts(productsData);
-    setLoading(false);
+    try {
+      const params: Record<string, string> = {};
+      if (filterStatus) params.status = filterStatus;
+      if (filterSource) params.source = filterSource;
+      if (dateFrom)     params.from   = dateFrom;
+      if (dateTo)       params.to     = dateTo;
+      if (search.trim()) params.search = search.trim();
+      const [o, p] = await Promise.all([
+        api.get('/orders', { params }),
+        api.get('/products?is_active=true'),
+      ]);
+      setOrders(o.data.data);
+      setProducts(p.data.data);
+      apiCache.set('/products?is_active=true', p.data.data);
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not load orders');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    const hasCache = !!apiCache.get('/orders');
-    if (!hasCache || apiCache.isStale('/orders')) load(!hasCache);
-  }, []);
+  useEffect(() => { load(); }, [filterStatus, filterSource, dateFrom, dateTo]);
 
-  const filtered = orders.filter(o => {
-    const matchSearch  = !search || o.order_number.toLowerCase().includes(search.toLowerCase()) || o.customer_name.toLowerCase().includes(search.toLowerCase());
-    const matchStatus  = !filterStatus || o.status === filterStatus;
-    const matchSource  = !filterSource || o.source === filterSource;
-    const orderDate    = new Date(o.created_at || o.createdAt);
-    const matchFrom    = !dateFrom || orderDate >= new Date(dateFrom);
-    const matchTo      = !dateTo   || orderDate <= new Date(dateTo + 'T23:59:59');
-    return matchSearch && matchStatus && matchSource && matchFrom && matchTo;
-  });
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => load(), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const filtered = orders;
 
   const clearFilters = () => {
     setSearch('');
@@ -213,6 +220,10 @@ export default function OrdersPage() {
         <button type="button" className="btn-primary shrink-0 p-2" onClick={openNewOrder} title="New Order" aria-label="New Order">
           <Plus className="w-4 h-4" />
         </button>
+        <Link href="/daily-sales" className="btn-secondary shrink-0 flex items-center gap-1.5 text-xs py-2 px-3" title="Daily Sales Report">
+          <BarChart2 className="w-4 h-4" />
+          <span className="hidden sm:inline">Daily Report</span>
+        </Link>
       </div>
 
       <div className="card p-0 overflow-hidden">
