@@ -109,16 +109,16 @@ const navGroups = [
   {
     label: 'Operations',
     items: [
-      { href: '/service-requests', label: 'Service requests', icon: ClipboardList, roles: ['business_owner', 'branch_manager', 'sales_staff'], permission: null },
-      { href: '/reviews', label: 'Reviews', icon: Star, roles: ['business_owner', 'branch_manager', 'sales_staff'], permission: null },
       { href: '/jobs', label: 'Jobs', icon: Hammer, roles: ['business_owner', 'branch_manager', 'sales_staff', 'accountant'], permission: null },
       { href: '/contracts', label: 'Contracts', icon: FileSignature, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
       { href: '/projects', label: 'Projects', icon: Briefcase, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
+      { href: '/service-requests', label: 'Service requests', icon: ClipboardList, roles: ['business_owner', 'branch_manager', 'sales_staff'], permission: null },
       { href: '/labour', label: 'Labour', icon: HardHat, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
+      { href: '/crm', label: 'Customers', icon: UserCheck, roles: ['business_owner', 'branch_manager'], permission: 'crm.view' },
+      { href: '/service-catalog', label: 'Services & solutions', icon: Tag, roles: ['business_owner', 'branch_manager'], permission: 'inventory.view' },
+      { href: '/reviews', label: 'Reviews', icon: Star, roles: ['business_owner', 'branch_manager', 'sales_staff'], permission: null },
       // What we offer — its own page, not a filtered view of stock. The same
       // list a client picks from when they send a request in.
-      { href: '/service-catalog', label: 'Services & solutions', icon: Tag, roles: ['business_owner', 'branch_manager'], permission: 'inventory.view' },
-      { href: '/crm', label: 'Customers', icon: UserCheck, roles: ['business_owner', 'branch_manager'], permission: 'crm.view' },
     ],
   },
   {
@@ -174,8 +174,8 @@ const navGroups = [
       { href: '/branches', label: 'Branches', icon: Store, roles: ['business_owner'], permission: 'branches.manage' },
       { href: '/departments', label: 'Departments', icon: Building2, roles: ['business_owner', 'hr_manager'], permission: 'hr.view' },
       { href: '/users', label: 'Users', icon: Settings, roles: ['business_owner'], permission: 'users.manage' },
-      { href: '/billing',  label: 'Billing',      icon: Calculator, roles: ['business_owner'], permission: 'billing.view' },
-      { href: '/activity', label: 'Activity Log',  icon: BarChart2,  roles: ['business_owner'], permission: null },
+      { href: '/billing', label: 'Billing', icon: Calculator, roles: ['business_owner'], permission: 'billing.view' },
+      { href: '/activity', label: 'Activity Log', icon: BarChart2, roles: ['business_owner'], permission: null },
     ],
   },
 ];
@@ -210,7 +210,7 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
     '/store-settings': 'online_storefront',
     '/projects': 'projects',
     '/contracts': 'projects',
-    '/jobs':      'projects',
+    '/jobs': 'projects',
     '/labour': 'projects',
     '/accounting': 'advanced_accounting',
   };
