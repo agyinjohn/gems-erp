@@ -884,6 +884,7 @@ export default function InventoryPage() {
                   const stockColor = isOut ? 'bg-red-500' : isLow ? 'bg-amber-400' : 'bg-[#0D3B6E]';
                   const stockLabel = isOut ? 'Out of stock' : isLow ? 'Low stock' : 'In stock';
                   const stockTextColor = isOut ? 'text-red-500' : isLow ? 'text-amber-500' : 'text-[#0D3B6E]';
+                  const hasBranchStock = Array.isArray(p.branch_stock) && p.branch_stock.length > 1;
                   return (
                     <div className="flex flex-col gap-1 min-w-[110px]">
                       <div className="flex items-center justify-between">
@@ -893,6 +894,15 @@ export default function InventoryPage() {
                       <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div className={`h-full rounded-full transition-all ${stockColor}`} style={{ width: `${stockPct}%` }} />
                       </div>
+                      {hasBranchStock && (
+                        <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
+                          {p.branch_stock.filter((e: any) => e.qty > 0).map((e: any) => (
+                            <span key={String(e.branch_id?._id || e.branch_id)} className="text-[10px] text-gray-400">
+                              {e.branch_id?.name || 'Branch'}: <span className="font-semibold text-gray-600">{e.qty}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 }
@@ -1456,7 +1466,7 @@ export default function InventoryPage() {
               <select className="form-input" value={transferForm.product_id} onChange={e => setTransferForm(f => ({ ...f, product_id: e.target.value }))}>
                 <option value="">Select product…</option>
                 {stocked.map((p: any) => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.stock_qty} {p.unit})</option>
+                  <option key={p.id} value={p.id}>{p.name} ({transferForm.from_branch_id ? (() => { const e = (p.branch_stock || []).find((x: any) => String(x.branch_id?._id || x.branch_id) === transferForm.from_branch_id); return e !== undefined ? e.qty : p.stock_qty; })() : p.stock_qty} {p.unit})</option>
                 ))}
               </select>
             </div>
