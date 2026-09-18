@@ -99,8 +99,8 @@ const navGroups = [
     items: [
       { href: '/pos', label: 'POS', icon: Monitor, roles: ['business_owner', 'branch_manager'], permission: 'pos.view' },
       { href: '/pos/shifts', label: 'Shift History', icon: History, roles: ['business_owner', 'branch_manager'], permission: 'pos.view' },
-      { href: '/orders', label: 'Sales', icon: ShoppingCart, roles: ['business_owner', 'branch_manager'], permission: 'orders.view' },
       { href: '/daily-sales', label: 'Daily Sales', icon: CalendarDays, roles: ['business_owner', 'branch_manager'], permission: 'reports.view' },
+      { href: '/orders', label: 'Sales', icon: ShoppingCart, roles: ['business_owner', 'branch_manager'], permission: 'orders.view' },
       { href: '/inventory', label: 'Inventory', icon: Package, roles: ['business_owner', 'branch_manager', 'warehouse_staff'], permission: 'inventory.view' },
       { href: '/assets', label: 'Assets', icon: Wrench, roles: ['business_owner', 'branch_manager', 'warehouse_staff'], permission: 'inventory.view' },
       { href: '/procurement', label: 'Procurement', icon: Truck, roles: ['business_owner', 'procurement_officer', 'warehouse_staff'], permission: 'procurement.view' },

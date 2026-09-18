@@ -28,7 +28,7 @@ const SLICE_COLOURS = ['#0D3B6E', '#1D5FA8', '#3B82C4', '#6BA3D6', '#9CC3E4', '#
 const ALL_ROLES = ['super_admin','business_owner','branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer'];
 
 export default function DashboardPage() {
-  const { user, tenant } = useAuth();
+  const { user, tenant, activeBranchId } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showHrReport, setShowHrReport] = useState(false);
@@ -44,10 +44,16 @@ export default function DashboardPage() {
   const can = (...roles: string[]) => roles.includes(role);
   const isAdmin = can('super_admin', 'business_owner', 'branch_manager');
 
-  const key = range.from || range.to ? `/dashboard?from=${range.from}&to=${range.to}` : '/dashboard';
+  const branchKey = activeBranchId || 'all';
+  const key = `/dashboard?branch=${branchKey}${range.from ? `&from=${range.from}` : ''}${range.to ? `&to=${range.to}` : ''}`;
 
   useEffect(() => {
-    const params = range.from || range.to ? { from: range.from || undefined, to: range.to || undefined } : undefined;
+    const params: Record<string, string> = {};
+    if (range.from) params.from = range.from;
+    if (range.to)   params.to   = range.to;
+    // branch_id is injected automatically by the api interceptor from
+    // localStorage, but we also need it in the cache key so switching branches
+    // always fetches fresh data rather than serving the previous branch's cache.
     const fetch = () => api.get('/dashboard', { params })
       .then(r => { apiCache.set(key, r.data.data); setData(r.data.data); });
 
@@ -60,7 +66,7 @@ export default function DashboardPage() {
       setLoading(true);
       fetch().catch(console.error).finally(() => setLoading(false));
     }
-  }, [key, range.from, range.to]);
+  }, [key, activeBranchId, range.from, range.to]);
   // Only the first load blanks the page. Changing the window keeps what is on
   // screen and swaps it when the new figures land, so the picker stays put
   // rather than vanishing under the hand that just used it.
