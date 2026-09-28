@@ -28,9 +28,10 @@ const SLICE_COLOURS = ['#0D3B6E', '#1D5FA8', '#3B82C4', '#6BA3D6', '#9CC3E4', '#
 const ALL_ROLES = ['super_admin','business_owner','branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer'];
 
 export default function DashboardPage() {
-  const { user, tenant, activeBranchId } = useAuth();
+  const { user, tenant, activeBranchId, loading: authLoading } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showHrReport, setShowHrReport] = useState(false);
   const [range, setRange] = useState<DateRange>(() => {
     if (typeof window === 'undefined') return ALL_TIME;
@@ -48,29 +49,50 @@ export default function DashboardPage() {
   const key = `/dashboard?branch=${branchKey}${range.from ? `&from=${range.from}` : ''}${range.to ? `&to=${range.to}` : ''}`;
 
   useEffect(() => {
+    // Wait for auth to finish loading so activeBranchId and the token are
+    // both available before the first fetch fires.
+    if (authLoading) return;
+
     const params: Record<string, string> = {};
     if (range.from) params.from = range.from;
     if (range.to)   params.to   = range.to;
-    // branch_id is injected automatically by the api interceptor from
-    // localStorage, but we also need it in the cache key so switching branches
-    // always fetches fresh data rather than serving the previous branch's cache.
-    const fetch = () => api.get('/dashboard', { params })
-      .then(r => { apiCache.set(key, r.data.data); setData(r.data.data); });
+    if (activeBranchId) params.branch_id = activeBranchId;
+
+    const doFetch = () => api.get('/dashboard', { params })
+      .then(r => { apiCache.set(key, r.data.data); setData(r.data.data); setError(null); })
+      .catch(err => {
+        const msg = err.response?.data?.message || 'Failed to load dashboard data.';
+        setError(msg);
+        console.error('[Dashboard]', msg);
+      });
 
     const cached = apiCache.get(key);
     if (cached) {
       setData(cached);
       setLoading(false);
-      if (apiCache.isStale(key)) fetch().catch(console.error);
+      if (apiCache.isStale(key)) doFetch();
     } else {
       setLoading(true);
-      fetch().catch(console.error).finally(() => setLoading(false));
+      doFetch().finally(() => setLoading(false));
     }
-  }, [key, activeBranchId, range.from, range.to]);
+  }, [key, authLoading, activeBranchId, range.from, range.to]);
+
   // Only the first load blanks the page. Changing the window keeps what is on
   // screen and swaps it when the new figures land, so the picker stays put
   // rather than vanishing under the hand that just used it.
-  if (loading && !data) return <AppLayout title="Dashboard" allowedRoles={ALL_ROLES}><Spinner /></AppLayout>;
+  if (authLoading || (loading && !data)) return <AppLayout title="Dashboard" allowedRoles={ALL_ROLES}><Spinner /></AppLayout>;
+
+  if (error && !data) return (
+    <AppLayout title="Dashboard" allowedRoles={ALL_ROLES}>
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <AlertTriangle className="w-10 h-10 text-red-400 mb-3" />
+        <p className="text-gray-600 font-medium">{error}</p>
+        <button onClick={() => { apiCache.invalidate('/dashboard'); setData(null); setLoading(true); setError(null); }} className="mt-4 px-4 py-2 text-sm bg-[#0D3B6E] text-white rounded-lg hover:bg-[#0D3B6E]/90">
+          Retry
+        </button>
+      </div>
+    </AppLayout>
+  );
 
   const kpis = data?.kpis || {};
 
