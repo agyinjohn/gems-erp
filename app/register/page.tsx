@@ -131,10 +131,7 @@ export default function RegisterPage() {
 
   const validateStep1 = () => {
     if (!form.business_name.trim()) { setError('Business name is required.'); return false; }
-    if (!form.phone.trim()) { setError('Phone number is required.'); return false; }
-    if (!phoneValid) { setError('Enter a valid 9-digit Ghanaian number (without the leading zero).'); return false; }
     if (!form.address.trim()) { setError('Business address is required.'); return false; }
-    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) { setError('Enter a valid email address.'); return false; }
     if (!pwValid) { setError('Password does not meet all requirements.'); return false; }
     if (form.password !== form.confirm_password) { setError('Passwords do not match.'); return false; }
     setError(''); return true;
@@ -174,13 +171,13 @@ export default function RegisterPage() {
   };
 
   const handleSendOtp = async () => {
+    if (!phoneValid) { setError('Enter a valid 9-digit number first.'); return; }
     setOtpLoading(true); setError('');
     try {
       await api.post('/tenants/send-otp', { phone: `+233${phoneDigits}` });
       setOtpSent(true);
       setOtpValue('');
       setResendCooldown(60);
-      setStep(2);
     } catch (e: any) {
       setError(e.response?.data?.message || 'Failed to send OTP. Please try again.');
     } finally { setOtpLoading(false); }
@@ -192,30 +189,13 @@ export default function RegisterPage() {
     try {
       await api.post('/tenants/verify-otp', { phone: `+233${phoneDigits}`, otp: otpValue.trim() });
       setPhoneVerified(true);
-      setStep(3);
     } catch (e: any) {
       setError(e.response?.data?.message || 'Invalid OTP. Please try again.');
     } finally { setOtpLoading(false); }
   };
 
-  const handleNext = async () => {
-    if (step !== 1 || !validateStep1()) return;
-    setOtpLoading(true); setError('');
-    try {
-      await Promise.all([
-        api.post('/tenants/send-otp', { phone: `+233${phoneDigits}` }),
-        api.post('/tenants/send-email-otp', { email: form.email.toLowerCase().trim() }),
-      ]);
-      setOtpSent(true);
-      setEmailOtpSent(true);
-      setOtpValue('');
-      setEmailOtpValue('');
-      setResendCooldown(60);
-      setEmailResendCooldown(60);
-      setStep(2);
-    } catch (e: any) {
-      setError(e.response?.data?.message || 'Failed to send verification codes. Please try again.');
-    } finally { setOtpLoading(false); }
+  const handleNext = () => {
+    if (step === 1 && validateStep1()) { setError(''); setStep(2); }
   };
 
   const handleSubmit = async () => {
@@ -464,60 +444,14 @@ export default function RegisterPage() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="form-label">Phone *</label>
-                      <div className="relative flex">
-                        <span className="inline-flex items-center px-3 h-11 sm:h-12 bg-gray-100 border border-r-0 border-gray-300 rounded-l-xl text-sm font-semibold text-gray-600 select-none whitespace-nowrap">
-                          🇬🇭 +233
-                        </span>
-                        <input
-                          className={`form-input rounded-l-none flex-1 h-11 sm:h-12 text-sm sm:text-base font-mono ${
-                            phoneError ? 'border-red-300 focus:ring-red-200' : ''
-                          }`}
-                          placeholder="XX XXX XXXX"
-                          maxLength={11}
-                          value={form.phone}
-                          onChange={e => set('phone', e.target.value.replace(/[^\d\s]/g, ''))}
-                        />
-                      </div>
-                      {phoneError && (
-                        <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-                          <span className="w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center flex-shrink-0">!</span>
-                          9 digits, no leading zero
-                        </p>
-                      )}
-                      {phoneValid && (
-                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                          <CheckCircle className="w-3.5 h-3.5" /> +233{phoneDigits}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="form-label">Address *</label>
-                      <div className="relative">
-                        <MapPin className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input className="form-input pl-10 h-11 sm:h-12 text-sm sm:text-base" placeholder="Accra, Ghana" value={form.address} onChange={e => set('address', e.target.value)} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Email */}
                   <div>
-                    <label className="form-label">Email Address *</label>
+                    <label className="form-label">Address *</label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="email"
-                        className="form-input pl-10 h-11 sm:h-12 text-sm sm:text-base"
-                        placeholder="you@business.com"
-                        value={form.email}
-                        onChange={e => set('email', e.target.value)}
-                      />
+                      <MapPin className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input className="form-input pl-10 h-11 sm:h-12 text-sm sm:text-base" placeholder="Accra, Ghana" value={form.address} onChange={e => set('address', e.target.value)} />
                     </div>
                   </div>
 
-                  {/* Password */}
                   <div>
                     <label className="form-label">Password *</label>
                     <div className="relative">
@@ -541,7 +475,6 @@ export default function RegisterPage() {
                     )}
                   </div>
 
-                  {/* Confirm Password */}
                   <div>
                     <label className="form-label">Confirm Password *</label>
                     <div className="relative">
@@ -571,8 +504,8 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <button onClick={handleNext} disabled={otpLoading} className="w-full mt-5 sm:mt-6 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-11 sm:h-12 rounded-xl text-sm sm:text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
-                  {otpLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending codes…</> : <>Continue <ArrowRight className="w-4 h-4" /></>}
+                <button onClick={handleNext} className="w-full mt-5 sm:mt-6 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-11 sm:h-12 rounded-xl text-sm sm:text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
+                  Continue <ArrowRight className="w-4 h-4" />
                 </button>
 
                 <p className="text-xs text-gray-400 text-center mt-4">
@@ -587,8 +520,8 @@ export default function RegisterPage() {
             {step === 2 && (
               <div>
                 <div className="mb-6 sm:mb-7">
-                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Verify your details</h1>
-                  <p className="text-gray-500 text-xs sm:text-sm">Enter the codes sent to your phone and email.</p>
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Verify your contact details</h1>
+                  <p className="text-gray-500 text-xs sm:text-sm">Enter your phone and email, then verify each with the code we send.</p>
                 </div>
 
                 {error && (
@@ -599,76 +532,141 @@ export default function RegisterPage() {
                 )}
 
                 <div className="space-y-4">
-                  {/* Phone OTP */}
+
+                  {/* ── Phone card ── */}
                   <div className={`rounded-xl border-2 p-4 transition-all ${phoneVerified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'}`}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm font-semibold text-gray-700">Phone</span>
-                        <span className="text-xs text-gray-400">+233 {phoneDigits}</span>
-                      </div>
-                      {phoneVerified
-                        ? <span className="flex items-center gap-1 text-xs font-bold text-green-600"><CheckCircle className="w-3.5 h-3.5" /> Verified</span>
-                        : <button onClick={handleSendOtp} disabled={otpLoading || resendCooldown > 0} className="text-xs font-medium text-[#0D3B6E] hover:underline disabled:opacity-40">
-                            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend'}
-                          </button>
-                      }
+                    <div className="flex items-center gap-2 mb-3">
+                      <Phone className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm font-semibold text-gray-700">Phone Number</span>
+                      {phoneVerified && <span className="ml-auto flex items-center gap-1 text-xs font-bold text-green-600"><CheckCircle className="w-3.5 h-3.5" /> Verified</span>}
                     </div>
-                    {!phoneVerified && (
-                      <div className="flex gap-2">
-                        <input
-                          type="text" inputMode="numeric" maxLength={6}
-                          className="form-input flex-1 h-11 text-center text-xl font-bold tracking-[0.4em]"
-                          placeholder="------"
-                          value={otpValue}
-                          onChange={e => { setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
-                          autoFocus
-                        />
-                        <button
-                          onClick={handleVerifyOtp}
-                          disabled={otpLoading || otpValue.length < 6}
-                          className="shrink-0 h-11 px-4 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
-                        >
-                          {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
-                        </button>
+
+                    {phoneVerified ? (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-green-700 font-medium">+233 {phoneDigits}</span>
+                        <button type="button" onClick={() => { setPhoneVerified(false); setOtpSent(false); setOtpValue(''); set('phone', ''); setError(''); }} className="text-xs text-gray-400 hover:text-gray-600">Change</button>
                       </div>
+                    ) : (
+                      <>
+                        {/* Phone input + Send Code */}
+                        <div className="flex gap-2 mb-2">
+                          <div className="flex flex-1">
+                            <span className="inline-flex items-center px-3 h-11 bg-gray-100 border border-r-0 border-gray-300 rounded-l-xl text-sm font-semibold text-gray-600 select-none whitespace-nowrap">
+                              🇬🇭 +233
+                            </span>
+                            <input
+                              className={`form-input rounded-l-none flex-1 h-11 text-sm font-mono ${phoneError ? 'border-red-300' : ''}`}
+                              placeholder="XX XXX XXXX"
+                              maxLength={11}
+                              value={form.phone}
+                              onChange={e => { set('phone', e.target.value.replace(/[^\d\s]/g, '')); setOtpSent(false); setOtpValue(''); }}
+                              disabled={otpSent}
+                              autoFocus
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleSendOtp}
+                            disabled={otpLoading || !phoneValid || (otpSent && resendCooldown > 0)}
+                            className="shrink-0 h-11 px-4 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+                          >
+                            {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : resendCooldown > 0 ? `${resendCooldown}s` : otpSent ? 'Resend' : 'Send Code'}
+                          </button>
+                        </div>
+                        {phoneError && <p className="text-xs text-red-500 mb-2">9 digits, no leading zero</p>}
+                        {phoneValid && !otpSent && <p className="text-xs text-green-600 mb-2 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> +233{phoneDigits}</p>}
+
+                        {/* OTP input */}
+                        {otpSent && (
+                          <>
+                            <p className="text-xs text-gray-500 mb-2">Enter the 6-digit code sent to <span className="font-semibold">+233{phoneDigits}</span></p>
+                            <div className="flex gap-2">
+                              <input
+                                type="text" inputMode="numeric" maxLength={6}
+                                className="form-input flex-1 h-11 text-center text-xl font-bold tracking-[0.4em]"
+                                placeholder="------"
+                                value={otpValue}
+                                onChange={e => { setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+                                autoFocus
+                              />
+                              <button
+                                onClick={handleVerifyOtp}
+                                disabled={otpLoading || otpValue.length < 6}
+                                className="shrink-0 h-11 px-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+                              >
+                                {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </>
                     )}
                   </div>
 
-                  {/* Email OTP */}
+                  {/* ── Email card ── */}
                   <div className={`rounded-xl border-2 p-4 transition-all ${emailVerified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'}`}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm font-semibold text-gray-700">Email</span>
-                        <span className="text-xs text-gray-400 truncate max-w-[140px]">{form.email}</span>
-                      </div>
-                      {emailVerified
-                        ? <span className="flex items-center gap-1 text-xs font-bold text-green-600"><CheckCircle className="w-3.5 h-3.5" /> Verified</span>
-                        : <button onClick={handleSendEmailOtp} disabled={emailOtpLoading || emailResendCooldown > 0} className="text-xs font-medium text-[#0D3B6E] hover:underline disabled:opacity-40">
-                            {emailResendCooldown > 0 ? `Resend in ${emailResendCooldown}s` : 'Resend'}
-                          </button>
-                      }
+                    <div className="flex items-center gap-2 mb-3">
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm font-semibold text-gray-700">Email Address</span>
+                      {emailVerified && <span className="ml-auto flex items-center gap-1 text-xs font-bold text-green-600"><CheckCircle className="w-3.5 h-3.5" /> Verified</span>}
                     </div>
-                    {!emailVerified && (
-                      <div className="flex gap-2">
-                        <input
-                          type="text" inputMode="numeric" maxLength={6}
-                          className="form-input flex-1 h-11 text-center text-xl font-bold tracking-[0.4em]"
-                          placeholder="------"
-                          value={emailOtpValue}
-                          onChange={e => { setEmailOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
-                        />
-                        <button
-                          onClick={handleVerifyEmailOtp}
-                          disabled={emailOtpLoading || emailOtpValue.length < 6}
-                          className="shrink-0 h-11 px-4 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
-                        >
-                          {emailOtpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
-                        </button>
+
+                    {emailVerified ? (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-green-700 font-medium truncate">{form.email}</span>
+                        <button type="button" onClick={() => { setEmailVerified(false); setEmailOtpSent(false); setEmailOtpValue(''); set('email', ''); setError(''); }} className="text-xs text-gray-400 hover:text-gray-600 shrink-0 ml-2">Change</button>
                       </div>
+                    ) : (
+                      <>
+                        {/* Email input + Send Code */}
+                        <div className="flex gap-2 mb-2">
+                          <div className="relative flex-1">
+                            <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                              type="email"
+                              className="form-input pl-10 h-11 text-sm w-full"
+                              placeholder="you@business.com"
+                              value={form.email}
+                              onChange={e => { set('email', e.target.value); setEmailOtpSent(false); setEmailOtpValue(''); }}
+                              disabled={emailOtpSent}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleSendEmailOtp}
+                            disabled={emailOtpLoading || !form.email.trim() || !/\S+@\S+\.\S+/.test(form.email) || (emailOtpSent && emailResendCooldown > 0)}
+                            className="shrink-0 h-11 px-4 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+                          >
+                            {emailOtpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : emailResendCooldown > 0 ? `${emailResendCooldown}s` : emailOtpSent ? 'Resend' : 'Send Code'}
+                          </button>
+                        </div>
+
+                        {/* OTP input */}
+                        {emailOtpSent && (
+                          <>
+                            <p className="text-xs text-gray-500 mb-2">Enter the 6-digit code sent to <span className="font-semibold">{form.email}</span></p>
+                            <div className="flex gap-2">
+                              <input
+                                type="text" inputMode="numeric" maxLength={6}
+                                className="form-input flex-1 h-11 text-center text-xl font-bold tracking-[0.4em]"
+                                placeholder="------"
+                                value={emailOtpValue}
+                                onChange={e => { setEmailOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+                              />
+                              <button
+                                onClick={handleVerifyEmailOtp}
+                                disabled={emailOtpLoading || emailOtpValue.length < 6}
+                                className="shrink-0 h-11 px-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+                              >
+                                {emailOtpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </>
                     )}
                   </div>
+
                 </div>
 
                 <button
@@ -679,8 +677,8 @@ export default function RegisterPage() {
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
 
-                <button onClick={() => { setStep(1); setOtpValue(''); setEmailOtpValue(''); setPhoneVerified(false); setEmailVerified(false); setError(''); }} className="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 flex items-center justify-center gap-1 py-1.5">
-                  <ArrowLeft className="w-3.5 h-3.5" /> Back to edit details
+                <button onClick={() => { setStep(1); setOtpSent(false); setOtpValue(''); setEmailOtpSent(false); setEmailOtpValue(''); setPhoneVerified(false); setEmailVerified(false); setError(''); }} className="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 flex items-center justify-center gap-1 py-1.5">
+                  <ArrowLeft className="w-3.5 h-3.5" /> Back
                 </button>
               </div>
             )}
