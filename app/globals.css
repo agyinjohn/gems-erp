@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
-/* Map Roboto (loaded via next/font in app/layout.tsx) onto Tailwind's font
-   scale so `font-sans` and the base font resolve to Roboto everywhere. */
+/* Map Inter (loaded via next/font in app/layout.tsx) onto Tailwind's font
+   scale so `font-sans` and the base font resolve to Inter everywhere. */
 @theme {
-  --font-sans: var(--font-roboto), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 @layer utilities {
@@ -255,6 +255,26 @@
 
 .landing-section-title {
   letter-spacing: -0.02em;
+}
+
+/* Landing page display headings — Playfair Display for the big moments.
+   Applied to h1 in the hero and h2 in each section. The face is set at its
+   normal weight (400–500): emboldening a high-contrast serif collapses the
+   hairlines that make it read as premium. */
+.landing-display-heading {
+  font-family: var(--font-display), Georgia, 'Times New Roman', serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+/* The accent word inside a display heading — e.g. "From One Place."
+   Italic Playfair is where the face really earns its keep: the swash
+   capitals and the calligraphic stress make a single word feel like a
+   signature rather than emphasis. */
+.landing-display-accent {
+  font-style: italic;
 }
 
 .landing-wave-divider {

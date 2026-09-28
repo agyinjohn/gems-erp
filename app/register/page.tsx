@@ -54,6 +54,12 @@ export default function RegisterPage() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  // Email OTP sub-state within step 3
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtpValue, setEmailOtpValue] = useState('');
+  const [emailOtpLoading, setEmailOtpLoading] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [emailResendCooldown, setEmailResendCooldown] = useState(0);
   const [loading, setLoading] = useState(false);
   const [cardLoading, setCardLoading] = useState(false);
   const [error, setError] = useState('');
@@ -86,6 +92,12 @@ export default function RegisterPage() {
     const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
     return () => clearTimeout(t);
   }, [resendCooldown]);
+
+  useEffect(() => {
+    if (emailResendCooldown <= 0) return;
+    const t = setTimeout(() => setEmailResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [emailResendCooldown]);
 
   // Preload Paystack script so it's ready on step 3
   useEffect(() => {
@@ -122,19 +134,46 @@ export default function RegisterPage() {
     if (!form.phone.trim()) { setError('Phone number is required.'); return false; }
     if (!phoneValid) { setError('Enter a valid 9-digit Ghanaian number (without the leading zero).'); return false; }
     if (!form.address.trim()) { setError('Business address is required.'); return false; }
-    setError(''); return true;
-  };
-
-  const validateStep2 = () => {
-    if (!form.email.trim()) { setError('Email is required.'); return false; }
-    if (!/\S+@\S+\.\S+/.test(form.email)) { setError('Enter a valid email address.'); return false; }
+    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) { setError('Enter a valid email address.'); return false; }
     if (!pwValid) { setError('Password does not meet all requirements.'); return false; }
     if (form.password !== form.confirm_password) { setError('Passwords do not match.'); return false; }
     setError(''); return true;
   };
 
+  const validateStep2 = () => {
+    if (!phoneVerified) { setError('Please verify your phone number.'); return false; }
+    if (!emailVerified) { setError('Please verify your email address.'); return false; }
+    setError(''); return true;
+  };
+
+  const handleSendEmailOtp = async () => {
+    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) {
+      setError('Enter a valid email address first.'); return;
+    }
+    setEmailOtpLoading(true); setError('');
+    try {
+      await api.post('/tenants/send-email-otp', { email: form.email.toLowerCase().trim() });
+      setEmailOtpSent(true);
+      setEmailOtpValue('');
+      setEmailResendCooldown(60);
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to send verification email.');
+    } finally { setEmailOtpLoading(false); }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    if (!emailOtpValue.trim()) { setError('Please enter the code.'); return; }
+    setEmailOtpLoading(true); setError('');
+    try {
+      await api.post('/tenants/verify-email-otp', { email: form.email.toLowerCase().trim(), otp: emailOtpValue.trim() });
+      setEmailVerified(true);
+      setEmailOtpSent(false);
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Invalid code. Please try again.');
+    } finally { setEmailOtpLoading(false); }
+  };
+
   const handleSendOtp = async () => {
-    if (!validateStep1()) return;
     setOtpLoading(true); setError('');
     try {
       await api.post('/tenants/send-otp', { phone: `+233${phoneDigits}` });
@@ -159,7 +198,25 @@ export default function RegisterPage() {
     } finally { setOtpLoading(false); }
   };
 
-const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); };
+  const handleNext = async () => {
+    if (step !== 1 || !validateStep1()) return;
+    setOtpLoading(true); setError('');
+    try {
+      await Promise.all([
+        api.post('/tenants/send-otp', { phone: `+233${phoneDigits}` }),
+        api.post('/tenants/send-email-otp', { email: form.email.toLowerCase().trim() }),
+      ]);
+      setOtpSent(true);
+      setEmailOtpSent(true);
+      setOtpValue('');
+      setEmailOtpValue('');
+      setResendCooldown(60);
+      setEmailResendCooldown(60);
+      setStep(2);
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to send verification codes. Please try again.');
+    } finally { setOtpLoading(false); }
+  };
 
   const handleSubmit = async () => {
     if (!validateStep2()) return;
@@ -171,6 +228,8 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
         password: form.password,
         phone: `+233${phoneDigits}`,
         address: form.address.trim(),
+        plan: selectedPlan,
+        removed_features: removedFeatures,
       });
       // Auto-login to get token for card authorization
       const loginRes = await api.post('/auth/login', {
@@ -181,7 +240,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
       const keyRes = await api.get('/plan-prices').catch(() => ({ data: { data: null } }));
       setPaystackKey(loginRes.data.data.paystack_public_key || keyRes.data.data?.paystack_public_key || '');
       setCreatedBusiness(form.business_name.trim());
-      setStep(5); // go to plan selection
+      setStep(4); // go to card
     } catch (e: any) {
       setError(e.response?.data?.message || 'Registration failed. Please try again.');
     } finally { setLoading(false); }
@@ -211,7 +270,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
           api.post('/billing/save-card', { reference: transaction.reference }, {
             headers: { Authorization: `Bearer ${authToken}` },
           })
-            .then(() => setStep(6))
+            .then(() => setStep(5))
             .catch((e: any) => setError(e.response?.data?.message || 'Card saved but could not confirm. Please check billing settings.'))
             .finally(() => setCardLoading(false));
         },
@@ -224,7 +283,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="min-h-screen lg:h-screen flex flex-col lg:flex-row">
 
       {/* ── LEFT PANEL ── */}
       <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-[#0D3B6E] via-[#1A5294] to-[#0D3B6E] flex-col relative overflow-hidden">
@@ -313,7 +372,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
       </div>
 
       {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col bg-gray-50 min-h-screen">
+      <div className="flex-1 flex flex-col bg-gray-50 lg:overflow-y-auto">
 
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 lg:py-5 bg-white border-b border-gray-100 lg:bg-transparent lg:border-0">
@@ -341,7 +400,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
           <div className="w-full max-w-md">
 
             {/* Step indicator */}
-            {step < 6 && (
+            {step < 5 && (
               <div className="flex items-center mb-6 sm:mb-8 px-4 sm:px-0">
                 {[1, 2, 3, 4, 5].map((n, i) => (
                   <div key={n} className="flex items-center flex-1">
@@ -356,10 +415,10 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
                       <span className={`text-[9px] sm:text-[10px] font-semibold text-center ${
                         step === n ? 'text-[#0D3B6E]' : 'text-gray-400'
                       }`}>
-                        {n === 1 ? 'Business' : n === 2 ? 'Account' : n === 3 ? 'Plan' : 'Card'}
+                        {n === 1 ? 'Business' : n === 2 ? 'Verify' : n === 3 ? 'Plan' : n === 4 ? 'Card' : 'Done'}
                       </span>
                     </div>
-                    {i < 3 && (
+                    {i < 4 && (
                       <div className={`flex-1 h-0.5 mx-1 rounded-full transition-all ${step > n ? 'bg-green-500' : 'bg-gray-200'}`} />
                     )}
                   </div>
@@ -392,7 +451,6 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
                         placeholder="e.g. GEMS Electronics"
                         value={form.business_name}
                         onChange={e => set('business_name', e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleNext()}
                         autoFocus
                       />
                     </div>
@@ -420,17 +478,13 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
                           placeholder="XX XXX XXXX"
                           maxLength={11}
                           value={form.phone}
-                          onChange={e => {
-                            // Only allow digits and spaces
-                            const val = e.target.value.replace(/[^\d\s]/g, '');
-                            set('phone', val);
-                          }}
+                          onChange={e => set('phone', e.target.value.replace(/[^\d\s]/g, ''))}
                         />
                       </div>
                       {phoneError && (
                         <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
                           <span className="w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center flex-shrink-0">!</span>
-                          Must be 9 digits — no leading zero, no +233
+                          9 digits, no leading zero
                         </p>
                       )}
                       {phoneValid && (
@@ -447,105 +501,23 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <button onClick={handleNext} className="w-full mt-5 sm:mt-6 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-11 sm:h-12 rounded-xl text-sm sm:text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
-                  Continue <ArrowRight className="w-4 h-4" />
-                </button>
-
-                <p className="text-xs text-gray-400 text-center mt-4">
-                  By signing up you agree to our{' '}
-                  <a href="#" className="text-[#0D3B6E] hover:underline">Terms</a> and{' '}
-                  <a href="#" className="text-[#0D3B6E] hover:underline">Privacy Policy</a>
-                </p>
-              </div>
-            )}
-
-            {/* ── STEP 2 ── */}
-            {step === 2 && (
-              <div>
-                <div className="mb-6 sm:mb-7 text-center">
-                  <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Phone className="w-7 h-7 text-[#0D3B6E]" />
-                  </div>
-                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Verify your number</h1>
-                  <p className="text-gray-500 text-xs sm:text-sm">
-                    We sent a 6-digit code to <span className="font-semibold text-gray-700">+233 {phoneDigits}</span>
-                  </p>
-                </div>
-
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-5 flex items-center gap-2">
-                    <span className="w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center flex-shrink-0">!</span>
-                    {error}
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="form-label">Enter OTP *</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={6}
-                      className="form-input h-14 text-center text-2xl font-bold tracking-[0.5em] letter-spacing-wide"
-                      placeholder="------"
-                      value={otpValue}
-                      onChange={e => { setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
-                      autoFocus
-                    />
-                    <p className="text-xs text-gray-400 mt-1.5 text-center">Code expires in 10 minutes</p>
-                  </div>
-
-                  <button
-                    onClick={handleVerifyOtp}
-                    disabled={otpLoading || otpValue.length < 6}
-                    className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-12 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
-                  >
-                    {otpLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying…</> : <>Verify & Continue <ArrowRight className="w-4 h-4" /></>}
-                  </button>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <button onClick={() => { setStep(1); setOtpValue(''); setError(''); }} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
-                      <ArrowLeft className="w-3.5 h-3.5" /> Change number
-                    </button>
-                    <button
-                      onClick={handleSendOtp}
-                      disabled={otpLoading || resendCooldown > 0}
-                      className="text-xs font-medium text-[#0D3B6E] hover:underline disabled:opacity-40 disabled:no-underline"
-                    >
-                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {step === 3 && (
-              <div>
-                <div className="mb-6 sm:mb-7">
-                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Create your account</h1>
-                  <p className="text-gray-500 text-xs sm:text-sm">
-                    Owner login for <span className="font-semibold text-gray-700">{form.business_name}</span>
-                  </p>
-                </div>
-
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-5 flex items-center gap-2">
-                    <span className="w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center flex-shrink-0">!</span>
-                    {error}
-                  </div>
-                )}
-
-                <div className="space-y-3 sm:space-y-4">
+                  {/* Email */}
                   <div>
                     <label className="form-label">Email Address *</label>
                     <div className="relative">
                       <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input type="email" className="form-input pl-10 h-11 sm:h-12 text-sm sm:text-base" placeholder="you@business.com" value={form.email} onChange={e => set('email', e.target.value)} autoFocus />
+                      <input
+                        type="email"
+                        className="form-input pl-10 h-11 sm:h-12 text-sm sm:text-base"
+                        placeholder="you@business.com"
+                        value={form.email}
+                        onChange={e => set('email', e.target.value)}
+                      />
                     </div>
                   </div>
 
+                  {/* Password */}
                   <div>
                     <label className="form-label">Password *</label>
                     <div className="relative">
@@ -558,7 +530,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
                     {form.password && (
                       <div className="grid grid-cols-2 gap-1.5 mt-2">
                         {pwChecks.map(c => (
-                          <div key={c.label} className={`flex items-center gap-1.5 text-xs px-2 sm:px-2.5 py-1.5 rounded-lg font-medium transition-all ${c.ok ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                          <div key={c.label} className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg font-medium transition-all ${c.ok ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
                             <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 ${c.ok ? 'bg-green-500' : 'bg-gray-300'}`}>
                               {c.ok && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                             </div>
@@ -569,6 +541,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
                     )}
                   </div>
 
+                  {/* Confirm Password */}
                   <div>
                     <label className="form-label">Confirm Password *</label>
                     <div className="relative">
@@ -598,27 +571,121 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
                   </div>
                 </div>
 
-                <div className="flex flex-col-reverse sm:flex-row gap-3 mt-5 sm:mt-6">
-                  <button onClick={() => { setStep(2); setError(''); }} className="h-11 sm:h-12 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 font-medium text-sm">
-                    <ArrowLeft className="w-4 h-4" /> Back
-                  </button>
-                  <button onClick={handleSubmit} disabled={loading} className="flex-1 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-11 sm:h-12 rounded-xl text-sm sm:text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
-                    {loading
-                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</>
-                      : <>Create Account <ArrowRight className="w-4 h-4" /></>
-                    }
-                  </button>
-                </div>
+                <button onClick={handleNext} disabled={otpLoading} className="w-full mt-5 sm:mt-6 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-11 sm:h-12 rounded-xl text-sm sm:text-base transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
+                  {otpLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending codes…</> : <>Continue <ArrowRight className="w-4 h-4" /></>}
+                </button>
 
-                <div className="mt-4 flex items-center gap-2.5 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-xl px-4 py-3">
-                  <Zap className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-                  <p className="text-xs text-blue-700"><strong>14-day free trial</strong> — card required, not charged for 14 days. Subscribe to continue.</p>
-                </div>
+                <p className="text-xs text-gray-400 text-center mt-4">
+                  By signing up you agree to our{' '}
+                  <a href="#" className="text-[#0D3B6E] hover:underline">Terms</a> and{' '}
+                  <a href="#" className="text-[#0D3B6E] hover:underline">Privacy Policy</a>
+                </p>
               </div>
             )}
 
-            {/* ── STEP 3 — Plan Selection ── */}
-            {step === 4 && (
+            {/* ── STEP 2 ── */}
+            {step === 2 && (
+              <div>
+                <div className="mb-6 sm:mb-7">
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Verify your details</h1>
+                  <p className="text-gray-500 text-xs sm:text-sm">Enter the codes sent to your phone and email.</p>
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-5 flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center flex-shrink-0">!</span>
+                    {error}
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {/* Phone OTP */}
+                  <div className={`rounded-xl border-2 p-4 transition-all ${phoneVerified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm font-semibold text-gray-700">Phone</span>
+                        <span className="text-xs text-gray-400">+233 {phoneDigits}</span>
+                      </div>
+                      {phoneVerified
+                        ? <span className="flex items-center gap-1 text-xs font-bold text-green-600"><CheckCircle className="w-3.5 h-3.5" /> Verified</span>
+                        : <button onClick={handleSendOtp} disabled={otpLoading || resendCooldown > 0} className="text-xs font-medium text-[#0D3B6E] hover:underline disabled:opacity-40">
+                            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend'}
+                          </button>
+                      }
+                    </div>
+                    {!phoneVerified && (
+                      <div className="flex gap-2">
+                        <input
+                          type="text" inputMode="numeric" maxLength={6}
+                          className="form-input flex-1 h-11 text-center text-xl font-bold tracking-[0.4em]"
+                          placeholder="------"
+                          value={otpValue}
+                          onChange={e => { setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={handleVerifyOtp}
+                          disabled={otpLoading || otpValue.length < 6}
+                          className="shrink-0 h-11 px-4 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+                        >
+                          {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Email OTP */}
+                  <div className={`rounded-xl border-2 p-4 transition-all ${emailVerified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm font-semibold text-gray-700">Email</span>
+                        <span className="text-xs text-gray-400 truncate max-w-[140px]">{form.email}</span>
+                      </div>
+                      {emailVerified
+                        ? <span className="flex items-center gap-1 text-xs font-bold text-green-600"><CheckCircle className="w-3.5 h-3.5" /> Verified</span>
+                        : <button onClick={handleSendEmailOtp} disabled={emailOtpLoading || emailResendCooldown > 0} className="text-xs font-medium text-[#0D3B6E] hover:underline disabled:opacity-40">
+                            {emailResendCooldown > 0 ? `Resend in ${emailResendCooldown}s` : 'Resend'}
+                          </button>
+                      }
+                    </div>
+                    {!emailVerified && (
+                      <div className="flex gap-2">
+                        <input
+                          type="text" inputMode="numeric" maxLength={6}
+                          className="form-input flex-1 h-11 text-center text-xl font-bold tracking-[0.4em]"
+                          placeholder="------"
+                          value={emailOtpValue}
+                          onChange={e => { setEmailOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+                        />
+                        <button
+                          onClick={handleVerifyEmailOtp}
+                          disabled={emailOtpLoading || emailOtpValue.length < 6}
+                          className="shrink-0 h-11 px-4 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+                        >
+                          {emailOtpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => { if (validateStep2()) setStep(3); }}
+                  disabled={!phoneVerified || !emailVerified}
+                  className="w-full mt-5 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-40 text-white font-bold h-11 sm:h-12 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+                >
+                  Continue <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <button onClick={() => { setStep(1); setOtpValue(''); setEmailOtpValue(''); setPhoneVerified(false); setEmailVerified(false); setError(''); }} className="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 flex items-center justify-center gap-1 py-1.5">
+                  <ArrowLeft className="w-3.5 h-3.5" /> Back to edit details
+                </button>
+              </div>
+            )}
+
+            {step === 3 && (
               <div>
                 <div className="mb-5">
                   <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Choose your subscription</h1>
@@ -708,14 +775,15 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
                 })()}
 
                 <div className="flex flex-col-reverse sm:flex-row gap-3">
-                  <button onClick={() => { setStep(3); setError(''); }} className="h-11 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 font-medium text-sm">
+                  <button onClick={() => { setStep(2); setError(''); }} className="h-11 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 font-medium text-sm">
                     <ArrowLeft className="w-4 h-4" /> Back
                   </button>
                   <button
-                    onClick={() => { setError(''); setStep(5); }}
-                    className="flex-1 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-11 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="flex-1 bg-[#0D3B6E] hover:bg-[#1A5294] disabled:opacity-60 text-white font-bold h-11 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
                   >
-                    Continue to Card <ArrowRight className="w-4 h-4" />
+                    {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating account…</> : <>Continue to Card <ArrowRight className="w-4 h-4" /></>}
                   </button>
                 </div>
 
@@ -731,7 +799,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
             )}
 
             {/* ── STEP 4 — Card ── */}
-            {step === 5 && (
+            {step === 4 && (
               <div>
                 <div className="mb-5 sm:mb-6">
                   <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full mb-3 sm:mb-4">
@@ -829,13 +897,13 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
                 <p className="text-center text-xs text-gray-400 mt-2">Powered by Paystack · Your card details are never stored on our servers</p>
 
                 <button
-                  onClick={() => { setStep(4); setError(''); }}
+                  onClick={() => { setStep(3); setError(''); }}
                   className="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 transition-colors py-1.5 flex items-center justify-center gap-1"
                 >
                   <ArrowLeft className="w-3 h-3" /> Back to plan selection
                 </button>
                 <button
-                  onClick={() => setStep(6)}
+                  onClick={() => setStep(5)}
                   className="w-full mt-1 text-sm text-gray-400 hover:text-gray-600 transition-colors py-2 underline underline-offset-2"
                 >
                   Skip for now — remind me later
@@ -844,7 +912,7 @@ const handleNext = () => { if (step === 1 && validateStep1()) handleSendOtp(); }
             )}
 
             {/* ── STEP 5 — Success ── */}
-            {step === 6 && (
+            {step === 5 && (
               <div className="text-center">
                 {/* Animated success icon */}
                 <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6">

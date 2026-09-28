@@ -1020,9 +1020,9 @@ export default function LandingPage() {
                 </div>
               </div>
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '150ms' }}>
-                <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight mb-6">
+                <h1 className="landing-display-heading text-4xl sm:text-5xl font-medium mb-6 text-white">
                   Manage Your Entire Business<br />
-                  <span className="text-yellow-400">From One Place.</span>
+                  <span className="text-yellow-400 landing-display-accent">From One Place.</span>
                 </h1>
               </div>
               <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: '300ms' }}>
@@ -1248,7 +1248,7 @@ export default function LandingPage() {
 
           <Reveal className="text-center mb-14">
             <span className="landing-eyebrow">Everything you need</span>
-            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">One System. Every Module.</h2>
+            <h2 className="landing-display-heading landing-section-title text-3xl sm:text-4xl font-medium text-gray-900 mb-4">One System. Every Module.</h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">GEMS gives you Stocks, Inventory, Sales, POS, eCommerce, Payments, Procurement, Finance, Accounting, HR, CRM and More — all connected, all in real time.</p>
           </Reveal>
 
@@ -1261,26 +1261,26 @@ export default function LandingPage() {
                 const isActive = activeFeature === i;
                 return (
                   <Reveal key={f.title} variant="left" delay={i * 60}>
-                  <button onClick={() => setActiveFeature(i)}
-                    className="w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5"
-                    style={{
-                      background: isActive ? `linear-gradient(135deg, ${f.accent}12, ${f.accent}06)` : '#f9fafb',
-                      borderColor: isActive ? f.accent + '50' : '#e5e7eb',
-                      boxShadow: isActive ? `0 0 16px ${f.accent}18` : 'none',
-                    }}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: isActive ? f.accent : f.accent + '20' }}>
-                        <Icon className="w-4 h-4 text-white" />
+                    <button onClick={() => setActiveFeature(i)}
+                      className="w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5"
+                      style={{
+                        background: isActive ? `linear-gradient(135deg, ${f.accent}12, ${f.accent}06)` : '#f9fafb',
+                        borderColor: isActive ? f.accent + '50' : '#e5e7eb',
+                        boxShadow: isActive ? `0 0 16px ${f.accent}18` : 'none',
+                      }}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: isActive ? f.accent : f.accent + '20' }}>
+                          <Icon className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className={`font-bold text-sm ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>{f.title}</div>
+                          <div className={`text-xs truncate mt-0.5 ${isActive ? 'text-gray-500' : 'text-gray-400'}`}>{f.tagline}</div>
+                        </div>
+                        <div className="w-1 h-6 rounded-full flex-shrink-0 transition-all"
+                          style={{ backgroundColor: isActive ? f.accent : 'transparent' }} />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className={`font-bold text-sm ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>{f.title}</div>
-                        <div className={`text-xs truncate mt-0.5 ${isActive ? 'text-gray-500' : 'text-gray-400'}`}>{f.tagline}</div>
-                      </div>
-                      <div className="w-1 h-6 rounded-full flex-shrink-0 transition-all"
-                        style={{ backgroundColor: isActive ? f.accent : 'transparent' }} />
-                    </div>
-                  </button>
+                    </button>
                   </Reveal>
                 );
               })}
@@ -1429,7 +1429,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-14">
             <span className="landing-eyebrow">Simple setup</span>
-            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Up and running in minutes</h2>
+            <h2 className="landing-display-heading landing-section-title text-3xl sm:text-4xl font-medium text-gray-900 mb-4">Up and running in minutes</h2>
             <p className="text-gray-500 text-lg">No IT team needed. No complex setup. Just sign up and go.</p>
           </Reveal>
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -1453,7 +1453,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <Reveal className="text-center mb-14">
             <span className="landing-eyebrow">Pricing</span>
-            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Simple, transparent pricing</h2>
+            <h2 className="landing-display-heading landing-section-title text-3xl sm:text-4xl font-medium text-gray-900 mb-4">Simple, transparent pricing</h2>
             <p className="text-gray-500 text-lg">Start free for 14 days. Not charged until day 14. Subscribe to continue.</p>
           </Reveal>
 
@@ -1461,34 +1461,34 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mb-6">
             {PLANS.map((p, pi) => (
               <Reveal key={p.key} delay={pi * 140} variant={p.popular ? 'scale' : 'up'}>
-              <div className={`relative rounded-2xl border-2 p-7 flex flex-col card-lift hover:shadow-2xl ${p.popular ? 'landing-pricing-popular border-[#0D3B6E] hover:shadow-blue-200' : 'bg-white border-gray-200 hover:border-[#0D3B6E]/40 hover:shadow-blue-50'
-                }`}>
-                {p.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0D3B6E] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
-                    Most Popular
+                <div className={`relative rounded-2xl border-2 p-7 flex flex-col card-lift hover:shadow-2xl ${p.popular ? 'landing-pricing-popular border-[#0D3B6E] hover:shadow-blue-200' : 'bg-white border-gray-200 hover:border-[#0D3B6E]/40 hover:shadow-blue-50'
+                  }`}>
+                  {p.popular && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0D3B6E] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
+                      Most Popular
+                    </div>
+                  )}
+                  <span className={`text-xs font-bold px-3 py-1 rounded-full inline-block mb-3 w-fit ${p.badge}`}>{p.label}</span>
+                  <div className="text-4xl font-extrabold text-gray-900 mb-1">
+                    GH₵ {p.price.toLocaleString()}<span className="text-base font-normal text-gray-400">/mo</span>
                   </div>
-                )}
-                <span className={`text-xs font-bold px-3 py-1 rounded-full inline-block mb-3 w-fit ${p.badge}`}>{p.label}</span>
-                <div className="text-4xl font-extrabold text-gray-900 mb-1">
-                  GH₵ {p.price.toLocaleString()}<span className="text-base font-normal text-gray-400">/mo</span>
+                  <p className="text-xs text-gray-400 mb-2">per month, billed monthly</p>
+                  <p className="text-sm text-gray-500 mb-6 pb-6 border-b border-gray-100">{p.desc}</p>
+                  <ul className="space-y-2.5 flex-1 mb-8">
+                    {p.features.map(f => (
+                      <li key={f} className="flex items-center gap-2.5 text-sm text-gray-700">
+                        <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/register"
+                    className={`w-full text-center font-bold py-3 rounded-xl text-sm transition-colors btn-shine ${p.popular
+                      ? 'bg-[#0D3B6E] hover:bg-[#1A5294] text-white shadow-lg shadow-blue-200'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                      }`}>
+                    Start free trial
+                  </Link>
                 </div>
-                <p className="text-xs text-gray-400 mb-2">per month, billed monthly</p>
-                <p className="text-sm text-gray-500 mb-6 pb-6 border-b border-gray-100">{p.desc}</p>
-                <ul className="space-y-2.5 flex-1 mb-8">
-                  {p.features.map(f => (
-                    <li key={f} className="flex items-center gap-2.5 text-sm text-gray-700">
-                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/register"
-                  className={`w-full text-center font-bold py-3 rounded-xl text-sm transition-colors btn-shine ${p.popular
-                    ? 'bg-[#0D3B6E] hover:bg-[#1A5294] text-white shadow-lg shadow-blue-200'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
-                    }`}>
-                  Start free trial
-                </Link>
-              </div>
               </Reveal>
             ))}
           </div>
@@ -1503,7 +1503,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-14">
             <span className="landing-eyebrow">Professional Services</span>
-            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">We don&apos;t just hand you software.</h2>
+            <h2 className="landing-display-heading landing-section-title text-3xl sm:text-4xl font-medium text-gray-900 mb-4">We don&apos;t just hand you software.</h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">From building a system tailored to your exact workflow, to setting it up and keeping it running — we&apos;re with you every step of the way.</p>
           </Reveal>
 
@@ -1511,63 +1511,63 @@ export default function LandingPage() {
 
             {/* Custom Build */}
             <Reveal variant="left" className="h-full">
-            <div className="relative bg-gradient-to-br from-[#0D3B6E] to-[#1A5294] rounded-2xl p-8 text-white overflow-hidden flex flex-col card-lift hover:shadow-2xl hover:shadow-blue-200 h-full">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full animate-float-slow" />
-              <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-yellow-400/10 rounded-full animate-float-slower" />
-              <div className="relative z-10 flex flex-col flex-1">
-                <div className="w-12 h-12 bg-yellow-400/20 border border-yellow-400/30 rounded-xl flex items-center justify-center mb-5">
-                  <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+              <div className="relative bg-gradient-to-br from-[#0D3B6E] to-[#1A5294] rounded-2xl p-8 text-white overflow-hidden flex flex-col card-lift hover:shadow-2xl hover:shadow-blue-200 h-full">
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full animate-float-slow" />
+                <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-yellow-400/10 rounded-full animate-float-slower" />
+                <div className="relative z-10 flex flex-col flex-1">
+                  <div className="w-12 h-12 bg-yellow-400/20 border border-yellow-400/30 rounded-xl flex items-center justify-center mb-5">
+                    <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-yellow-400 mb-2">Custom Build</div>
+                  <h3 className="text-2xl font-extrabold mb-3">A system built around your business.</h3>
+                  <p className="text-blue-200 text-sm leading-relaxed mb-6">Every business is different. If the standard modules don&apos;t fully match your workflow, we&apos;ll design and build a version of GEMS that fits you perfectly — your processes, your terminology, your rules.</p>
+                  <ul className="space-y-2.5 mb-8 flex-1">
+                    {['Custom modules & workflows', 'Tailored dashboards & reports', 'Business-specific integrations', 'Dedicated project team', 'Full handover & documentation'].map(b => (
+                      <li key={b} className="flex items-center gap-2.5 text-sm text-blue-100">
+                        <CheckCircle className="w-4 h-4 text-yellow-400 flex-shrink-0" /> {b}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27m%20interested%20in%20a%20custom%20build%20for%20my%20business."
+                    target="_blank" rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-extrabold py-3.5 rounded-xl text-sm transition-colors shadow-lg btn-shine"
+                  >
+                    <MessageSquare className="w-4 h-4" /> Let&apos;s Talk About Your Build
+                  </a>
                 </div>
-                <div className="text-xs font-bold uppercase tracking-widest text-yellow-400 mb-2">Custom Build</div>
-                <h3 className="text-2xl font-extrabold mb-3">A system built around your business.</h3>
-                <p className="text-blue-200 text-sm leading-relaxed mb-6">Every business is different. If the standard modules don&apos;t fully match your workflow, we&apos;ll design and build a version of GEMS that fits you perfectly — your processes, your terminology, your rules.</p>
-                <ul className="space-y-2.5 mb-8 flex-1">
-                  {['Custom modules & workflows', 'Tailored dashboards & reports', 'Business-specific integrations', 'Dedicated project team', 'Full handover & documentation'].map(b => (
-                    <li key={b} className="flex items-center gap-2.5 text-sm text-blue-100">
-                      <CheckCircle className="w-4 h-4 text-yellow-400 flex-shrink-0" /> {b}
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href="https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27m%20interested%20in%20a%20custom%20build%20for%20my%20business."
-                  target="_blank" rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-extrabold py-3.5 rounded-xl text-sm transition-colors shadow-lg btn-shine"
-                >
-                  <MessageSquare className="w-4 h-4" /> Let&apos;s Talk About Your Build
-                </a>
               </div>
-            </div>
             </Reveal>
 
             {/* Setup & Maintenance */}
             <Reveal variant="right" delay={120} className="h-full">
-            <div className="bg-gray-50 border-2 border-gray-200 hover:border-[#0D3B6E]/30 rounded-2xl p-8 flex flex-col card-lift hover:shadow-xl h-full">
-              <div className="w-12 h-12 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center mb-5">
-                <svg className="w-6 h-6 text-[#0D3B6E]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+              <div className="bg-gray-50 border-2 border-gray-200 hover:border-[#0D3B6E]/30 rounded-2xl p-8 flex flex-col card-lift hover:shadow-xl h-full">
+                <div className="w-12 h-12 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center mb-5">
+                  <svg className="w-6 h-6 text-[#0D3B6E]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <div className="text-xs font-bold uppercase tracking-widest text-[#0D3B6E] mb-2">Setup & Maintenance</div>
+                <h3 className="text-2xl font-extrabold text-gray-900 mb-3">We handle everything. You focus on your business.</h3>
+                <p className="text-gray-500 text-sm leading-relaxed mb-6">From day one, our team works alongside yours. We handle the full setup, migrate your existing data seamlessly, train your staff, and provide ongoing support — so you can focus on running your business while we take care of the rest.</p>
+                <ul className="space-y-2.5 mb-8 flex-1">
+                  {['Full system setup & configuration', 'Data migration from existing tools', 'Staff training & onboarding', 'Ongoing maintenance & updates', 'Priority support & response SLA'].map(b => (
+                    <li key={b} className="flex items-center gap-2.5 text-sm text-gray-600">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> {b}
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href="https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27m%20interested%20in%20setup%20and%20maintenance%20support."
+                  target="_blank" rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-extrabold py-3.5 rounded-xl text-sm transition-colors shadow-lg shadow-blue-200 btn-shine"
+                >
+                  <MessageSquare className="w-4 h-4" /> Get a Quote
+                </a>
               </div>
-              <div className="text-xs font-bold uppercase tracking-widest text-[#0D3B6E] mb-2">Setup & Maintenance</div>
-              <h3 className="text-2xl font-extrabold text-gray-900 mb-3">We handle everything. You focus on your business.</h3>
-              <p className="text-gray-500 text-sm leading-relaxed mb-6">From day one, our team works alongside yours. We handle the full setup, migrate your existing data seamlessly, train your staff, and provide ongoing support — so you can focus on running your business while we take care of the rest.</p>
-              <ul className="space-y-2.5 mb-8 flex-1">
-                {['Full system setup & configuration', 'Data migration from existing tools', 'Staff training & onboarding', 'Ongoing maintenance & updates', 'Priority support & response SLA'].map(b => (
-                  <li key={b} className="flex items-center gap-2.5 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> {b}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="https://wa.me/233241550366?text=Hi%20GEMS%20Team%2C%20I%27m%20interested%20in%20setup%20and%20maintenance%20support."
-                target="_blank" rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-extrabold py-3.5 rounded-xl text-sm transition-colors shadow-lg shadow-blue-200 btn-shine"
-              >
-                <MessageSquare className="w-4 h-4" /> Get a Quote
-              </a>
-            </div>
             </Reveal>
 
           </div>
@@ -1584,30 +1584,30 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-14">
             <span className="landing-eyebrow">Testimonials</span>
-            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Trusted by businesses across Ghana</h2>
+            <h2 className="landing-display-heading landing-section-title text-3xl sm:text-4xl font-medium text-gray-900 mb-4">Trusted by businesses across Ghana</h2>
             <p className="text-gray-500 text-lg">See what our customers say about running their business on GEMS.</p>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {TESTIMONIALS.map((t, i) => (
               <Reveal key={t.name} delay={i * 140} className="h-full">
-              <div className="landing-testimonial rounded-2xl p-6 hover:shadow-xl card-lift flex flex-col h-full">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />)}
-                </div>
-                <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-1">&ldquo;{t.text}&rdquo;</p>
-                <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm ${i === 0 ? 'bg-gradient-to-br from-blue-500 to-blue-700' :
-                    i === 1 ? 'bg-gradient-to-br from-purple-500 to-purple-700' :
-                      'bg-gradient-to-br from-orange-400 to-orange-600'
-                    }`}>
-                    {t.avatar}
+                <div className="landing-testimonial rounded-2xl p-6 hover:shadow-xl card-lift flex flex-col h-full">
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />)}
                   </div>
-                  <div>
-                    <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
-                    <div className="text-xs text-gray-400">{t.role}</div>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-1">&ldquo;{t.text}&rdquo;</p>
+                  <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm ${i === 0 ? 'bg-gradient-to-br from-blue-500 to-blue-700' :
+                      i === 1 ? 'bg-gradient-to-br from-purple-500 to-purple-700' :
+                        'bg-gradient-to-br from-orange-400 to-orange-600'
+                      }`}>
+                      {t.avatar}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
+                      <div className="text-xs text-gray-400">{t.role}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
               </Reveal>
             ))}
           </div>
@@ -1622,7 +1622,7 @@ export default function LandingPage() {
         </div>
         <div className="max-w-3xl mx-auto text-center relative z-10">
           <Reveal>
-            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">Ready to run your business smarter?</h2>
+            <h2 className="landing-display-heading text-3xl sm:text-4xl font-medium mb-4 text-white">Ready to run your business smarter?</h2>
             <p className="text-blue-200 text-lg mb-10 max-w-xl mx-auto">Join hundreds of businesses already using GEMS to manage their entire operations from one smart workplace.</p>
           </Reveal>
           <Reveal delay={150}>
@@ -1657,7 +1657,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-12">
             <span className="landing-eyebrow">Get in touch</span>
-            <h2 className="landing-section-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">We'd love to hear from you</h2>
+            <h2 className="landing-display-heading landing-section-title text-3xl sm:text-4xl font-medium text-gray-900 mb-4">We’d love to hear from you</h2>
             <p className="text-gray-500 text-lg">Reach us via your preferred channel. We typically respond within a few hours.</p>
           </Reveal>
 
@@ -1672,101 +1672,101 @@ export default function LandingPage() {
                 { icon: Mail, label: 'Email', value: 'gthinkcompanylimited@gmail.com', sub: 'We reply within 24 hours', color: 'bg-purple-50 text-purple-600', href: 'mailto:gthinkcompanylimited@gmail.com' },
               ].map(({ icon: Icon, label, value, sub, color, href }, ci) => (
                 <Reveal key={label} variant="left" delay={ci * 90}>
-                <a href={href} target="_blank" rel="noreferrer"
-                  className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-gray-200 transition-all group hover:-translate-y-0.5">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110 ${color}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-0.5">{label}</div>
-                    <div className="font-semibold text-gray-900 group-hover:text-[#0D3B6E] transition-colors">{value}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">{sub}</div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#0D3B6E] group-hover:translate-x-1 transition-all" />
-                </a>
+                  <a href={href} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-gray-200 transition-all group hover:-translate-y-0.5">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110 ${color}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-0.5">{label}</div>
+                      <div className="font-semibold text-gray-900 group-hover:text-[#0D3B6E] transition-colors">{value}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{sub}</div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#0D3B6E] group-hover:translate-x-1 transition-all" />
+                  </a>
                 </Reveal>
               ))}
             </div>
 
             {/* Right — message form with channel tabs */}
             <Reveal variant="right" delay={150}>
-            <div className="landing-contact-card rounded-2xl p-6">
-              <h3 className="font-bold text-gray-900 mb-5">Send us a message</h3>
+              <div className="landing-contact-card rounded-2xl p-6">
+                <h3 className="font-bold text-gray-900 mb-5">Send us a message</h3>
 
-              {/* Channel tabs */}
-              <div className="grid grid-cols-3 gap-2 mb-5">
-                {([
-                  { type: 'email', icon: Mail, label: 'Email', color: 'text-purple-600 bg-purple-50 border-purple-200' },
-                  { type: 'sms', icon: MessageCircle, label: 'SMS', color: 'text-green-600 bg-green-50 border-green-200' },
-                  { type: 'whatsapp', icon: MessageSquare, label: 'WhatsApp', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
-                ] as const).map(({ type, icon: Icon, label, color }) => (
-                  <button key={type} type="button"
-                    onClick={() => setContactChannel(type)}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${contactChannel === type ? color + ' border-current' : 'border-gray-200 text-gray-400 hover:border-gray-300'
-                      }`}>
-                    <Icon className="w-4 h-4" /> {label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="form-label">Name *</label>
-                    <input className="form-input" placeholder="Your name" value={contactMsg.name} onChange={e => setContactMsg(m => ({ ...m, name: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label">{contactChannel === 'email' ? 'Email *' : 'Phone *'}</label>
-                    <input className="form-input"
-                      placeholder={contactChannel === 'email' ? 'you@company.com' : '+233 XX XXX XXXX'}
-                      value={contactMsg.contact}
-                      onChange={e => setContactMsg(m => ({ ...m, contact: e.target.value }))} />
-                  </div>
+                {/* Channel tabs */}
+                <div className="grid grid-cols-3 gap-2 mb-5">
+                  {([
+                    { type: 'email', icon: Mail, label: 'Email', color: 'text-purple-600 bg-purple-50 border-purple-200' },
+                    { type: 'sms', icon: MessageCircle, label: 'SMS', color: 'text-green-600 bg-green-50 border-green-200' },
+                    { type: 'whatsapp', icon: MessageSquare, label: 'WhatsApp', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+                  ] as const).map(({ type, icon: Icon, label, color }) => (
+                    <button key={type} type="button"
+                      onClick={() => setContactChannel(type)}
+                      className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${contactChannel === type ? color + ' border-current' : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                        }`}>
+                      <Icon className="w-4 h-4" /> {label}
+                    </button>
+                  ))}
                 </div>
 
-                {contactChannel === 'email' && (
-                  <div>
-                    <label className="form-label">Subject</label>
-                    <input className="form-input" placeholder="e.g. Question about pricing"
-                      value={contactMsg.subject} onChange={e => setContactMsg(m => ({ ...m, subject: e.target.value }))} />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="form-label">Name *</label>
+                      <input className="form-input" placeholder="Your name" value={contactMsg.name} onChange={e => setContactMsg(m => ({ ...m, name: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="form-label">{contactChannel === 'email' ? 'Email *' : 'Phone *'}</label>
+                      <input className="form-input"
+                        placeholder={contactChannel === 'email' ? 'you@company.com' : '+233 XX XXX XXXX'}
+                        value={contactMsg.contact}
+                        onChange={e => setContactMsg(m => ({ ...m, contact: e.target.value }))} />
+                    </div>
                   </div>
-                )}
 
-                <div>
-                  <label className="form-label">Message *</label>
-                  <textarea className="form-input" rows={4}
-                    placeholder={
-                      contactChannel === 'email' ? 'Write your message here…' :
-                        contactChannel === 'sms' ? 'Keep it short — 160 characters max' :
-                          'Write your WhatsApp message…'
-                    }
-                    value={contactMsg.message}
-                    onChange={e => setContactMsg(m => ({ ...m, message: e.target.value }))} />
-                  {contactChannel === 'sms' && (
-                    <p className={`text-xs mt-1 text-right ${contactMsg.message.length > 160 ? 'text-red-500' : 'text-gray-400'}`}>
-                      {contactMsg.message.length}/160
-                    </p>
+                  {contactChannel === 'email' && (
+                    <div>
+                      <label className="form-label">Subject</label>
+                      <input className="form-input" placeholder="e.g. Question about pricing"
+                        value={contactMsg.subject} onChange={e => setContactMsg(m => ({ ...m, subject: e.target.value }))} />
+                    </div>
                   )}
-                </div>
 
-                <button
-                  onClick={() => {
-                    if (!contactMsg.name || !contactMsg.contact || !contactMsg.message) return;
-                    if (contactChannel === 'email') {
-                      window.location.href = `mailto:gthinkcompanylimited@gmail.com?subject=${encodeURIComponent(contactMsg.subject || 'Contact from ' + contactMsg.name)}&body=${encodeURIComponent(contactMsg.message)}`;
-                    } else if (contactChannel === 'whatsapp') {
-                      window.open(`https://wa.me/233241550366?text=${encodeURIComponent(contactMsg.message)}`, '_blank');
-                    } else {
-                      window.location.href = `sms:+233241550366?body=${encodeURIComponent(contactMsg.message)}`;
-                    }
-                  }}
-                  className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-12 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
-                >
-                  {contactChannel === 'email' ? <Mail className="w-4 h-4" /> : contactChannel === 'sms' ? <MessageCircle className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
-                  Send via {contactChannel === 'email' ? 'Email' : contactChannel === 'sms' ? 'SMS' : 'WhatsApp'}
-                </button>
+                  <div>
+                    <label className="form-label">Message *</label>
+                    <textarea className="form-input" rows={4}
+                      placeholder={
+                        contactChannel === 'email' ? 'Write your message here…' :
+                          contactChannel === 'sms' ? 'Keep it short — 160 characters max' :
+                            'Write your WhatsApp message…'
+                      }
+                      value={contactMsg.message}
+                      onChange={e => setContactMsg(m => ({ ...m, message: e.target.value }))} />
+                    {contactChannel === 'sms' && (
+                      <p className={`text-xs mt-1 text-right ${contactMsg.message.length > 160 ? 'text-red-500' : 'text-gray-400'}`}>
+                        {contactMsg.message.length}/160
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (!contactMsg.name || !contactMsg.contact || !contactMsg.message) return;
+                      if (contactChannel === 'email') {
+                        window.location.href = `mailto:gthinkcompanylimited@gmail.com?subject=${encodeURIComponent(contactMsg.subject || 'Contact from ' + contactMsg.name)}&body=${encodeURIComponent(contactMsg.message)}`;
+                      } else if (contactChannel === 'whatsapp') {
+                        window.open(`https://wa.me/233241550366?text=${encodeURIComponent(contactMsg.message)}`, '_blank');
+                      } else {
+                        window.location.href = `sms:+233241550366?body=${encodeURIComponent(contactMsg.message)}`;
+                      }
+                    }}
+                    className="w-full bg-[#0D3B6E] hover:bg-[#1A5294] text-white font-bold h-12 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+                  >
+                    {contactChannel === 'email' ? <Mail className="w-4 h-4" /> : contactChannel === 'sms' ? <MessageCircle className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+                    Send via {contactChannel === 'email' ? 'Email' : contactChannel === 'sms' ? 'SMS' : 'WhatsApp'}
+                  </button>
+                </div>
               </div>
-            </div>
             </Reveal>
           </div>
         </div>
