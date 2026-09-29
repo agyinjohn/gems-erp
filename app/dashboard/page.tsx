@@ -28,7 +28,7 @@ const SLICE_COLOURS = ['#0D3B6E', '#1D5FA8', '#3B82C4', '#6BA3D6', '#9CC3E4', '#
 const ALL_ROLES = ['super_admin','business_owner','branch_manager','warehouse_staff','accountant','hr_manager','procurement_officer'];
 
 export default function DashboardPage() {
-  const { user, tenant, activeBranchId, loading: authLoading } = useAuth();
+  const { user, tenant, activeBranchId = '', loading: authLoading } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
