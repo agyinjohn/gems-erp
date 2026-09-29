@@ -233,7 +233,7 @@ export default function BillingPage() {
                     : '—'}
                 </div>
                 <div className={`text-xs font-semibold mt-0.5 ${daysLeft !== null && daysLeft <= 7 ? 'text-red-500' : 'text-gray-400'}`}>
-                  {daysLeft !== null ? (daysLeft <= 0 ? 'Expired' : `${daysLeft} days left`) : '—'}
+                  {daysLeft !== null ? (daysLeft <= 0 ? 'Expired' : `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`) : '—'}
                 </div>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
@@ -242,6 +242,21 @@ export default function BillingPage() {
                 <div className="text-xs text-gray-400">{status?.max_users === 999 ? 'Unlimited' : status?.max_users} users</div>
               </div>
             </div>
+
+            {/* Active removed features */}
+            {(status?.removed_features || []).length > 0 && (
+              <div className="mb-4 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
+                <p className="text-xs font-semibold text-amber-700 mb-1.5">Features removed from your plan</p>
+                <div className="flex flex-wrap gap-2">
+                  {(status.removed_features as string[]).map((f: string) => (
+                    <span key={f} className="text-xs bg-white border border-amber-200 text-amber-700 px-2.5 py-1 rounded-full font-medium">
+                      {REMOVABLE_FEATURES[f]?.label || f}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-amber-600 mt-1.5">These are excluded from your subscription. Renew with them included to restore access.</p>
+              </div>
+            )}
 
             {/* Days remaining progress bar */}
             {daysLeft !== null && daysLeft > 0 && (
@@ -275,7 +290,7 @@ export default function BillingPage() {
             {/* Card + actions */}
             <div className="mt-5 pt-5 border-t border-gray-100 flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
-                {card ? (
+                {card ? ( 
                   <>
                     <div className="w-10 h-7 bg-gray-800 rounded flex items-center justify-center flex-shrink-0">
                       <CreditCard className="w-4 h-4 text-white" />
@@ -306,16 +321,7 @@ export default function BillingPage() {
                   </button>
                 )}
                 {status?.auto_renew && card && (
-                  <button
-                    onClick={async () => {
-                      if (!confirm('Turn off auto-renewal? Your subscription will stay active until it expires, then stop.')) return;
-                      try { await api.post('/billing/cancel'); toast.success('Auto-renewal cancelled.'); load(); }
-                      catch (e: any) { toast.error(e.response?.data?.message || 'Failed'); }
-                    }}
-                    className="text-xs text-gray-500 hover:underline font-medium"
-                  >
-                    Turn off auto-renewal
-                  </button>
+                  <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Auto-renewal on</span>
                 )}
                 {!status?.auto_renew && (
                   <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Auto-renewal off</span>
@@ -323,16 +329,16 @@ export default function BillingPage() {
                 {status?.subscription_status === 'active' && (
                   <button
                     onClick={async () => {
-                      if (!confirm('Cancel your subscription? Access will be revoked immediately and cannot be undone.')) return;
+                      if (!confirm('Turn off auto-renewal? Your subscription stays active until it expires — nothing is charged again unless you renew manually.')) return;
                       try {
                         await api.post('/billing/cancel');
-                        toast.success('Subscription cancelled.');
+                        toast.success('Auto-renewal turned off.');
                         load();
                       } catch (e: any) { toast.error(e.response?.data?.message || 'Failed'); }
                     }}
                     className="text-xs font-bold text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
                   >
-                    Cancel Subscription
+                    Turn off auto-renewal
                   </button>
                 )}
               </div>
@@ -542,7 +548,12 @@ export default function BillingPage() {
                             'bg-orange-50 text-orange-700'
                         }`}>{t.plan}</span>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{t.duration_days} days</td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {t.duration_days} days
+                      {t.discount_pct > 0 && (
+                        <span className="ml-1.5 text-xs text-green-600 font-semibold">{t.discount_pct}% off</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 font-semibold text-gray-900">GHS {parseFloat(t.amount).toFixed(2)}</td>
                     <td className="px-6 py-4 font-mono text-xs text-gray-400">{t.payment_ref || '—'}</td>
                     <td className="px-6 py-4">
