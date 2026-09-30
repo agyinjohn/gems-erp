@@ -150,6 +150,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
   const openApplyLeave = () => {
     setLeaveForm({ employee_id: '', leave_type: 'annual', start_date: '', end_date: '', reason: '' });
     setError('');
+    if (!leaveTypes.length) loadLeaveTypes();
     setModal('add_leave');
   };
 
@@ -351,6 +352,7 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     setEmpStep(1);
     setError('');
     loadLinkableUsers();
+    if (!hrSettings.default_annual_leave || hrSettings.default_annual_leave === 21) loadHrSettings();
     setModal('add_emp');
   };
 
@@ -976,6 +978,12 @@ export default function HrWorkspace({ section }: HrWorkspaceProps) {
     try {
       const r = await api.get('/hr/settings');
       setHrSettings(r.data.data);
+      // If the add-employee modal is open, refresh the leave entitlement defaults
+      setEmpForm((prev: any) => ({
+        ...prev,
+        annual_leave_entitlement: String(r.data.data.default_annual_leave ?? 21),
+        sick_leave_entitlement: String(r.data.data.default_sick_leave ?? 10),
+      }));
     } catch { /* ignore */ }
   };
 
