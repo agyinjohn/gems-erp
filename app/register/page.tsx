@@ -37,13 +37,13 @@ const PLANS = [
   },
 ];
 
-const REMOVABLE_FEATURES: Record<string, { label: string; deduction: Partial<Record<'starter'|'pro'|'enterprise', number>> }> = {
-  online_storefront:   { label: 'Online Storefront',   deduction: { pro: 150, enterprise: 150 } },
-  procurement:         { label: 'Procurement',         deduction: { pro: 100, enterprise: 100 } },
-  hr:                  { label: 'HR & Payroll',        deduction: { pro: 150, enterprise: 150 } },
-  crm:                 { label: 'CRM',                 deduction: { pro: 100, enterprise: 100 } },
+const REMOVABLE_FEATURES: Record<string, { label: string; deduction: Partial<Record<'starter' | 'pro' | 'enterprise', number>> }> = {
+  online_storefront: { label: 'Online Storefront', deduction: { pro: 150, enterprise: 150 } },
+  procurement: { label: 'Procurement', deduction: { pro: 100, enterprise: 100 } },
+  hr: { label: 'HR & Payroll', deduction: { pro: 150, enterprise: 150 } },
+  crm: { label: 'CRM', deduction: { pro: 100, enterprise: 100 } },
   advanced_accounting: { label: 'Advanced Accounting', deduction: { enterprise: 500 } },
-  priority_support:    { label: 'Priority Support',    deduction: { pro: 80,  enterprise: 80  } },
+  priority_support: { label: 'Priority Support', deduction: { pro: 80, enterprise: 80 } },
 };
 
 export default function RegisterPage() {
@@ -72,13 +72,13 @@ export default function RegisterPage() {
   const [removedFeatures, setRemovedFeatures] = useState<string[]>([]);
 
   const toggleRemoved = (plan: string, key: string) => {
-    if (!REMOVABLE_FEATURES[key]?.deduction[plan as 'starter'|'pro'|'enterprise']) return;
+    if (!REMOVABLE_FEATURES[key]?.deduction[plan as 'starter' | 'pro' | 'enterprise']) return;
     setRemovedFeatures(r => r.includes(key) ? r.filter(x => x !== key) : [...r, key]);
   };
 
   const planTotal = (plan: string) => {
     const base = PLANS.find(p => p.key === plan)?.price || 0;
-    const deduction = removedFeatures.reduce((s, f) => s + (REMOVABLE_FEATURES[f]?.deduction[plan as 'starter'|'pro'|'enterprise'] || 0), 0);
+    const deduction = removedFeatures.reduce((s, f) => s + (REMOVABLE_FEATURES[f]?.deduction[plan as 'starter' | 'pro' | 'enterprise'] || 0), 0);
     return base - deduction;
   };
 
@@ -118,8 +118,8 @@ export default function RegisterPage() {
   const slug = form.business_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
   const phoneDigits = form.phone.replace(/\D/g, '');
-  const phoneValid  = phoneDigits.length === 9;
-  const phoneError  = !!form.phone && !phoneValid;
+  const phoneValid = phoneDigits.length === 9;
+  const phoneError = !!form.phone && !phoneValid;
 
   const pwChecks = [
     { label: '8+ characters', ok: form.password.length >= 8 },
@@ -294,10 +294,10 @@ export default function RegisterPage() {
             </p>
             <div className="space-y-3">
               {[
-                { icon: Zap,    text: 'Up and running in minutes' },
+                { icon: Zap, text: 'Up and running in minutes' },
                 { icon: Shield, text: '14-day free trial, subscribe to continue' },
-                { icon: Globe,  text: 'Your own branded eCommerce store' },
-                { icon: Users,  text: 'Invite your whole team' },
+                { icon: Globe, text: 'Your own branded eCommerce store' },
+                { icon: Users, text: 'Invite your whole team' },
               ].map(p => {
                 const Icon = p.icon;
                 return (
@@ -335,9 +335,8 @@ export default function RegisterPage() {
               <div className="ml-auto flex gap-1">
                 {TESTIMONIALS.map((_, i) => (
                   <button key={i} onClick={() => setTIdx(i)}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      i === tIdx ? 'bg-yellow-400 w-4' : 'w-1.5 bg-white/30 hover:bg-white/50'
-                    }`}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${i === tIdx ? 'bg-yellow-400 w-4' : 'w-1.5 bg-white/30 hover:bg-white/50'
+                      }`}
                   />
                 ))}
               </div>
@@ -385,16 +384,14 @@ export default function RegisterPage() {
                 {[1, 2, 3, 4, 5].map((n, i) => (
                   <div key={n} className="flex items-center flex-1">
                     <div className="flex flex-col items-center gap-1 flex-1">
-                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                        step > n ? 'bg-green-500 text-white' :
-                        step === n ? 'bg-[#0D3B6E] text-white shadow-lg shadow-blue-200' :
-                        'bg-gray-200 text-gray-400'
-                      }`}>
+                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${step > n ? 'bg-green-500 text-white' :
+                          step === n ? 'bg-[#0D3B6E] text-white shadow-lg shadow-blue-200' :
+                            'bg-gray-200 text-gray-400'
+                        }`}>
                         {step > n ? <CheckCircle className="w-3.5 h-3.5" /> : n}
                       </div>
-                      <span className={`text-[9px] sm:text-[10px] font-semibold text-center ${
-                        step === n ? 'text-[#0D3B6E]' : 'text-gray-400'
-                      }`}>
+                      <span className={`text-[9px] sm:text-[10px] font-semibold text-center ${step === n ? 'text-[#0D3B6E]' : 'text-gray-400'
+                        }`}>
                         {n === 1 ? 'Business' : n === 2 ? 'Verify' : n === 3 ? 'Plan' : n === 4 ? 'Card' : 'Done'}
                       </span>
                     </div>
@@ -696,18 +693,16 @@ export default function RegisterPage() {
                     <button
                       key={p.key}
                       onClick={() => { setSelectedPlan(p.key); setRemovedFeatures([]); }}
-                      className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
-                        selectedPlan === p.key ? 'border-[#0D3B6E] bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
+                      className={`w-full text-left rounded-xl border-2 p-4 transition-all ${selectedPlan === p.key ? 'border-[#0D3B6E] bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${p.badge}`}>{p.label}</span>
                           {p.popular && <span className="text-[10px] font-bold bg-[#0D3B6E] text-white px-2 py-0.5 rounded-full">Popular</span>}
                         </div>
-                        <div className={`text-lg font-extrabold ${
-                          selectedPlan === p.key ? 'text-[#0D3B6E]' : 'text-gray-900'
-                        }`}>GH₵ {p.price.toLocaleString()}<span className="text-xs font-normal text-gray-400">/mo</span></div>
+                        <div className={`text-lg font-extrabold ${selectedPlan === p.key ? 'text-[#0D3B6E]' : 'text-gray-900'
+                          }`}>GH₵ {p.price.toLocaleString()}<span className="text-xs font-normal text-gray-400">/mo</span></div>
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1">
                         {p.features.map(f => (
@@ -723,7 +718,7 @@ export default function RegisterPage() {
                 {/* Remove features */}
                 {(() => {
                   const removable = Object.entries(REMOVABLE_FEATURES).filter(
-                    ([key, f]) => f.deduction[selectedPlan as 'starter'|'pro'|'enterprise']
+                    ([key, f]) => f.deduction[selectedPlan as 'starter' | 'pro' | 'enterprise']
                   );
                   return removable.length > 0 ? (
                     <div className="mb-4 bg-gray-50 rounded-xl p-3">
@@ -732,30 +727,26 @@ export default function RegisterPage() {
                       <div className="grid grid-cols-2 gap-2">
                         {removable.map(([key, f]) => {
                           const removed = removedFeatures.includes(key);
-                          const saving = f.deduction[selectedPlan as 'starter'|'pro'|'enterprise'] || 0;
+                          const saving = f.deduction[selectedPlan as 'starter' | 'pro' | 'enterprise'] || 0;
                           return (
                             <button
                               key={key}
                               onClick={() => toggleRemoved(selectedPlan, key)}
-                              className={`rounded-lg border-2 p-2.5 text-left transition-all ${
-                                removed ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'
-                              }`}
+                              className={`rounded-lg border-2 p-2.5 text-left transition-all ${removed ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'
+                                }`}
                             >
                               <div className="flex items-center gap-1.5 mb-0.5">
-                                <div className={`w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0 ${
-                                  removed ? 'bg-red-400' : 'bg-green-500'
-                                }`}>
+                                <div className={`w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0 ${removed ? 'bg-red-400' : 'bg-green-500'
+                                  }`}>
                                   {removed
                                     ? <XCircle className="w-2.5 h-2.5 text-white" />
                                     : <CheckCircle className="w-2.5 h-2.5 text-white" />}
                                 </div>
-                                <span className={`text-[10px] font-semibold ${
-                                  removed ? 'text-red-600 line-through' : 'text-green-700'
-                                }`}>{f.label}</span>
+                                <span className={`text-[10px] font-semibold ${removed ? 'text-red-600 line-through' : 'text-green-700'
+                                  }`}>{f.label}</span>
                               </div>
-                              <div className={`text-[9px] font-bold pl-5 ${
-                                removed ? 'text-red-400' : 'text-green-600'
-                              }`}>
+                              <div className={`text-[9px] font-bold pl-5 ${removed ? 'text-red-400' : 'text-green-600'
+                                }`}>
                                 {removed ? `+GH₵${saving}/mo` : `-GH₵${saving}/mo`}
                               </div>
                             </button>

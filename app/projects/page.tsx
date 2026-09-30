@@ -7,9 +7,9 @@ import { loadProjectTypes, FALLBACK, type ProjectTypeProfile } from '@/lib/proje
 import { toast } from '@/components/ui';
 import {
   Plus, RefreshCw, Briefcase, AlertTriangle, Search,
-  X, Calendar, MapPin, User, TrendingUp, ChevronRight,
-  CheckCircle2, Clock3, PauseCircle, XCircle, FileText,
+  X, Calendar, MapPin, User, ChevronRight, Clock3, FileText,
 } from 'lucide-react';
+import { PROJECT_STATUS_STYLE, PROJECT_STATUS_ICON, label } from '@/components/projects/shared';
 
 interface Project {
   id: string;
@@ -30,14 +30,6 @@ interface Project {
   project_type?: string;
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  draft:     'bg-gray-100 text-gray-600',
-  active:    'bg-green-50 text-green-700',
-  on_hold:   'bg-amber-50 text-amber-700',
-  completed: 'bg-blue-50 text-blue-700',
-  cancelled: 'bg-red-50 text-red-600',
-};
-
 const STATUS_BAR: Record<string, string> = {
   draft:     'bg-gray-300',
   active:    'bg-[#0D3B6E]',
@@ -46,16 +38,7 @@ const STATUS_BAR: Record<string, string> = {
   cancelled: 'bg-red-400',
 };
 
-const STATUS_ICON: Record<string, React.ReactNode> = {
-  draft:     <FileText className="w-3 h-3" />,
-  active:    <TrendingUp className="w-3 h-3" />,
-  on_hold:   <PauseCircle className="w-3 h-3" />,
-  completed: <CheckCircle2 className="w-3 h-3" />,
-  cancelled: <XCircle className="w-3 h-3" />,
-};
-
 const STATUSES = ['draft', 'active', 'on_hold', 'completed', 'cancelled'];
-const label = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 const money = (n: number, c = 'GHS') =>
   `${c} ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -369,8 +352,8 @@ export default function ProjectsPage() {
                         </p>
                       )}
                     </div>
-                    <span className={`badge ${STATUS_STYLES[p.status] || STATUS_STYLES.draft} flex-shrink-0 gap-1`}>
-                      {STATUS_ICON[p.status]} {label(p.status)}
+                    <span className={`badge ${PROJECT_STATUS_STYLE[p.status] || PROJECT_STATUS_STYLE.draft} flex-shrink-0 gap-1`}>
+                      {PROJECT_STATUS_ICON[p.status]} {label(p.status)}
                     </span>
                   </div>
 

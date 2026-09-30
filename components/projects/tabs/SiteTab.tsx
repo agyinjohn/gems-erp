@@ -39,7 +39,7 @@ export default function SiteTab({
     api.get(`/projects/${projectId}/messages`)
       .then(r => setMessages(r.data.data || []))
       .catch(() => {});
-  }, [projectId, docs]);
+  }, [projectId]);
 
   /** Publish a document to the client's page, or take it back. */
   const toggleShare = async (d: ProjectDoc) => {
@@ -51,6 +51,7 @@ export default function SiteTab({
 
   const reply = async () => {
     if (!draft.trim()) return;
+    if (!profile.capabilities.site_diary) return; // notes tab handles internal messages
     setSending(true);
     try {
       const r = await api.post(`/projects/${projectId}/messages`, { body: draft.trim() });

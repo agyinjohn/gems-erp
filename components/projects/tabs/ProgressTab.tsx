@@ -144,7 +144,7 @@ export default function ProgressTab({
         )}
 
         {canManage && (
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 border-t border-gray-100 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 border-t border-gray-100 pt-4">
             <div className="sm:col-span-2">
               <label className="form-label text-xs">{term.stage} name</label>
               <input className="form-input" placeholder="e.g. Foundation" value={msForm.name} onChange={e => setMsForm(f => ({ ...f, name: e.target.value }))} />
@@ -156,6 +156,10 @@ export default function ProgressTab({
             <div>
               <label className="form-label text-xs">Due date</label>
               <input type="date" className="form-input" value={msForm.planned_end} onChange={e => setMsForm(f => ({ ...f, planned_end: e.target.value }))} />
+            </div>
+            <div>
+              <label className="form-label text-xs">Billable amount</label>
+              <input type="number" min={0} className="form-input" placeholder="0.00" value={msForm.billable_amount} onChange={e => setMsForm(f => ({ ...f, billable_amount: e.target.value }))} />
             </div>
             <div className="flex items-end">
               <button type="button" className="btn-secondary w-full justify-center" onClick={addMilestone}>

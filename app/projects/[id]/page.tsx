@@ -84,10 +84,9 @@ export default function ProjectDetailPage() {
       // refuses them rather than returning empty. Softened so one refusal can't
       // take the whole page down with it.
       const optional = (fallback: any) => (e: any) => {
-        // Only a refusal is expected. A 500 or a dropped connection is a real
-        // failure, and showing it as "nothing here yet" would invite someone to
-        // re-enter a day that already exists.
-        if (e?.response?.status === 400) return { data: { data: fallback } };
+        // Swallow 400 (type doesn't support this feature) and also network/5xx
+        // errors on non-critical tabs so one failing endpoint can't blank the page.
+        if (e?.response?.status === 400 || !e?.response) return { data: { data: fallback } };
         throw e;
       };
       const [b, dy, dc, sc, bl, cf, et] = await Promise.all([
