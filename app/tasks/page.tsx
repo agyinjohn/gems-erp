@@ -12,6 +12,7 @@ import TaskCard from '@/components/tasks/TaskCard';
 import WeekStrip from '@/components/tasks/WeekStrip';
 import ProgressRing from '@/components/tasks/ProgressRing';
 import AssignTaskModal, { type TaskForm } from '@/components/tasks/AssignTaskModal';
+import ReportsDue from '@/components/tasks/ReportsDue';
 import {
   type Task, type Status, type Person, type Tally,
   localDay, addDays, fromDay, dueLabel, initials, avatarColor, greeting, PRIORITY, STATUS,
@@ -197,9 +198,7 @@ export default function TasksPage() {
         {tab === 'mine' && (
           <>
             {/* Hero: who, which day, how far through it */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0D3B6E] via-[#0f4580] to-[#155a9e] text-white shadow-lg">
-              <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-white/5" aria-hidden />
-              <div className="absolute right-24 -bottom-20 w-40 h-40 rounded-full bg-white/5" aria-hidden />
+            <div className="relative overflow-hidden rounded-2xl bg-[#0D3B6E] text-white shadow-sm">
               <div className="relative p-5 sm:p-6 space-y-5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
@@ -213,8 +212,8 @@ export default function TasksPage() {
                     {!loadingMine && linked && (
                       <p className="mt-3 text-sm text-white/90">
                         {counts.all === 0 ? 'Nothing scheduled.'
-                          : left === 0 ? <span className="inline-flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-emerald-300" /> All done — great work.</span>
-                          : <>{left} task{left > 1 ? 's' : ''} left{counts.overdue > 0 && <span className="text-red-200"> · {counts.overdue} overdue</span>}</>}
+                          : left === 0 ? <span className="inline-flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> All done — great work.</span>
+                          : <>{left} task{left > 1 ? 's' : ''} left{counts.overdue > 0 && <span className="text-white/70"> · {counts.overdue} overdue</span>}</>}
                       </p>
                     )}
                   </div>
@@ -223,6 +222,8 @@ export default function TasksPage() {
                 <WeekStrip value={date} onChange={pickDate} />
               </div>
             </div>
+
+            <ReportsDue />
 
             {/* Status filter */}
             {linked && counts.all > 0 && (
@@ -286,10 +287,10 @@ export default function TasksPage() {
           <>
             {/* KPIs */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <Kpi label="Assigned" value={teamStats.total} icon={ClipboardList} tone="text-[#0D3B6E] bg-[#0D3B6E]/8" />
-              <Kpi label="Completed" value={teamStats.done} sub={`${teamStats.rate}%`} icon={CheckCircle2} tone="text-emerald-600 bg-emerald-50" />
-              <Kpi label="In progress" value={teamStats.in_progress} icon={Loader} tone="text-amber-600 bg-amber-50" />
-              <Kpi label="Overdue" value={teamStats.overdue} icon={AlertCircle} tone={teamStats.overdue ? 'text-red-600 bg-red-50' : 'text-gray-400 bg-gray-50'} />
+              <Kpi label="Assigned" value={teamStats.total} icon={ClipboardList} />
+              <Kpi label="Completed" value={teamStats.done} sub={`${teamStats.rate}%`} icon={CheckCircle2} />
+              <Kpi label="In progress" value={teamStats.in_progress} icon={Loader} />
+              <Kpi label="Overdue" value={teamStats.overdue} icon={AlertCircle} alert={teamStats.overdue > 0} />
             </div>
 
             {/* Filters */}
@@ -337,10 +338,10 @@ export default function TasksPage() {
                             {t.done}/{t.total} done{t.overdue > 0 && <span className="text-red-600 font-semibold"> · {t.overdue} overdue</span>}
                           </div>
                         </div>
-                        <span className={`text-sm font-bold ${pct === 100 ? 'text-emerald-600' : 'text-gray-700'}`}>{pct}%</span>
+                        <span className="text-sm font-bold text-gray-700">{pct}%</span>
                       </div>
                       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-3">
-                        <div className={`h-full rounded-full transition-all duration-500 ${pct === 100 ? 'bg-emerald-500' : 'bg-[#0D3B6E]'}`} style={{ width: `${pct}%` }} />
+                        <div className="h-full rounded-full transition-all duration-500 bg-[#0D3B6E]" style={{ width: `${pct}%` }} />
                       </div>
                     </button>
                   );
@@ -373,7 +374,7 @@ export default function TasksPage() {
                           {t.completion_note && <span className="hidden sm:inline truncate">· “{t.completion_note}”</span>}
                         </div>
                       </div>
-                      <span className={`hidden sm:inline-flex text-[11px] font-semibold px-2 py-0.5 rounded-md ${t.overdue ? 'bg-red-50 text-red-700 ring-1 ring-red-100' : STATUS[t.status].chip}`}>
+                      <span className={`hidden sm:inline-flex text-[11px] font-semibold px-2 py-0.5 rounded-md ${t.overdue ? 'bg-gray-100 text-red-600' : STATUS[t.status].chip}`}>
                         {t.overdue ? 'Overdue' : STATUS[t.status].label}
                       </span>
                       <div className="flex gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
@@ -409,7 +410,7 @@ export default function TasksPage() {
 function Section({ title, count, tone, collapsible, open = true, onToggle, children }: {
   title: string; count: number; tone?: 'red' | 'green'; collapsible?: boolean; open?: boolean; onToggle?: () => void; children: React.ReactNode;
 }) {
-  const color = tone === 'red' ? 'text-red-600' : tone === 'green' ? 'text-emerald-600' : 'text-gray-500';
+  const color = tone === 'red' ? 'text-red-600' : 'text-gray-500';
   const Head = collapsible ? 'button' : 'div';
   return (
     <section>
@@ -424,12 +425,12 @@ function Section({ title, count, tone, collapsible, open = true, onToggle, child
   );
 }
 
-function Kpi({ label, value, sub, icon: Icon, tone }: { label: string; value: number; sub?: string; icon: React.ComponentType<{ className?: string }>; tone: string }) {
+function Kpi({ label, value, sub, icon: Icon, alert }: { label: string; value: number; sub?: string; icon: React.ComponentType<{ className?: string }>; alert?: boolean }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-      <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tone}`}><Icon className="w-5 h-5" /></span>
+      <span className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-gray-50 text-gray-500"><Icon className="w-5 h-5" /></span>
       <div className="min-w-0">
-        <div className="text-2xl font-extrabold text-gray-900 leading-none">{value}</div>
+        <div className={`text-2xl font-extrabold leading-none ${alert ? 'text-red-600' : 'text-gray-900'}`}>{value}</div>
         <div className="text-xs text-gray-500 mt-1 truncate">{label}{sub && <span className="text-gray-400"> · {sub}</span>}</div>
       </div>
     </div>

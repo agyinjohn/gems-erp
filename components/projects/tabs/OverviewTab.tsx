@@ -36,7 +36,7 @@ export default function OverviewTab({ project, milestones, tasks, reportStatus, 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       {/* Reporting status */}
-      <div className={`lg:col-span-2 rounded-xl border p-5 ${reportStatus?.overdue ? 'border-red-200 bg-red-50/40' : 'border-gray-100 bg-white shadow-sm'}`}>
+      <div className="lg:col-span-2 rounded-xl border border-gray-100 bg-white shadow-sm p-5">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Status reporting</p>
@@ -52,7 +52,7 @@ export default function OverviewTab({ project, milestones, tasks, reportStatus, 
               {due && <> · <span className={reportStatus?.overdue ? 'text-red-600 font-semibold' : 'text-gray-700 font-medium'}>{due}</span></>}
             </p>
           </div>
-          <button type="button" className={reportStatus?.overdue && isLead ? 'btn-primary !bg-red-600 hover:!bg-red-700' : 'btn-secondary'} onClick={() => onGo('reports')}>
+          <button type="button" className={isLead ? 'btn-primary !bg-[#0D3B6E] hover:!bg-[#0a2f58]' : 'btn-secondary'} onClick={() => onGo('reports')}>
             <FileText className="w-4 h-4" /> {isLead ? (reportStatus?.overdue ? 'Write overdue report' : 'Write a report') : 'View reports'}
           </button>
         </div>
@@ -70,7 +70,7 @@ export default function OverviewTab({ project, milestones, tasks, reportStatus, 
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-500 mt-3 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 text-amber-500" /> No lead assigned</p>
+          <p className="text-sm text-gray-500 mt-3 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 text-gray-400" /> No lead assigned</p>
         )}
       </div>
 
@@ -82,18 +82,18 @@ export default function OverviewTab({ project, milestones, tasks, reportStatus, 
         </div>
         <div className="grid grid-cols-3 gap-3 mb-4">
           {[
-            { label: 'Open tasks', value: openTasks.length, icon: ClipboardList, tone: 'text-[#0D3B6E] bg-[#0D3B6E]/5' },
-            { label: 'Past due', value: lateTasks.length, icon: CalendarClock, tone: lateTasks.length ? 'text-red-600 bg-red-50' : 'text-gray-400 bg-gray-50' },
-            { label: 'Blocked', value: blocked.length, icon: AlertTriangle, tone: blocked.length ? 'text-amber-600 bg-amber-50' : 'text-gray-400 bg-gray-50' },
+            { label: 'Open tasks', value: openTasks.length, icon: ClipboardList, alert: false },
+            { label: 'Past due', value: lateTasks.length, icon: CalendarClock, alert: lateTasks.length > 0 },
+            { label: 'Blocked', value: blocked.length, icon: AlertTriangle, alert: blocked.length > 0 },
           ].map(k => (
             <div key={k.label} className="rounded-lg border border-gray-100 p-3 flex items-center gap-2.5">
-              <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${k.tone}`}><k.icon className="w-4 h-4" /></span>
-              <div><div className="text-lg font-extrabold text-gray-900 leading-none">{k.value}</div><div className="text-[11px] text-gray-500 mt-0.5">{k.label}</div></div>
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-50 text-gray-500"><k.icon className="w-4 h-4" /></span>
+              <div><div className={`text-lg font-extrabold leading-none ${k.alert ? 'text-red-600' : 'text-gray-900'}`}>{k.value}</div><div className="text-[11px] text-gray-500 mt-0.5">{k.label}</div></div>
             </div>
           ))}
         </div>
         {upcoming.length === 0 ? (
-          <p className="text-sm text-gray-400 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> {milestones.length ? `Every ${stageWord.toLowerCase()} is complete.` : `No ${stagesWord.toLowerCase()} planned yet.`}</p>
+          <p className="text-sm text-gray-400 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-gray-400" /> {milestones.length ? `Every ${stageWord.toLowerCase()} is complete.` : `No ${stagesWord.toLowerCase()} planned yet.`}</p>
         ) : (
           <ul className="space-y-2">
             {upcoming.map(m => {

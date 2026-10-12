@@ -19,10 +19,10 @@ export default function TaskCard({ task, busy, onStatus }: Props) {
   return (
     <div
       className={`group relative bg-white rounded-xl border transition-all ${
-        done ? 'border-gray-100 bg-gray-50/60' : task.overdue ? 'border-red-100 shadow-sm' : 'border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200'
+        done ? 'border-gray-100 bg-gray-50/60' : 'border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200'
       }`}
     >
-      <span className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full ${done ? 'bg-gray-200' : task.overdue ? 'bg-red-500' : p.bar}`} aria-hidden />
+      <span className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full ${done ? 'bg-gray-200' : p.bar}`} aria-hidden />
 
       <div className="flex items-start gap-3 pl-5 pr-3 sm:pr-4 py-3.5">
         <button
@@ -31,7 +31,7 @@ export default function TaskCard({ task, busy, onStatus }: Props) {
           onClick={() => onStatus(task, done ? 'todo' : 'done')}
           aria-label={done ? 'Mark as not done' : 'Mark as done'}
           className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 border-2 transition-all disabled:opacity-50 ${
-            done ? 'bg-emerald-500 border-emerald-500 text-white scale-100' : 'border-gray-300 text-transparent hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-50'
+            done ? 'bg-[#0D3B6E] border-[#0D3B6E] text-white' : 'border-gray-300 text-transparent hover:border-[#0D3B6E] hover:text-[#0D3B6E]'
           }`}
         >
           <Check className="w-3.5 h-3.5" strokeWidth={3} />
@@ -57,17 +57,17 @@ export default function TaskCard({ task, busy, onStatus }: Props) {
               </span>
             )}
             {task.overdue && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold bg-red-50 text-red-700 ring-1 ring-red-100">
+              <span className="inline-flex items-center gap-1 font-semibold text-red-600">
                 <AlertCircle className="w-3 h-3" /> Overdue · {dueLabel(task.due_date)}
               </span>
             )}
             {task.status === 'in_progress' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold bg-amber-50 text-amber-700 ring-1 ring-amber-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> In progress
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold bg-[#0D3B6E]/8 text-[#0D3B6E]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0D3B6E] animate-pulse" /> In progress
               </span>
             )}
             {done && task.completed_at && (
-              <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+              <span className="inline-flex items-center gap-1 text-gray-500 font-medium">
                 <Check className="w-3 h-3" /> Done at {new Date(task.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
@@ -99,7 +99,7 @@ export default function TaskCard({ task, busy, onStatus }: Props) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {!done && (
-                  <button type="button" disabled={busy} className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg disabled:opacity-60"
+                  <button type="button" disabled={busy} className="inline-flex items-center gap-1.5 bg-[#0D3B6E] hover:bg-[#0a2f58] text-white text-sm font-medium px-3.5 py-2 rounded-lg disabled:opacity-60"
                     onClick={() => onStatus(task, 'done', note)}>
                     <Check className="w-4 h-4" /> Complete{note.trim() ? ' with note' : ''}
                   </button>

@@ -13,7 +13,7 @@ export default function ProgressRing({ value, total, size = 88 }: Props) {
         <circle
           cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={c} strokeDashoffset={c * (1 - pct)}
-          className="text-emerald-300 transition-[stroke-dashoffset] duration-700 ease-out"
+          className="text-white transition-[stroke-dashoffset] duration-700 ease-out"
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-white">

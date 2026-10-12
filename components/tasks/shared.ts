@@ -42,20 +42,19 @@ export const dueLabel = (iso: string) => {
 export const initials = (name = '') =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase()).join('') || '?';
 
-// A stable, readable colour per person so the same name always looks the same.
-const AVATAR = ['bg-[#0D3B6E]', 'bg-teal-600', 'bg-indigo-600', 'bg-amber-600', 'bg-rose-600', 'bg-emerald-600', 'bg-sky-700', 'bg-violet-600'];
-export const avatarColor = (name = '') => AVATAR[[...name].reduce((s, c) => s + c.charCodeAt(0), 0) % AVATAR.length];
+// One brand colour for every avatar; the initials do the identifying.
+export const avatarColor = (_name = '') => 'bg-[#0D3B6E]';
 
 export const PRIORITY: Record<Priority, { label: string; chip: string; bar: string; dot: string }> = {
-  high:   { label: 'High',   chip: 'bg-red-50 text-red-700 ring-1 ring-red-100',       bar: 'bg-red-500',   dot: 'bg-red-500' },
-  normal: { label: 'Normal', chip: 'bg-gray-50 text-gray-600 ring-1 ring-gray-200',    bar: 'bg-[#0D3B6E]', dot: 'bg-[#0D3B6E]' },
-  low:    { label: 'Low',    chip: 'bg-sky-50 text-sky-700 ring-1 ring-sky-100',       bar: 'bg-sky-400',   dot: 'bg-sky-400' },
+  high:   { label: 'High',   chip: 'bg-gray-100 text-gray-700', bar: 'bg-[#0D3B6E]',   dot: 'bg-red-500' },
+  normal: { label: 'Normal', chip: 'bg-gray-100 text-gray-600', bar: 'bg-transparent', dot: 'bg-gray-400' },
+  low:    { label: 'Low',    chip: 'bg-gray-100 text-gray-500', bar: 'bg-transparent', dot: 'bg-gray-300' },
 };
 
 export const STATUS: Record<Status, { label: string; chip: string }> = {
   todo:        { label: 'To do',       chip: 'bg-gray-100 text-gray-600' },
-  in_progress: { label: 'In progress', chip: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100' },
-  done:        { label: 'Done',        chip: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' },
+  in_progress: { label: 'In progress', chip: 'bg-[#0D3B6E]/8 text-[#0D3B6E]' },
+  done:        { label: 'Done',        chip: 'bg-gray-100 text-gray-500' },
 };
 
 export const greeting = () => {

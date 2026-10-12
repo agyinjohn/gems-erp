@@ -11,9 +11,10 @@ export interface ReportStatus {
 }
 
 export const HEALTH: Record<Health, { label: string; dot: string; chip: string; ring: string; text: string }> = {
-  on_track:  { label: 'On track',  dot: 'bg-emerald-500', chip: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100', ring: 'ring-emerald-500', text: 'text-emerald-700' },
-  at_risk:   { label: 'At risk',   dot: 'bg-amber-500',   chip: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100',       ring: 'ring-amber-500',   text: 'text-amber-700' },
-  off_track: { label: 'Off track', dot: 'bg-red-500',     chip: 'bg-red-50 text-red-700 ring-1 ring-red-100',             ring: 'ring-red-500',     text: 'text-red-700' },
+  // Neutral chips everywhere; only the small dot carries the green/amber/red.
+  on_track:  { label: 'On track',  dot: 'bg-emerald-500', chip: 'bg-gray-100 text-gray-700', ring: 'ring-[#0D3B6E]', text: 'text-gray-700' },
+  at_risk:   { label: 'At risk',   dot: 'bg-amber-500',   chip: 'bg-gray-100 text-gray-700', ring: 'ring-[#0D3B6E]', text: 'text-gray-700' },
+  off_track: { label: 'Off track', dot: 'bg-red-500',     chip: 'bg-gray-100 text-gray-700', ring: 'ring-[#0D3B6E]', text: 'text-gray-700' },
 };
 
 export const FREQUENCY: Record<Frequency, string> = {

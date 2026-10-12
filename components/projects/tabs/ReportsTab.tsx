@@ -23,6 +23,8 @@ interface Props {
   projectId: string;
   project: unknown;
   canManage: boolean;
+  /** Open the report form straight away (arriving from a "Write report" link). */
+  autoWrite?: boolean;
 }
 
 const today = () => {
@@ -33,7 +35,7 @@ const EMPTY = { title: '', summary: '', progress_pct: '', issues: '', next_steps
 const fmtDate = (d: string) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
 /** Periodic status reports: the lead writes them on a schedule, management reads and replies. */
-export default function ReportsTab({ projectId, canManage }: Props) {
+export default function ReportsTab({ projectId, canManage, autoWrite }: Props) {
   const [reports, setReports] = useState<Report[]>([]);
   const [canReport, setCanReport] = useState(false);
   const [canComment, setCanComment] = useState(false);
@@ -63,6 +65,14 @@ export default function ReportsTab({ projectId, canManage }: Props) {
   }, [projectId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Arriving from a "Write report" link: open the form once we know they may.
+  const [autoOpened, setAutoOpened] = useState(false);
+  if (autoWrite && !autoOpened && !loading && canReport) {
+    setAutoOpened(true);
+    setWriting(true);
+    setForm({ ...EMPTY, report_date: today(), progress_pct: reports[0]?.progress_pct != null ? String(reports[0].progress_pct) : '', health: reports[0]?.health || 'on_track' });
+  }
 
   const startWriting = () => {
     // Carry the last progress figure forward — it is the most likely starting point.
@@ -119,7 +129,7 @@ export default function ReportsTab({ projectId, canManage }: Props) {
   return (
     <div className="space-y-4">
       {/* Who reports, how often, and whether it's late */}
-      <div className={`rounded-xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 ${status?.overdue ? 'border-red-200 bg-red-50/50' : 'border-gray-100 bg-white shadow-sm'}`}>
+      <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <span className="w-11 h-11 rounded-full bg-[#0D3B6E] text-white font-bold flex items-center justify-center flex-shrink-0">{lead ? initials(lead.name) : '?'}</span>
           <div className="min-w-0">
@@ -132,14 +142,14 @@ export default function ReportsTab({ projectId, canManage }: Props) {
           </div>
         </div>
         {reports.length > 0 && (
-          <div className="flex items-center gap-1" title="Health of recent reports, newest on the right">
+          <div className="flex items-center gap-1.5" title="Health of recent reports, newest on the right">
             {reports.slice(0, 8).reverse().map(r => (
-              <span key={r.id} className={`w-2.5 h-6 rounded-full ${HEALTH[r.health || 'on_track'].dot}`} />
+              <span key={r.id} className={`w-2 h-2 rounded-full ${HEALTH[r.health || 'on_track'].dot}`} />
             ))}
           </div>
         )}
         {canReport && !writing && (
-          <button type="button" onClick={startWriting} className={`btn-primary justify-center ${status?.overdue ? '!bg-red-600 hover:!bg-red-700' : '!bg-[#0D3B6E] hover:!bg-[#0a2f58]'}`}>
+          <button type="button" onClick={startWriting} className="btn-primary justify-center !bg-[#0D3B6E] hover:!bg-[#0a2f58]">
             <PenLine className="w-4 h-4" /> Write report
           </button>
         )}
@@ -166,7 +176,7 @@ export default function ReportsTab({ projectId, canManage }: Props) {
               {(Object.keys(HEALTH) as Health[]).map(h => (
                 <button key={h} type="button" onClick={() => set('health', h)}
                   className={`flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-semibold transition-all ${
-                    form.health === h ? `${HEALTH[h].chip} border-transparent ring-2 ${HEALTH[h].ring}` : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    form.health === h ? 'border-[#0D3B6E] bg-[#0D3B6E]/5 text-[#0D3B6E]' : 'border-gray-200 text-gray-500 hover:border-gray-300'
                   }`}>
                   <span className={`w-2.5 h-2.5 rounded-full ${HEALTH[h].dot}`} />{HEALTH[h].label}
                 </button>
@@ -246,7 +256,7 @@ export default function ReportsTab({ projectId, canManage }: Props) {
                   {open && (
                     <div className="px-4 pb-4 space-y-3 border-t border-gray-50 pt-3">
                       <Block label="Work done" text={r.summary} />
-                      {r.issues && <Block label="Issues & risks" text={r.issues} tone="text-amber-700" />}
+                      {r.issues && <Block label="Issues & risks" text={r.issues} />}
                       {r.next_steps && <Block label="Next steps" text={r.next_steps} />}
 
                       <div className="border-t border-gray-100 pt-3 space-y-2.5">

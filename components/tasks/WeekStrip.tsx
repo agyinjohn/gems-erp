@@ -34,7 +34,7 @@ export default function WeekStrip({ value, onChange }: Props) {
                 {dt.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 3)}
               </span>
               <span className="text-sm sm:text-base font-bold leading-tight">{dt.getDate()}</span>
-              <span className={`w-1 h-1 rounded-full mt-0.5 ${isToday ? (selected ? 'bg-[#0D3B6E]' : 'bg-emerald-300') : 'bg-transparent'}`} />
+              <span className={`w-1 h-1 rounded-full mt-0.5 ${isToday ? (selected ? 'bg-[#0D3B6E]' : 'bg-white') : 'bg-transparent'}`} />
             </button>
           );
         })}

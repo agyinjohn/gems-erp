@@ -382,7 +382,7 @@ export default function ProjectsPage() {
                             </span>
                           )}
                           {p.report_status?.overdue && (
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-red-50 text-red-700 ring-1 ring-red-100">Report {dueText(p.report_status)}</span>
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-red-600">Report {dueText(p.report_status)}</span>
                           )}
                         </div>
                       )}

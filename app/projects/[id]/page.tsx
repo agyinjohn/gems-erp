@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -64,7 +64,14 @@ export default function ProjectDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState<TabKey>('overview');
+  const search = useSearchParams();
+  // Links such as /projects/x?tab=reports&write=1 land on the right tab (and form).
+  const TAB_KEYS: TabKey[] = ['overview', 'progress', 'reports', 'money', 'billing', 'site', 'notes', 'programme', 'claims', 'cashflow'];
+  const [tab, setTab] = useState<TabKey>(() => {
+    const t = search.get('tab') as TabKey | null;
+    return t && TAB_KEYS.includes(t) ? t : 'overview';
+  });
+  const autoWrite = search.get('write') === '1';
   const [viewer, setViewer] = useState<{ is_staff: boolean; is_lead: boolean }>({ is_staff: false, is_lead: false });
   const [reportStatus, setReportStatus] = useState<ReportStatus | null>(null);
   const [typeProfiles, setTypeProfiles] = useState<ProjectTypeProfile[]>([FALLBACK]);
@@ -309,7 +316,7 @@ export default function ProjectDetailPage() {
                   </span>
                 )}
                 {reportStatus?.overdue && (
-                  <button type="button" onClick={() => setTab('reports')} className="badge bg-red-50 text-red-600 gap-1 hover:bg-red-100">
+                  <button type="button" onClick={() => setTab('reports')} className="badge bg-gray-100 text-red-600 gap-1 hover:bg-gray-200">
                     Report {dueText(reportStatus)}
                   </button>
                 )}
@@ -457,7 +464,7 @@ export default function ProjectDetailPage() {
         {openTab === 'cashflow'  && cash && <CashflowTab  {...tabProps} cash={cash} />}
         {openTab === 'billing'   && <BillingTab   {...tabProps} billing={billing} />}
         {openTab === 'site'      && <SiteTab      {...tabProps} diary={diary} docs={docs} />}
-        {openTab === 'reports'   && <ReportsTab projectId={id} project={project} canManage={canManage} />}
+        {openTab === 'reports'   && <ReportsTab projectId={id} project={project} canManage={canManage} autoWrite={autoWrite} />}
         {openTab === 'notes'     && <ProjectNotesTab projectId={id} canManage={canManage} />}
 
         {clientLink && (
