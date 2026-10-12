@@ -387,6 +387,9 @@ export default function UsersPage() {
                 </optgroup>
               )}
             </select>
+            {userModal === 'edit' && (
+              <p className="form-hint">A new role takes effect straight away — their menu updates the next time they open or return to the app.</p>
+            )}
             {customRoles.length === 0 && (
               <p className="form-hint">No custom roles yet — <button type="button" className="text-[#0D3B6E] hover:underline" onClick={() => { setUserModal(null); setTab('roles'); }}>create one in the Roles tab</button>.</p>
             )}

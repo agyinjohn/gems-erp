@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import api, { apiCache } from './api';
 import { getLoginRedirect } from './productMode';
@@ -111,6 +111,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((res) => setBranches((res.data.data || []).map((b: any) => ({ id: b._id || b.id, name: b.name, slug: b.slug }))))
       .catch(() => setBranches([]));
   }, [isOrgLevel]);
+
+  // Role, permissions and branch can be changed by an administrator while this
+  // person is signed in. Re-read them from the server when the app opens and
+  // when the tab regains focus, so a change takes effect without logging out.
+  const hasUser = !!user;
+  const lastRefresh = useRef(0);
+  useEffect(() => {
+    if (!hasUser) return;
+    const refresh = () => {
+      if (Date.now() - lastRefresh.current < 30_000) return;
+      lastRefresh.current = Date.now();
+      api.get('/auth/me').then((res) => {
+        const { user: fresh, tenant: freshTenant, branch: freshBranch } = res.data.data || {};
+        if (!fresh) return;
+        const next = { ...fresh, id: fresh.id || fresh._id, permissions: fresh.permissions || [] };
+        localStorage.setItem('gems_user', JSON.stringify(next));
+        setUser(next);
+        if (freshTenant) {
+          const t = { ...freshTenant, removed_features: freshTenant.removed_features || [] };
+          localStorage.setItem('gems_tenant', JSON.stringify(t));
+          setTenant(t);
+        }
+        if (freshBranch) localStorage.setItem('gems_branch', JSON.stringify(freshBranch));
+        else localStorage.removeItem('gems_branch');
+        setBranch(freshBranch || null);
+      }).catch(() => { /* offline or signed out — the 401 handler deals with the latter */ });
+    };
+    refresh();
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, [hasUser]);
 
   // Switch active branch: persist, clear cached data (keyed on plain URLs),
   // and reload so every page refetches with the new scope.
