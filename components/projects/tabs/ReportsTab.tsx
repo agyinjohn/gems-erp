@@ -133,7 +133,10 @@ export default function ReportsTab({ projectId, canManage, autoWrite }: Props) {
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <span className="w-11 h-11 rounded-full bg-[#0D3B6E] text-white font-bold flex items-center justify-center flex-shrink-0">{lead ? initials(lead.name) : '?'}</span>
           <div className="min-w-0">
-            <div className="font-semibold text-gray-900 truncate">{lead ? lead.name : 'No project lead assigned'}</div>
+            <div className="font-semibold text-gray-900 truncate">
+              {lead ? lead.name : 'No project lead assigned'}
+              {!loading && !canReport && <span className="ml-2 text-xs font-normal text-gray-400">{lead ? 'Only the project lead submits reports' : 'Assign a lead in Edit to start reporting'}</span>}
+            </div>
             <div className="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
               <CalendarClock className="w-3.5 h-3.5" /> {FREQUENCY[status?.frequency || 'weekly']}
               <span>·</span> last report {ago(status?.last_report_at)}
