@@ -101,9 +101,21 @@ export default function ReportsTab({ projectId, canManage, autoWrite }: Props) {
       const fd = new FormData();
       fd.append('file', file);
       const r = await api.post(`/projects/${projectId}/reports/extract`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      const { title, text, truncated } = r.data.data;
-      setForm(f => ({ ...f, title: f.title || title, summary: text }));
-      toast.success(truncated ? 'Text loaded (shortened to fit) — review it before submitting' : 'Text loaded — review it before submitting');
+      const d = r.data.data;
+      setForm(f => ({
+        ...f,
+        title: f.title || d.title || '',
+        summary: d.summary ?? d.text ?? '',
+        issues: d.issues || f.issues,
+        next_steps: d.next_steps || f.next_steps,
+        progress_pct: d.progress_pct != null ? String(d.progress_pct) : f.progress_pct,
+        health: d.health || f.health,
+      }));
+      const filled = ['issues', 'next_steps', 'progress_pct', 'health'].filter(k => d[k] != null && d[k] !== '').length;
+      toast.success(
+        (d.sections_found || filled ? 'Report filled in from the document' : 'Text loaded into “What was done”')
+        + (d.truncated ? ' (shortened to fit)' : '') + ' — check it before submitting',
+      );
     } catch (e: any) { toast.error(e.response?.data?.message || 'Could not read that file'); }
     finally { setReading(false); }
   };
@@ -173,6 +185,10 @@ export default function ReportsTab({ projectId, canManage, autoWrite }: Props) {
             </div>
           </div>
 
+          <p className="text-xs text-gray-500 -mt-2">
+            Already wrote it in Word? Use <span className="font-semibold">Fill from a document</span> (.docx, PDF or .txt). Headings such as
+            “Issues”, “Risks” or “Next steps”, and lines like “Progress: 60%”, go straight into the matching boxes.
+          </p>
           <div>
             <label className="form-label">How is the project going?</label>
             <div className="grid grid-cols-3 gap-2">
