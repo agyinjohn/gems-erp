@@ -85,8 +85,6 @@ export default function ChatWidget() {
     return () => window.removeEventListener('resize', handleResize);
   }, [open]);
 
-  if (!user || user.role === 'platform_admin') return null;
-
   const initChat = async () => {
     if (convId) return;
     setLoading(true);
@@ -226,6 +224,8 @@ export default function ChatWidget() {
       };
     }
   }, [isDragging, dragStart, tempPosition, open]);
+
+  if (!user || user.role === 'platform_admin') return null;
 
   if (!open) {
     return (

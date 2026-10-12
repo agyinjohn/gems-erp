@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
 
   let name = 'GEMS Store';
   let shortName = 'Store';
-  let themeColor = '#0D3B6E';
+  const themeColor = '#0D3B6E';
 
   try {
     const res = await fetch(`${BASE}/storefront/${slug}/branches`, { next: { revalidate: 3600 } });
