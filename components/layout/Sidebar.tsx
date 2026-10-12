@@ -13,6 +13,7 @@ import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 import { ACCOUNTING_SECTIONS } from '@/lib/accountingNav';
 import { counterName } from '@/lib/counter';
 import { HR_SECTIONS } from '@/lib/hrNav';
+import { findPage, canAccessPage } from '@/lib/pagePermissions';
 
 /** Sidebar highlight — avoid parent /pos matching /pos/shifts */
 function isNavActive(pathname: string, href: string): boolean {
@@ -76,6 +77,12 @@ const navGroups = [
       { href: '/platform/support', label: 'Support Chat', icon: MessageCircle, roles: ['platform_admin'], permission: null },
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['business_owner', 'branch_manager', 'warehouse_staff', 'accountant', 'hr_manager', 'procurement_officer'], permission: 'dashboard.view' },
       { href: '/ess', label: 'My Portal', icon: UserCircle, roles: ['branch_manager', 'warehouse_staff', 'accountant', 'hr_manager', 'procurement_officer', 'employee'], permission: 'ess.view' },
+    ],
+  },
+  {
+    label: null,
+    items: [
+      { href: '/tasks', label: 'My Tasks', icon: CheckSquare, roles: ['business_owner', 'branch_manager', 'sales_staff', 'warehouse_staff', 'accountant', 'hr_manager', 'procurement_officer', 'employee', 'custom'], permission: null },
     ],
   },
   {
@@ -309,9 +316,9 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
             const seen = new Set<string>();
             const items = filterByProductMode(
               (navGroups.flatMap(g => g.items as NavItem[])).filter(item => {
-                if (!item.permission) return false;
                 if (seen.has(item.href)) return false;
-                if (!perms.includes(item.permission)) return false;
+                const page = findPage(item.href);
+                if (!page || page.href !== item.href || !canAccessPage(perms, page)) return false;
                 seen.add(item.href);
                 return true;
               }),

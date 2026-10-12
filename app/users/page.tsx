@@ -5,75 +5,17 @@ import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast } from '@/compo
 import { Plus, Edit2, UserX, Shield, Trash2, Download } from 'lucide-react';
 import api from '@/lib/api';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
+import { PAGE_CATALOG, ACTION_GROUPS, pageKey, effectivePageKeys, buildPermissions } from '@/lib/pagePermissions';
 
-// ── Permission definitions ────────────────────────────────────────────────────
-const PERMISSION_GROUPS = [
-  {
-    group: 'Dashboard',
-    perms: [{ key: 'dashboard.view', label: 'View Dashboard' }],
-  },
-  {
-    group: 'Inventory',
-    perms: [
-      { key: 'inventory.view',   label: 'View Inventory' },
-      { key: 'inventory.manage', label: 'Manage Inventory' },
-    ],
-  },
-  {
-    group: 'Sales & Orders',
-    perms: [
-      { key: 'orders.view',   label: 'View Orders' },
-      { key: 'orders.manage', label: 'Manage Orders' },
-      { key: 'pos.view',      label: 'POS Terminal' },
-    ],
-  },
-  {
-    group: 'Procurement',
-    perms: [
-      { key: 'procurement.view',    label: 'View Procurement' },
-      { key: 'procurement.manage',  label: 'Manage Procurement' },
-      { key: 'procurement.approve', label: 'Approve POs' },
-    ],
-  },
-  {
-    group: 'Accounting',
-    perms: [
-      { key: 'accounting.view',   label: 'View Accounting' },
-      { key: 'accounting.manage', label: 'Manage Accounting' },
-    ],
-  },
-  {
-    group: 'HR & Payroll',
-    perms: [
-      { key: 'hr.view',    label: 'View HR' },
-      { key: 'hr.manage',  label: 'Manage HR' },
-      { key: 'hr.payroll', label: 'Run Payroll' },
-    ],
-  },
-  {
-    group: 'CRM',
-    perms: [
-      { key: 'crm.view',   label: 'View CRM' },
-      { key: 'crm.manage', label: 'Manage CRM' },
-    ],
-  },
-  {
-    group: 'Reports',
-    perms: [{ key: 'reports.view', label: 'View Reports' }],
-  },
-  {
-    group: 'Settings',
-    perms: [
-      { key: 'branches.manage', label: 'Manage Branches' },
-      { key: 'users.manage',    label: 'Manage Users' },
-      { key: 'billing.view',    label: 'View Billing' },
-    ],
-  },
-  {
-    group: 'Self-Service',
-    perms: [{ key: 'ess.view', label: 'Employee Self-Service Portal' }],
-  },
-];
+// Pages grouped for the role builder (pages open to everyone are not offered).
+const PAGE_GROUPS = Object.entries(
+  PAGE_CATALOG.filter(p => !p.always).reduce<Record<string, typeof PAGE_CATALOG>>((acc, p) => { (acc[p.group] ||= []).push(p); return acc; }, {}),
+).map(([group, pages]) => ({ group, perms: pages.map(p => ({ key: pageKey(p.href), label: p.label })) }));
+const ACTION_BUILDER_GROUP = { group: 'Actions', title: 'Actions inside pages', perms: ACTION_GROUPS.flatMap(g => g.perms.map(p => ({ key: p.key, label: `${g.group}: ${p.label}` }))) };
+const BUILDER_GROUPS = [...PAGE_GROUPS.map(g => ({ ...g, title: g.group })), ACTION_BUILDER_GROUP];
+const ACTION_KEYS = ACTION_GROUPS.flatMap(g => g.perms.map(p => p.key));
+/** A stored role (old or new) -> the keys the builder shows ticked. */
+const toBuilder = (perms: string[]) => [...effectivePageKeys(perms), ...perms.filter(k => ACTION_KEYS.includes(k))];
 
 // ── Preset role templates ─────────────────────────────────────────────────────
 const ROLE_TEMPLATES = [
@@ -227,22 +169,29 @@ export default function UsersPage() {
   };
   const openEditRole = (r: any) => {
     setSelectedRole(r);
-    setRoleForm({ name: r.name, permissions: r.permissions || [] });
+    setRoleForm({ name: r.name, permissions: toBuilder(r.permissions || []) });
     setRoleModal('edit');
   };
   const importTemplate = (tpl: typeof ROLE_TEMPLATES[0]) => {
-    setRoleForm({ name: tpl.name, permissions: tpl.permissions });
+    setRoleForm({ name: tpl.name, permissions: toBuilder(tpl.permissions) });
     setRoleModal('add');
   };
   const saveRole = async () => {
     if (!roleForm.name.trim()) return toast.error('Role name is required');
     setRoleSaving(true);
     try {
+      const body = {
+        name: roleForm.name,
+        permissions: buildPermissions(
+          roleForm.permissions.filter(k => k.startsWith('page:')),
+          roleForm.permissions.filter(k => ACTION_KEYS.includes(k)),
+        ),
+      };
       if (roleModal === 'edit' && selectedRole) {
-        await api.put(`/roles/${selectedRole.id}`, roleForm);
+        await api.put(`/roles/${selectedRole.id}`, body);
         toast.success('Role updated');
       } else {
-        await api.post('/roles', roleForm);
+        await api.post('/roles', body);
         toast.success('Role created');
       }
       setRoleModal(null);
@@ -485,9 +434,10 @@ export default function UsersPage() {
           </div>
 
           <div>
-            <label className="form-label mb-3">Permissions</label>
+            <label className="form-label mb-1">Pages</label>
+            <p className="text-xs text-gray-400 mb-3">Choose exactly which pages this role can open. Tick a section to select all its pages.</p>
             <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
-              {PERMISSION_GROUPS.map(group => {
+              {BUILDER_GROUPS.map(group => {
                 const keys = group.perms.map(p => p.key);
                 const allOn = keys.every(k => roleForm.permissions.includes(k));
                 const someOn = keys.some(k => roleForm.permissions.includes(k));
@@ -498,7 +448,7 @@ export default function UsersPage() {
                       onClick={() => toggleGroup(keys)}
                       className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors"
                     >
-                      <span className="text-sm font-semibold text-gray-700">{group.group}</span>
+                      <span className="text-sm font-semibold text-gray-700">{group.title}</span>
                       <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${allOn ? 'bg-[#0D3B6E] border-[#0D3B6E]' : someOn ? 'bg-[#0D3B6E]/20 border-[#0D3B6E]/40' : 'border-gray-300'}`}>
                         {allOn && <span className="text-white text-xs">✓</span>}
                         {someOn && !allOn && <span className="text-[#0D3B6E] text-xs">–</span>}
@@ -524,7 +474,7 @@ export default function UsersPage() {
           </div>
 
           <div className="text-xs text-gray-400 pt-1">
-            {roleForm.permissions.length} permission{roleForm.permissions.length !== 1 ? 's' : ''} selected
+            {roleForm.permissions.length} item{roleForm.permissions.length !== 1 ? 's' : ''} selected
           </div>
         </div>
         <div className="flex gap-3 justify-end mt-6">
