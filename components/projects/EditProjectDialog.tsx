@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import LeadSelect from './LeadSelect';
 import { toast } from '@/components/ui';
 import { X, AlertTriangle } from 'lucide-react';
 import type { ProjectTypeProfile } from '@/lib/projectTypes';
@@ -46,6 +47,7 @@ export default function EditProjectDialog({ project, types, onClose, onSaved }: 
     planned_end_date: dateValue(project.planned_end_date),
     actual_end_date: dateValue(project.actual_end_date),
     site_address: project.site_address || '',
+    manager_id: project.manager_id?._id || project.manager_id || '',
     status: project.status || 'draft',
   });
 
@@ -72,6 +74,7 @@ export default function EditProjectDialog({ project, types, onClose, onSaved }: 
         defects_liability_days: parseInt(form.defects_liability_days) || 0,
         working_hours_per_day: parseInt(form.working_hours_per_day) || 8,
         customer_id: form.customer_id || '',
+        manager_id: form.manager_id || null,
         start_date: form.start_date || null,
         planned_end_date: form.planned_end_date || null,
         actual_end_date: form.actual_end_date || null,
@@ -180,6 +183,10 @@ export default function EditProjectDialog({ project, types, onClose, onSaved }: 
                 <input type="number" min={0} className="form-input" value={form.defects_liability_days} onChange={e => set('defects_liability_days', e.target.value)} />
               </div>
             )}
+
+            <div className="sm:col-span-2">
+              <LeadSelect value={form.manager_id} onChange={v => set('manager_id', v)} />
+            </div>
 
             <div>
               <label className="form-label">Start date</label>

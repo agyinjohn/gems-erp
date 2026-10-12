@@ -1,10 +1,30 @@
 'use client';
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Modal, Badge, EmptyState, Spinner, toast } from '@/components/ui';
-import { Plus, Search, User, TrendingUp, MessageSquare, ArrowRight, Target, Users, Phone, Mail, MessageCircle, Video } from 'lucide-react';
+import { Modal, Badge, EmptyState, Spinner, ConfirmDialog, toast } from '@/components/ui';
+import { Plus, Search, User, TrendingUp, MessageSquare, ArrowRight, Target, Users, Phone, Mail, MessageCircle, Video, Upload, Download, Edit2, Trash2, Send } from 'lucide-react';
 import api, { apiCache } from '@/lib/api';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
+
+const CSV_FIELDS = ['name','email','phone','company','address','segment','notes'] as const;
+const CSV_TEMPLATE = 'name,email,phone,company,address,segment,notes\nAma Mensah,ama@example.com,0244000000,Mensah Ltd,Accra,general,Prefers WhatsApp\n';
+
+// Minimal RFC-4180 parser: quoted fields, escaped quotes, commas/newlines inside quotes.
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = []; let row: string[] = []; let cell = ''; let q = false;
+  const src = text.replace(/^\uFEFF/, '');
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (q) {
+      if (ch === '"') { if (src[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && src[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += ch;
+  }
+  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim() !== ''));
+}
 
 const STAGES = ['new','contacted','qualified','proposal','negotiation','won','lost'];
 const STAGE_COLORS: Record<string,string> = {
@@ -19,13 +39,21 @@ export default function CRMPage() {
   const [users, setUsers] = useState<any[]>(() => apiCache.get('/users') || []);
   const [contacts, setContacts] = useState<any[]>(() => apiCache.get('/contact-history') || []);
   const [loading, setLoading] = useState(() => !apiCache.get('/customers'));
-  const [modal, setModal] = useState<'add_customer'|'add_lead'|'add_contact'|'convert_lead'|null>(null);
+  const [modal, setModal] = useState<'add_customer'|'edit_customer'|'import_customers'|'sms_customers'|'add_lead'|'add_contact'|'convert_lead'|null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [filterStage, setFilterStage] = useState('');
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [products, setProducts] = useState<any[]>(() => apiCache.get('/products?is_active=true') || []);
+
+  const [selected, setSelected] = useState<string[]>([]);
+  const [editingId, setEditingId] = useState<string|null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string[]|null>(null);
+  const [importRows, setImportRows] = useState<Record<string,string>[]>([]);
+  const [importResult, setImportResult] = useState<{imported:number;skipped:number;errors:{row:number;message:string}[]}|null>(null);
+  const [smsBody, setSmsBody] = useState('');
+  const [smsTargets, setSmsTargets] = useState<any[]>([]);
 
   const [custForm, setCustForm] = useState({ name:'', email:'', phone:'', company:'', address:'', segment:'general', notes:'' });
   const [leadForm, setLeadForm] = useState({ customer_id:'', title:'', stage:'new', value:'', assigned_to:'', notes:'', next_followup:'' });
@@ -73,8 +101,73 @@ export default function CRMPage() {
 
   const saveCustomer = async () => {
     setSaving(true); setError('');
-    try { await api.post('/customers', custForm); apiCache.invalidate('/customers'); setModal(null); load(); }
+    try {
+      if (modal === 'edit_customer' && editingId) await api.put(`/customers/${editingId}`, custForm);
+      else await api.post('/customers', custForm);
+      apiCache.invalidate('/customers'); setModal(null); load();
+      toast.success(modal === 'edit_customer' ? 'Customer updated' : 'Customer added');
+    }
     catch(e:any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
+    finally { setSaving(false); }
+  };
+
+  const openEditCustomer = (c: any) => {
+    setEditingId(c.id);
+    setCustForm({ name:c.name||'', email:c.email||'', phone:c.phone||'', company:c.company||'', address:c.address||'', segment:c.segment||'general', notes:c.notes||'' });
+    setError(''); setModal('edit_customer');
+  };
+
+  const deleteCustomers = async (ids: string[]) => {
+    try {
+      if (ids.length === 1) await api.delete(`/customers/${ids[0]}`);
+      else await api.post('/customers/bulk-delete', { ids });
+      toast.success(`${ids.length} customer${ids.length>1?'s':''} deleted`);
+      setSelected(sel => sel.filter(id => !ids.includes(id)));
+      apiCache.invalidate('/customers'); load(true);
+    } catch(e:any) { toast.error(e.response?.data?.message || 'Could not delete'); }
+  };
+
+  const downloadTemplate = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([CSV_TEMPLATE], { type: 'text/csv' }));
+    a.download = 'customers-template.csv'; a.click();
+  };
+
+  const onCsvFile = async (file?: File) => {
+    if (!file) return;
+    const rows = parseCsv(await file.text());
+    if (rows.length < 2) { toast.error('The file has no data rows'); return; }
+    const header = rows[0].map(h => h.trim().toLowerCase());
+    if (!header.includes('name')) { toast.error('The first row must be a header containing a "name" column'); return; }
+    setImportRows(rows.slice(1).map(r => Object.fromEntries(CSV_FIELDS.map(f => [f, (r[header.indexOf(f)] ?? '').trim()]))));
+    setImportResult(null);
+  };
+
+  const submitImport = async () => {
+    setSaving(true);
+    try {
+      const r = await api.post('/customers/bulk', { customers: importRows });
+      setImportResult(r.data.data);
+      if (r.data.data.imported) { apiCache.invalidate('/customers'); load(true); }
+      setImportRows([]);
+    } catch(e:any) { toast.error(e.response?.data?.message || 'Import failed'); }
+    finally { setSaving(false); }
+  };
+
+  const openSms = (targets: any[]) => {
+    const withPhone = targets.filter(c => c.phone);
+    if (!withPhone.length) { toast.error('None of the selected customers has a phone number'); return; }
+    setSmsTargets(withPhone); setSmsBody(''); setModal('sms_customers');
+  };
+
+  const sendSms = async () => {
+    setSaving(true);
+    try {
+      const r = await api.post('/sms/campaign', { recipients: smsTargets.map(c => c.phone), body: smsBody, name: 'CRM' });
+      const { sent, failed } = r.data.data;
+      if (sent) toast.success(`SMS sent to ${sent}${failed ? `, ${failed} failed` : ''}`); else toast.error('No messages were sent — check your SMS credits');
+      setModal(null); setSelected([]);
+    } catch(e:any) { toast.error(e.response?.data?.message || 'Could not send SMS'); }
     finally { setSaving(false); }
   };
 
@@ -143,6 +236,7 @@ export default function CRMPage() {
           <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 w-full sm:w-auto ${tab===t?'bg-[#0D3B6E] text-white':'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>{icon}{l}</button>
         ))}
         <div className="sm:ml-auto flex gap-2 w-full sm:w-auto">
+          {tab==='customers' && <button className="btn-secondary w-full sm:w-auto" onClick={() => { setImportRows([]); setImportResult(null); setModal('import_customers'); }}><Upload className="w-4 h-4"/>Import CSV</button>}
           {tab==='customers' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setCustForm({name:'',email:'',phone:'',company:'',address:'',segment:'general',notes:''}); setError(''); setModal('add_customer'); }}><Plus className="w-4 h-4"/>Add Customer</button>}
           {tab==='leads' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setLeadForm({customer_id:'',title:'',stage:'new',value:'',assigned_to:'',notes:'',next_followup:''}); setError(''); setModal('add_lead'); }}><Plus className="w-4 h-4"/>Add Lead</button>}
           {tab==='contacts' && <button className="btn-primary w-full sm:w-auto" onClick={() => { setContactForm({customer_id:'',type:'call',notes:'',contact_date:new Date().toISOString().split('T')[0],subject:''}); setError(''); setModal('add_contact'); }}><MessageSquare className="w-4 h-4"/>Log Contact</button>}
@@ -182,19 +276,33 @@ export default function CRMPage() {
       )}
 
       {/* Customers Table */}
+      {tab==='customers' && selected.length>0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-3 bg-[#0D3B6E]/5 border border-[#0D3B6E]/20 rounded-lg px-3 py-2 text-sm">
+          <span className="font-medium text-[#0D3B6E]">{selected.length} selected</span>
+          <button className="btn-secondary ml-auto" onClick={() => setSelected(filteredCustomers.length===selected.length ? [] : filteredCustomers.map(c => c.id))}>{filteredCustomers.length===selected.length?'Clear':'Select all'}</button>
+          <button className="btn-secondary" onClick={() => openSms(customers.filter(c => selected.includes(c.id)))}><Send className="w-4 h-4"/>Send SMS</button>
+          <button className="btn-danger" onClick={() => setConfirmDelete(selected)}><Trash2 className="w-4 h-4"/>Delete</button>
+        </div>
+      )}
       {tab==='customers' && (
         <div className="card p-0 overflow-hidden">
           {loading ? <Spinner /> : filteredCustomers.length===0 ? <EmptyState message="No customers yet" icon={<Users className="w-8 h-8 text-gray-300"/>} /> : (
             <ResponsiveTable
-              headers={['Name','Company','Email','Phone','Segment','Since']}
+              headers={[' ','Name','Company','Email','Phone','Segment','Since','Actions']}
               data={filteredCustomers}
               renderRow={(c) => [
+                <input type="checkbox" className="w-4 h-4" checked={selected.includes(c.id)} onChange={() => setSelected(sel => sel.includes(c.id) ? sel.filter(i => i!==c.id) : [...sel, c.id])} aria-label={`Select ${c.name}`} />,
                 <span className="font-medium">{c.name}</span>,
                 <span className="text-gray-500">{c.company||'—'}</span>,
                 <span className="text-gray-500">{c.email||'—'}</span>,
                 <span className="text-gray-500">{c.phone||'—'}</span>,
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#0D3B6E]/8 text-[#0D3B6E] capitalize">{c.segment}</span>,
-                <span className="text-gray-400 text-xs">{new Date(c.created_at).toLocaleDateString()}</span>
+                <span className="text-gray-400 text-xs">{new Date(c.created_at).toLocaleDateString()}</span>,
+                <div className="flex gap-1 justify-end">
+                  <button title="Send SMS" onClick={() => openSms([c])} className="p-1.5 hover:bg-green-50 rounded text-green-600"><MessageCircle className="w-4 h-4"/></button>
+                  <button title="Edit" onClick={() => openEditCustomer(c)} className="p-1.5 hover:bg-gray-100 rounded text-[#0D3B6E]"><Edit2 className="w-4 h-4"/></button>
+                  <button title="Delete" onClick={() => setConfirmDelete([c.id])} className="p-1.5 hover:bg-red-50 rounded text-red-600"><Trash2 className="w-4 h-4"/></button>
+                </div>
               ]}
             />
           )}
@@ -321,7 +429,62 @@ export default function CRMPage() {
       </Modal>
 
       {/* Add Customer Modal */}
-      <Modal open={modal==='add_customer'} onClose={() => setModal(null)} title="Add Customer" size="md">
+      {/* Import CSV Modal */}
+      <Modal open={modal==='import_customers'} onClose={() => setModal(null)} title="Import Customers from CSV" size="md">
+        <div className="space-y-4 text-sm">
+          <p className="text-gray-600">Upload a CSV with a header row. Columns: <code>name</code> (required), email, phone, company, address, segment, notes.</p>
+          <button className="btn-secondary" onClick={downloadTemplate}><Download className="w-4 h-4"/>Download template</button>
+          <input type="file" accept=".csv,text/csv" className="form-input" onChange={e => onCsvFile(e.target.files?.[0])} />
+          {importRows.length>0 && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <div className="font-medium mb-1">{importRows.length} row{importRows.length>1?'s':''} ready to import</div>
+              <ul className="text-xs text-gray-500 space-y-0.5">
+                {importRows.slice(0,5).map((r,i) => <li key={i}>{r.name||'(no name)'} · {r.phone||r.email||'—'}</li>)}
+                {importRows.length>5 && <li>…and {importRows.length-5} more</li>}
+              </ul>
+            </div>
+          )}
+          {importResult && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <div className="font-medium text-green-700">{importResult.imported} imported{importResult.skipped ? `, ${importResult.skipped} skipped` : ''}</div>
+              {importResult.errors.length>0 && (
+                <ul className="text-xs text-red-600 mt-2 max-h-40 overflow-y-auto space-y-0.5">
+                  {importResult.errors.slice(0,50).map(e => <li key={e.row}>Row {e.row}: {e.message}</li>)}
+                  {importResult.errors.length>50 && <li>…and {importResult.errors.length-50} more</li>}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-3 justify-end mt-6">
+          <button className="btn-secondary" onClick={() => setModal(null)}>{importResult?'Close':'Cancel'}</button>
+          <button className="btn-primary" onClick={submitImport} disabled={saving||importRows.length===0}>{saving?'Importing…':'Import'}</button>
+        </div>
+      </Modal>
+
+      {/* SMS Modal */}
+      <Modal open={modal==='sms_customers'} onClose={() => setModal(null)} title={`Send SMS to ${smsTargets.length} customer${smsTargets.length>1?'s':''}`} size="md">
+        <div className="space-y-3">
+          <p className="text-xs text-gray-500 truncate">{smsTargets.slice(0,5).map(c => c.name).join(', ')}{smsTargets.length>5?` +${smsTargets.length-5} more`:''}</p>
+          <textarea className="form-input" rows={5} maxLength={612} placeholder="Type your message…" value={smsBody} onChange={e => setSmsBody(e.target.value)} />
+          <p className="form-hint">{smsBody.length} characters · uses your SMS credits (one per message part, per recipient). Customers without a phone number are left out.</p>
+        </div>
+        <div className="flex gap-3 justify-end mt-6">
+          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+          <button className="btn-primary" onClick={sendSms} disabled={saving||!smsBody.trim()}>{saving?'Sending…':'Send'}</button>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => confirmDelete && deleteCustomers(confirmDelete)}
+        title="Delete customers"
+        message={`Delete ${confirmDelete?.length||0} customer${(confirmDelete?.length||0)>1?'s':''}? This cannot be undone.`}
+        danger
+      />
+
+      <Modal open={modal==='add_customer'||modal==='edit_customer'} onClose={() => setModal(null)} title={modal==='edit_customer'?'Edit Customer':'Add Customer'} size="md">
         {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
         <div className="space-y-3">
           <div><label className="form-label">Name *</label><input className="form-input" value={custForm.name} onChange={e => setCustForm({...custForm,name:e.target.value})} /></div>

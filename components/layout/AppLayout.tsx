@@ -1,4 +1,5 @@
 'use client';
+import { findPage, canAccessPage, PAGE_CATALOG } from '@/lib/pagePermissions';
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
@@ -94,7 +95,18 @@ export default function AppLayout({ children, title, subtitle, allowedRoles }: P
   useEffect(() => {
     if (loading) return;
     if (!user) { router.replace('/login'); return; }
-    if (allowedRoles && !allowedRoles.includes(user.role) && user.role !== 'business_owner') {
+    if (user.role === 'custom') {
+      // A custom role is judged page by page; pages outside the catalog keep
+      // the old rule (open only if the page lists 'custom').
+      const perms = user.permissions || [];
+      const page = findPage(pathname);
+      const ok = page ? canAccessPage(perms, page) : (!allowedRoles || allowedRoles.includes('custom'));
+      if (!ok) {
+        const first = PAGE_CATALOG.find(p => canAccessPage(perms, p));
+        router.replace(first && first.href !== pathname ? first.href : '/tasks');
+        return;
+      }
+    } else if (allowedRoles && !allowedRoles.includes(user.role) && user.role !== 'business_owner') {
       router.replace(user.role === 'platform_admin' ? '/platform' : user.role === 'employee' ? '/ess' : '/dashboard');
       return;
     }

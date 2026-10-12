@@ -13,6 +13,7 @@ import { isNavAllowed, PRODUCT_MODE, PRODUCT_LABELS } from '@/lib/productMode';
 import { ACCOUNTING_SECTIONS } from '@/lib/accountingNav';
 import { counterName } from '@/lib/counter';
 import { HR_SECTIONS } from '@/lib/hrNav';
+import { findPage, canAccessPage } from '@/lib/pagePermissions';
 
 /** Sidebar highlight — avoid parent /pos matching /pos/shifts */
 function isNavActive(pathname: string, href: string): boolean {
@@ -79,6 +80,12 @@ const navGroups = [
     ],
   },
   {
+    label: null,
+    items: [
+      { href: '/tasks', label: 'My Tasks', icon: CheckSquare, roles: ['business_owner', 'branch_manager', 'sales_staff', 'warehouse_staff', 'accountant', 'hr_manager', 'procurement_officer', 'employee', 'custom'], permission: null },
+    ],
+  },
+  {
     label: 'Sales',
     items: [
       { href: '/pos', label: 'Sales Counter / POS Terminal', icon: Monitor, roles: ['sales_staff'], permission: 'pos.view' },
@@ -111,7 +118,7 @@ const navGroups = [
     items: [
       { href: '/jobs', label: 'Jobs', icon: Hammer, roles: ['business_owner', 'branch_manager', 'sales_staff', 'accountant'], permission: null },
       { href: '/contracts', label: 'Contracts', icon: FileSignature, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
-      { href: '/projects', label: 'Projects', icon: Briefcase, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
+      { href: '/projects', label: 'Projects', icon: Briefcase, roles: ['business_owner', 'branch_manager', 'accountant', 'sales_staff', 'warehouse_staff', 'hr_manager', 'procurement_officer', 'employee', 'custom'], permission: null },
       { href: '/service-requests', label: 'Service requests', icon: ClipboardList, roles: ['business_owner', 'branch_manager', 'sales_staff'], permission: null },
       { href: '/labour', label: 'Labour', icon: HardHat, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
       { href: '/crm', label: 'Customers', icon: UserCheck, roles: ['business_owner', 'branch_manager'], permission: 'crm.view' },
@@ -309,9 +316,9 @@ export default function Sidebar({ open, onClose, collapsed }: Props) {
             const seen = new Set<string>();
             const items = filterByProductMode(
               (navGroups.flatMap(g => g.items as NavItem[])).filter(item => {
-                if (!item.permission) return false;
                 if (seen.has(item.href)) return false;
-                if (!perms.includes(item.permission)) return false;
+                const page = findPage(item.href);
+                if (!page || page.href !== item.href || !canAccessPage(perms, page)) return false;
                 seen.add(item.href);
                 return true;
               }),

@@ -29,8 +29,9 @@ import CashflowTab from '@/components/projects/tabs/CashflowTab';
 import BillingTab from '@/components/projects/tabs/BillingTab';
 import SiteTab from '@/components/projects/tabs/SiteTab';
 import ProjectNotesTab from '@/components/projects/tabs/ProjectNotesTab';
+import ReportsTab from '@/components/projects/tabs/ReportsTab';
 
-type TabKey = 'progress' | 'programme' | 'claims' | 'money' | 'cashflow' | 'billing' | 'site' | 'notes';
+type TabKey = 'progress' | 'programme' | 'claims' | 'money' | 'cashflow' | 'billing' | 'site' | 'notes' | 'reports';
 
 /**
  * The project detail page.
@@ -240,7 +241,7 @@ export default function ProjectDetailPage() {
     <AppLayout
       title={project.name}
       subtitle={`${project.code}${project.customer_name ? ` · ${project.customer_name}` : ''}`}
-      allowedRoles={['platform_admin', 'business_owner', 'branch_manager', 'accountant']}
+      allowedRoles={['platform_admin', 'business_owner', 'branch_manager', 'accountant', 'sales_staff', 'warehouse_staff', 'hr_manager', 'procurement_officer', 'employee', 'custom']}
     >
       <div className="space-y-5">
 
@@ -394,13 +395,14 @@ export default function ProjectDetailPage() {
         <div className="flex gap-0 border-b border-gray-200 overflow-x-auto">
           {([
             { key: 'progress',  label: 'Progress',   show: true },
-            { key: 'programme', label: 'Programme',  show: cap.programme },
-            { key: 'claims',    label: 'Time claims', show: cap.time_claims },
-            { key: 'money',     label: 'Money',      show: true },
-            { key: 'cashflow',  label: 'Cash flow',  show: true },
-            { key: 'billing',   label: 'Billing',    show: true },
+            { key: 'reports',   label: 'Reports',    show: true },
+            { key: 'programme', label: 'Programme',  show: canManage && cap.programme },
+            { key: 'claims',    label: 'Time claims', show: canManage && cap.time_claims },
+            { key: 'money',     label: 'Money',      show: canManage },
+            { key: 'cashflow',  label: 'Cash flow',  show: canManage },
+            { key: 'billing',   label: 'Billing',    show: canManage },
             { key: 'site',      label: term.site_tab, show: true },
-            { key: 'notes',     label: 'Notes',        show: true },
+            { key: 'notes',     label: 'Notes',        show: canManage },
           ] as const).filter(t => t.show).map(t => (
             <button
               key={t.key}
@@ -422,6 +424,7 @@ export default function ProjectDetailPage() {
         {openTab === 'cashflow'  && <CashflowTab  {...tabProps} cash={cash} />}
         {openTab === 'billing'   && <BillingTab   {...tabProps} billing={billing} />}
         {openTab === 'site'      && <SiteTab      {...tabProps} diary={diary} docs={docs} />}
+        {openTab === 'reports'   && <ReportsTab projectId={id} project={project} canManage={canManage} />}
         {openTab === 'notes'     && <ProjectNotesTab projectId={id} canManage={canManage} />}
 
         {clientLink && (
