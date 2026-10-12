@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { toast } from '@/components/ui';
-import { Send, Trash2 } from 'lucide-react';
+import { Send, Trash2, FileUp } from 'lucide-react';
 
 interface Report {
   id: string;
@@ -64,6 +64,24 @@ export default function ReportsTab({ projectId, canManage }: Props) {
     }
   };
 
+  const [reading, setReading] = useState(false);
+  const fromFile = async (file?: File) => {
+    if (!file) return;
+    setReading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await api.post(`/projects/${projectId}/reports/extract`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const { title, text, truncated } = r.data.data;
+      setForm(f => ({ ...f, title: f.title || title, summary: text }));
+      toast.success(truncated ? 'Text loaded (shortened to fit) — review it before submitting' : 'Text loaded — review it before submitting');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not read that file');
+    } finally {
+      setReading(false);
+    }
+  };
+
   const remove = async (id: string) => {
     if (!window.confirm('Delete this report?')) return;
     try {
@@ -80,7 +98,15 @@ export default function ReportsTab({ projectId, canManage }: Props) {
     <div className="space-y-4">
       {canReport && (
         <div className="card space-y-3">
-          <h3 className="font-bold text-gray-900 text-sm">New progress report</h3>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="font-bold text-gray-900 text-sm">New progress report</h3>
+            <label className={`btn-secondary cursor-pointer ${reading ? 'opacity-60 pointer-events-none' : ''}`}>
+              <FileUp className="w-4 h-4" /> {reading ? 'Reading…' : 'Fill from a document'}
+              <input type="file" className="hidden" accept=".docx,.pdf,.txt,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={e => { fromFile(e.target.files?.[0]); e.target.value = ''; }} />
+            </label>
+          </div>
+          <p className="text-xs text-gray-400">Upload a Word, PDF or text file and its text fills the summary below. Edit it, then submit.</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
               <label className="form-label">Title *</label>
