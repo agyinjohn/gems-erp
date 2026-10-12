@@ -5,6 +5,8 @@ import AppLayout from '@/components/layout/AppLayout';
 import api from '@/lib/api';
 import { loadProjectTypes, FALLBACK, type ProjectTypeProfile } from '@/lib/projectTypes';
 import { toast } from '@/components/ui';
+import { useAuth } from '@/lib/auth';
+import LeadSelect from '@/components/projects/LeadSelect';
 import {
   Plus, RefreshCw, Briefcase, AlertTriangle, Search,
   X, Calendar, MapPin, User, ChevronRight, Clock3, FileText,
@@ -26,7 +28,7 @@ interface Project {
   planned_end_date?: string;
   is_overdue?: boolean;
   site_address?: string;
-  manager_id?: { name: string } | null;
+  manager_id?: { _id?: string; name: string } | null;
   project_type?: string;
 }
 
@@ -45,10 +47,12 @@ const money = (n: number, c = 'GHS') =>
 const EMPTY_FORM = {
   name: '', customer_id: '', project_type: 'construction',
   contract_value: '', retention_pct: '', payment_terms_days: '30',
-  start_date: '', planned_end_date: '', site_address: '', description: '',
+  start_date: '', planned_end_date: '', site_address: '', description: '', manager_id: '',
 };
 
 export default function ProjectsPage() {
+  const { user } = useAuth();
+  const canManage = ['business_owner', 'platform_admin', 'branch_manager', 'accountant'].includes(user?.role || '');
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
   const [typeProfiles, setTypeProfiles] = useState<ProjectTypeProfile[]>([FALLBACK]);
@@ -63,7 +67,7 @@ export default function ProjectsPage() {
   const updateStatus = async (projectId: string, newStatus: string) => {
     setChangingStatus(projectId);
     try {
-      await api.patch(`/projects/${projectId}`, { status: newStatus });
+      await api.put(`/projects/${projectId}`, { status: newStatus });
       setProjects(ps => ps.map(p => (p.id === projectId || p._id === projectId) ? { ...p, status: newStatus } : p));
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Could not update status');
@@ -113,6 +117,7 @@ export default function ProjectsPage() {
         payment_terms_days: parseInt(form.payment_terms_days) || 0,
         project_type: form.project_type,
         customer_id: form.customer_id || undefined,
+        manager_id: form.manager_id || undefined,
         start_date: form.start_date || undefined,
         planned_end_date: form.planned_end_date || undefined,
       });
@@ -136,7 +141,7 @@ export default function ProjectsPage() {
     <AppLayout
       title="Projects"
       subtitle="Track contract work from award to completion"
-      allowedRoles={['platform_admin', 'business_owner', 'branch_manager', 'accountant']}
+      allowedRoles={['platform_admin', 'business_owner', 'branch_manager', 'accountant', 'sales_staff', 'warehouse_staff', 'hr_manager', 'procurement_officer', 'employee', 'custom']}
     >
       <div className="space-y-5">
 
@@ -180,9 +185,11 @@ export default function ProjectsPage() {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
-          <button type="button" onClick={() => setShowAdd(v => !v)} className="btn-primary">
-            <Plus className="w-4 h-4" /> New project
-          </button>
+          {canManage && (
+            <button type="button" onClick={() => setShowAdd(v => !v)} className="btn-primary">
+              <Plus className="w-4 h-4" /> New project
+            </button>
+          )}
         </div>
 
         {/* New project modal */}
@@ -237,6 +244,9 @@ export default function ProjectsPage() {
                     <option value="">Not linked</option>
                     {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <LeadSelect value={form.manager_id} onChange={v => setForm(f => ({ ...f, manager_id: v }))} />
                 </div>
                 <div>
                   <label className="form-label">Contract value (GH₵)</label>
@@ -350,6 +360,9 @@ export default function ProjectsPage() {
                         <p className="text-xs text-gray-500 truncate mt-0.5 flex items-center gap-1">
                           <User className="w-3 h-3 flex-shrink-0" /> {p.customer_name}
                         </p>
+                      )}
+                      {p.manager_id?.name && (
+                        <p className="text-xs text-gray-500 truncate mt-0.5">Lead: {p.manager_id.name}</p>
                       )}
                     </div>
                     <span className={`badge ${PROJECT_STATUS_STYLE[p.status] || PROJECT_STATUS_STYLE.draft} flex-shrink-0 gap-1`}>

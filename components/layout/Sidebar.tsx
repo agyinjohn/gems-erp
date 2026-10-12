@@ -111,7 +111,7 @@ const navGroups = [
     items: [
       { href: '/jobs', label: 'Jobs', icon: Hammer, roles: ['business_owner', 'branch_manager', 'sales_staff', 'accountant'], permission: null },
       { href: '/contracts', label: 'Contracts', icon: FileSignature, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
-      { href: '/projects', label: 'Projects', icon: Briefcase, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
+      { href: '/projects', label: 'Projects', icon: Briefcase, roles: ['business_owner', 'branch_manager', 'accountant', 'sales_staff', 'warehouse_staff', 'hr_manager', 'procurement_officer', 'employee', 'custom'], permission: null },
       { href: '/service-requests', label: 'Service requests', icon: ClipboardList, roles: ['business_owner', 'branch_manager', 'sales_staff'], permission: null },
       { href: '/labour', label: 'Labour', icon: HardHat, roles: ['business_owner', 'branch_manager', 'accountant'], permission: null },
       { href: '/crm', label: 'Customers', icon: UserCheck, roles: ['business_owner', 'branch_manager'], permission: 'crm.view' },

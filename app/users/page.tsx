@@ -130,8 +130,9 @@ export default function UsersPage() {
   const [userSaving, setUserSaving] = useState(false);
   const [userForm, setUserForm] = useState({
     name: '', email: '', password: '', role: 'custom', custom_role_id: '',
-    branch_id: '', is_active: true, job_title: '', gross_salary: '', department_id: '',
+    branch_id: '', is_active: true, job_title: '', gross_salary: '', department_id: '', employee_id: '',
   });
+  const [unlinkedEmployees, setUnlinkedEmployees] = useState<any[]>([]);
 
   // ── Roles state ──
   const [rolesLoading, setRolesLoading] = useState(false);
@@ -167,8 +168,18 @@ export default function UsersPage() {
 
   // ── User actions ──
   const openAddUser = () => {
-    setUserForm({ name: '', email: '', password: '', role: 'sales_staff', custom_role_id: '', branch_id: '', is_active: true, job_title: '', gross_salary: '', department_id: '' });
+    setUserForm({ name: '', email: '', password: '', role: 'sales_staff', custom_role_id: '', branch_id: '', is_active: true, job_title: '', gross_salary: '', department_id: '', employee_id: '' });
+    api.get('/users/unlinked-employees').then(r => setUnlinkedEmployees(r.data.data || [])).catch(() => setUnlinkedEmployees([]));
     setUserModal('add');
+  };
+  // Picking an existing employee fills in their details; clearing it goes back to a brand-new person.
+  const pickEmployee = (id: string) => {
+    const emp = unlinkedEmployees.find(e => e.id === id);
+    if (!emp) { setUserForm({ ...userForm, employee_id: '', name: '', email: '' }); return; }
+    setUserForm({
+      ...userForm, employee_id: id, name: emp.name, email: emp.email || '',
+      branch_id: emp.branch_id?._id || emp.branch_id || userForm.branch_id,
+    });
   };
   const openEditUser = (u: any) => {
     setSelectedUser(u);
@@ -180,7 +191,7 @@ export default function UsersPage() {
       name: u.name, email: u.email, password: '', role: roleValue,
       custom_role_id: '',
       branch_id: u.branch_id?._id || u.branch_id || '',
-      is_active: u.is_active, job_title: '', gross_salary: '', department_id: '',
+      is_active: u.is_active, job_title: '', gross_salary: '', department_id: '', employee_id: '',
     });
     setUserModal('edit');
   };
@@ -398,7 +409,17 @@ export default function UsersPage() {
       {/* ── USER MODAL ── */}
       <Modal open={!!userModal} onClose={() => setUserModal(null)} title={userModal === 'add' ? 'Add User' : 'Edit User'} size="md">
         <div className="space-y-3">
-          <div><label className="form-label">Full Name *</label><input className="form-input" value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })} /></div>
+          {userModal === 'add' && (
+            <div>
+              <label className="form-label">Existing Employee <span className="text-gray-400 font-normal">(optional)</span></label>
+              <select className="form-input" value={userForm.employee_id} onChange={e => pickEmployee(e.target.value)}>
+                <option value="">New person — enter details below</option>
+                {unlinkedEmployees.map(e => <option key={e.id} value={e.id}>{e.name}{e.job_title ? ` — ${e.job_title}` : ''}{e.employee_code ? ` (${e.employee_code})` : ''}</option>)}
+              </select>
+              <p className="form-hint">Employees without a login. Choosing one links the new account to their record instead of creating a duplicate.</p>
+            </div>
+          )}
+          <div><label className="form-label">Full Name *</label><input className="form-input" disabled={!!userForm.employee_id} value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })} /></div>
           <div><label className="form-label">Email *</label><input type="email" className="form-input" value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} /></div>
           {userModal === 'add' && <div><label className="form-label">Password *</label><input type="password" className="form-input" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} placeholder="Min 6 characters" /></div>}
 
@@ -427,7 +448,7 @@ export default function UsersPage() {
             </select>
           </div>
 
-          {userModal === 'add' && (
+          {userModal === 'add' && !userForm.employee_id && (
             <div className="border-t border-gray-100 pt-3 space-y-3">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Employee Details</p>
               <div><label className="form-label">Job Title</label><input className="form-input" placeholder="e.g. Sales Executive" value={userForm.job_title} onChange={e => setUserForm({ ...userForm, job_title: e.target.value })} /></div>
