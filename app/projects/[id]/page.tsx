@@ -30,8 +30,10 @@ import BillingTab from '@/components/projects/tabs/BillingTab';
 import SiteTab from '@/components/projects/tabs/SiteTab';
 import ProjectNotesTab from '@/components/projects/tabs/ProjectNotesTab';
 import ReportsTab from '@/components/projects/tabs/ReportsTab';
+import OverviewTab from '@/components/projects/tabs/OverviewTab';
+import { HEALTH, dueText, type ReportStatus } from '@/components/projects/reporting';
 
-type TabKey = 'progress' | 'programme' | 'claims' | 'money' | 'cashflow' | 'billing' | 'site' | 'notes' | 'reports';
+type TabKey = 'overview' | 'progress' | 'programme' | 'claims' | 'money' | 'cashflow' | 'billing' | 'site' | 'notes' | 'reports';
 
 /**
  * The project detail page.
@@ -62,7 +64,9 @@ export default function ProjectDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState<TabKey>('progress');
+  const [tab, setTab] = useState<TabKey>('overview');
+  const [viewer, setViewer] = useState<{ is_staff: boolean; is_lead: boolean }>({ is_staff: false, is_lead: false });
+  const [reportStatus, setReportStatus] = useState<ReportStatus | null>(null);
   const [typeProfiles, setTypeProfiles] = useState<ProjectTypeProfile[]>([FALLBACK]);
   const [confirm, setConfirm] = useState<{ title: string; message: string; danger?: boolean; run: () => void } | null>(null);
   const [editing, setEditing] = useState(false);
@@ -81,6 +85,12 @@ export default function ProjectDetailPage() {
       setTasks(d.tasks || []);
       setVariations(d.variations || []);
       setFin(d.financials);
+      setViewer(d.viewer || { is_staff: false, is_lead: false });
+      setReportStatus(d.report_status || null);
+      // The contract tools (programme, time claims, cash flow) are only fetched
+      // when the project uses them — most jobs never do.
+      const advanced = !!d.project?.advanced_tools && !!d.viewer?.is_staff;
+      const skip = (fallback: any) => Promise.resolve({ data: { data: fallback } });
       // The diary and time claims don't exist on every kind of job, and the API
       // refuses them rather than returning empty. Softened so one refusal can't
       // take the whole page down with it.
@@ -94,10 +104,10 @@ export default function ProjectDetailPage() {
         api.get(`/projects/${id}/billing`),
         api.get(`/projects/${id}/diary`).catch(optional({ entries: [], summary: null })),
         api.get(`/projects/${id}/documents`),
-        api.get(`/projects/${id}/schedule`).catch(optional({ has_baseline: false, actual_pct: 0, milestones: [], curve: [] })),
-        api.get(`/projects/${id}/baseline`).catch(optional([])),
-        api.get(`/projects/${id}/cashflow`),
-        api.get(`/projects/${id}/eot`).catch(optional({ claims: [], position: null })),
+        advanced ? api.get(`/projects/${id}/schedule`).catch(optional({ has_baseline: false, actual_pct: 0, milestones: [], curve: [] })) : skip({ has_baseline: false, actual_pct: 0, milestones: [], curve: [] }),
+        advanced ? api.get(`/projects/${id}/baseline`).catch(optional([])) : skip([]),
+        advanced ? api.get(`/projects/${id}/cashflow`).catch(optional(null)) : skip(null),
+        advanced ? api.get(`/projects/${id}/eot`).catch(optional({ claims: [], position: null })) : skip({ claims: [], position: null }),
       ]);
       setEot(et.data.data);
       setBilling(b.data.data);
@@ -123,9 +133,10 @@ export default function ProjectDetailPage() {
   // afterwards — an effect that calls setTab would paint the missing tab once
   // before replacing it, and cascade a second render every time.
   const caps = profileFor(typeProfiles, project?.project_type).capabilities;
+  const advancedTabs = !!project?.advanced_tools && canManage;
   const openTab: TabKey =
-    (tab === 'claims' && !caps.time_claims) || (tab === 'programme' && !caps.programme)
-      ? 'progress'
+    (tab === 'claims' && (!caps.time_claims || !advancedTabs)) || (tab === 'programme' && (!caps.programme || !advancedTabs)) || (tab === 'cashflow' && !advancedTabs)
+      ? 'overview'
       : tab;
 
   // The read-only page a client is given. Minted on first ask, so a job nobody
@@ -292,12 +303,27 @@ export default function ProjectDetailPage() {
                     <AlertTriangle className="w-3 h-3" /> Overdue
                   </span>
                 )}
+                {reportStatus?.last_health && (
+                  <span className={`badge gap-1 ${HEALTH[reportStatus.last_health].chip}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${HEALTH[reportStatus.last_health].dot}`} /> {HEALTH[reportStatus.last_health].label}
+                  </span>
+                )}
+                {reportStatus?.overdue && (
+                  <button type="button" onClick={() => setTab('reports')} className="badge bg-red-50 text-red-600 gap-1 hover:bg-red-100">
+                    Report {dueText(reportStatus)}
+                  </button>
+                )}
               </div>
               <h1 className="text-lg font-bold text-gray-900 truncate">{project.name}</h1>
               {project.description && (
                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">{project.description}</p>
               )}
               <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                {project.manager_id?.name && (
+                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                    <User className="w-3 h-3" /> Lead: <span className="font-medium text-gray-700">{project.manager_id.name}</span>
+                  </span>
+                )}
                 {project.customer_name && (
                   <span className="text-xs text-gray-500 flex items-center gap-1">
                     <User className="w-3 h-3" /> {project.customer_name}
@@ -357,7 +383,8 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {/* KPI cards */}
+        {/* KPI cards — money is for management; leads get the Overview tab instead. */}
+        {canManage && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="card">
             <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Progress</p>
@@ -390,19 +417,21 @@ export default function ProjectDetailPage() {
             <p className="text-xs text-gray-400 mt-1">Earned value less cost</p>
           </div>
         </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-0 border-b border-gray-200 overflow-x-auto">
           {([
-            { key: 'progress',  label: 'Progress',   show: true },
-            { key: 'reports',   label: 'Reports',    show: true },
-            { key: 'programme', label: 'Programme',  show: canManage && cap.programme },
-            { key: 'claims',    label: 'Time claims', show: canManage && cap.time_claims },
-            { key: 'money',     label: 'Money',      show: canManage },
-            { key: 'cashflow',  label: 'Cash flow',  show: canManage },
+            { key: 'overview',  label: 'Overview',   show: true },
+            { key: 'progress',  label: `${term.stages} & tasks`, show: true },
+            { key: 'reports',   label: reportStatus?.overdue ? 'Reports •' : 'Reports', show: true },
+            { key: 'money',     label: 'Budget',     show: canManage },
             { key: 'billing',   label: 'Billing',    show: canManage },
             { key: 'site',      label: term.site_tab, show: true },
-            { key: 'notes',     label: 'Notes',        show: canManage },
+            { key: 'notes',     label: 'Notes',      show: canManage },
+            { key: 'programme', label: 'Programme',  show: advancedTabs && cap.programme },
+            { key: 'claims',    label: 'Time claims', show: advancedTabs && cap.time_claims },
+            { key: 'cashflow',  label: 'Cash flow',  show: advancedTabs },
           ] as const).filter(t => t.show).map(t => (
             <button
               key={t.key}
@@ -417,11 +446,15 @@ export default function ProjectDetailPage() {
         </div>
 
 
-        {openTab === 'progress'  && <ProgressTab  {...tabProps} milestones={milestones} tasks={tasks} />}
+        {openTab === 'overview'  && (
+          <OverviewTab project={project} milestones={milestones} tasks={tasks} reportStatus={reportStatus}
+            isLead={viewer.is_lead} stageWord={term.stage} stagesWord={term.stages} onGo={setTab} />
+        )}
+        {openTab === 'progress'  && <ProgressTab  {...tabProps} canManage={canManage || viewer.is_lead} canBill={canManage} milestones={milestones} tasks={tasks} />}
         {openTab === 'programme' && <ProgrammeTab {...tabProps} schedule={schedule} baselines={baselines} />}
         {openTab === 'claims'    && <ClaimsTab    {...tabProps} eot={eot} />}
         {openTab === 'money'     && <MoneyTab     {...tabProps} fin={fin} variations={variations} />}
-        {openTab === 'cashflow'  && <CashflowTab  {...tabProps} cash={cash} />}
+        {openTab === 'cashflow'  && cash && <CashflowTab  {...tabProps} cash={cash} />}
         {openTab === 'billing'   && <BillingTab   {...tabProps} billing={billing} />}
         {openTab === 'site'      && <SiteTab      {...tabProps} diary={diary} docs={docs} />}
         {openTab === 'reports'   && <ReportsTab projectId={id} project={project} canManage={canManage} />}

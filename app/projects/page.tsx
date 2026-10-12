@@ -7,6 +7,7 @@ import { loadProjectTypes, FALLBACK, type ProjectTypeProfile } from '@/lib/proje
 import { toast } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import LeadSelect from '@/components/projects/LeadSelect';
+import { FREQUENCY, HEALTH, dueText, type Frequency, type ReportStatus } from '@/components/projects/reporting';
 import {
   Plus, RefreshCw, Briefcase, AlertTriangle, Search,
   X, Calendar, MapPin, User, ChevronRight, Clock3, FileText,
@@ -29,6 +30,7 @@ interface Project {
   is_overdue?: boolean;
   site_address?: string;
   manager_id?: { _id?: string; name: string } | null;
+  report_status?: ReportStatus;
   project_type?: string;
 }
 
@@ -47,7 +49,7 @@ const money = (n: number, c = 'GHS') =>
 const EMPTY_FORM = {
   name: '', customer_id: '', project_type: 'construction',
   contract_value: '', retention_pct: '', payment_terms_days: '30',
-  start_date: '', planned_end_date: '', site_address: '', description: '', manager_id: '',
+  start_date: '', planned_end_date: '', site_address: '', description: '', manager_id: '', report_frequency: 'weekly',
 };
 
 export default function ProjectsPage() {
@@ -135,6 +137,7 @@ export default function ProjectsPage() {
   const active    = projects.filter(p => p.status === 'active');
   const completed = projects.filter(p => p.status === 'completed');
   const overdue   = projects.filter(p => p.is_overdue);
+  const reportsLate = projects.filter(p => p.report_status?.overdue);
   const totalContract = projects.reduce((s, p) => s + (p.contract_value || 0), 0);
 
   return (
@@ -146,13 +149,14 @@ export default function ProjectsPage() {
       <div className="space-y-5">
 
         {/* Summary strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className={`grid grid-cols-2 gap-3 ${canManage ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
           {[
-            { label: 'Total projects',   value: String(projects.length), sub: `${completed.length} completed`,        tone: 'text-gray-900' },
-            { label: 'Active',           value: String(active.length),   sub: 'currently running',                    tone: 'text-green-600' },
-            { label: 'Contract value',   value: money(totalContract),    sub: 'across all projects',                  tone: 'text-gray-900' },
-            { label: 'Overdue',          value: String(overdue.length),  sub: overdue.length ? 'need attention' : 'all on track', tone: overdue.length ? 'text-red-600' : 'text-gray-900' },
-          ].map(s => (
+            { label: 'Total projects',   value: String(projects.length), sub: `${completed.length} completed`,        tone: 'text-gray-900', show: true },
+            { label: 'Active',           value: String(active.length),   sub: 'currently running',                    tone: 'text-green-600', show: true },
+            { label: 'Reports late',     value: String(reportsLate.length), sub: reportsLate.length ? 'leads to chase' : 'all up to date', tone: reportsLate.length ? 'text-red-600' : 'text-gray-900', show: true },
+            { label: 'Past due date',    value: String(overdue.length),  sub: overdue.length ? 'need attention' : 'all on track', tone: overdue.length ? 'text-red-600' : 'text-gray-900', show: true },
+            { label: 'Contract value',   value: `GHS ${new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(totalContract)}`, sub: money(totalContract),                  tone: 'text-gray-900', show: canManage },
+          ].filter(s => s.show).map(s => (
             <div key={s.label} className="card">
               <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{s.label}</p>
               <p className={`text-2xl font-extrabold mt-1 ${s.tone}`}>{s.value}</p>
@@ -245,8 +249,14 @@ export default function ProjectsPage() {
                     {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
-                <div className="sm:col-span-2">
+                <div>
                   <LeadSelect value={form.manager_id} onChange={v => setForm(f => ({ ...f, manager_id: v }))} />
+                </div>
+                <div>
+                  <label className="form-label">Lead reports</label>
+                  <select className="form-input" value={form.report_frequency} onChange={e => setForm(f => ({ ...f, report_frequency: e.target.value }))}>
+                    {(Object.keys(FREQUENCY) as Frequency[]).map(k => <option key={k} value={k}>{FREQUENCY[k]}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="form-label">Contract value (GH₵)</label>
@@ -363,6 +373,18 @@ export default function ProjectsPage() {
                       )}
                       {p.manager_id?.name && (
                         <p className="text-xs text-gray-500 truncate mt-0.5">Lead: {p.manager_id.name}</p>
+                      )}
+                      {(p.report_status?.last_health || p.report_status?.overdue) && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {p.report_status?.last_health && (
+                            <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md ${HEALTH[p.report_status.last_health].chip}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${HEALTH[p.report_status.last_health].dot}`} />{HEALTH[p.report_status.last_health].label}
+                            </span>
+                          )}
+                          {p.report_status?.overdue && (
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-red-50 text-red-700 ring-1 ring-red-100">Report {dueText(p.report_status)}</span>
+                          )}
+                        </div>
                       )}
                     </div>
                     <span className={`badge ${PROJECT_STATUS_STYLE[p.status] || PROJECT_STATUS_STYLE.draft} flex-shrink-0 gap-1`}>
