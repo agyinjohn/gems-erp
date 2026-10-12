@@ -16,14 +16,21 @@ import type { Milestone, Task } from '@/components/projects/types';
 interface Props extends TabProps {
   milestones: Milestone[];
   tasks: Task[];
+  /** Whether stage billing amounts may be set (managers, not leads). */
+  canBill?: boolean;
 }
 
 export default function ProgressTab({
-  projectId, profile, canManage, money, reload, removeIt, milestones, tasks
+  projectId, project, profile, canManage, canBill = canManage, money, reload, removeIt, milestones, tasks
 }: Props) {
   const term = profile.terms;
   const [msForm, setMsForm] = useState({ name: '', weight: '1', planned_end: '', billable_amount: '' });
-  const [taskForm, setTaskForm] = useState({ name: '', milestone_id: '', weight: '1' });
+  const [taskForm, setTaskForm] = useState({ name: '', milestone_id: '', assignee_id: '', due_date: '' });
+  // Tasks go to the people on this project: its lead and team.
+  const people: { id: string; name: string }[] = [project?.manager_id, ...(project?.team || [])]
+    .filter((p: any) => p && typeof p === 'object' && p.name)
+    .map((p: any) => ({ id: String(p._id || p.id), name: p.name }))
+    .filter((p, i, all) => all.findIndex(q => q.id === p.id) === i);
 
   const addMilestone = async () => {
     if (!msForm.name.trim()) return toast.error('Give the milestone a name');
@@ -52,9 +59,10 @@ export default function ProgressTab({
       await api.post(`/projects/${projectId}/tasks`, {
         name: taskForm.name,
         milestone_id: taskForm.milestone_id || undefined,
-        weight: parseFloat(taskForm.weight) || 1,
+        assignee_id: taskForm.assignee_id || undefined,
+        due_date: taskForm.due_date || undefined,
       });
-      setTaskForm({ name: '', milestone_id: '', weight: '1' });
+      setTaskForm({ name: '', milestone_id: '', assignee_id: '', due_date: '' });
       await reload();
     } catch (e: any) { toast.error(e.response?.data?.message || 'Could not add'); }
   };
@@ -104,7 +112,7 @@ export default function ProgressTab({
                         {own.length > 0 && (
                           <span className="text-xs text-gray-400">{doneTasks}/{own.length} tasks</span>
                         )}
-                        {m.billable_amount > 0 && (
+                        {canBill && m.billable_amount > 0 && (
                           <span className="text-xs text-gray-400">bills {money(m.billable_amount)}</span>
                         )}
                         {m.planned_end && (
@@ -157,10 +165,12 @@ export default function ProgressTab({
               <label className="form-label text-xs">Due date</label>
               <input type="date" className="form-input" value={msForm.planned_end} onChange={e => setMsForm(f => ({ ...f, planned_end: e.target.value }))} />
             </div>
-            <div>
-              <label className="form-label text-xs">Billable amount</label>
-              <input type="number" min={0} className="form-input" placeholder="0.00" value={msForm.billable_amount} onChange={e => setMsForm(f => ({ ...f, billable_amount: e.target.value }))} />
-            </div>
+            {canBill ? (
+              <div>
+                <label className="form-label text-xs">Billable amount</label>
+                <input type="number" min={0} className="form-input" placeholder="0.00" value={msForm.billable_amount} onChange={e => setMsForm(f => ({ ...f, billable_amount: e.target.value }))} />
+              </div>
+            ) : <div className="hidden sm:block" />}
             <div className="flex items-end">
               <button type="button" className="btn-secondary w-full justify-center" onClick={addMilestone}>
                 <Plus className="w-4 h-4" /> Add
@@ -209,8 +219,12 @@ export default function ProgressTab({
                   }`}>{t.name}</p>
                   <p className="text-xs text-gray-400">
                     {milestones.find(m => m.id === t.milestone_id)?.name || 'No milestone'}
-                    {t.assignee_id?.name && <> · {t.assignee_id.name}</>}
-                    {t.weight !== 1 && <> · wt {t.weight}</>}
+                    {t.assignee_id?.name && <> · <span className="text-gray-600">{t.assignee_id.name}</span></>}
+                    {t.due_date && (
+                      <> · <span className={t.status !== 'done' && new Date(t.due_date) < new Date(new Date().toDateString()) ? 'text-red-600 font-semibold' : ''}>
+                        due {new Date(t.due_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                      </span></>
+                    )}
                   </p>
                 </div>
                 <span className={`badge text-xs flex-shrink-0 ${
@@ -229,7 +243,8 @@ export default function ProgressTab({
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 border-t border-gray-100 pt-4">
+        {canManage && (
+        <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 border-t border-gray-100 pt-4">
           <div className="sm:col-span-2">
             <label className="form-label text-xs">Task name</label>
             <input className="form-input" placeholder="e.g. Excavate footings" value={taskForm.name} onChange={e => setTaskForm(f => ({ ...f, name: e.target.value }))} />
@@ -242,8 +257,15 @@ export default function ProgressTab({
             </select>
           </div>
           <div>
-            <label className="form-label text-xs">Weight</label>
-            <input type="number" min={0} className="form-input" value={taskForm.weight} onChange={e => setTaskForm(f => ({ ...f, weight: e.target.value }))} />
+            <label className="form-label text-xs">Assign to</label>
+            <select className="form-input" value={taskForm.assignee_id} onChange={e => setTaskForm(f => ({ ...f, assignee_id: e.target.value }))}>
+              <option value="">{people.length ? 'Unassigned' : 'Add a team first'}</option>
+              {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="form-label text-xs">Due date</label>
+            <input type="date" className="form-input" value={taskForm.due_date} onChange={e => setTaskForm(f => ({ ...f, due_date: e.target.value }))} />
           </div>
           <div className="flex items-end">
             <button type="button" className="btn-secondary w-full justify-center" onClick={addTask}>
@@ -251,6 +273,7 @@ export default function ProgressTab({
             </button>
           </div>
         </div>
+        )}
       </div>
     </>
   );

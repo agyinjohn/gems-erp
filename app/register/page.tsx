@@ -70,6 +70,7 @@ export default function RegisterPage() {
   const [paystackKey, setPaystackKey] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('pro');
   const [removedFeatures, setRemovedFeatures] = useState<string[]>([]);
+  const [registered, setRegistered] = useState(false);
 
   const toggleRemoved = (plan: string, key: string) => {
     if (!REMOVABLE_FEATURES[key]?.deduction[plan as 'starter' | 'pro' | 'enterprise']) return;
@@ -109,7 +110,7 @@ export default function RegisterPage() {
   }, []);
 
   const [form, setForm] = useState({
-    business_name: '', phone: '', address: '',
+    business_name: '', owner_name: '', phone: '', address: '',
     email: '', password: '', confirm_password: '',
   });
 
@@ -117,7 +118,8 @@ export default function RegisterPage() {
 
   const slug = form.business_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-  const phoneDigits = form.phone.replace(/\D/g, '');
+  // People type 024 412 3456 as often as 24 412 3456 — accept either.
+  const phoneDigits = form.phone.replace(/\D/g, '').replace(/^233/, '').replace(/^0/, '');
   const phoneValid = phoneDigits.length === 9;
   const phoneError = !!form.phone && !phoneValid;
 
@@ -131,6 +133,7 @@ export default function RegisterPage() {
 
   const validateStep1 = () => {
     if (!form.business_name.trim()) { setError('Business name is required.'); return false; }
+    if (!form.owner_name.trim()) { setError('Your full name is required.'); return false; }
     if (!form.address.trim()) { setError('Business address is required.'); return false; }
     if (!pwValid) { setError('Password does not meet all requirements.'); return false; }
     if (form.password !== form.confirm_password) { setError('Passwords do not match.'); return false; }
@@ -202,8 +205,11 @@ export default function RegisterPage() {
     if (!validateStep2()) return;
     setLoading(true); setError('');
     try {
-      await api.post('/tenants/register', {
+      // If the account was created but signing in afterwards failed, a retry
+      // must not try to create it again.
+      if (!registered) await api.post('/tenants/register', {
         business_name: form.business_name.trim(),
+        owner_name: form.owner_name.trim(),
         email: form.email.toLowerCase().trim(),
         password: form.password,
         phone: `+233${phoneDigits}`,
@@ -211,6 +217,7 @@ export default function RegisterPage() {
         plan: selectedPlan,
         removed_features: removedFeatures,
       });
+      setRegistered(true);
       // Auto-login to get token for card authorization
       const loginRes = await api.post('/auth/login', {
         email: form.email.toLowerCase().trim(),
@@ -442,6 +449,15 @@ export default function RegisterPage() {
                   </div>
 
                   <div>
+                    <label className="form-label">Your full name *</label>
+                    <div className="relative">
+                      <Users className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input className="form-input pl-10 h-11 sm:h-12 text-sm sm:text-base" placeholder="e.g. Ama Mensah" autoComplete="name"
+                        value={form.owner_name} onChange={e => set('owner_name', e.target.value)} />
+                    </div>
+                    <p className="form-hint">You&apos;ll be the business owner on the account.</p>
+                  </div>
+                  <div>
                     <label className="form-label">Address *</label>
                     <div className="relative">
                       <MapPin className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -507,8 +523,8 @@ export default function RegisterPage() {
 
                 <p className="text-xs text-gray-400 text-center mt-4">
                   By signing up you agree to our{' '}
-                  <a href="#" className="text-[#0D3B6E] hover:underline">Terms</a> and{' '}
-                  <a href="#" className="text-[#0D3B6E] hover:underline">Privacy Policy</a>
+                  <Link href="/terms" target="_blank" className="text-[#0D3B6E] hover:underline">Terms</Link> and{' '}
+                  <Link href="/privacy" target="_blank" className="text-[#0D3B6E] hover:underline">Privacy Policy</Link>
                 </p>
               </div>
             )}
@@ -554,7 +570,7 @@ export default function RegisterPage() {
                             <input
                               className={`form-input rounded-l-none flex-1 h-11 text-sm font-mono ${phoneError ? 'border-red-300' : ''}`}
                               placeholder="XX XXX XXXX"
-                              maxLength={11}
+                              maxLength={14}
                               value={form.phone}
                               onChange={e => { set('phone', e.target.value.replace(/[^\d\s]/g, '')); setOtpSent(false); setOtpValue(''); }}
                               disabled={otpSent}
@@ -570,7 +586,7 @@ export default function RegisterPage() {
                             {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : resendCooldown > 0 ? `${resendCooldown}s` : otpSent ? 'Resend' : 'Send Code'}
                           </button>
                         </div>
-                        {phoneError && <p className="text-xs text-red-500 mb-2">9 digits, no leading zero</p>}
+                        {phoneError && <p className="text-xs text-red-500 mb-2">Enter a Ghana mobile number, e.g. 024 412 3456</p>}
                         {phoneValid && !otpSent && <p className="text-xs text-green-600 mb-2 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> +233{phoneDigits}</p>}
 
                         {/* OTP input */}

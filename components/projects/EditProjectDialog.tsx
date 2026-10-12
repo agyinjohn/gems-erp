@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import LeadSelect from './LeadSelect';
+import TeamSelect from './TeamSelect';
+import { FREQUENCY, type Frequency } from './reporting';
 import { toast } from '@/components/ui';
 import { X, AlertTriangle } from 'lucide-react';
 import type { ProjectTypeProfile } from '@/lib/projectTypes';
@@ -48,6 +50,9 @@ export default function EditProjectDialog({ project, types, onClose, onSaved }: 
     actual_end_date: dateValue(project.actual_end_date),
     site_address: project.site_address || '',
     manager_id: project.manager_id?._id || project.manager_id || '',
+    team: (project.team || []).map((t: any) => String(t?._id || t?.id || t)) as string[],
+    report_frequency: (project.report_frequency || 'weekly') as Frequency,
+    advanced_tools: !!project.advanced_tools,
     status: project.status || 'draft',
   });
 
@@ -89,7 +94,7 @@ export default function EditProjectDialog({ project, types, onClose, onSaved }: 
     }
   };
 
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k: string, v: string | string[] | boolean) => setForm(f => ({ ...f, [k]: v }));
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
@@ -184,8 +189,19 @@ export default function EditProjectDialog({ project, types, onClose, onSaved }: 
               </div>
             )}
 
-            <div className="sm:col-span-2">
-              <LeadSelect value={form.manager_id} onChange={v => set('manager_id', v)} />
+            <div className="sm:col-span-2 rounded-xl bg-gray-50 p-4 space-y-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">People & reporting</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <LeadSelect value={form.manager_id} onChange={v => set('manager_id', v)} />
+                <div>
+                  <label className="form-label">Lead reports</label>
+                  <select className="form-input" value={form.report_frequency} onChange={e => set('report_frequency', e.target.value)}>
+                    {(Object.keys(FREQUENCY) as Frequency[]).map(f => <option key={f} value={f}>{FREQUENCY[f]}</option>)}
+                  </select>
+                  <p className="form-hint">The project is flagged when a report is late.</p>
+                </div>
+              </div>
+              <TeamSelect value={form.team} onChange={v => set('team', v)} leadId={form.manager_id} />
             </div>
 
             <div>
@@ -217,6 +233,13 @@ export default function EditProjectDialog({ project, types, onClose, onSaved }: 
               <label className="form-label">Site / location</label>
               <input className="form-input" value={form.site_address} onChange={e => set('site_address', e.target.value)} />
             </div>
+            <label className="sm:col-span-2 flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer hover:bg-gray-50">
+              <input type="checkbox" className="w-4 h-4 mt-0.5" checked={form.advanced_tools} onChange={e => set('advanced_tools', e.target.checked)} />
+              <span>
+                <span className="block text-sm font-semibold text-gray-800">Advanced contract tools</span>
+                <span className="block text-xs text-gray-500 mt-0.5">Frozen programme comparison, extension-of-time claims and the cash-flow forecast. Most projects don&apos;t need these.</span>
+              </span>
+            </label>
           </div>
         </div>
 
