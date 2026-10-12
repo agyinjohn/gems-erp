@@ -82,6 +82,7 @@ export default function UsersPage() {
   const [selectedRole, setSelectedRole] = useState<any>(null);
   const [confirmRole, setConfirmRole]   = useState<any>(null);
   const [roleSaving, setRoleSaving]     = useState(false);
+  const [openModules, setOpenModules]   = useState<Record<string, boolean>>({});
   const [roleForm, setRoleForm] = useState({ name: '', permissions: [] as string[] });
 
   // ── Load ──
@@ -164,10 +165,12 @@ export default function UsersPage() {
 
   // ── Role actions ──
   const openAddRole = () => {
+    setOpenModules({});
     setRoleForm({ name: '', permissions: [] });
     setRoleModal('add');
   };
   const openEditRole = (r: any) => {
+    setOpenModules({});
     setSelectedRole(r);
     setRoleForm({ name: r.name, permissions: toBuilder(r.permissions || []) });
     setRoleModal('edit');
@@ -434,39 +437,49 @@ export default function UsersPage() {
           </div>
 
           <div>
-            <label className="form-label mb-1">Pages</label>
-            <p className="text-xs text-gray-400 mb-3">Choose exactly which pages this role can open. Tick a section to select all its pages.</p>
-            <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
+            <label className="form-label mb-1">Modules &amp; pages</label>
+            <p className="text-xs text-gray-400 mb-3">Tick a module to give access to all of its pages, then untick any page you want to leave out. Open a module to see its pages.</p>
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
               {BUILDER_GROUPS.map(group => {
                 const keys = group.perms.map(p => p.key);
-                const allOn = keys.every(k => roleForm.permissions.includes(k));
-                const someOn = keys.some(k => roleForm.permissions.includes(k));
+                const onCount = keys.filter(k => roleForm.permissions.includes(k)).length;
+                const allOn = onCount === keys.length;
+                const someOn = onCount > 0 && !allOn;
+                const isOpen = openModules[group.group] ?? someOn;
                 return (
                   <div key={group.group} className="border border-gray-100 rounded-xl overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => toggleGroup(keys)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors"
-                    >
-                      <span className="text-sm font-semibold text-gray-700">{group.title}</span>
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${allOn ? 'bg-[#0D3B6E] border-[#0D3B6E]' : someOn ? 'bg-[#0D3B6E]/20 border-[#0D3B6E]/40' : 'border-gray-300'}`}>
-                        {allOn && <span className="text-white text-xs">✓</span>}
-                        {someOn && !allOn && <span className="text-[#0D3B6E] text-xs">–</span>}
-                      </div>
-                    </button>
-                    <div className="px-4 py-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {group.perms.map(perm => (
-                        <label key={perm.key} className="flex items-center gap-2.5 cursor-pointer py-1">
-                          <input
-                            type="checkbox"
-                            checked={roleForm.permissions.includes(perm.key)}
-                            onChange={() => togglePerm(perm.key)}
-                            className="w-4 h-4 text-[#0D3B6E] rounded"
-                          />
-                          <span className="text-sm text-gray-600">{perm.label}</span>
-                        </label>
-                      ))}
+                    <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-50">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-[#0D3B6E] rounded"
+                        checked={allOn}
+                        ref={el => { if (el) el.indeterminate = someOn; }}
+                        onChange={() => toggleGroup(keys)}
+                        aria-label={`Select all of ${group.title}`}
+                      />
+                      <button type="button" onClick={() => setOpenModules(m => ({ ...m, [group.group]: !isOpen }))} className="flex-1 flex items-center justify-between text-left">
+                        <span className="text-sm font-semibold text-gray-700">{group.title}</span>
+                        <span className="flex items-center gap-2 text-xs text-gray-400">
+                          {onCount} of {keys.length}
+                          <span className={`transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>
+                        </span>
+                      </button>
                     </div>
+                    {isOpen && (
+                      <div className="px-4 py-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {group.perms.map(perm => (
+                          <label key={perm.key} className="flex items-center gap-2.5 cursor-pointer py-1">
+                            <input
+                              type="checkbox"
+                              checked={roleForm.permissions.includes(perm.key)}
+                              onChange={() => togglePerm(perm.key)}
+                              className="w-4 h-4 text-[#0D3B6E] rounded"
+                            />
+                            <span className="text-sm text-gray-600">{perm.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
