@@ -149,11 +149,14 @@ export default function UsersPage() {
         role: isCustomRoleId ? 'custom' : userForm.role,
         custom_role_id: isCustomRoleId ? userForm.role : '',
       };
-      if (userModal === 'add') await api.post('/users', payload);
-      else await api.put(`/users/${selectedUser.id}`, payload);
+      const r = userModal === 'add'
+        ? await api.post('/users', payload)
+        : await api.put(`/users/${selectedUser.id}`, payload);
       setUserModal(null);
       load();
-      toast.success(userModal === 'add' ? 'User created' : 'User updated');
+      // Picking an employee who already signs in links the two instead of
+      // creating a second login — say so, since no new account appeared.
+      toast.success(r.data?.linked ? r.data.message : userModal === 'add' ? 'User created' : 'User updated');
     } catch (e: any) { toast.error(e.response?.data?.message || 'Something went wrong'); }
     finally { setUserSaving(false); }
   };
