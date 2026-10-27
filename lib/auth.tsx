@@ -36,13 +36,26 @@ interface Branch {
   slug: string;
 }
 
+export type TwoFactorMethod = 'totp' | 'sms' | 'email';
+/** What the server says after a right password on a two-factor account. */
+export interface TwoFactorChallenge {
+  token: string;
+  method: TwoFactorMethod;
+  /** Masked phone or email the code went to (text/email methods). */
+  destination?: string;
+  /** Seconds before another code can be asked for. */
+  resendIn?: number;
+  sendFailed?: boolean;
+  message?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   tenant: Tenant | null;
   branch: Branch | null;
   loading: boolean;
   /** Resolves with a challenge when a second step is needed; otherwise the user is signed in. */
-  login: (email: string, password: string) => Promise<{ twoFactorToken?: string }>;
+  login: (email: string, password: string) => Promise<{ challenge?: TwoFactorChallenge }>;
   /** Re-read the signed-in user from the server (role, permissions, security settings). */
   refreshUser: (force?: boolean) => Promise<void>;
   /** Second step of sign-in: an authenticator code, or one of the saved recovery codes. */
@@ -176,7 +189,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
-    if (res.data.two_factor_required) return { twoFactorToken: res.data.data.challenge_token as string };
+    if (res.data.two_factor_required) {
+      const d = res.data.data;
+      return { challenge: {
+        token: d.challenge_token, method: d.method || 'totp', destination: d.destination,
+        resendIn: d.resend_in, sendFailed: !!d.send_failed, message: res.data.message,
+      } };
+    }
     completeLogin(res.data.data);
     return {};
   };

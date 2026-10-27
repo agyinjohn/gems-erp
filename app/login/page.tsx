@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/lib/auth';
+import { useAuth, type TwoFactorChallenge } from '@/lib/auth';
+import api from '@/lib/api';
 import {
   Mail, Lock, Eye, EyeOff, Loader2, ArrowRight,
   ChevronRight, Package, BarChart3, ShoppingCart,
@@ -38,6 +39,8 @@ const MODULES = [
 /* ─── main page ─────────────────────────────────────────────────────────── */
 export default function LoginPage() {
   const { login, verifyTwoFactor } = useAuth();
+  const [info, setInfo] = useState('');
+  const [cooldown, setCooldown] = useState(0);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -45,14 +48,20 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
-  // Second step: set once the password has been accepted for an account that uses an authenticator app.
-  const [challenge, setChallenge] = useState<string | null>(null);
+  // Second step: set once the password has been accepted for a two-factor account.
+  const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
   const [code, setCode] = useState('');
   const [useRecovery, setUseRecovery] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 80);
     return () => clearTimeout(t);
   }, []);
+  // Count down until another text/email code may be asked for.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +69,12 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const r = await login(email, password);
-      if (r.twoFactorToken) { setChallenge(r.twoFactorToken); setCode(''); setUseRecovery(false); }
+      if (r.challenge) {
+        setChallenge(r.challenge); setCode(''); setUseRecovery(false);
+        setCooldown(r.challenge.method === 'totp' ? 0 : r.challenge.resendIn || 30);
+        setInfo('');
+        if (r.challenge.sendFailed) setError(r.challenge.message || 'We could not send your code. Try again shortly, or use a recovery code.');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid email or password. Please try again.');
     } finally {
@@ -74,16 +88,38 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await verifyTwoFactor(challenge, useRecovery ? { recovery_code: code.trim() } : { code: code.trim() });
+      await verifyTwoFactor(challenge.token, useRecovery ? { recovery_code: code.trim() } : { code: code.trim() });
     } catch (err: any) {
       const status = err.response?.status;
       setError(err.response?.data?.message || 'That code did not work. Please try again.');
       // The pass is good for five minutes; once it has lapsed, start over.
-      if (status === 401 && /expired|sign in again/i.test(err.response?.data?.message || '')) setChallenge(null);
+      if (status === 401 && /sign-in has expired|sign in again/i.test(err.response?.data?.message || '')) setChallenge(null);
     } finally {
       setLoading(false);
     }
   };
+
+  const resend = async () => {
+    if (!challenge || cooldown > 0) return;
+    setError(''); setInfo('');
+    try {
+      const r = await api.post('/auth/2fa/resend', { challenge_token: challenge.token });
+      setInfo(r.data.message || 'A new code is on its way.');
+      setCooldown(r.data.data?.resend_in || 30);
+      setCode('');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Could not send a new code.');
+      if (err.response?.data?.data?.resend_in) setCooldown(err.response.data.data.resend_in);
+      if (err.response?.status === 401) setChallenge(null);
+    }
+  };
+
+  const sentBy = challenge?.method === 'sms' ? 'text message' : 'email';
+  const codeHint = useRecovery
+    ? 'Enter one of the recovery codes you saved when you turned on two-factor sign-in.'
+    : challenge?.method === 'totp'
+      ? 'Open your authenticator app and enter the 6-digit code for GEMS.'
+      : `We sent a 6-digit code by ${sentBy} to ${challenge?.destination || 'you'}. It expires in 10 minutes.`;
 
   return (
     <div className="min-h-dvh flex flex-col lg:flex-row bg-[#060d1a]">
@@ -199,11 +235,14 @@ export default function LoginPage() {
                 )}
                 <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-blue-50 border border-blue-100 text-[#0D3B6E] text-sm">
                   <KeyRound className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>{useRecovery ? 'Enter one of the recovery codes you saved when you turned on two-factor sign-in.' : 'Open your authenticator app and enter the 6-digit code for GEMS.'}</span>
+                  <span>{codeHint}</span>
                 </div>
+                {info && !error && (
+                  <div role="status" className="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm">{info}</div>
+                )}
                 <div className="space-y-1.5">
                   <label htmlFor="code" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {useRecovery ? 'Recovery code' : 'Authentication code'}
+                    {useRecovery ? 'Recovery code' : challenge.method === 'totp' ? 'Authentication code' : `Code from your ${sentBy}`}
                   </label>
                   <input
                     id="code"
@@ -222,12 +261,22 @@ export default function LoginPage() {
                   className="w-full h-12 rounded-xl bg-[#0D3B6E] hover:bg-[#134a82] disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Verify and sign in <ArrowRight className="w-4 h-4" /></>}
                 </button>
+                {challenge.method !== 'totp' && !useRecovery && (
+                  <p className="text-center text-xs text-gray-500">
+                    Didn&apos;t get it?{' '}
+                    <button type="button" onClick={resend} disabled={cooldown > 0} className="font-semibold text-[#0D3B6E] hover:underline disabled:text-gray-400 disabled:no-underline">
+                      {cooldown > 0 ? `Send again in ${cooldown}s` : 'Send a new code'}
+                    </button>
+                  </p>
+                )}
                 <div className="flex items-center justify-between text-xs">
-                  <button type="button" onClick={() => { setChallenge(null); setCode(''); setError(''); }} className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700">
+                  <button type="button" onClick={() => { setChallenge(null); setCode(''); setError(''); setInfo(''); }} className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700">
                     <ArrowLeft className="w-3.5 h-3.5" /> Back
                   </button>
                   <button type="button" onClick={() => { setUseRecovery(v => !v); setCode(''); setError(''); }} className="font-semibold text-[#0D3B6E] hover:underline">
-                    {useRecovery ? 'Use my authenticator app' : "Can't use your app? Use a recovery code"}
+                    {useRecovery
+                      ? (challenge.method === 'totp' ? 'Use my authenticator app' : `Use the code from my ${sentBy}`)
+                      : challenge.method === 'totp' ? "Can't use your app? Use a recovery code" : 'Use a recovery code instead'}
                   </button>
                 </div>
               </form>
