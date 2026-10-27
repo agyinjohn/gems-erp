@@ -376,7 +376,7 @@ export default function UsersPage() {
           )}
           <div><label className="form-label">Full Name *</label><input className="form-input" disabled={!!userForm.employee_id} value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })} /></div>
           <div><label className="form-label">Email *</label><input type="email" className="form-input" value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} /></div>
-          {userModal === 'add' && <div><label className="form-label">Password *</label><input type="password" className="form-input" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} placeholder="Min 6 characters" /></div>}
+          {userModal === 'add' && <div><label className="form-label">Password *</label><input type="password" className="form-input" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} placeholder="Temporary password" autoComplete="new-password" /><p className="form-hint">At least 8 characters with an uppercase letter, a number and a symbol. Ask them to change it after signing in.</p></div>}
 
           <div>
             <label className="form-label">Role *</label>

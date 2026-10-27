@@ -39,7 +39,7 @@ export default function SupportPage() {
 
   useEffect(() => {
     loadConversations();
-    const socket = io(SOCKET_URL, { transports: ['websocket'] });
+    const socket = io(SOCKET_URL, { transports: ['websocket'], auth: { token: localStorage.getItem('gems_token') || '' } });
     socket.emit('join_admin');
     socket.on('new_tenant_message', () => loadConversations());
     socket.on('new_message', (msg: Message) => {

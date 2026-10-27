@@ -60,7 +60,10 @@ let redirecting = false;
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined' && !redirecting) {
+    // A 401 from the sign-in calls themselves is just "wrong password" or
+    // "wrong code" — the page shows that message, it must not reload and wipe it.
+    const isAuthCall = /\/auth\/(login|2fa\/verify|forgot-password|reset-password)/.test(error.config?.url || '');
+    if (error.response?.status === 401 && typeof window !== 'undefined' && !redirecting && !isAuthCall) {
       const token = localStorage.getItem('gems_token');
       // Only redirect if there genuinely is no token — not just a race during
       // page load where the request fired before the token was attached.

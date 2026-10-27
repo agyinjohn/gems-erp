@@ -22,9 +22,10 @@ export default function ForgotPasswordPage() {
     if (!email.trim()) { setError('Email is required.'); return; }
     setLoading(true); setError('');
     try {
-      const r = await api.post('/auth/forgot-password', { email: email.trim().toLowerCase() });
-      const verificationId = r.data.data?.verificationId || '';
-      router.push(`/reset-password?id=${verificationId}&email=${encodeURIComponent(email.trim().toLowerCase())}`);
+      await api.post('/auth/forgot-password', { email: email.trim().toLowerCase() });
+      // The server answers the same whether or not the address has an account,
+      // so the next step is always offered.
+      router.push(`/reset-password?email=${encodeURIComponent(email.trim().toLowerCase())}`);
     } catch(e: any) {
       setError(e.response?.data?.message || 'Something went wrong. Please try again.');
     } finally { setLoading(false); }

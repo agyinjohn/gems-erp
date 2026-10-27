@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Bell, Search, X, Package, ShoppingCart, Users, AlertTriangle, Info, LogOut, KeyRound, ChevronDown, Menu, Building2 } from 'lucide-react';
+import { Bell, Search, X, Package, ShoppingCart, Users, AlertTriangle, Info, LogOut, KeyRound, ChevronDown, Menu, Building2, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
@@ -294,6 +295,12 @@ export default function Header({ title, subtitle, onMenuClick, sidebarCollapsed,
                   <KeyRound className="w-4 h-4 text-gray-400" />
                   Change Password
                 </button>
+                <Link href="/account/security" onClick={() => setProfileOpen(false)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                  <ShieldCheck className="w-4 h-4 text-gray-400" />
+                  <span className="flex-1">Account security</span>
+                  {!user?.twofa_enabled && <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">2FA off</span>}
+                </Link>
                 <div className="border-t border-gray-100 my-1" />
                 <button onClick={() => { setProfileOpen(false); setLogoutModal(true); }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">

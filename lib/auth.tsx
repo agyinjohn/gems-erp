@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import api, { apiCache } from './api';
 import { getLoginRedirect } from './productMode';
@@ -11,6 +11,8 @@ interface User {
   email: string;
   role: string;
   permissions: string[];
+  /** Whether sign-in asks for a code from an authenticator app. */
+  twofa_enabled?: boolean;
   tenant_id: string | null;
   branch_id: string | null;
   is_active: boolean;
@@ -39,7 +41,12 @@ interface AuthContextType {
   tenant: Tenant | null;
   branch: Branch | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** Resolves with a challenge when a second step is needed; otherwise the user is signed in. */
+  login: (email: string, password: string) => Promise<{ twoFactorToken?: string }>;
+  /** Re-read the signed-in user from the server (role, permissions, security settings). */
+  refreshUser: (force?: boolean) => Promise<void>;
+  /** Second step of sign-in: an authenticator code, or one of the saved recovery codes. */
+  verifyTwoFactor: (challengeToken: string, entry: { code?: string; recovery_code?: string }) => Promise<void>;
   logout: () => void;
   isRole: (...roles: string[]) => boolean;
   allowedModules: string[];
@@ -117,31 +124,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // when the tab regains focus, so a change takes effect without logging out.
   const hasUser = !!user;
   const lastRefresh = useRef(0);
+  const refreshUser = useCallback(async (force = false) => {
+    if (!force && Date.now() - lastRefresh.current < 30_000) return;
+    lastRefresh.current = Date.now();
+    try {
+      const res = await api.get('/auth/me');
+      const { user: fresh, tenant: freshTenant, branch: freshBranch } = res.data.data || {};
+      if (!fresh) return;
+      const next = { ...fresh, id: fresh.id || fresh._id, permissions: fresh.permissions || [] };
+      localStorage.setItem('gems_user', JSON.stringify(next));
+      setUser(next);
+      if (freshTenant) {
+        const t = { ...freshTenant, removed_features: freshTenant.removed_features || [] };
+        localStorage.setItem('gems_tenant', JSON.stringify(t));
+        setTenant(t);
+      }
+      if (freshBranch) localStorage.setItem('gems_branch', JSON.stringify(freshBranch));
+      else localStorage.removeItem('gems_branch');
+      setBranch(freshBranch || null);
+    } catch { /* offline or signed out — the 401 handler deals with the latter */ }
+  }, []);
   useEffect(() => {
     if (!hasUser) return;
-    const refresh = () => {
-      if (Date.now() - lastRefresh.current < 30_000) return;
-      lastRefresh.current = Date.now();
-      api.get('/auth/me').then((res) => {
-        const { user: fresh, tenant: freshTenant, branch: freshBranch } = res.data.data || {};
-        if (!fresh) return;
-        const next = { ...fresh, id: fresh.id || fresh._id, permissions: fresh.permissions || [] };
-        localStorage.setItem('gems_user', JSON.stringify(next));
-        setUser(next);
-        if (freshTenant) {
-          const t = { ...freshTenant, removed_features: freshTenant.removed_features || [] };
-          localStorage.setItem('gems_tenant', JSON.stringify(t));
-          setTenant(t);
-        }
-        if (freshBranch) localStorage.setItem('gems_branch', JSON.stringify(freshBranch));
-        else localStorage.removeItem('gems_branch');
-        setBranch(freshBranch || null);
-      }).catch(() => { /* offline or signed out — the 401 handler deals with the latter */ });
-    };
-    refresh();
-    window.addEventListener('focus', refresh);
-    return () => window.removeEventListener('focus', refresh);
-  }, [hasUser]);
+    refreshUser();
+    const onFocus = () => { refreshUser(); };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [hasUser, refreshUser]);
 
   // Switch active branch: persist, clear cached data (keyed on plain URLs),
   // and reload so every page refetches with the new scope.
@@ -153,9 +162,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') window.location.reload();
   };
 
-  const login = async (email: string, password: string) => {
-    const res = await api.post('/auth/login', { email, password });
-    const { token, user, tenant, branch } = res.data.data;
+  const completeLogin = (data: any) => {
+    const { token, user, tenant, branch } = data;
     localStorage.setItem('gems_token', token);
     localStorage.setItem('gems_user', JSON.stringify({ ...user, permissions: user.permissions || [] }));
     if (tenant) localStorage.setItem('gems_tenant', JSON.stringify({ ...tenant, removed_features: tenant.removed_features || [] }));
@@ -164,6 +172,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTenant(tenant || null);
     setBranch(branch || null);
     router.push(getLoginRedirect(user.role));
+  };
+
+  const login = async (email: string, password: string) => {
+    const res = await api.post('/auth/login', { email, password });
+    if (res.data.two_factor_required) return { twoFactorToken: res.data.data.challenge_token as string };
+    completeLogin(res.data.data);
+    return {};
+  };
+
+  const verifyTwoFactor = async (challengeToken: string, entry: { code?: string; recovery_code?: string }) => {
+    const res = await api.post('/auth/2fa/verify', { challenge_token: challengeToken, ...entry });
+    completeLogin(res.data.data);
   };
 
   const logout = () => {
@@ -185,7 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasModule = (module: string) => user?.role === 'platform_admin' || allowedModules.includes(module);
 
   return (
-    <AuthContext.Provider value={{ user, tenant, branch, loading, login, logout, isRole, allowedModules, hasModule, isOrgLevel, branches, activeBranchId, setActiveBranch }}>
+    <AuthContext.Provider value={{ user, tenant, branch, loading, login, verifyTwoFactor, refreshUser, logout, isRole, allowedModules, hasModule, isOrgLevel, branches, activeBranchId, setActiveBranch }}>
       {children}
     </AuthContext.Provider>
   );

@@ -95,7 +95,7 @@ export default function ChatWidget() {
       const msgs = await api.get(`/chat/messages/${id}`);
       setMessages(msgs.data.data);
       if (!socketRef.current) {
-        const socket = io(SOCKET_URL, { transports: ['websocket'] });
+        const socket = io(SOCKET_URL, { transports: ['websocket'], auth: { token: localStorage.getItem('gems_token') || '' } });
         socket.emit('join_conversation', id);
         socket.on('new_message', (msg: Message) => {
           setMessages(prev => [...prev, msg]);

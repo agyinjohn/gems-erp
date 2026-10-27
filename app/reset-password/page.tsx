@@ -8,7 +8,6 @@ import api from '@/lib/api';
 function ResetPasswordForm() {
   const router         = useRouter();
   const params         = useSearchParams();
-  const verificationId = params.get('id') || '';
   const email          = params.get('email') || '';
 
   const [code, setCode]           = useState('');
@@ -20,7 +19,6 @@ function ResetPasswordForm() {
   const [done, setDone]           = useState(false);
   const [resending, setResending] = useState(false);
   const [timer, setTimer]         = useState(60);
-  const [verifId, setVerifId]     = useState(verificationId);
 
   // Countdown timer
   useEffect(() => {
@@ -33,8 +31,7 @@ function ResetPasswordForm() {
     if (!email || timer > 0) return;
     setResending(true); setError('');
     try {
-      const r = await api.post('/auth/forgot-password', { email });
-      setVerifId(r.data.data?.verificationId || verifId);
+      await api.post('/auth/forgot-password', { email });
       setTimer(60);
       setCode('');
     } catch(e: any) {
@@ -56,7 +53,7 @@ function ResetPasswordForm() {
     if (newPw !== confirm) { setError('Passwords do not match.'); return; }
     setLoading(true); setError('');
     try {
-      await api.post('/auth/reset-password', { verificationId: verifId, verificationCode: code.trim(), newPassword: newPw });
+      await api.post('/auth/reset-password', { email, code: code.trim(), newPassword: newPw });
       setDone(true);
     } catch(e: any) {
       setError(e.response?.data?.message || 'Invalid or expired code. Please try again.');

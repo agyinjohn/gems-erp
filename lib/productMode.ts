@@ -20,9 +20,9 @@ export const MODE_HOME: Record<ProductMode, string> = {
 /** Merchant app routes allowed in each product bundle (null = all) */
 export const MODE_NAV: Record<ProductMode, string[] | null> = {
   full: null,
-  pos: ['/pos', '/inventory', '/orders', '/payment-logs', '/users', '/branches', '/billing', '/dashboard', '/ess', '/reports'],
-  storefront: ['/store-settings', '/inventory', '/service-catalog', '/orders', '/users', '/branches', '/billing', '/dashboard', '/ess', '/api-docs'],
-  accounting: ['/accounting', '/payment-logs', '/refunds', '/approvals', '/reports', '/users', '/billing', '/dashboard', '/ess'],
+  pos: ['/pos', '/inventory', '/orders', '/payment-logs', '/users', '/branches', '/billing', '/dashboard', '/ess', '/reports', '/tasks', '/account'],
+  storefront: ['/store-settings', '/inventory', '/service-catalog', '/orders', '/users', '/branches', '/billing', '/dashboard', '/ess', '/api-docs', '/tasks', '/account'],
+  accounting: ['/accounting', '/payment-logs', '/refunds', '/approvals', '/reports', '/users', '/billing', '/dashboard', '/ess', '/tasks', '/account'],
 };
 
 const PUBLIC_APP_PATHS = [

@@ -29,6 +29,7 @@ export const PAGE_CATALOG: PageDef[] = [
   { href: '/dashboard',      label: 'Dashboard',        group: 'General', legacy: 'dashboard.view' },
   { href: '/ess',            label: 'My Portal',        group: 'General', legacy: 'ess.view' },
   { href: '/tasks',          label: 'My Tasks',         group: 'General', legacy: null, always: true },
+  { href: '/account/security', label: 'Account security', group: 'General', legacy: null, always: true },
 
   { href: '/pos',            label: 'POS',              group: 'Sales & Stock', legacy: 'pos.view' },
   { href: '/pos/shifts',     label: 'Shift History',    group: 'Sales & Stock', legacy: 'pos.view' },
